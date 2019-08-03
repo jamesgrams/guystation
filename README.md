@@ -12,16 +12,16 @@ Create the directory `systems/<desired_system>/games/<game_name>`. Place the ROM
 
 # File Structure for Systems Directory
 * systems
-    * <system> (d)
+    * `<system>` (d)
         * emulator (d) - you may have to make this directory
         * games (d)
-            * <game> (d)
+            * `<game>` (d)
                 * <ROM>
                 * saves (d)
-                    * <save> (d)
-                        * <save file>
+                    * `<save>` (d)
+                        * `<save file>`
                         * screenshots (d)
-                            * <screenshot>
+                            * `<screenshot>`
                     * current (d) - symlink to the current save directory
 
 # Helpful Hints

@@ -81,7 +81,7 @@ function writeResponse( response, status, object, code, contentType ) {
 // TODO Focus for other systems?
 // TODO readme
 // TODO setup.sh for linux?
-// TODO // Change how emulators works. Have the user build the forked version.
+// TODO // Change how emulators works. Have the user build the forked version. Just do ubuntu for now.
 
 /**
  * Generate data about available options to the user
