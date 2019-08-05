@@ -8,7 +8,7 @@ const express = require('express');
 const puppeteer = require('puppeteer');
 const proc = require( 'child_process' );
 const fs = require('fs');
-const path = require('path')
+const path = require('path');
 
 const PORT = 8081;
 const ASSETS_DIR = "assets";
@@ -25,6 +25,9 @@ const SYSTEMS_DIR_FULL = WORKING_DIR + SEPARATOR + SYSTEMS_DIR;
 const SUCCESS = "success";
 const FAILURE = "failure";
 const SPACE = " ";
+// https://stackoverflow.com/questions/3050518/what-http-status-response-code-should-i-use-if-the-request-is-missing-a-required
+const HTTP_SEMANTIC_ERROR = 422;
+const HTTP_OK = 200;
 
 let currentSystem = null;
 let currentGame = null;
@@ -35,18 +38,63 @@ let systemsDict = {};
 // Load the data on startup
 getData();
 
+//Launch Puppeteer
+let browser = await puppeteer.launch({
+    headless: false,
+    args: ['--disable-infobars','--start-fullscreen']
+});
+
 /**************** Express ****************/
 
 const app = express();
 app.use( ASSETS_DIR, express.static(ASSETS_DIR) );
 app.use( SYSTEMS_DIR, express.static(SYSTEMS_DIR) );
+app.use( express.json() );
 
 // Get Data
 app.get("/data", async function(request, response) {
     writeResponse( response, SUCCESS, systemsDict );
 });
 
+// Launch a game
+app.post("/launch", async function(request, response) {
+    let errorMessage = isInvalidGame( request.body.system, request.body.game ) ;
+    if( errorMessage ) {
+        writeResponse( response, FAILURE, { "message": errorMessage }, HTTP_SEMANTIC_ERROR );
+    }
+    else {
+        launchGame( request.body.system, request.body.game );
+        getData(); // Reload data
+        writeResponse( response, SUCCESS, systemsDict ); // Respond with the updated data
+    }
+});
+
+// Quit a game
+app.post("/quit", async function(request, response) {
+    quitGame();
+    // TODO refocus Puppeteer
+    getData(); // Reload data
+    writeResponse( response, SUCCESS, systemsDict ); // Respond with the updated data
+});
+
+// Listen for requests
 app.listen(PORT);
+
+/**
+ * Determine if a game is not available.
+ * @param {string} system - the system the game is on
+ * @param {string} game - the game to play
+ * @returns false if the game is available, or an error message if it is not
+ */
+function isInvalidGame( system, game ) {
+    if( !system || !systemsDict[system] ) {
+        return "system does not exist.";
+    }
+    else if( !game || !systemsDict[system].games[game] ) {
+        return "game does not exist.";
+    }
+    return false;
+}
 
 /**
  * Send a response to the user
@@ -57,10 +105,10 @@ app.listen(PORT);
  * @param {String} contentType - the content type of the response (defaults to application/json)
  */
 function writeResponse( response, status, object, code, contentType ) {
-    if( !code ) { code = 200; }
+    if( !code ) { code = HTTP_OK; }
     if( !contentType ) { contentType = "application/json"; }
     if( !object ) { object = {}; }
-    response.writeHead(200, {'Content-Type': 'application/json'});
+    response.writeHead(code, {'Content-Type': 'application/json'});
     
     let responseObject = Object.assign( {status:status}, object );
     response.end(JSON.stringify(responseObject));
@@ -69,8 +117,11 @@ function writeResponse( response, status, object, code, contentType ) {
 /**************** Functions ****************/
 
 // TODO express
-// TODO frontend && Puppeteor
+// TODO frontend && Puppeteer
 // TODO: Setup script to open on startup
+// TODO add/delete/update a game functions - this will be good for boradcasting the ip, so you can control the interface
+// with you phone in addition to the puppeteer browser
+// TODO don't listen until browser is ready
 
 /**
  * Generate data about available options to the user
@@ -111,7 +162,7 @@ function getData() {
             let gameDirContents =  fs.readdirSync(generateGameDir(system, game));
             // Try to figure out the ROM file
             for( let gameDirContent of gameDirContents ) {
-                if( gameDirContent != "saves" && !gameDirContent.match(/\.sav$/) && !gameDirContent.match(/^\./) ) {
+                if( gameDirContent != "saves" && !gameDirContent.match(/^\./) ) {
                     gameData.rom = gameDirContent;
                     break;
                 }
@@ -164,6 +215,11 @@ function getData() {
             if( !gameData.currentSave ) {
                 changeSave( system, game, saves[0] );
                 gameData.currentSave = getCurrentSave(system, game);
+            }
+
+            // If this game is being played, indicate as such
+            if( isBeingPlayed( system, game ) ) {
+                gamesDict[game].playing = true;
             }
 
             // Add this game to the dictionary of games for this system
