@@ -22,16 +22,9 @@ const WORKING_DIR = process.cwd();
 const SEPARATOR = path.sep;
 const METADATA_FILENAME = "metadata.json";
 const SYSTEMS_DIR_FULL = WORKING_DIR + SEPARATOR + SYSTEMS_DIR;
-const MAC_PLATFORM = "darwin";
-const WINDOWS_PLATFORM = "win32";
-const PLATFORM = process.platform;
-const ARCHITECTURE_64 = "x64";
-const ARCHITECTURE = process.arch;
-const PLATFORM_STRING = PLATFORM == MAC_PLATFORM ? "mac" : PLATFORM == WINDOWS_PLATFORM ? "windows" : "ubuntu"
-const ARCHITECTURE_STRING = ARCHITECTURE == ARCHITECTURE_64 ? "64" : "32";
-const SYSTEM_STRING = PLATFORM_STRING + ARCHITECTURE_STRING;
 const SUCCESS = "success";
 const FAILURE = "failure";
+const SPACE = " ";
 
 let currentSystem = null;
 let currentGame = null;
@@ -77,11 +70,7 @@ function writeResponse( response, status, object, code, contentType ) {
 
 // TODO express
 // TODO frontend && Puppeteor
-// TODO linux32 bit binary
-// TODO Focus for other systems?
-// TODO readme
-// TODO setup.sh for linux?
-// TODO // Change how emulators works. Have the user build the forked version. Just do ubuntu for now.
+// TODO: Setup script to open on startup
 
 /**
  * Generate data about available options to the user
@@ -104,7 +93,14 @@ function getData() {
         // Create the games dictionary - the key will be the name of the game
         let gamesDict = {};
         // Read all the games
-        let games = fs.readdirSync(generateGamesDir(system), {withFileTypes: true}).filter(file => file.isDirectory()).map(dir => dir.name);
+        let games = [];
+        let gamesDir = generateGamesDir(system);
+        try {
+            games = fs.readdirSync(generateGamesDir(system), {withFileTypes: true}).filter(file => file.isDirectory()).map(dir => dir.name);
+        }
+        catch( err ) {
+            fs.mkdirSync( gamesDir );
+        }
         // For each of the games
         for( let game of games ) {
             // Create an object the hold the game data
@@ -276,14 +272,34 @@ function launchGame(system, game, restart=false) {
     if( isBeingPlayed(system, game) || restart || !currentEmulator ) {
         quitGame();
 
-        let command = systemsDict[system].command[SYSTEM_STRING];
+        let command = systemsDict[system].command;
 
         let arguments = [ 
             generateRomLocation( system, game, systemsDict[system].games[game].rom ),
-            systemsDict[system].saveDirFlag + "=" + generateSaveDir( system, game, CURRENT_SAVE_DIR )
+            systemsDict[system].saveDirFlag
         ];
+
+        let saveDir = generateSaveDir( system, game, CURRENT_SAVE_DIR );
+        // for space seperated arguments, add to arguments
+        if( systemsDict[system].saveDirArgType == SPACE ) {
+            arguments.push(saveDir);
+        }
+        // otherwise edit the argument
+        else {
+            arguments[arguments.length-1] += systemsDict[system].saveDirArgType + saveDir;
+        }
+
         if( systemsDict[system].screenshotsDirFlag ) {
-            arguments.push( systemsDict[system].screenshotsDirFlag + "=" + generateScreenshotsDir( system, game, CURRENT_SAVE_DIR ) );
+            arguments.push( systemsDict[system].screenshotsDirFlag );
+            let screenshotsDir = generateScreenshotsDir( system, game, CURRENT_SAVE_DIR );
+            // for space seperated arguments, add to arguments
+            if( systemsDict[system].screenshotsDirArgType == SPACE ) {
+                arguments.push(screenshotsDir);
+            }
+            // otherwise edit the argument
+            else {
+                arguments[arguments.length-1] += systemsDict[system].screenshotsDirArgType + screenshotsDir;
+            }
         }
         if( systemsDict[system].extraFlags ) {
             arguments = arguments.concat( systemsDict[system].extraFlags );
@@ -299,8 +315,8 @@ function launchGame(system, game, restart=false) {
         currentGame = game;
         currentSystem = system;
 
-        if( systemsDict[system].activateCommand[PLATFORM_STRING] ) {
-            proc.execSync( systemsDict[system].activateCommand[PLATFORM_STRING] )
+        if( systemsDict[system].activateCommand ) {
+            proc.execSync( systemsDict[system].activateCommand )
         }
     }
 }

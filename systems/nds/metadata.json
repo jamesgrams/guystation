@@ -1,0 +1,9 @@
+{
+  "command": "desmume",
+  "saveDirFlag": "--save-dir",
+  "screenshotsDirFlag": "--screenshot-dir",
+  "saveDirArgType": " ",
+  "screenshotsDirArgType": " ",
+  "extraFlags": [],
+  "activateCommand": "sleep 2; wmctrl -a 'DeSmuME' -b toggle,fullscreen"
+}

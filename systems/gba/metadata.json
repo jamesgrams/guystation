@@ -1,19 +1,11 @@
 {
-  "command": {
-    "mac64": "./systems/gba/emulators/mac64/visualboyadvance-m.app/Contents/MacOS/visualboyadvance-m",
-    "mac32": "./systems/gba/emulators/mac32/visualboyadvance-m.app/Contents/MacOS/visualboyadvance-m",
-    "windows64": ".\\systems\\gba\\emulators\\windows64\\visualboyadvance-m.exe",
-    "windows32": ".\\systems\\gba\\emulators\\windows32\\visualboyadvance-m.exe",
-    "ubuntu64": "./systems/gba/emulators/linux64/visualboyadvance-m",
-    "ubuntu32": "./systems/gba/emulators/linux32/visualboyadvance-m"
-  },
+  "command": "~/src/visualboyadvance-m/build/visualboyadvance-m",
   "saveDirFlag": "General/BatteryDir",
   "screenshotsDirFlag": "General/ScreenshotDir",
+  "saveDirArgType": "=",
+  "screenshotsDirArgType": "=",
   "extraFlags": [
-    "preferences/pauseWhenInactive=0",
-    "-f"
+    "preferences/pauseWhenInactive=0"
    ],
-   "activateCommand": {
-     "mac": "sleep 0.5; osascript -e 'tell application \"System Events\" to tell process \"visualboyadvance-m\"' -e \"set frontmost to true\" -e \"end tell\"" 
-   } 
+   "activateCommand": "sleep 2; wmctrl -a 'VisualBoyAdvance' -b toggle,fullscreen"
 }
