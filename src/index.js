@@ -10,7 +10,8 @@ const proc = require( 'child_process' );
 const fs = require('fs');
 const path = require('path');
 
-const PORT = 8081;
+const PORT = 8080;
+const STATIC_PORT = 8081;
 const ASSETS_DIR = "assets";
 const CURRENT_SAVE_DIR = "current";
 const DEFAULT_SAVE_DIR = "default";
@@ -28,6 +29,8 @@ const SPACE = " ";
 // https://stackoverflow.com/questions/3050518/what-http-status-response-code-should-i-use-if-the-request-is-missing-a-required
 const HTTP_SEMANTIC_ERROR = 422;
 const HTTP_OK = 200;
+const INDEX_PAGE = "index.html";
+const LOCALHOST = "localhost";
 
 let currentSystem = null;
 let currentGame = null;
@@ -35,21 +38,34 @@ let currentEmulator = null;
 
 let systemsDict = {};
 
+let browser = null;
+
 // Load the data on startup
 getData();
-
-//Launch Puppeteer
-let browser = await puppeteer.launch({
-    headless: false,
-    args: ['--disable-infobars','--start-fullscreen']
-});
 
 /**************** Express ****************/
 
 const app = express();
-app.use( ASSETS_DIR, express.static(ASSETS_DIR) );
-app.use( SYSTEMS_DIR, express.static(SYSTEMS_DIR) );
+const staticApp = express();
+app.use( "/"+ASSETS_DIR+"/", express.static(ASSETS_DIR) );
+app.use( "/"+SYSTEMS_DIR+"/", express.static(SYSTEMS_DIR) );
+staticApp.use( "/"+ASSETS_DIR+"/", express.static(ASSETS_DIR) );
+staticApp.use( "/"+SYSTEMS_DIR+"/", express.static(SYSTEMS_DIR) );
+
+// Middleware to allow cors from any origin
+app.use(function(req, res, next) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    next();
+});
+
 app.use( express.json() );
+
+// Endpoint to serve the basic HTML needed to run this app
+app.get("/", async function(request, response) {
+    request.url = "/"+ASSETS_DIR+"/"+INDEX_PAGE;
+    staticApp.handle(request, response);
+});
 
 // Get Data
 app.get("/data", async function(request, response) {
@@ -77,8 +93,11 @@ app.post("/quit", async function(request, response) {
     writeResponse( response, SUCCESS, systemsDict ); // Respond with the updated data
 });
 
-// Listen for requests
-app.listen(PORT);
+// START PROGRAM (Launch Browser and Listen)
+staticApp.listen(STATIC_PORT); // Launch the static assets first, so the browser can access them
+launchBrowser().then( () => app.listen(PORT) );
+
+/**************** Express & Puppeteer Functions ****************/
 
 /**
  * Determine if a game is not available.
@@ -114,7 +133,20 @@ function writeResponse( response, status, object, code, contentType ) {
     response.end(JSON.stringify(responseObject));
 }
 
-/**************** Functions ****************/
+/**
+ * Launch a puppeteer browser
+ */
+async function launchBrowser() {
+    browser = await puppeteer.launch({
+        headless: false,
+        args: ['--start-fullscreen']
+    });
+    let pages = await browser.pages();
+    let page = await pages[0];
+    await page.goto(LOCALHOST + ":" + STATIC_PORT + "/"+ASSETS_DIR+"/"+INDEX_PAGE);
+}
+
+/**************** Data Functions ****************/
 
 // TODO express
 // TODO frontend && Puppeteer
@@ -122,6 +154,7 @@ function writeResponse( response, status, object, code, contentType ) {
 // TODO add/delete/update a game functions - this will be good for boradcasting the ip, so you can control the interface
 // with you phone in addition to the puppeteer browser
 // TODO don't listen until browser is ready
+// TODO make sure quit works properly
 
 /**
  * Generate data about available options to the user
@@ -219,7 +252,7 @@ function getData() {
 
             // If this game is being played, indicate as such
             if( isBeingPlayed( system, game ) ) {
-                gamesDict[game].playing = true;
+                gameData.playing = true;
             }
 
             // Add this game to the dictionary of games for this system
@@ -382,7 +415,7 @@ function launchGame(system, game, restart=false) {
  */
 function quitGame() {
     if(currentEmulator) {
-        currentEmulator.kill("SIGINT");
+        proc.execSync( "kill -9 " + currentEmulator.pid );
     }
 }
 

@@ -37,6 +37,7 @@ cd visualboyadvance-m
 mkdir -p build && cd build
 cmake ..
 make
+sudo cp ~/src/visualboyadvance-m/build/visualboyadvance-m /usr/bin/
 
 # Install dependecies for window management
 sudo apt-get -y install wmctrl

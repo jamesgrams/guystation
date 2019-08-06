@@ -1,11 +1,11 @@
 {
-  "command": "~/src/visualboyadvance-m/build/visualboyadvance-m",
+  "command": "visualboyadvance-m",
   "saveDirFlag": "General/BatteryDir",
   "screenshotsDirFlag": "General/ScreenshotDir",
   "saveDirArgType": "=",
   "screenshotsDirArgType": "=",
   "extraFlags": [
-    "preferences/pauseWhenInactive=0"
-   ],
-   "activateCommand": "sleep 2; wmctrl -a 'VisualBoyAdvance' -b toggle,fullscreen"
+    "preferences/pauseWhenInactive=0",
+    "-f"
+   ]
 }
