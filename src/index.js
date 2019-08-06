@@ -9,9 +9,10 @@ const puppeteer = require('puppeteer');
 const proc = require( 'child_process' );
 const fs = require('fs');
 const path = require('path');
+const ip = require('ip');
 
 const PORT = 8080;
-const STATIC_PORT = 8081;
+const STATIC_PORT = 80;
 const ASSETS_DIR = "assets";
 const CURRENT_SAVE_DIR = "current";
 const DEFAULT_SAVE_DIR = "default";
@@ -31,6 +32,7 @@ const HTTP_SEMANTIC_ERROR = 422;
 const HTTP_OK = 200;
 const INDEX_PAGE = "index.html";
 const LOCALHOST = "localhost";
+const IP = ip.address();
 
 let currentSystem = null;
 let currentGame = null;
@@ -67,9 +69,15 @@ app.get("/", async function(request, response) {
     staticApp.handle(request, response);
 });
 
+// Endpoint to serve the basic HTML needed to run this app
+staticApp.get("/", async function(request, response) {
+    request.url = "/"+ASSETS_DIR+"/"+INDEX_PAGE;
+    staticApp.handle(request, response);
+});
+
 // Get Data
 app.get("/data", async function(request, response) {
-    writeResponse( response, SUCCESS, systemsDict );
+    writeResponse( response, SUCCESS, { "systems": systemsDict, "ip": IP } );
 });
 
 // Launch a game
@@ -81,21 +89,21 @@ app.post("/launch", async function(request, response) {
     else {
         launchGame( request.body.system, request.body.game );
         getData(); // Reload data
-        writeResponse( response, SUCCESS, systemsDict ); // Respond with the updated data
+        writeResponse( response, SUCCESS, { "systems": systemsDict, "ip": IP } ); // Respond with the updated data
     }
 });
 
 // Quit a game
 app.post("/quit", async function(request, response) {
     quitGame();
-    // TODO refocus Puppeteer
     getData(); // Reload data
-    writeResponse( response, SUCCESS, systemsDict ); // Respond with the updated data
+    writeResponse( response, SUCCESS, { "systems": systemsDict, "ip": IP } ); // Respond with the updated data
 });
 
 // START PROGRAM (Launch Browser and Listen)
 staticApp.listen(STATIC_PORT); // Launch the static assets first, so the browser can access them
-launchBrowser().then( () => app.listen(PORT) );
+//launchBrowser().then( () => app.listen(PORT) ); // TODO add back this line
+app.listen(PORT);
 
 /**************** Express & Puppeteer Functions ****************/
 
@@ -143,7 +151,7 @@ async function launchBrowser() {
     });
     let pages = await browser.pages();
     let page = await pages[0];
-    await page.goto(LOCALHOST + ":" + STATIC_PORT + "/"+ASSETS_DIR+"/"+INDEX_PAGE);
+    await page.goto(LOCALHOST + ":" + STATIC_PORT);
 }
 
 /**************** Data Functions ****************/
@@ -151,10 +159,11 @@ async function launchBrowser() {
 // TODO express
 // TODO frontend && Puppeteer
 // TODO: Setup script to open on startup
-// TODO add/delete/update a game functions - this will be good for boradcasting the ip, so you can control the interface
+// TODO add/delete/update a game functions - this will be good for broadcasting the ip, so you can control the interface
 // with you phone in addition to the puppeteer browser
-// TODO don't listen until browser is ready
 // TODO make sure quit works properly
+// TODO local fonts, mobile mode
+// TODO home
 
 /**
  * Generate data about available options to the user

@@ -1,0 +1,92 @@
+body {
+    margin: 0;
+    overflow: hidden;
+    font-family: 'Blinker', sans-serif;
+}
+
+h1 {
+    letter-spacing: 2px;
+    position: absolute;
+    top: 25%;
+    transform: translateY( -100% );
+    margin: 0;
+    width: 100%;
+    text-align: center;
+}
+
+#systems {
+    position: absolute;
+    top: 50%;
+    width: 100%;
+    text-align: center;
+}
+
+.system {
+    padding: 10px;
+    position: absolute;
+    left: 50%;
+    transform: translateX( -50% )translateY( -50% );
+    transition: 0.5s;
+    opacity: 0.5;
+}
+
+.system.selected {
+    opacity: 1;
+}
+
+.system.no-transition {
+    transition: none;
+}
+
+.system img {
+    width: 100px;
+}
+
+.games {
+    height: 0;
+    transition: 0.5s;
+    margin-top: 20px;
+    position: relative;
+    top: 0;
+    opacity: 0;
+}
+
+.system.selected .games {
+    opacity: 1;
+}
+
+.game {
+    padding: 10px;
+    border-radius: 10px;
+    opacity: 0.5;
+    transition: 0.5s;
+    height: 33px;
+}
+
+.game.selected {
+    opacity: 1;
+}
+
+.game.above {
+    opacity: 0;
+}
+
+.current-save {
+    font-size: 70%;
+}
+
+.current-save::before {
+    content: "save: ";
+}
+
+#ip {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    padding: 5px;
+    background-color: white;
+}
+
+#ip::before {
+    content: "Access: http://";
+}
