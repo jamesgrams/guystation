@@ -41,3 +41,7 @@ sudo cp ~/src/visualboyadvance-m/build/visualboyadvance-m /usr/bin/
 
 # Install dependecies for window management
 sudo apt-get -y install wmctrl
+
+# Disable Chromium Infobars
+sudo mkdir -p /etc/chromium/policies/managed
+sudo echo '{"CommandLineFlagSecurityWarningsEnabled": false}' > /etc/chromium/policies/managed/policy.json

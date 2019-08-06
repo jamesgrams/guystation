@@ -10,6 +10,7 @@ const proc = require( 'child_process' );
 const fs = require('fs');
 const path = require('path');
 const ip = require('ip');
+const ioHook = require('iohook');
 
 const PORT = 8080;
 const STATIC_PORT = 80;
@@ -33,6 +34,7 @@ const HTTP_OK = 200;
 const INDEX_PAGE = "index.html";
 const LOCALHOST = "localhost";
 const IP = ip.address();
+const ESCAPE_KEY = 1;
 
 let currentSystem = null;
 let currentGame = null;
@@ -102,8 +104,7 @@ app.post("/quit", async function(request, response) {
 
 // START PROGRAM (Launch Browser and Listen)
 staticApp.listen(STATIC_PORT); // Launch the static assets first, so the browser can access them
-//launchBrowser().then( () => app.listen(PORT) ); // TODO add back this line
-app.listen(PORT);
+launchBrowser().then( () => app.listen(PORT) );
 
 /**************** Express & Puppeteer Functions ****************/
 
@@ -147,7 +148,8 @@ function writeResponse( response, status, object, code, contentType ) {
 async function launchBrowser() {
     browser = await puppeteer.launch({
         headless: false,
-        args: ['--start-fullscreen']
+        defaultViewport: null,
+        args: ['--start-fullscreen', '--no-sandbox']
     });
     let pages = await browser.pages();
     let page = await pages[0];
@@ -161,9 +163,7 @@ async function launchBrowser() {
 // TODO: Setup script to open on startup
 // TODO add/delete/update a game functions - this will be good for broadcasting the ip, so you can control the interface
 // with you phone in addition to the puppeteer browser
-// TODO make sure quit works properly
-// TODO local fonts, mobile mode
-// TODO home
+// TODO local fonts, mobile mode, click events
 
 /**
  * Generate data about available options to the user
@@ -404,18 +404,18 @@ function launchGame(system, game, restart=false) {
         }
 
         currentEmulator = proc.spawn( command, arguments, {detached: true} );
-        currentEmulator.on('exit', code => {
-            currentGame = null;
-            currentSystem = null;
-            currentEmulator = null;
-        });
+        currentEmulator.on('exit', blankCurrentGame);
 
         currentGame = game;
         currentSystem = system;
 
-        if( systemsDict[system].activateCommand ) {
-            proc.execSync( systemsDict[system].activateCommand )
+        if( systemsDict[system].fullScreenCommand ) {
+            proc.execSync( "sleep 2" ); // sleep before activating.
+            proc.execSync( systemsDict[system].fullScreenCommand )
         }
+    }
+    if( systemsDict[system].activateCommand ) {
+        proc.execSync( systemsDict[system].activateCommand )
     }
 }
 
@@ -424,8 +424,18 @@ function launchGame(system, game, restart=false) {
  */
 function quitGame() {
     if(currentEmulator) {
+        currentEmulator.removeListener('exit', blankCurrentGame);
         proc.execSync( "kill -9 " + currentEmulator.pid );
     }
+}
+
+/**
+ * Blank all the values from the current game.
+ */
+function blankCurrentGame() {
+    currentGame = null;
+    currentSystem = null;
+    currentEmulator = null;
 }
 
 /**
@@ -549,3 +559,9 @@ function deleteSave(system, game, save) {
 }
 
 // Listen for the "home" button to be pressed
+ioHook.on("keydown", event => {
+    if( event.keycode == ESCAPE_KEY ) {
+        proc.execSync("wmctrl -a 'Chromium'");
+    }
+});
+ioHook.start();

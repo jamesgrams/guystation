@@ -43,6 +43,11 @@ function enableControls() {
             case 40:
                 moveSubMenu(1);
                 break;
+            // Enter
+            case 13:
+                launchGame( document.querySelector(".system.selected").getAttribute( "data-system" ),
+                document.querySelector(".system.selected .game.selected").getAttribute( "data-game" ) );
+                break;
         }
     };
 }

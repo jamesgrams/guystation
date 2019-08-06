@@ -5,5 +5,6 @@
   "saveDirArgType": " ",
   "screenshotsDirArgType": " ",
   "extraFlags": [],
-  "activateCommand": "sleep 2; wmctrl -a 'DeSmuME' -b toggle,fullscreen"
+  "fullScreenCommand": "wmctrl -a 'DeSmuME' -b toggle,fullscreen",
+  "activateCommand": "wmctrl -a 'DeSmuME'"
 }

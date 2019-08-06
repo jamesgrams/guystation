@@ -7,5 +7,6 @@
   "extraFlags": [
     "preferences/pauseWhenInactive=0",
     "-f"
-   ]
+   ],
+   "activateCommand": "wmctrl -a \"VisualBoyAdvance\""
 }
