@@ -1,7 +1,20 @@
+@font-face {
+    font-family: 'blinker';
+    src: url('/assets/Blinker-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
 body {
     margin: 0;
     overflow: hidden;
-    font-family: 'Blinker', sans-serif;
+    font-family: 'blinker', sans-serif;
+    background-color: white;
+    transition: 1s;
+}
+
+body.modal-open {
+    background-color: gray;
 }
 
 h1 {
@@ -88,5 +101,55 @@ h1 {
 }
 
 #ip::before {
-    content: "Access: http://";
+    content: "http://";
+}
+
+.modal {
+    display: block;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%)translateX(-50%);
+    padding: 20px;
+    left: 50%;
+    background-color: white;
+    opacity: 0;
+    transition: 0.5s;
+    border-radius: 25px;
+}
+
+.modal-shown {
+    opacity: 1;
+}
+
+.modal label {
+    display: block;
+    padding: 5px;
+}
+
+.modal label > span {
+    width: 125px;
+    display: inline-block;
+}
+
+.modal button {
+    float: right;
+    margin-top: 10px;
+    background-color: black;
+    color: white;
+    border-radius: 5px;
+    padding: 10px;
+    font-family: blinker;
+    font-size: 13px;
+}
+
+.modal h2 {
+    text-align: center;
+    margin: 10px;
+}
+
+.modal .warning {
+    font-style: italic;
+    padding: 5px;
+    font-size: 80%;
+    margin-top: 10px;
 }

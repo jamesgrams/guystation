@@ -5,6 +5,7 @@ var expandCountLeft; // We always need to have a complete list of systems, repea
 var expandCountRight;
 var systemsDict;
 var ip;
+var disableMenuControls;
 
 window.addEventListener('load', load );
 
@@ -26,28 +27,38 @@ function load() {
  */
 function enableControls() {
     document.onkeydown = function(event) {
-        switch (event.keyCode) {
-            // Left
-            case 37:
-                moveMenu(-1);
-                break;
-            // Up
-            case 38:
-                moveSubMenu(-1);
-                break;
-            // Right
-            case 39:
-                moveMenu(1);
-                break;
-            // Down
-            case 40:
-                moveSubMenu(1);
-                break;
-            // Enter
-            case 13:
-                launchGame( document.querySelector(".system.selected").getAttribute( "data-system" ),
-                document.querySelector(".system.selected .game.selected").getAttribute( "data-game" ) );
-                break;
+        if( !disableMenuControls ) {
+            switch (event.keyCode) {
+                // Left
+                case 37:
+                    moveMenu(-1);
+                    break;
+                // Up
+                case 38:
+                    moveSubMenu(-1);
+                    break;
+                // Right
+                case 39:
+                    moveMenu(1);
+                    break;
+                // Down
+                case 40:
+                    moveSubMenu(1);
+                    break;
+                // Enter
+                case 13:
+                    launchGame( document.querySelector(".system.selected").getAttribute( "data-system" ),
+                    document.querySelector(".system.selected .game.selected").getAttribute( "data-game" ) );
+                    break;
+            }
+        }
+        else {
+            switch (event.keyCode) {
+                // Escape
+                case 27:
+                        closeModal();
+                        break;
+            }
         }
     };
 }
@@ -264,6 +275,157 @@ function moveSubMenu( spaces ) {
     }
 }
 
+function displayDeleteSave() {
+
+}
+
+function displaySelectSave() {
+
+}
+
+function displayAddSave() {
+
+}
+
+function displayDeleteConfirmGame() {
+
+}
+
+function displayUpdateGame() {
+    var form = document.createElement("div");
+    form.setAttribute("id", "update-game-form");
+    form.appendChild( createFormTitle("Update Game") );
+    form.appendChild( createSystemMenu( document.querySelector(".system.selected").getAttribute("data-system"), true ) );
+    form.appendChild( createGameMenu( document.querySelector(".system.selected .game.selected").getAttribute("data-game"), document.querySelector(".system.selected").getAttribute("data-system"), true ) );
+    form.appendChild( createWarning("If you do not wish to change a field, you may leave it blank.") );
+    form.appendChild( createSystemMenu( document.querySelector(".system.selected").getAttribute("data-system") ) );
+    form.appendChild( createGameInput() );
+    form.appendChild( createRomFileInput() );
+    form.appendChild( createButton( "Update Game" ) );
+    launchModal( form );
+}
+
+function displayAddGame() {
+    var form = document.createElement("div");
+    form.setAttribute("id", "add-game-form");
+    form.appendChild( createFormTitle("Add a Game") );
+    form.appendChild( createSystemMenu() );
+    form.appendChild( createGameInput() );
+    form.appendChild( createRomFileInput() );
+    form.appendChild( createButton( "Add Game" ) );
+    launchModal( form );
+}
+
+function createSystemMenu( selected, old ) {
+    return createMenu( selected, Object.keys(systemsDict), (old ? "old-" : "") + "system-select", (old ? "Current " : "") + "System: " );
+}
+
+function createGameInput( defaultValue ) {
+    return createInput( defaultValue, "game-input", "Game: " );
+}
+
+function createGameMenu( selected, system, old ) {
+    return createMenu( selected, Object.keys(systemsDict[system].games), (old ? "old-" : "") + "game-select", (old ? "Current " : "") + "Game: " );
+}
+
+function createRomFileInput( defaultValue ) {
+    return createInput( defaultValue, "rom-file-input", "Rom File: ", "file" );
+}
+
+function createSaveInput( defaultValue ) {
+    return createInput( defaultValue, "save-input", "Save: " );
+}
+
+function createSaveMenu( selected, system, game ) {
+    return createMenu( selected, Object.keys(systemsDict[system].games[game].saves), "save-select", "Save: " );
+}
+
+function addLabel( element, text ) {
+    var label = document.createElement("label");
+    var id = element.getAttribute("id");
+    label.setAttribute("for", id);
+    var labelText = document.createElement("span");
+    labelText.innerText = text;
+    label.appendChild(labelText);
+    label.appendChild(element);
+    return label;
+}
+
+function createInput( defaultValue, id, label, type ) {
+    var input = document.createElement("input");
+    input.type = type ? type : "text";
+    if( defaultValue ) input.value = defaultValue;
+    input.setAttribute("id", id);
+    return addLabel( input, label );
+}
+
+function createMenu( selected, options, id, label ) {
+    var select = document.createElement("select");
+    select.setAttribute("id", id);
+    for(var i=0; i<options.length; i++) {
+        var option = document.createElement("option");
+        option.value = options[i];
+        option.text = options[i];
+        if(options[i] == selected) {
+            option.selected = "selected";
+        }
+        select.appendChild(option);
+    }
+    return addLabel( select, label );
+}
+
+function createButton( label, callback ) {
+    var button = document.createElement("button");
+    button.innerText = label;
+    button.onclick = callback;
+    return button;
+}
+
+function createWarning( text ) {
+    var warning = document.createElement("div");
+    warning.innerText = text;
+    warning.classList.add("warning");
+    return warning;
+}
+
+function createFormTitle( title ) {
+    var element = document.createElement("h2");
+    element.innerText = title;
+    return element;
+}
+
+function launchModal( element ) {
+    var modal = document.createElement("div");
+    modal.classList.add("modal");
+    modal.appendChild(element);
+    disableMenuControls = true;
+    document.body.appendChild(modal);
+    // set timeout to force draw prior
+    setTimeout( function() { 
+        modal.classList.add("modal-shown");
+        document.body.classList.add("modal-open");
+    }, 0 );
+    modal.onclick = function(e) { e.stopPropagation(); };
+    document.body.onclick = closeModal;
+}
+
+function closeModal() {
+    var modal = document.querySelector(".modal");
+    modal.classList.remove("modal-shown");
+    document.body.classList.remove("modal-open");
+    // set timeout to force draw prior
+    setTimeout( function() { 
+        modal.parentElement.removeChild(modal);
+        disableMenuControls = false;
+    }, 500 ); // Make sure this matches the transition time in the css
+    document.body.onclick = null;
+}
+
+function alertError(message) {
+    if( ! message ) message = "An error has ocurred";
+    alert(message);
+}
+
 /**
  * Launch a game
  * @param {string} system - the system to launch the game on
@@ -271,8 +433,77 @@ function moveSubMenu( spaces ) {
  */
 function launchGame( system, game ) {
     makeRequest( "POST", "/launch", { "system": system, "game": game }, function( responseText ) {
-        console.log( JSON.parse(responseText) );
-    } );
+        var response = JSON.parse(responseText);
+        if( response.status == "failure" ) {
+            alertError(response.message);
+        }
+    }, alertError );
+}
+
+/**
+ * Quit a game.
+ */
+function quitGame( system, game ) {
+    makeRequest( "POST", "/quit", {}, function( responseText ) {
+        var response = JSON.parse(responseText);
+        if( response.status == "failure" ) {
+            alertError(response.message);
+        }
+    }, alertError );
+}
+
+function addGame( system, game, file ) {
+    makeRequest( "POST", "/game", { "system": system, "game": game, "file": file }, function( responseText ) {
+        var response = JSON.parse(responseText);
+        if( response.status == "failure" ) {
+            alertError(response.message);
+        }
+    }, alertError );
+}
+
+function updateGame( oldSystem, oldGame, system, game, file ) {
+    makeRequest( "PUT", "/game", { "oldSystem": oldSystem, "oldGame": oldGame, "system": system, "game": game, "file": file }, function( responseText ) {
+        var response = JSON.parse(responseText);
+        if( response.status == "failure" ) {
+            alertError(response.message);
+        }
+    }, alertError );
+}
+
+function deleteGame( system, game ) {
+    makeRequest( "DELETE", "/game", { "system": system, "game": game }, function( responseText ) {
+        var response = JSON.parse(responseText);
+        if( response.status == "failure" ) {
+            alertError(response.message);
+        }
+    }, alertError );
+}
+
+function addSave( system, game, save ) {
+    makeRequest( "POST", "/save", { "system": system, "game": game, "save": save }, function( responseText ) {
+        var response = JSON.parse(responseText);
+        if( response.status == "failure" ) {
+            alertError(response.message);
+        }
+    }, alertError );
+}
+
+function changeSave( system, game, save ) {
+    makeRequest( "PUT", "/save", { "system": system, "game": game, "save": save }, function( responseText ) {
+        var response = JSON.parse(responseText);
+        if( response.status == "failure" ) {
+            alertError(response.message);
+        }
+    }, alertError );
+}
+
+function deleteSave( system, game, save ) {
+    makeRequest( "DELETE", "/save", { "system": system, "game": game, "save": save }, function( responseText ) {
+        var response = JSON.parse(responseText);
+        if( response.status == "failure" ) {
+            alertError(response.message);
+        }
+    }, alertError );
 }
 
 /**

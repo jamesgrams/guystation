@@ -1,4 +1,5 @@
 # Setup script for Ubuntu
+# Clone guystation in your home directory and run this.
 
 # Switch to home directory
 cd ~
@@ -41,6 +42,14 @@ sudo cp ~/src/visualboyadvance-m/build/visualboyadvance-m /usr/bin/
 
 # Install dependecies for window management
 sudo apt-get -y install wmctrl
+
+# Return to the home directory
+cd ~
+
+# install the necessary modules for guystation
+cd guystation
+npm install
+cd ..
 
 # Disable Chromium Infobars
 sudo mkdir -p /etc/chromium/policies/managed
