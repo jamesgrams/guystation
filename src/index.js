@@ -323,6 +323,7 @@ async function launchBrowser() {
 // TODO Update README
 // TODO add currently playing indicator
 // TODO allow for spaces in name - check where you are using the mv command...
+// TODO launch when already open wmctrl failed - might be good to just try catch that..
 
 /**
  * Generate data about available options to the user
