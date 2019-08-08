@@ -312,6 +312,7 @@ async function launchBrowser() {
 // TODO mobile mode, click events
 // TODO Rename a save???
 // TODO expose http ports in setup script.
+// TODO fix write response errors
 
 /**
  * Generate data about available options to the user
@@ -357,8 +358,15 @@ function getData() {
                     break;
                 }
             }
-
-            let savesInfo = generateSaves(system, game);
+            
+	    // TODO see if we can find a better way to get past error check than this
+            gameData.saves = {}
+	    gameData.saves[DEFAULT_SAVE_DIR] = { save: DEFAULT_SAVE_DIR };
+            gamesDict[game] = gameData;
+            systemData.games = gamesDict;
+            systemsDict[system] = systemData;
+            
+	    let savesInfo = generateSaves(system, game);
             gameData.currentSave = savesInfo.currentSave;
             gameData.saves = savesInfo.savesDict;
 
@@ -662,7 +670,7 @@ function newSave(system, game, save) {
     // Error check
     // Make sure the game is valid
     let isInvalid = isInvalidGame( system, game );
-    if( isValid ) return isInvalid;
+    if( isInvalid ) return isInvalid;
     // This name is reserved (current)
     if( save == CURRENT_SAVE_DIR ) {
         return ERROR_MESSAGES.usingReservedSaveName;
@@ -693,7 +701,7 @@ function changeSave(system, game, save) {
     // Error check
     // Make sure the game is valid
     let isInvalid = isInvalidGame( system, game );
-    if( isValid ) return isInvalid;
+    if( isInvalid ) return isInvalid;
     // Can't change the save of a playing game
     if( isBeingPlayed( system, game) ) {
         return ERROR_MESSAGES.gameBeingPlayed;
@@ -729,7 +737,7 @@ function deleteSave(system, game, save) {
     // Error check
     // Make sure the game is valid
     let isInvalid = isInvalidGame( system, game );
-    if( isValid ) return isInvalid;
+    if( isInvalid ) return isInvalid;
     // Can't change the save of a playing game
     if( isBeingPlayed( system, game) ) {
         return ERROR_MESSAGES.gameBeingPlayed;
@@ -835,7 +843,7 @@ function updateGame( oldSystem, oldGame, system, game, file ) {
     // Error check
     // Make sure the game and system are valid for old
     isInvalid = isInvalidGame( oldSystem, oldGame );
-    if( isValid ) return isInvalid;
+    if( isInvalid ) return isInvalid;
     // Can't change the save of a playing game
     if( isBeingPlayed( oldSystem, oldGame ) ) {
         return ERROR_MESSAGES.gameBeingPlayed;
@@ -896,7 +904,7 @@ function deleteGame( system, game ) {
     // Error check
     // Make sure the game and system are valid
     isInvalid = isInvalidGame( system, game );
-    if( isValid ) return isInvalid;
+    if( isInvalid ) return isInvalid;
     // Can't change the save of a playing game
     if( isBeingPlayed( oldSystem, oldGame ) ) {
         return ERROR_MESSAGES.gameBeingPlayed;

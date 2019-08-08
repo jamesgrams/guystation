@@ -21,10 +21,11 @@ sudo apt-get -y install build-essential autoconf automake libgtk2.0-dev libglu1-
 # https://wiki.desmume.org/index.php?title=Installing_DeSmuME_from_source_on_Linux
 git clone https://github.com/jamesgrams/desmume.git
 cd desmume/desmume/src/frontend/posix/
-./autogen.sh
+sudo ./autogen.sh
 # Remove Windows Line Breaks from the file
-awk 'gsub(/\r/,""){printf $0;next}{print}' configure > tmp && mv tmp configure
-./configure
+sudo sh -c "awk 'gsub(/\r/,\"\"){printf $0;next}{print}' configure > tmp && mv tmp configure"
+sudo chmod 755 ./configure
+sudo ./configure
 sudo make install
 
 # Return to the home directory
@@ -53,4 +54,4 @@ cd ..
 
 # Disable Chromium Infobars
 sudo mkdir -p /etc/chromium/policies/managed
-sudo echo '{"CommandLineFlagSecurityWarningsEnabled": false}' > /etc/chromium/policies/managed/policy.json
+sudo sh -c "echo '{\"CommandLineFlagSecurityWarningsEnabled\": false}' > /etc/chromium/policies/managed/policy.json"
