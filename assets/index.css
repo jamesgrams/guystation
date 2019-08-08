@@ -47,6 +47,11 @@ h1 {
     opacity: 1;
 }
 
+.system.selected img {
+    animation: wiggle 1s infinite;
+    transform-origin: center center;
+}
+
 .system.no-transition {
     transition: none;
 }
@@ -97,7 +102,6 @@ h1 {
     bottom: 0;
     left: 0;
     padding: 5px;
-    background-color: white;
 }
 
 #ip::before {
@@ -131,15 +135,24 @@ h1 {
     display: inline-block;
 }
 
-.modal button {
+.modal button, #functions button {
     float: right;
     margin-top: 10px;
     background-color: black;
     color: white;
     border-radius: 5px;
-    padding: 10px;
+    padding: 8px;
     font-family: blinker;
     font-size: 13px;
+    margin-left: 10px;
+    width: 100px;
+    cursor: pointer;
+    transition: 0.5s;
+    border: none;
+}
+
+.modal button.inactive {
+    opacity: 0.5;
 }
 
 .modal h2 {
@@ -153,3 +166,34 @@ h1 {
     font-size: 80%;
     margin-top: 10px;
 }
+
+.toast {
+    position: absolute;
+    z-index: 1000;
+    top: 10%;
+    padding: 20px;
+    background-color: black;
+    color: white;
+    border-radius: 25px;
+    opacity: 0;
+    transition: 0.5s;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.toast-shown {
+    opacity: 1;
+}
+
+#functions {
+    position: absolute;
+    padding: 5px;
+    bottom: 0;
+    right: 0;
+}
+
+@keyframes wiggle {
+    0% {transform: rotate(3deg);}
+    50% {transform: rotate(-3deg);}
+    100% {transform: rotate(3deg);}
+  }

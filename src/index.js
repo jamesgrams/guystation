@@ -11,6 +11,7 @@ const fs = require('fs');
 const path = require('path');
 const ip = require('ip');
 const ioHook = require('iohook');
+const rimraf = require('rimraf');
 
 const PORT = 8080;
 const STATIC_PORT = 80;
@@ -54,7 +55,10 @@ const ERROR_MESSAGES = {
     "noFileInUpload": "no file or filename were found in the upload request",
     "locationDoesNotExist": "the location specified does not exist",
     "gameAlreadyExists": "a game with that name already exists.",
-    "anotherRequestIsBeingProcessed": "another request is already being processed."
+    "anotherRequestIsBeingProcessed": "another request is already being processed.",
+    "gameNameRequired": "A name is required to add a new game.",
+    "romFileRequired": "A ROM file is required to add a new game.",
+    "saveNameRequired": "A name is required to add a new save.",
 }
 
 // We will only allow for one request at a time for app
@@ -84,10 +88,11 @@ staticApp.use( "/"+SYSTEMS_DIR+"/", express.static(SYSTEMS_DIR) );
 app.use(function(req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    res.header('Access-Control-Allow-Methods', 'PUT, POST, GET, DELETE, OPTIONS');
     next();
 });
 
-app.use( express.json() );
+app.use( express.json({limit: '20000mb'}) );
 
 // Endpoint to serve the basic HTML needed to run this app
 app.get("/", async function(request, response) {
@@ -144,7 +149,7 @@ app.post("/save", async function(request, response) {
     console.log("app serving /save (POST) with body: " + JSON.stringify(request.body));
     if( ! requestLocked ) {
         requestLocked = true;
-        let errorMessage = newSave( request.body.system, request.body.game );
+        let errorMessage = newSave( request.body.system, request.body.game, request.body.save );
         getData(); // Reload data
         requestLocked = false;
         writeActionResponse( response, errorMessage );
@@ -204,7 +209,7 @@ app.put("/game", async function(request, response) {
     console.log("app serving /game (PUT) with body: " + JSON.stringify(request.body));
     if( ! requestLocked ) {
         requestLocked = true;
-        let errorMessage = updateGame( request.body.oldSystem, request.body.oldName, request.body.system, request.body.game, request.body.file );
+        let errorMessage = updateGame( request.body.oldSystem, request.body.oldGame, request.body.system, request.body.game, request.body.file );
         getData(); // Reload data
         requestLocked = false;
         writeActionResponse( response, errorMessage );
@@ -261,7 +266,7 @@ function writeActionResponse( response, errorMessage ) {
         writeResponse( response, FAILURE, { "message": errorMessage }, HTTP_SEMANTIC_ERROR );
     }
     else {
-        writeResponse( reponse, SUCCESS );
+        writeResponse( response, SUCCESS );
     }
 }
 
@@ -307,12 +312,17 @@ async function launchBrowser() {
 
 /**************** Data Functions ****************/
 
-// TODO frontend && Puppeteer
 // TODO Setup script to open on startup
 // TODO mobile mode, click events
-// TODO Rename a save???
 // TODO expose http ports in setup script.
-// TODO fix write response errors
+// TODO add frontend checks for if a system has a game - should try to ever get selected if it doesn't
+// TODO nicer redraw transition? - at least wait longer before blanking out systems.
+// TODO screenshots effects
+// TODO are you sure for delete save and game?
+// TODO client side error checking - especially on that file input - check for all inputs
+// TODO Update README
+// TODO add currently playing indicator
+// TODO allow for spaces in name - check where you are using the mv command...
 
 /**
  * Generate data about available options to the user
@@ -359,14 +369,7 @@ function getData() {
                 }
             }
             
-	    // TODO see if we can find a better way to get past error check than this
-            gameData.saves = {}
-	    gameData.saves[DEFAULT_SAVE_DIR] = { save: DEFAULT_SAVE_DIR };
-            gamesDict[game] = gameData;
-            systemData.games = gamesDict;
-            systemsDict[system] = systemData;
-            
-	    let savesInfo = generateSaves(system, game);
+	        let savesInfo = generateSaves(system, game);
             gameData.currentSave = savesInfo.currentSave;
             gameData.saves = savesInfo.savesDict;
 
@@ -410,8 +413,10 @@ function generateSaves( system, game ) {
     }
     // We need at least one save
     if( saves.length == 0 ) {
-        newSave( system, game, DEFAULT_SAVE_DIR ); // create a default save directory
-        changeSave( system, game, DEFAULT_SAVE_DIR );
+        // Force the save update, becase systemsDict won't be updated to pass the error check yet,
+        // and since we're doing it, there won't be any errors.
+        newSave( system, game, DEFAULT_SAVE_DIR, true ); // create a default save directory
+        changeSave( system, game, DEFAULT_SAVE_DIR, true );
         saves.push( DEFAULT_SAVE_DIR );
     }
 
@@ -663,21 +668,26 @@ function getCurrentSave(system, game) {
  * @param {string} system - the system the game is on
  * @param {string} game - the game to create a save for
  * @param {string} save - the name of the new save
+ * @param {boolean} force - skip error check
  * @returns {*} - an error message if there was an error, otherwise false
  */
-function newSave(system, game, save) {
+function newSave(system, game, save, force) {
 
-    // Error check
-    // Make sure the game is valid
-    let isInvalid = isInvalidGame( system, game );
-    if( isInvalid ) return isInvalid;
-    // This name is reserved (current)
-    if( save == CURRENT_SAVE_DIR ) {
-        return ERROR_MESSAGES.usingReservedSaveName;
-    }
-    // Make sure the name is not already being used
-    if( systemsDict[system].games[game].saves[save] ) {
-        return ERROR_MESSAGES.saveAlreadyExists;
+    if( !force ) {
+        // Error check
+        // Make sure the game is valid
+        let isInvalid = isInvalidGame( system, game );
+        if( isInvalid ) return isInvalid;
+        // This name is reserved (current)
+        if( save == CURRENT_SAVE_DIR ) {
+            return ERROR_MESSAGES.usingReservedSaveName;
+        }
+        // Make sure the name is not already being used
+        if( systemsDict[system].games[game].saves[save] ) {
+            return ERROR_MESSAGES.saveAlreadyExists;
+        }
+        // Make sure there is a save
+        if( !save ) return ERROR_MESSAGES.saveNameRequired;
     }
 
     // Create a new save directory
@@ -694,21 +704,24 @@ function newSave(system, game, save) {
  * @param {string} system - the system the game is on
  * @param {string} game - the game to change saves for
  * @param {string} save - the name of the save
+ * @param {boolean} force - skip error check
  * @returns {*} - an error message if there was an error, otherwise false
  */
-function changeSave(system, game, save) {
+function changeSave(system, game, save, force) {
 
-    // Error check
-    // Make sure the game is valid
-    let isInvalid = isInvalidGame( system, game );
-    if( isInvalid ) return isInvalid;
-    // Can't change the save of a playing game
-    if( isBeingPlayed( system, game) ) {
-        return ERROR_MESSAGES.gameBeingPlayed;
-    }
-    // We need the save file to exist
-    if( !systemsDict[system].games[game].saves[save] ) {
-        return ERROR_MESSAGES.saveDoesNotExist;
+    if( !force ) {
+        // Error check
+        // Make sure the game is valid
+        let isInvalid = isInvalidGame( system, game );
+        if( isInvalid ) return isInvalid;
+        // Can't change the save of a playing game
+        if( isBeingPlayed( system, game) ) {
+            return ERROR_MESSAGES.gameBeingPlayed;
+        }
+        // We need the save file to exist
+        if( !systemsDict[system].games[game].saves[save] ) {
+            return ERROR_MESSAGES.saveDoesNotExist;
+        }
     }
 
     // make sure the game currently isn't being played
@@ -750,7 +763,7 @@ function deleteSave(system, game, save) {
     let saveDir = generateSaveDir( system, game, save );
 
     // Delete the save
-    fs.unlinkSync( saveDir );
+    rimraf.sync( saveDir );
         
     // Check if the symbolic link is now broken
     let currentSave = getCurrentSave( system, game );
@@ -791,6 +804,8 @@ function addGame( system, game, file ) {
     // Make sure the game is valid
     if( !systemsDict[system] ) return ERROR_MESSAGES.noSystem;
     if( systemsDict[system].games[game] ) return ERROR_MESSAGES.gameAlreadyExists;
+    if( !game ) return ERROR_MESSAGES.gameNameRequired;
+    if( !file || !file.name || !file.base64File ) return ERROR_MESSAGES.romFileRequired;
 
     // Make the directory for the game
     let gameDir = generateGameDir( system, game );
@@ -799,7 +814,7 @@ function addGame( system, game, file ) {
     let errorMessage = saveUploadedRom( file, system, game );  
     if( errorMessage ) {
         // Delete the game directory
-        fs.rmdirSync( gameDir );
+        rimraf.sync( gameDir );
         // Return the error message
         return errorMessage;
     }  
@@ -821,7 +836,7 @@ function saveUploadedRom( file, system, game ) {
     if( !file.name || !file.base64File ) {
         return ERROR_MESSAGES.noFileInUpload;
     }
-    if( !existsSync(location) ) {
+    if( !fs.existsSync(generateGameDir(system, game)) ) {
         return ERROR_MESSAGES.locationDoesNotExist;
     }
     let content = Buffer.from(file.base64File, 'base64');
@@ -849,7 +864,7 @@ function updateGame( oldSystem, oldGame, system, game, file ) {
         return ERROR_MESSAGES.gameBeingPlayed;
     }
     // Make sure the new game doesn't already exist
-    if( system && !systems[system] ) return ERROR_MESSAGES.noSystem;
+    if( system && !systemsDict[system] ) return ERROR_MESSAGES.noSystem;
     if( game && systemsDict[system].games[game] ) return ERROR_MESSAGES.gameAlreadyExists;
        
     // Get the current game directory
@@ -860,31 +875,35 @@ function updateGame( oldSystem, oldGame, system, game, file ) {
         // Get the current game file and its name. We will move it for now,
         // but we will ultimately either move it back or get rid of it.
         // upload into the old directory and that will change if necessary next
-        let oldRomPath = generateRomLocation( oldSystem, oldGame, systemsDict[oldSystem].games[oldGame].rom );
-        let currentName = path.basename(oldRomPath);
-        fs.renameSync( oldRomPath, TMP_ROM_LOCATION );
+        let oldRomPath = systemsDict[oldSystem].games[oldGame].rom ? generateRomLocation( oldSystem, oldGame, systemsDict[oldSystem].games[oldGame].rom ) : "";
+        if( oldRomPath ) {
+            fs.renameSync( oldRomPath, TMP_ROM_LOCATION );
+        }
         
         // Try to upload the new file
-        errorMessage = saveUploadedRom( file, oldGameDir );
+        errorMessage = saveUploadedRom( file, oldSystem, oldGame );
 
         // We failed
         if( errorMessage ) {
-            // Delete the new rom
-            fs.unlinkSync( generateRomLocation( oldSystem, oldGame, file.name ) );
-            // Move the old rom back
-            fs.renameSync( TMP_ROM_LOCATION, oldRomPath );
+            // Deleting the new rom is not necessary, since error message implies the save failed
+            if( oldRomPath ) {
+                // Move the old rom back
+                fs.renameSync( TMP_ROM_LOCATION, oldRomPath );
+            }
             return errorMessage;
         }
         // We succeeded, delete the old rom
-        else {
-            fs.unlinkSync( oldRomPath );
+        else if( oldRomPath ) {
+            fs.unlinkSync( TMP_ROM_LOCATION );
         }
     }
     // Move some of the directories around
-    if( oldSystem != system || newGame != game ) {
+    if( (system && oldSystem != system) || (game && oldGame != game) ) {
         // Use the system command because node fs can't move directories
-        let gameDir = generateGameDir( system, newGame ); // update the game directory
-        fs.execSync(MOVE_COMMAND + oldGameDir + " " + gameDir);
+        let gameDir = generateGameDir( system ? system : oldSystem, game ? game : oldGame ); // update the game directory
+        proc.execSync(MOVE_COMMAND + oldGameDir + " " + gameDir);
+        // Update the symlink for the game
+        changeSave( system ? system : oldSystem, game ? game : oldGame, systemsDict[oldSystem].games[oldGame].currentSave, true );
     }
     
     // Update the data (this will take care of making all the necessary directories for the game as well as updating the data)
@@ -906,11 +925,11 @@ function deleteGame( system, game ) {
     isInvalid = isInvalidGame( system, game );
     if( isInvalid ) return isInvalid;
     // Can't change the save of a playing game
-    if( isBeingPlayed( oldSystem, oldGame ) ) {
+    if( isBeingPlayed( system, game ) ) {
         return ERROR_MESSAGES.gameBeingPlayed;
     }
 
-    fs.rmdir( generateGameDir( system, game) );
+    rimraf.sync( generateGameDir( system, game ) );
     getData();
     return false;
 }
