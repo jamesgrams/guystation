@@ -14,7 +14,8 @@
     "ip": "^1.1.5",
     "iohook": "^0.6.1",
     "rimraf": "^2.6.3",
-    "fs-extra": "^8.1.0"
+    "fs-extra": "^8.1.0",
+    "node-key-sender": "^1.0.11"
   },
   "engines": {
     "node": ">= 10.10.0",

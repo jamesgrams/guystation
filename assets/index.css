@@ -10,8 +10,8 @@ body {
     overflow: hidden;
     font-family: 'blinker', sans-serif;
     background-color: white;
-    transition: 1s;
-    font-size: 24px;
+    transition: background-color 1s;
+    font-size: 30px;
 }
 
 body.modal-open {
@@ -42,7 +42,7 @@ h1 {
     position: absolute;
     left: 50%;
     transform: translateX( -50% )translateY( -50% );
-    transition: 0.5s;
+    transition: opacity 0.5s, left 0.5s;
     opacity: 0.5;
     user-select: none;
 }
@@ -71,7 +71,7 @@ h1 {
 
 .games {
     height: 0;
-    transition: 0.5s;
+    transition: opacity 0.5s, top 0.5s;
     margin-top: 20px;
     position: relative;
     top: 0;
@@ -87,7 +87,7 @@ h1 {
     padding: 10px;
     border-radius: 10px;
     opacity: 0.5;
-    transition: 0.5s;
+    transition: opacity 0.5s;
     height: 50px;
     width: 400px;
     user-select: none;
@@ -134,7 +134,7 @@ h1 {
     left: 50%;
     background-color: white;
     opacity: 0;
-    transition: 0.5s;
+    transition: opacity 0.5s;
     border-radius: 25px;
 }
 
@@ -168,9 +168,9 @@ h1 {
     font-family: blinker;
     font-size: 100%;
     margin-left: 10px;
-    width: 100px;
+    width: 220px;
     cursor: pointer;
-    transition: 0.5s;
+    transition: opactiy 0.5s;
     border: none;
 }
 
@@ -199,7 +199,7 @@ h1 {
     color: white;
     border-radius: 25px;
     opacity: 0;
-    transition: 0.5s;
+    transition: opacity 0.5s;
     left: 50%;
     transform: translateX(-50%);
 }
@@ -242,7 +242,6 @@ h1 {
 .screenshot {
     position: absolute;
     width: 20%;
-    /*transition: opacity 5s linear, transform 2s;*/
     bottom: 0;
     transform: translateY(100%);
     opacity: 1;

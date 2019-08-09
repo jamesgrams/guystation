@@ -13,9 +13,10 @@ const ip = require('ip');
 const ioHook = require('iohook');
 const rimraf = require('rimraf');
 const fsExtra = require('fs-extra');
+const ks = require("node-key-sender");
 
 const PORT = 8080;
-const STATIC_PORT = 80;
+const STATIC_PORT = 8081;
 const ASSETS_DIR = "assets";
 const CURRENT_SAVE_DIR = "current";
 const DEFAULT_SAVE_DIR = "default";
@@ -308,6 +309,7 @@ async function launchBrowser() {
     let pages = await browser.pages();
     let page = await pages[0];
     await page.goto(LOCALHOST + ":" + STATIC_PORT);
+    ks.sendKey('tab');
 }
 
 /**************** Data Functions ****************/
@@ -319,6 +321,8 @@ async function launchBrowser() {
 // TODO more emulators
 // TODO dropbox sync
 // TODO reorder
+// TODO playing does not work
+// TODO DS full screen
 
 /**
  * Generate data about available options to the user
