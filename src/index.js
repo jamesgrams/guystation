@@ -12,6 +12,7 @@ const path = require('path');
 const ip = require('ip');
 const ioHook = require('iohook');
 const rimraf = require('rimraf');
+const fsExtra = require('fs-extra');
 
 const PORT = 8080;
 const STATIC_PORT = 80;
@@ -41,24 +42,23 @@ const KILL_COMMAND = "kill -9 ";
 const SLEEP_COMMAND = "sleep 2";
 const FOCUS_CHROMIUM_COMMAND = "wmctrl -a 'Chromium'";
 const TMP_ROM_LOCATION = "/tmp/tmprom";
-const MOVE_COMMAND = "mv ";
 
 const ERROR_MESSAGES = {
-    "noSystem" : "system does not exist.",
-    "noGame": "game does not exist.",
-    "gameBeingPlayed": "please quit the current game first.",
-    "noRomFile": "no rom found for game.",
-    "noRunningGame": "no game currently running.",
-    "usingReservedSaveName": "you can't use the name 'current' for a save.",
-    "saveAlreadyExists": "a save with that name already exists.",
-    "saveDoesNotExist": "save does not exist.",
-    "noFileInUpload": "no file or filename were found in the upload request",
-    "locationDoesNotExist": "the location specified does not exist",
-    "gameAlreadyExists": "a game with that name already exists.",
-    "anotherRequestIsBeingProcessed": "another request is already being processed.",
-    "gameNameRequired": "A name is required to add a new game.",
-    "romFileRequired": "A ROM file is required to add a new game.",
-    "saveNameRequired": "A name is required to add a new save.",
+    "noSystem" : "System does not exist",
+    "noGame": "Game does not exist",
+    "gameBeingPlayed": "Please quit the current game first",
+    "noRomFile": "No rom found for game",
+    "noRunningGame": "No game currently running",
+    "usingReservedSaveName": "You can't use the name 'current' for a save",
+    "saveAlreadyExists": "A save with that name already exists",
+    "saveDoesNotExist": "Save does not exist",
+    "noFileInUpload": "No file or filename were found in the upload request",
+    "locationDoesNotExist": "The location specified does not exist",
+    "gameAlreadyExists": "A game with that name already exists",
+    "anotherRequestIsBeingProcessed": "Another request is already being processed",
+    "gameNameRequired": "A name is required to add a new game",
+    "romFileRequired": "A ROM file is required to add a new game",
+    "saveNameRequired": "A name is required to add a new save",
 }
 
 // We will only allow for one request at a time for app
@@ -191,7 +191,7 @@ app.delete("/save", async function(request, response) {
 
 // Add a game
 app.post("/game", async function(request, response) {
-    console.log("app serving /game (POST) with body: " + JSON.stringify(request.body));
+    console.log("app serving /game (POST)");
     if( ! requestLocked ) {
         requestLocked = true;
         let errorMessage = addGame( request.body.system, request.body.game, request.body.file );
@@ -206,7 +206,7 @@ app.post("/game", async function(request, response) {
 
 // Update a game
 app.put("/game", async function(request, response) {
-    console.log("app serving /game (PUT) with body: " + JSON.stringify(request.body));
+    console.log("app serving /game (PUT)");
     if( ! requestLocked ) {
         requestLocked = true;
         let errorMessage = updateGame( request.body.oldSystem, request.body.oldGame, request.body.system, request.body.game, request.body.file );
@@ -313,17 +313,13 @@ async function launchBrowser() {
 /**************** Data Functions ****************/
 
 // TODO Setup script to open on startup
-// TODO mobile mode, click events
+// TODO mobile mode - swiping?
 // TODO expose http ports in setup script.
-// TODO add frontend checks for if a system has a game - should try to ever get selected if it doesn't
-// TODO nicer redraw transition? - at least wait longer before blanking out systems.
-// TODO screenshots effects
-// TODO are you sure for delete save and game?
-// TODO client side error checking - especially on that file input - check for all inputs
-// TODO Update README
-// TODO add currently playing indicator
-// TODO allow for spaces in name - check where you are using the mv command...
-// TODO launch when already open wmctrl failed - might be good to just try catch that..
+// TODO click screen on activate
+// TODO more emulators
+// TODO dropbox sync
+// TODO reorder
+// TODO - anyway to keep screenshots less dissolved for a little bit longer
 
 /**
  * Generate data about available options to the user
@@ -596,13 +592,22 @@ function launchGame(system, game, restart=false) {
         currentGame = game;
         currentSystem = system;
 
-        if( systemsDict[system].fullScreenCommand ) {
+        // Sleep before either activating or full-screening, to give the program time to open
+        if( systemsDict[system].activateCommand || systemsDict[system].fullScreenCommand ) {
             proc.execSync( SLEEP_COMMAND ); // sleep before activating.
-            proc.execSync( systemsDict[system].fullScreenCommand )
+        }
+        if( systemsDict[system].fullScreenCommand ) {
+            try {
+                proc.execSync( systemsDict[system].fullScreenCommand )
+            }
+            catch(err) { console.log("full screen failed."); }
         }
     }
     if( systemsDict[system].activateCommand ) {
-        proc.execSync( systemsDict[system].activateCommand )
+        try {
+            proc.execSync( systemsDict[system].activateCommand )
+        }
+        catch(err) { console.log("activate failed."); }
     }
     return false;
 }
@@ -761,6 +766,7 @@ function deleteSave(system, game, save) {
         return ERROR_MESSAGES.saveDoesNotExist;
     }
 
+    let savesDir = generateSavesDir( system, game );
     let saveDir = generateSaveDir( system, game, save );
 
     // Delete the save
@@ -783,8 +789,9 @@ function deleteSave(system, game, save) {
             }
             // Otherwise, create the default directory and switch to that save
             else {
-                newSave( system, game, DEFAULT_SAVE_DIR );
-                changeSave( system, game, DEFAULT_SAVE_DIR );
+                // force is true, since we know there is no other directory and we know we want to make the save
+                newSave( system, game, DEFAULT_SAVE_DIR, true );
+                changeSave( system, game, DEFAULT_SAVE_DIR, true );
             }
         }
         
@@ -902,7 +909,7 @@ function updateGame( oldSystem, oldGame, system, game, file ) {
     if( (system && oldSystem != system) || (game && oldGame != game) ) {
         // Use the system command because node fs can't move directories
         let gameDir = generateGameDir( system ? system : oldSystem, game ? game : oldGame ); // update the game directory
-        proc.execSync(MOVE_COMMAND + oldGameDir + " " + gameDir);
+        fsExtra.moveSync( oldGameDir, gameDir );
         // Update the symlink for the game
         changeSave( system ? system : oldSystem, game ? game : oldGame, systemsDict[oldSystem].games[oldGame].currentSave, true );
     }

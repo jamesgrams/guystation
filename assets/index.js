@@ -1,6 +1,7 @@
-var SPACING = 250;
+var SPACING = 400;
 var EXPAND_COUNT = 10; // Number to expand on each side of the selected element - Note: We may actually expand more than this. We need to have a number of items divisble by the number of systems for the loop to work properly.
 var ROM_READ_ERROR = "An error ocurred readline the ROM file.";
+var BUBBLE_SCREENSHOTS_INTERVAL = 10000;
 
 var expandCountLeft; // We always need to have a complete list of systems, repeated however many times we want, so the loop works properly
 var expandCountRight;
@@ -8,6 +9,42 @@ var systemsDict;
 var ip;
 var disableMenuControls;
 var makingRequest = false;
+var bubbleScreenshotsSet;
+
+function bubbleScreenshots() {
+    var currentSystemElement = document.querySelector(".system.selected");
+    var currentGameElement = currentSystemElement.querySelector(".system.selected .game.selected");
+    if( currentGameElement ) {
+        var currentSystem = currentSystemElement.getAttribute("data-system");
+        var currentGame = currentGameElement.getAttribute("data-game");
+        var currentSave = currentGameElement.querySelector(".current-save").innerText;
+        if( systemsDict[currentSystem] 
+            && systemsDict[currentSystem] 
+            && systemsDict[currentSystem].games[currentGame] 
+            && systemsDict[currentSystem].games[currentGame].saves
+            && systemsDict[currentSystem].games[currentGame].saves[currentSave]
+            && systemsDict[currentSystem].games[currentGame].saves[currentSave].screenshots
+            && systemsDict[currentSystem].games[currentGame].saves[currentSave].screenshots.length ) {
+            var screenshots = systemsDict[currentSystem].games[currentGame].saves[currentSave].screenshots;
+            var screenshot = screenshots[Math.floor(Math.random()*screenshots.length)];
+            var img = document.createElement("img");
+            img.setAttribute("src", ["systems", currentSystem, "games", currentGame, "saves", currentSave, "screenshots", screenshot].join("/"));
+            img.classList.add("screenshot");
+            img.style.left = (Math.floor(Math.random()*2) ? Math.random()*20 : 80-Math.random()*20) + "%";
+            document.body.appendChild(img);
+            setTimeout( function() {
+                img.parentElement.removeChild(img);
+            }, 5000 ); // make sure this time matches the css
+        }
+    }
+}
+
+function resetBubbleScreenshots() {
+    if( bubbleScreenshotsSet ) {
+        clearInterval( bubbleScreenshotsSet );
+    }
+    bubbleScreenshotsSet = setInterval( bubbleScreenshots, BUBBLE_SCREENSHOTS_INTERVAL );
+}
 
 window.addEventListener('load', load );
 
@@ -23,6 +60,7 @@ function load() {
         draw();
         enableControls();
         endRequest();
+        resetBubbleScreenshots();
     }, load );
 }
 
@@ -51,8 +89,7 @@ function enableControls() {
                     break;
                 // Enter
                 case 13:
-                    launchGame( document.querySelector(".system.selected").getAttribute( "data-system" ),
-                    document.querySelector(".system.selected .game.selected").getAttribute( "data-game" ) );
+                    document.querySelector("#launch-game").click();
                     break;
             }
         }
@@ -119,6 +156,10 @@ function draw( startSystem ) {
             }
             gameElement.innerText = game.game;
 
+            if( game.playing ) {
+                gameElement.classList.add("playing");
+            }
+
             // Create an element for the current save
             var currentSaveDiv = document.createElement("div");
             currentSaveDiv.classList.add("current-save");
@@ -138,43 +179,146 @@ function draw( startSystem ) {
 
     // Draw the menu
     // The menu will basically be a loop
-    var systemsElement = document.querySelector("#systems");
     var startIndex = startSystem && startSystem.system ? Array.from(systemElements).map( (el) => el.getAttribute("data-system") ).indexOf(startSystem.system) : 0; // Start at 0 by default on draw
-    systemsElement.innerHTML = ""; // clear out systems
     // Calculate the appropriate expand counts on each side
     expandCountLeft = Math.ceil(EXPAND_COUNT/systemElements.length) * systemElements.length;
     expandCountRight = expandCountLeft - 1;
 
+    var systemsElementNew = document.createElement("div");
+    systemsElementNew.setAttribute("id", "systems");
     // Add the systems elements
-    systemsElement.appendChild( systemElements[startIndex] );
+    var clickToMove = function() {
+        var myOffset = this.parentElement.style.left;
+        if( myOffset )
+            myOffset = parseInt(myOffset.match(/(-?\d+)px/)[1]);
+        else
+            myOffset = 0;
+        var mySpaces = myOffset/SPACING;
+        moveMenu(mySpaces);
+    };
+    var clickToMoveSubmenu = function() {
+        // Add the onclick element
+        var parentGamesList = this.closest(".games");
+        if( parentGamesList.parentElement.classList.contains("selected") && !this.classList.contains("above") ) {
+            var parentGamesArray = Array.prototype.slice.call( parentGamesList.querySelectorAll(".game") );
+            var currentGame = parentGamesList.querySelector(".game.selected");
+            var currentPosition = parentGamesArray.indexOf( currentGame );
+            var myPosition = parentGamesArray.indexOf( this );
+            moveSubMenu( myPosition - currentPosition );
+        }
+    }
+
+    systemsElementNew.appendChild( systemElements[startIndex] );
+    systemsElementNew.querySelector("img").onclick = clickToMove;
+
     for( var i=1; i<expandCountRight+1; i++ ) {
         var nextIndex = getIndex( startIndex+(i-1), systemElements, 1 );
         var nextElement = systemElements[nextIndex].cloneNode(true);
         nextElement.style.left = "calc( 50% + " + (i*SPACING) + "px )";
-        systemsElement.appendChild(nextElement);
+        nextElement.querySelector("img").onclick = clickToMove;
+        systemsElementNew.appendChild(nextElement);
     }
     for( var i=1; i<expandCountLeft+1; i++ ) {
         var prevIndex = getIndex( startIndex+(i-1), systemElements, -1 );
         var prevElement = systemElements[prevIndex].cloneNode(true);
         prevElement.style.left = "calc( 50% + -" + (i*SPACING) + "px )";
-        systemsElement.appendChild(prevElement);
+        prevElement.querySelector("img").onclick = clickToMove;
+        systemsElementNew.appendChild(prevElement);
     }
+
+    systemsElementNew.querySelectorAll(".games .game").forEach( function(element) { element.onclick = clickToMoveSubmenu } );
 
     // Add the selected class
     systemElements[startIndex].classList.add("selected");
 
+    document.querySelector("#systems").replaceWith(systemsElementNew);
+
     // Draw the ip
     document.querySelector("#ip").innerText = ip;
 
-    // Add functionality to the functions buttons
-    document.getElementById("launch-game").onclick = launchGame;
-    document.getElementById("quit-game").onclick = quitGame;
+    toggleButtons();
+}
+
+/**
+ * Toggle what buttons are available to click.
+ */
+function toggleButtons() {
+
+    var selectedSystem = document.querySelector(".system.selected");
+    var selectedGame = selectedSystem.querySelector(".game.selected");
+    var launchGameButton = document.getElementById("launch-game");
+    // Only allow a game to be launched if one is selected
+    if( !selectedGame ) {
+        launchGameButton.classList.add("inactive");
+        launchGameButton.onclick = null;
+    }
+    else {
+        launchGameButton.classList.remove("inactive");
+        launchGameButton.onclick = function(e) { 
+            var selectedGameElement = document.querySelector(".system.selected .game.selected");
+            if( selectedGameElement ) {
+                launchGame( document.querySelector(".system.selected").getAttribute( "data-system" ), selectedGameElement.getAttribute( "data-game" ) );
+            }
+        };
+    }
+
+    // Only allow a game to be quit if one is not selected
+    var quitGameButton = document.getElementById("quit-game");
+    if( !selectedGame || !isBeingPlayed(selectedSystem.getAttribute("data-system"), selectedGame.getAttribute("data-game")) ) {
+        quitGameButton.classList.add("inactive");
+        quitGameButton.onclick = null;
+    }
+    else {
+        quitGameButton.classList.remove("inactive");
+        quitGameButton.onclick = quitGame;
+    }
+
+    // Only allow save configuration menus and update/delete game menus if there is at least one game
+    var anyGame = document.querySelector(".game");
+    var updateGameButton = document.getElementById("update-game");
+    var deleteGameButton = document.getElementById("delete-game");
+    var addSaveButton = document.getElementById("add-save");
+    var updateSaveButton = document.getElementById("update-save");
+    var deleteSaveButton = document.getElementById("delete-save");
+    if( !anyGame ) {
+        updateGameButton.onclick = null; 
+        updateGameButton.classList.add("inactive");
+        deleteGameButton.onclick = null;
+        deleteGameButton.classList.add("inactive");
+        addSaveButton.onclick = null;
+        addSaveButton.classList.add("inactive");
+        updateSaveButton.onclick = null;
+        updateSaveButton.classList.add("inactive");
+        deleteSaveButton.onclick = null;
+        deleteSaveButton.classList.add("inactive");
+    }
+    else {
+        updateGameButton.onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#update-game-form") ) displayUpdateGame(); };
+        updateGameButton.classList.remove("inactive");
+        deleteGameButton.onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#delete-game-form") ) displayDeleteGame(); };
+        deleteGameButton.classList.remove("inactive");
+        addSaveButton.onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#add-save-form") ) displayAddSave(); };
+        addSaveButton.classList.remove("inactive");
+        updateSaveButton.onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#change-save-form") ) displaySelectSave(); };
+        updateSaveButton.classList.remove("inactive");
+        deleteSaveButton.onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#delete-save-form") ) displayDeleteSave(); };
+        deleteSaveButton.classList.remove("inactive");
+    }
+    
+    // Always allow add game
     document.getElementById("add-game").onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#add-game-form") ) displayAddGame(); };
-    document.getElementById("update-game").onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#update-game-form") ) displayUpdateGame(); };
-    document.getElementById("delete-game").onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#delete-game-form") ) displayDeleteGame(); };
-    document.getElementById("add-save").onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#add-save-form") ) displayAddSave(); };
-    document.getElementById("update-save").onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#change-save-form") ) displaySelectSave(); };
-    document.getElementById("delete-save").onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#delete-save-form") ) displayDeleteSave(); };
+    
+}
+
+/**
+ * Determine if a game is being played
+ * @param {string} system - the system to check
+ * @param {string} game - the game to check
+ * @returns {boolean} - whether the game is being played or not
+ */
+function isBeingPlayed( system, game ) {
+    if( systemsDict[system] && systemsDict[system].games[game]  && systemsDict[system].games[game].playing ) return true;
+    return false;
 }
 
 /**
@@ -188,23 +332,26 @@ function redraw( oldGameName, newGameName ) {
     var games = {};
     for(var i=0; i<systems.length; i++) {
         var selectedGameElement = systems[i].querySelector(".game.selected");
-        var selectedGame = selectedGameElement.getAttribute("data-game");
-        // newGameName being null means the game was deleted, we have to try to get a close by index
-        if( selectedGame == oldGameName && newGameName === null ) {
-            if( selectedGameElement.previousElementSibling ) {
-                selectedGame = selectedGameElement.previousElementSibling.getAttribute("data-game");
+        var selectedGame = null;
+        if( selectedGameElement ) {
+            selectedGame = selectedGameElement.getAttribute("data-game");
+            // newGameName being null means the game was deleted, we have to try to get a close by index
+            if( selectedGame == oldGameName && newGameName === null ) {
+                if( selectedGameElement.previousElementSibling ) {
+                    selectedGame = selectedGameElement.previousElementSibling.getAttribute("data-game");
+                }
+                else if( selectedGame.nextElementSibling ) {
+                    selectedGame = selectedGameElement.nextElementSibling.getAttribute("data-game");
+                }
+                // No games left
+                else {
+                    selectedGame = null;
+                }
             }
-            else if( selectedGame.nextElementSibling ) {
-                selectedGame = selectedGameElement.nextElementSibling.getAttribute("data-game");
+            // If the game name is updated, we'll have to change it
+            else if( selectedGame == oldGameName ) {
+                selectedGame = newGameName;
             }
-            // No games left
-            else {
-                selectedGame = null;
-            }
-        }
-        // If the game name is updated, we'll have to change it
-        else if( selectedGame == oldGameName ) {
-            selectedGame = newGameName;
         }
         games[systems[i].getAttribute("data-system")] = selectedGame;
     }
@@ -236,6 +383,7 @@ function getIndex( index, arr, offset ) {
  * @param {number} spaces - the number of spaces to move the menu
  */
 function moveMenu( spaces ) {
+    resetBubbleScreenshots();
     // Modulo the number of spaces to move if beyond the list size
     spaces = spaces % (expandCountLeft + expandCountRight + 1);
     // The currently selected system is no longer selected
@@ -273,6 +421,7 @@ function moveMenu( spaces ) {
         // Set the offset
         systems[i].style.left = "calc( 50% + " + (offset) + "px )";
     }
+    toggleButtons();
 }
 
 /**
@@ -280,6 +429,7 @@ function moveMenu( spaces ) {
  * @param {number} spaces - the number of spaces to move the submenu
  */
 function moveSubMenu( spaces ) {
+    resetBubbleScreenshots();
     // We have to update all systems
     // Get the currently selected system
     var currentSystem = document.querySelector(".system.selected").getAttribute("data-system");
@@ -304,6 +454,11 @@ function moveSubMenu( spaces ) {
 
         // Get the list of all the games in the submenu
         var games = subMenu.querySelectorAll(".game");
+        // Don't do anything if there aren't any games
+        if( games.length == 0 ) {
+            continue;
+        }
+
         // Get the current selected index
         // Since the submenu will move up one space (one "height") when we 
         // get the next item, we have to multiple by -1
@@ -335,25 +490,57 @@ function moveSubMenu( spaces ) {
 }
 
 /**
+ * Get the selected values to display in menus.
+ */
+function getSelectedValues() {
+    var currentSystemElement = document.querySelector(".system.selected");
+    var currentSystem = currentSystemElement.getAttribute("data-system");
+    var currentGame = "";
+    var currentSave = "";
+
+    var currentGameElement = document.querySelector(".system.selected .game.selected");
+    if( currentGameElement ) {
+        // We have a currently selected game we can use
+        currentGame = currentGameElement.getAttribute("data-game");
+        currentSave = currentGameElement.querySelector(".current-save").innerText;
+    }
+    else {
+        // We'll have to use a different system
+        var anySelectedGameElement = document.querySelector(".system .game.selected");
+        if( anySelectedGameElement ) {
+            currentSystem = anySelectedGameElement.closest(".system").getAttribute("data-system");
+            currentGame = anySelectedGameElement.getAttribute("data-game");
+            currentSave = anySelectedGameElement.querySelector(".current-save").innerText;
+        }
+        else {
+            // If there is no selected game, the only thing this can be if the menu is shown
+            // is add game, meaning we don't need a selected game.
+        }
+    }
+
+    return { system: currentSystem, game: currentGame, save: currentSave };
+}
+
+/**
  * Display the menu to delete a save.
  */
 function displayDeleteSave() {
     var form = document.createElement("div");
-    var currentSystem = document.querySelector(".system.selected").getAttribute("data-system");
-    var currentGame = document.querySelector(".system.selected .game.selected").getAttribute("data-game");
-    var currentSave = document.querySelector(".system.selected .game.selected .current-save").innerText;
+    var selected = getSelectedValues();
     form.setAttribute("id", "delete-save-form");
     form.appendChild( createFormTitle("Delete Save") );
-    form.appendChild( createSystemMenu( currentSystem, false, true ) );
-    form.appendChild( createGameMenu(currentGame, currentSystem, false, true) );
-    form.appendChild( createSaveMenu(currentSave, currentSystem, currentGame, true) );
+    form.appendChild( createSystemMenu( selected.system, false, true ) );
+    form.appendChild( createGameMenu(selected.game, selected.system, false, true) );
+    form.appendChild( createSaveMenu(selected.save, selected.system, selected.game, true) );
     form.appendChild( createButton( "Delete Save", function() {
         if( !makingRequest ) {
-            startRequest();
-            var systemSelect = document.querySelector("#delete-save-form #system-select");
-            var gameSelect = document.querySelector("#delete-save-form #game-select");
-            var saveSelect = document.querySelector("#delete-save-form #save-select");
-            deleteSave( systemSelect.options[systemSelect.selectedIndex].text, gameSelect.options[gameSelect.selectedIndex].text, saveSelect.options[saveSelect.selectedIndex].text );
+            var systemSelect = document.querySelector(".modal #delete-save-form #system-select");
+            var gameSelect = document.querySelector(".modal #delete-save-form #game-select");
+            var saveSelect = document.querySelector(".modal #delete-save-form #save-select");
+            var system = systemSelect.options[systemSelect.selectedIndex].text;
+            var game = gameSelect.options[gameSelect.selectedIndex].text;
+            var save = saveSelect.options[saveSelect.selectedIndex].text;
+            displayConfirm( "Are you sure you want to delete the save \""+save+"\" for " + game + " for " + system + "?", function() { startRequest(); deleteSave(system, game, save); }, closeModal);
         }
     } ) );
     launchModal( form );
@@ -364,20 +551,18 @@ function displayDeleteSave() {
  */
 function displaySelectSave() {
     var form = document.createElement("div");
-    var currentSystem = document.querySelector(".system.selected").getAttribute("data-system");
-    var currentGame = document.querySelector(".system.selected .game.selected").getAttribute("data-game");
-    var currentSave = document.querySelector(".system.selected .game.selected .current-save").innerText;
+    var selected = getSelectedValues();
     form.setAttribute("id", "change-save-form");
     form.appendChild( createFormTitle("Change Save") );
-    form.appendChild( createSystemMenu( currentSystem, false, true ) );
-    form.appendChild( createGameMenu(currentGame, currentSystem, false, true) );
-    form.appendChild( createSaveMenu(currentSave, currentSystem, currentGame, true) );
+    form.appendChild( createSystemMenu( selected.system, false, true ) );
+    form.appendChild( createGameMenu(selected.game, selected.system, false, true) );
+    form.appendChild( createSaveMenu(selected.save, selected.system, selected.game, true) );
     form.appendChild( createButton( "Change Save", function() {
         if( !makingRequest ) {
             startRequest();
-            var systemSelect = document.querySelector("#change-save-form #system-select");
-            var gameSelect = document.querySelector("#change-save-form #game-select");
-            var saveSelect = document.querySelector("#change-save-form #save-select");
+            var systemSelect = document.querySelector(".modal #change-save-form #system-select");
+            var gameSelect = document.querySelector(".modal #change-save-form #game-select");
+            var saveSelect = document.querySelector(".modal #change-save-form #save-select");
             changeSave( systemSelect.options[systemSelect.selectedIndex].text, gameSelect.options[gameSelect.selectedIndex].text, saveSelect.options[saveSelect.selectedIndex].text );
         }
     } ) );
@@ -389,22 +574,22 @@ function displaySelectSave() {
  */
 function displayAddSave() {
     var form = document.createElement("div");
-    var currentSystem = document.querySelector(".system.selected").getAttribute("data-system");
-    var currentGame = document.querySelector(".system.selected .game.selected").getAttribute("data-game");
+    var selected = getSelectedValues();
     form.setAttribute("id", "add-save-form");
     form.appendChild( createFormTitle("Add Save") );
-    form.appendChild( createSystemMenu( currentSystem, false, true ) );
-    form.appendChild( createGameMenu(currentGame, currentSystem, false, true) );
-    form.appendChild( createSaveInput(null, true) );
+    form.appendChild( createSystemMenu( selected.system, false, true ) );
+    form.appendChild( createGameMenu(selected.game, selected.system, false, true) );
+    var saveInput = createSaveInput(null, true);
+    form.appendChild( saveInput );
     form.appendChild( createButton( "Add Save", function() {
         if( !makingRequest ) {
             startRequest();
-            var systemSelect = document.querySelector("#add-save-form #system-select");
-            var gameSelect = document.querySelector("#add-save-form #game-select");
-            var saveInput = document.querySelector("#add-save-form #save-input");
+            var systemSelect = document.querySelector(".modal #add-save-form #system-select");
+            var gameSelect = document.querySelector(".modal #add-save-form #game-select");
+            var saveInput = document.querySelector(".modal #add-save-form #save-input");
             addSave( systemSelect.options[systemSelect.selectedIndex].text, gameSelect.options[gameSelect.selectedIndex].text, saveInput.value );
         }
-    } ) );
+    }, [saveInput.firstElementChild.nextElementSibling] ) );
     launchModal( form );
 }
 
@@ -413,24 +598,37 @@ function displayAddSave() {
  */
 function displayDeleteGame() {
     var form = document.createElement("div");
-    var currentSystem = document.querySelector(".system.selected").getAttribute("data-system");
-    var currentGame = document.querySelector(".system.selected .game.selected").getAttribute("data-game");
+    var selected = getSelectedValues();
     form.setAttribute("id", "delete-game-form");
     form.appendChild( createFormTitle("Delete Game") );
-    form.appendChild( createSystemMenu( currentSystem, false, true ) );
-    form.appendChild( createGameMenu(currentGame, currentSystem, false, true) );
+    form.appendChild( createSystemMenu( selected.system, false, true ) );
+    form.appendChild( createGameMenu(selected.game, selected.system, false, true) );
     form.appendChild( createButton( "Delete Game", function() {
         if( !makingRequest ) {
-            startRequest();
-            var systemSelect = document.querySelector("#delete-game-form #system-select");
-            var gameSelect = document.querySelector("#delete-game-form #game-select");
-            deleteGame( systemSelect.options[systemSelect.selectedIndex].text, gameSelect.options[gameSelect.selectedIndex].text );
+            var systemSelect = document.querySelector(".modal #delete-game-form #system-select");
+            var gameSelect = document.querySelector(".modal #delete-game-form #game-select");
+            var system = systemSelect.options[systemSelect.selectedIndex].text;
+            var game = gameSelect.options[gameSelect.selectedIndex].text;
+            displayConfirm( "Are you sure you want to delete " + game + " for " + system + "?", function() { startRequest(); deleteGame(system, game); }, closeModal )
         }
     } ) );
-    //form.appendChild( createWarning("Are you sure you want to delete " + document.querySelector(".system.selected .game.selected").getAttribute("data-game") + " for " + document.querySelector(".system.selected").getAttribute("data-system") + "?") );
-    //form.appendChild( createButton( "No" ) );
-    //form.appendChild( createButton( "Yes" ) );
     launchModal( form );
+}
+
+/**
+ * Display a confirm modal.
+ * @param {string} message - the message to display in the confirm box
+ * @param {Function} yesCallback - the function to execute if yes is selected
+ * @param {Function} noCallback - the function to execute if no is selected
+ */
+function displayConfirm( message, yesCallback, noCallback ) {
+    var form = document.createElement("div");
+    form.setAttribute("id", "are-you-sure");
+    form.appendChild( createFormTitle("Are You Sure?") );
+    form.appendChild( createWarning(message) );
+    form.appendChild( createButton( "No", noCallback ) );
+    form.appendChild( createButton( "Yes", yesCallback ) );
+    launchModal(form);
 }
 
 /**
@@ -438,24 +636,25 @@ function displayDeleteGame() {
  */
 function displayUpdateGame() {
     var form = document.createElement("div");
-    var currentSystem = document.querySelector(".system.selected").getAttribute("data-system");
-    var currentGame = document.querySelector(".system.selected .game.selected").getAttribute("data-game");
+    var selected = getSelectedValues();
     form.setAttribute("id", "update-game-form");
     form.appendChild( createFormTitle("Update Game") );
-    form.appendChild( createSystemMenu( currentSystem, true, true ) );
-    form.appendChild( createGameMenu( currentGame, currentSystem, true, true ) );
+    form.appendChild( createSystemMenu( selected.system, true, true ) );
+    form.appendChild( createGameMenu( selected.game, selected.system, true, true ) );
     form.appendChild( createWarning("If you do not wish to change a field, you may leave it blank.") );
-    form.appendChild( createSystemMenu( currentSystem ) );
-    form.appendChild( createGameInput() );
-    form.appendChild( createRomFileInput() );
+    form.appendChild( createSystemMenu( selected.system ) );
+    var gameInput = createGameInput();
+    form.appendChild( gameInput );
+    var romFileInput = createRomFileInput();
+    form.appendChild( romFileInput );
     form.appendChild( createButton( "Update Game", function() {
         if( !makingRequest ) {
             startRequest();
-            var oldSystemSelect = document.querySelector("#update-game-form #old-system-select");
-            var oldGameSelect = document.querySelector("#update-game-form #old-game-select");
-            var systemSelect = document.querySelector("#update-game-form #system-select");
-            var gameInput = document.querySelector("#update-game-form #game-input");
-            var romFileInput = document.querySelector("#update-game-form #rom-file-input");
+            var oldSystemSelect = document.querySelector(".modal #update-game-form #old-system-select");
+            var oldGameSelect = document.querySelector(".modal #update-game-form #old-game-select");
+            var systemSelect = document.querySelector(".modal #update-game-form #system-select");
+            var gameInput = document.querySelector(".modal #update-game-form #game-input");
+            var romFileInput = document.querySelector(".modal #update-game-form #rom-file-input");
 
             if( romFileInput.files.length ) {
                 getBase64( romFileInput.files[0], function(encoded) {
@@ -482,17 +681,20 @@ function displayUpdateGame() {
  */
 function displayAddGame() {
     var form = document.createElement("div");
+    var selected = getSelectedValues();
     form.setAttribute("id", "add-game-form");
     form.appendChild( createFormTitle("Add Game") );
-    form.appendChild( createSystemMenu( document.querySelector(".system.selected").getAttribute("data-system"), false, true ) );
-    form.appendChild( createGameInput(null, true) );
-    form.appendChild( createRomFileInput(true) );
+    form.appendChild( createSystemMenu( selected.system, false, true ) );
+    var gameInput = createGameInput(null, true);
+    form.appendChild( gameInput );
+    var romFileInput = createRomFileInput(true);
+    form.appendChild( romFileInput );
     form.appendChild( createButton( "Add Game", function() {
         if( !makingRequest ) {
             startRequest();
-            var systemSelect = document.querySelector("#add-game-form #system-select");
-            var gameInput = document.querySelector("#add-game-form #game-input");
-            var romFileInput = document.querySelector("#add-game-form #rom-file-input");
+            var systemSelect = document.querySelector(".modal #add-game-form #system-select");
+            var gameInput = document.querySelector(".modal #add-game-form #game-input");
+            var romFileInput = document.querySelector(".modal #add-game-form #rom-file-input");
             getBase64( romFileInput.files[0], function(encoded) {
                 addGame( systemSelect.options[systemSelect.selectedIndex].text, gameInput.value, {
                     "name": romFileInput.files[0].name,
@@ -504,7 +706,7 @@ function displayAddGame() {
                 endRequest();
             } );
         }
-    } ) );
+    }, [ gameInput.firstElementChild.nextElementSibling, romFileInput.firstElementChild.nextElementSibling ] ) );
     launchModal( form );
 }
 
@@ -558,7 +760,7 @@ function createGameMenu( selected, system, old, required ) {
         var currentSystem = system.options[system.selectedIndex].text;
         var saveSelect = modal.querySelector("#save-select");
         if( saveSelect ) {
-            var currentSave = document.querySelector(".system[data-system='"+currentSystem+"'] .game.selected .current-save").innerText;
+            var currentSave = document.querySelector(".system[data-system='"+currentSystem+"'] .game[data-game='"+game+"'] .current-save").innerText;
             saveSelect.parentNode.replaceWith( createSaveMenu( currentSave, currentSystem, game, saveSelect.hasAttribute("required") ) );
         }
     }, required );
@@ -666,12 +868,41 @@ function createMenu( selected, options, id, label, onchange, required ) {
 /**
  * Create a button element.
  * @param {string} label - the label text of the button 
- * @param {function} onclick - the callback function to run on click
+ * @param {function} onclick - the callback function to run on click - it won't be available until all the required fields have a value
  */
-function createButton( label, onclick ) {
+function createButton( label, onclick, requiredInputFields ) {
     var button = document.createElement("button");
     button.innerText = label;
-    button.onclick = onclick;
+    
+    if( requiredInputFields ) {
+        button.classList.add("inactive");
+        var listener = function() { 
+            // select fields always have some value
+            var allOk = true;
+            for( var i=0; i<requiredInputFields.length; i++ ) {
+                if( !requiredInputFields[i].value ) {
+                    allOk = false;
+                    break;
+                }
+            }
+            if( allOk ) {
+                button.classList.remove("inactive");
+                button.onclick = onclick;
+            }
+            else {
+                button.classList.add("inactive");
+                button.onclick = null;
+            }
+        };
+        for( var i=0; i<requiredInputFields.length; i++ ) {
+            requiredInputFields[i].onchange = listener;
+            requiredInputFields[i].oninput = listener;
+        }
+    }
+    else {
+        button.onclick = onclick;
+    }
+
     return button;
 }
 
@@ -727,11 +958,13 @@ function closeModal() {
     if( !makingRequest ) {
         var modal = document.querySelector(".modal");
         if( modal ) {
+            modal.classList.remove("modal"); // We need to do this as to not get it mixed up with another modal
+            modal.classList.add("dying-modal"); // Dummy modal class for css
             modal.classList.remove("modal-shown");
             document.body.classList.remove("modal-open");
             // set timeout to force draw prior
             setTimeout( function() { 
-                if( modal ) {
+                if( modal && modal.parentElement ) {
                     modal.parentElement.removeChild(modal);
                     disableMenuControls = false;
                 }
