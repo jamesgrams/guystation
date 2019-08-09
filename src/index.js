@@ -319,7 +319,6 @@ async function launchBrowser() {
 // TODO more emulators
 // TODO dropbox sync
 // TODO reorder
-// TODO - anyway to keep screenshots less dissolved for a little bit longer
 
 /**
  * Generate data about available options to the user
