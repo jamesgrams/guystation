@@ -644,6 +644,12 @@ function blankCurrentGame() {
  * @returns true if the game is being played; false if it is not
  */
 function isBeingPlayed(system, game) {
+    console.log("--------");
+    console.log(currentSystem);
+    console.log(system);
+    console.log(currentGame);
+    console.log(game);
+    console.log(currentEmulator ? true : false);
     return (currentSystem == system && currentGame == game && currentEmulator);
 }
 
