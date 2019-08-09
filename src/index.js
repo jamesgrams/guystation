@@ -594,19 +594,20 @@ function launchGame(system, game, restart=false) {
         currentSystem = system;
 
         // Sleep before either activating or full-screening, to give the program time to open
-        if( systemsDict[system].activateCommand || systemsDict[system].fullScreenCommand ) {
+        if( systemsDict[system].activateCommand || systemsDict[system].fullScreenPress ) {
             proc.execSync( SLEEP_COMMAND ); // sleep before activating.
         }
-        if( systemsDict[system].fullScreenCommand ) {
+        if( systemsDict[system].fullScreenPress ) {
             try {
-                proc.execSync( systemsDict[system].fullScreenCommand )
+                proc.execSync( systemsDict[system].activateCommand );
+                ks.sendKey("f11");
             }
             catch(err) { console.log("full screen failed."); }
         }
     }
     if( systemsDict[system].activateCommand ) {
         try {
-            proc.execSync( systemsDict[system].activateCommand )
+            proc.execSync( systemsDict[system].activateCommand );
         }
         catch(err) { console.log("activate failed."); }
     }

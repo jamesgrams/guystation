@@ -194,7 +194,7 @@ function draw( startSystem ) {
         else
             myOffset = 0;
         var mySpaces = myOffset/SPACING;
-        moveMenu(mySpaces);
+        moveMenu(-mySpaces);
     };
     var clickToMoveSubmenu = function() {
         // Add the onclick element
