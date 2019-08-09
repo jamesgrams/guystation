@@ -1020,9 +1020,9 @@ function createToast(message, type) {
 function launchGame( system, game ) {
     if( !makingRequest ) {
         startRequest(); // Most other functions do this prior since they need to do other things
-        makeRequest( "POST", "/launch", { "system": system, "game": game }, function( responseText ) {
-            endRequest();
-        }, function( responseText ) { standardFailure( responseText ) } );
+        makeRequest( "POST", "/launch", { "system": system, "game": game },
+        function( responseText ) { standardSuccess(responseText, "Game launched") },
+        function( responseText ) { standardFailure( responseText ) } );
     }
 }
 
@@ -1032,9 +1032,9 @@ function launchGame( system, game ) {
 function quitGame() {
     if( !makingRequest ) {
         startRequest(); // Most other functions do this prior since they need to do other things
-        makeRequest( "POST", "/quit", {}, function( responseText ) {
-            endRequest();
-        }, function( responseText ) { standardFailure( responseText ) } );
+        makeRequest( "POST", "/quit", {},
+        function( responseText ) { standardSuccess(responseText, "Game quit") },
+        function( responseText ) { standardFailure( responseText ) } );
     }
 }
 

@@ -551,7 +551,7 @@ function launchGame(system, game, restart=false) {
     }
 
     // Restart unless restart is false, we have a current emulator, and we are playing the game we selected
-    if( isBeingPlayed(system, game) || restart || !currentEmulator ) {
+    if( !isBeingPlayed(system, game) || restart || !currentEmulator ) {
         quitGame();
 
         let command = systemsDict[system].command;
@@ -644,12 +644,6 @@ function blankCurrentGame() {
  * @returns true if the game is being played; false if it is not
  */
 function isBeingPlayed(system, game) {
-    console.log("--------");
-    console.log(currentSystem);
-    console.log(system);
-    console.log(currentGame);
-    console.log(game);
-    console.log(currentEmulator ? true : false);
     return (currentSystem == system && currentGame == game && currentEmulator);
 }
 
