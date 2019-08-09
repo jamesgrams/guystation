@@ -319,8 +319,6 @@ async function launchBrowser() {
 // TODO expose http ports in setup script.
 // TODO more emulators
 // TODO dropbox sync
-// TODO playing does not work
-// TODO DS full screen
 
 /**
  * Generate data about available options to the user
