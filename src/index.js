@@ -16,7 +16,7 @@ const fsExtra = require('fs-extra');
 const ks = require("node-key-sender");
 
 const PORT = 8080;
-const STATIC_PORT = 8081;
+const STATIC_PORT = 80;
 const ASSETS_DIR = "assets";
 const CURRENT_SAVE_DIR = "current";
 const DEFAULT_SAVE_DIR = "default";
@@ -317,10 +317,8 @@ async function launchBrowser() {
 // TODO Setup script to open on startup
 // TODO mobile mode - swiping?
 // TODO expose http ports in setup script.
-// TODO click screen on activate
 // TODO more emulators
 // TODO dropbox sync
-// TODO reorder
 // TODO playing does not work
 // TODO DS full screen
 
@@ -374,6 +372,11 @@ function getData() {
             gameData.saves = savesInfo.savesDict;
 
             // If this game is being played, indicate as such
+            console.log("-------");
+            console.log(currentSystem);
+            console.log(currentGame);
+            console.log(system);
+            console.log(game);
             if( isBeingPlayed( system, game ) ) {
                 gameData.playing = true;
             }
