@@ -372,11 +372,6 @@ function getData() {
             gameData.saves = savesInfo.savesDict;
 
             // If this game is being played, indicate as such
-            console.log("-------");
-            console.log(currentSystem);
-            console.log(currentGame);
-            console.log(system);
-            console.log(game);
             if( isBeingPlayed( system, game ) ) {
                 gameData.playing = true;
             }
@@ -649,7 +644,7 @@ function blankCurrentGame() {
  * @returns true if the game is being played; false if it is not
  */
 function isBeingPlayed(system, game) {
-    return ((currentSystem != system || currentGame != game) && currentEmulator);
+    return (currentSystem == system && currentGame == game && currentEmulator);
 }
 
 /**
