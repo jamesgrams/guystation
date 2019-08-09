@@ -620,10 +620,10 @@ function launchGame(system, game, restart=false) {
 function quitGame() {
     if(currentEmulator) {
         currentEmulator.removeListener('exit', blankCurrentGame);
+        proc.execSync( KILL_COMMAND + currentEmulator.pid );
         currentEmulator = null;
         currentGame = null;
         currentSystem = null;
-        proc.execSync( KILL_COMMAND + currentEmulator.pid );
         return false;
     }
     else {
