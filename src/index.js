@@ -315,8 +315,6 @@ async function launchBrowser() {
 /**************** Data Functions ****************/
 
 // TODO more emulators
-// TODO disconnect not working
-// TODO connect not working on startup
 
 /**
  * Generate data about available options to the user
