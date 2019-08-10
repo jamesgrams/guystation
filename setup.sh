@@ -55,3 +55,10 @@ cd ..
 # Disable Chromium Infobars
 sudo mkdir -p /etc/chromium/policies/managed
 sudo sh -c "echo '{\"CommandLineFlagSecurityWarningsEnabled\": false}' > /etc/chromium/policies/managed/policy.json"
+
+# Setup autostart
+mkdir -p ~/.config/autostart
+bash -c "echo -e \"[Desktop Entry]\nType=Application\nExec=sudo npm --prefix=~/guystation start\nHidden=false\nX-GNOME-Autostart-enabled=true\nName=GuyStation\" > ~/.config/autostart/guystation.desktop"
+
+# Don't require password for sudo
+sudo bash -c "echo -e \"\n\n$USER ALL=(ALL) NOPASSWD: ALL\" >> /etc/sudoers"

@@ -2,6 +2,7 @@ var SPACING = 400;
 var EXPAND_COUNT = 10; // Number to expand on each side of the selected element - Note: We may actually expand more than this. We need to have a number of items divisble by the number of systems for the loop to work properly.
 var ROM_READ_ERROR = "An error ocurred readline the ROM file.";
 var BUBBLE_SCREENSHOTS_INTERVAL = 10000;
+var QUIT_TIME = 5000; // Time to hold escape to quit a game
 
 var expandCountLeft; // We always need to have a complete list of systems, repeated however many times we want, so the loop works properly
 var expandCountRight;
@@ -10,7 +11,11 @@ var ip;
 var disableMenuControls;
 var makingRequest = false;
 var bubbleScreenshotsSet;
+var escapeDown = null;
 
+/**
+ * Bubble screenshots on the screen for the selected game.
+ */
 function bubbleScreenshots() {
     var currentSystemElement = document.querySelector(".system.selected");
     var currentGameElement = currentSystemElement.querySelector(".system.selected .game.selected");
@@ -28,7 +33,7 @@ function bubbleScreenshots() {
             var screenshots = systemsDict[currentSystem].games[currentGame].saves[currentSave].screenshots;
             var screenshot = screenshots[Math.floor(Math.random()*screenshots.length)];
             var img = document.createElement("img");
-            img.setAttribute("src", ["systems", currentSystem, "games", currentGame, "saves", currentSave, "screenshots", screenshot].join("/"));
+            img.setAttribute("src", ["systems", encodeURIComponent(currentSystem), "games", encodeURIComponent(currentGame), "saves", encodeURIComponent(currentSave), "screenshots", encodeURIComponent(screenshot)].join("/"));
             img.classList.add("screenshot");
             img.style.left = (Math.floor(Math.random()*2) ? Math.random()*20 : 80-Math.random()*20) + "%";
             document.body.appendChild(img);
@@ -91,6 +96,15 @@ function enableControls() {
                 case 13:
                     document.querySelector("#launch-game").click();
                     break;
+                // Escape
+                case 27:
+                    if( !escapeDown ) {
+                        escapeDown = setTimeout(function() {
+                            document.querySelector("#quit-game").click();
+                            break;
+                        }, QUIT_TIME);
+                    }
+                    break;
             }
         }
         else {
@@ -101,7 +115,15 @@ function enableControls() {
                         break;
             }
         }
-    };
+    }
+    document.onkeyup = function(event) {
+        switch (event.keyCode) {
+            // Escape
+            case 27:
+                clearTimeout(escapeDown);
+                escapeDown = null;
+        }
+    }
 }
 
 /**

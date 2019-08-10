@@ -314,11 +314,7 @@ async function launchBrowser() {
 
 /**************** Data Functions ****************/
 
-// TODO Setup script to open on startup
-// TODO mobile mode - swiping?
-// TODO expose http ports in setup script.
 // TODO more emulators
-// TODO dropbox sync
 
 /**
  * Generate data about available options to the user
