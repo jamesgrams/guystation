@@ -353,11 +353,17 @@ function getData() {
             
             // Get the contents of the games directory
             let gameDirContents =  fs.readdirSync(generateGameDir(system, game));
-            // Try to figure out the ROM file
-            for( let gameDirContent of gameDirContents ) {
-                if( gameDirContent != "saves" && !gameDirContent.match(/^\./) ) {
-                    gameData.rom = gameDirContent;
-                    break;
+            try {
+                gameData.rom = JSON.parse(fs.readFileSync(generateGameMetaDataLocation(system, game))).rom;
+                console.log(gameData.rom);
+            }
+            catch(err) {
+                // Try to figure out the ROM file
+                for( let gameDirContent of gameDirContents ) {
+                    if( gameDirContent != SAVES_DIR && !gameDirContent.match(/^\./) ) {
+                        gameData.rom = gameDirContent;
+                        break;
+                    }
                 }
             }
             
@@ -491,6 +497,16 @@ function generateGameDir(system, game) {
  */
 function generateRomLocation(system, game, rom) {
     return generateGameDir(system, game) + SEPARATOR + rom;
+}
+
+/**
+ * Generate the full path for the metadata of a game.
+ * @param {string} system - the system the game is on
+ * @param {string} game - the game
+ * @returns the metadata filepath for the game (e.g. /home/user/guystation/systems/gba/games/super-mario-world/metadata.json)
+ */
+function generateGameMetaDataLocation(system, game) {
+    return generateGameDir(system, game) + SEPARATOR + METADATA_FILENAME;
 }
 
 /**
@@ -848,6 +864,7 @@ function saveUploadedRom( file, system, game ) {
     }
     let content = Buffer.from(file.base64File, 'base64');
     fs.writeFileSync(generateRomLocation(system, game, file.name), content);
+    fs.writeFileSync(generateGameMetaDataLocation(system, game), JSON.stringify({"rom": file.name}));
     return false;
 }
 

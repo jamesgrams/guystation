@@ -42,4 +42,5 @@ GuyStation launches a Node.js server along with a Chromium browser (via Puppetee
                         * `screenshots` (d)
                             * `<screenshot>`
                     * `current` (d) - symlink to the current save directory
+                * `metadata.json`
         * `metadata.json`
