@@ -101,7 +101,6 @@ function enableControls() {
                     if( !escapeDown ) {
                         escapeDown = setTimeout(function() {
                             document.querySelector("#quit-game").click();
-                            break;
                         }, QUIT_TIME);
                     }
                     break;
