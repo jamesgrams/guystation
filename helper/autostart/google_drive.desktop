@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Exec=sudo google-drive-ocamlfuse /home/james/google-drive/
+Hidden=false
+X-GNOME-Autostart-enabled=true
+Name=GoogleDrive

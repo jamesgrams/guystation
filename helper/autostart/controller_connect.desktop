@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Exec=bash -c "/home/james/controller_connect.sh"
+Hidden=false
+X-GNOME-Autostart-enabled=true
+Name=controller_connect
+NoDisplay=true
