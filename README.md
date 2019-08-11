@@ -1,7 +1,7 @@
 # GuyStation
 An Emulator Hub for Ubuntu. This is a small frontend for emulators designed to be easily installable and acessible on Ubuntu. Its major highlights include the ability to create seperate save files for the same game and to access the GUI from any web-capable device to easily make changes to your library.
 
-# Run
+## Run
 GuyStation is designed to run on Ubuntu (and to basically be the sole purpose of the machine). The steps to get it running are as follows:
 1. Clone this repository into your home directory
 2. `cd` into this repository
@@ -12,7 +12,7 @@ GuyStation is designed to run on Ubuntu (and to basically be the sole purpose of
 
 Note: You can press F11 to get GuyStation out of full screen mode at any time. 
 
-# Recommendations
+## Recommendations
 Here are some recommendedations to make your experience better on Ubuntu.
 1. Disable screen lock in settings
 2. Use a Bluetooth adapater and install Bluetooth Manager (`sudo apt-get install blueman`)
@@ -30,14 +30,14 @@ Here are some recommendedations to make your experience better on Ubuntu.
 9. Several of the programs mentioned above are good to have run on startup. To do this, create a file in `~/.config/autocontrol/` - the setup script should already set one up for guystation itself.
     * The `/helper/autocontrol` directory contains example scripts for antimicro (with hidden GUI), google-drice-ocamlfuse, and the controller_connect script. 
 
-# Controls
+## Controls
 You can use the arrow keys to control the menu, and enter to start a game. Escape will return to the menu from a game, and holding escape for 5 seconds will quit a game (once you're already on the menu). Escape will also quit a modal in the menu. Adding games and performing similar functions are best done with a mouse (The UI is in a web browser though, so you can access the buttons however you normally would).
 
 
-# Technical Notes
+## Technical Notes
 GuyStation launches a Node.js server along with a Chromium browser (via Puppeteer) that automatically navigates to a web page that allows you to interact with the server. This same page can be accessed by going to the IP address listed on the page in any web capable device.
 
-# File Structure for Systems Directory
+## File Structure for Systems Directory
 * `systems`
     * `<system>` (d)
         * `games` (d)
