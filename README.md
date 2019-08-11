@@ -16,6 +16,7 @@ Note: You can press F11 to get GuyStation out of full screen mode at any time.
 Here are some recommendedations to make your experience better on Ubuntu.
 1. Disable screen lock in settings
 2. Use a Bluetooth adapater and install Bluetooth Manager (`sudo apt-get install blueman`)
+    * This is good for initially pariring your controller.
 3. For Wii/Wii U Controllers use xwiimote (`sudo apt-get install xwiimote`)
 4. To map controller buttons to keyboard keys, use [Antimicro](https://github.com/AntiMicro/antimicro).
     * To build on Ubuntu, in addition to followin the instructions in the project's README, you will need the following libraries:
@@ -25,7 +26,7 @@ Here are some recommendedations to make your experience better on Ubuntu.
     * Note: the Tela fork will only download your save file if there is no save on your device. As such, you'll only want to turn on Sync when you want to download or upload your save, and you should delete the game from your iPhone before you download. Then, when you turn on sync, Tela will detect the game isn't there and re-download the game and the save.
     * After uploading from Tela, you will have to remount Google Drive or just restart the computer to get the symbolic links to work, since Google Drive will append a suffix to the name to indicate there was a change from another device.
 6. Use unclutter (`sudo apt-get install unclutter` and `unclutter -idle 2 -root`) to hide the mouse after 2 seconds.
-7. For easy pairing, I use a script that tries to automatically connect with my controller every couple seconds. I've set this script to run on startup. I also use an Ubuntu Keyboard Shortcut to run a script that disconnects my controller on keypress (and then restarts the program looking for the controller). I use antimicro to map some buttons on my controller to the keys in the keyboard shortcut, so I can disconnect the controller when I'm not using it. My connect and disconnect scripts can be found in `/helper/controller_connect.sh` and `/helper/controller_disconnect.sh` respectively.
+7. For easy controller connecting, I use a script that tries to automatically connect with my controller every couple seconds. I've set this script to run on startup. I also use an Ubuntu Keyboard Shortcut to run a script that disconnects my controller on keypress (and then restarts the program looking for the controller). I use antimicro to map some buttons on my controller to the keys in the keyboard shortcut, so I can disconnect the controller when I'm not using it. My connect and disconnect scripts can be found in `/helper/controller_connect.sh` and `/helper/controller_disconnect.sh` respectively.
 8. Disable `apport`, so you don't have to deal with crash menu popups.
 9. Several of the programs mentioned above are good to have run on startup. To do this, create a file in `~/.config/autocontrol/` - the setup script should already set one up for guystation itself.
     * The `/helper/autocontrol` directory contains example scripts for antimicro (with hidden GUI), google-drice-ocamlfuse, and the controller_connect script. 
