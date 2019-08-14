@@ -316,7 +316,6 @@ async function launchBrowser() {
 /**************** Data Functions ****************/
 
 // TODO more emulators
-// TODO add keyboard shortcut for remount google-drive and keyboard mapping - test gamepad api
 // TODO add credits for images especially
 // TODO - I can still select a system with no games in the change save menu. - change systems options but don't change systems options for add game
 // TODO allow click through pictures

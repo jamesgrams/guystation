@@ -292,14 +292,15 @@ function draw( startSystem ) {
     systemsElementNew.querySelector("img").onclick = clickToMove;
 
     for( var i=1; i<expandCountRight+1; i++ ) {
-        var nextIndex = getIndex( startIndex+(i-1), systemElements, 1 );
+        var nextIndex = getIndex( startIndex, systemElements, i );
         var nextElement = systemElements[nextIndex].cloneNode(true);
         nextElement.style.left = "calc( 50% + " + (i*SPACING) + "px )";
         nextElement.querySelector("img").onclick = clickToMove;
         systemsElementNew.appendChild(nextElement);
     }
     for( var i=1; i<expandCountLeft+1; i++ ) {
-        var prevIndex = getIndex( startIndex+(i-1), systemElements, -1 );
+        var prevIndex = getIndex( startIndex, systemElements, -1*i );
+	    console.log(prevIndex);
         var prevElement = systemElements[prevIndex].cloneNode(true);
         prevElement.style.left = "calc( 50% + -" + (i*SPACING) + "px )";
         prevElement.querySelector("img").onclick = clickToMove;
@@ -1356,7 +1357,7 @@ function manageGamepadInput() {
         var gamepads = navigator.getGamepads ? navigator.getGamepads() : (navigator.webkitGetGamepads ? navigator.webkitGetGamepads : []);
         if(!gamepads) return;
     
-    if( !disableMenuControls ) {
+    if( !disableMenuControls && document.hasFocus() ) {
 
         // See this helpful image for mappings: https://www.html5rocks.com/en/tutorials/doodles/gamepad/gamepad_diagram.png
 
