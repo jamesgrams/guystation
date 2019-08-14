@@ -1,0 +1,55 @@
+/* The following are taken from CocoaTown: https://github.com/game103/cocoatown/blob/master/index.css */
+
+.player-wrapper {
+    position: absolute;
+    right: 50px;
+    bottom: -5px;
+    overflow: visible;
+    transform: scale(1.5);
+    width: 82px;
+    height: 72px;
+    padding: 5px;
+    cursor: pointer;
+    transition: right 0.5s;
+}
+
+.player {
+    width: 82px;
+    height: 72px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    overflow: visible;
+}
+
+.player-flipped {
+    transform: scaleX(-1);
+}
+
+.dog {
+    fill: transparent;
+    stroke-width: 2px;
+    stroke: black;
+}
+
+.dog {
+    fill: white;
+    transition: fill 1s;
+}
+
+.dog-cover {
+    stroke: white;
+    transition: stroke 1s;
+}
+
+body.modal-open .dog {
+    fill: gray;
+}
+
+body.modal-open .dog-cover {
+    stroke: gray;
+}
+
+.dog-body {
+    transform-origin: 50% 50%;
+}

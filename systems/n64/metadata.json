@@ -1,0 +1,9 @@
+{
+  "command": "mupen64plus",
+  "saveDirFlag": "--savedir",
+  "screenshotsDirFlag": "--sshotdir",
+  "saveDirArgType": " ",
+  "screenshotsDirArgType": " ",
+  "extraFlags": ["--fullscreen"],
+  "activateCommand": "wmctrl -a 'Mupen'"
+}

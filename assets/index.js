@@ -3,6 +3,8 @@ var EXPAND_COUNT = 10; // Number to expand on each side of the selected element 
 var ROM_READ_ERROR = "An error ocurred readline the ROM file.";
 var BUBBLE_SCREENSHOTS_INTERVAL = 10000;
 var QUIT_TIME = 5000; // Time to hold escape to quit a game
+var GAMEPAD_INTERVAL = 500;
+var GAMEPAD_INPUT_INTERVAL = 10;
 
 var expandCountLeft; // We always need to have a complete list of systems, repeated however many times we want, so the loop works properly
 var expandCountRight;
@@ -11,7 +13,22 @@ var ip;
 var disableMenuControls;
 var makingRequest = false;
 var bubbleScreenshotsSet;
-var escapeDown = null;
+
+var escapeDown = null; // Hold escape for 5 seconds to quit
+// These buttons need to be pressed again to trigger the action again
+var buttonsUp = {
+    "gamepad": {
+        "0": true,
+        "9": true,
+        "5": true,
+        "7": true,
+        "4": true,
+        "6": true
+    },
+    "keyboard": {
+        "13": true
+    }
+};
 
 /**
  * Bubble screenshots on the screen for the selected game.
@@ -44,11 +61,42 @@ function bubbleScreenshots() {
     }
 }
 
+/**
+ * Reset the bubble screenshots waiting period.
+ */
 function resetBubbleScreenshots() {
     if( bubbleScreenshotsSet ) {
         clearInterval( bubbleScreenshotsSet );
     }
     bubbleScreenshotsSet = setInterval( bubbleScreenshots, BUBBLE_SCREENSHOTS_INTERVAL );
+}
+
+/**
+ * Display the current time and date.
+ */
+function startTime() {
+    var today = new Date();
+    var hours = today.getHours();
+    var meridian = "AM";
+    if( hours > 12 ) {
+        hours -= 12;
+        meridian = "PM";
+    }
+    else if( hours == 12 ) {
+        meridian = "PM";
+    }
+    else if( !hours ) {
+        hours = 12;
+        meridian = "AM";
+    }
+    var minutes = today.getMinutes();
+    if( minutes < 10 ) minutes = "0" + minutes;
+    var date = today.getDate();
+    var month = today.getMonth();
+    var year = today.getFullYear();
+    var date = hours + ":" + minutes + " " + meridian + " - " + month + "/" + date + "/" + year;
+    document.getElementById("time").innerHTML = date;
+    setTimeout(startTime, 500);
 }
 
 window.addEventListener('load', load );
@@ -66,6 +114,9 @@ function load() {
         enableControls();
         endRequest();
         resetBubbleScreenshots();
+        startTime();
+        gamePadInterval = setInterval(pollGamepads, GAMEPAD_INTERVAL);
+        addDog();
     }, load );
 }
 
@@ -94,7 +145,10 @@ function enableControls() {
                     break;
                 // Enter
                 case 13:
-                    document.querySelector("#launch-game").click();
+                    if( buttonsUp.keyboard["13"] ) {
+                        document.querySelector("#launch-game").click();
+                    }
+                    buttonsUp.keyboard["13"] = false;
                     break;
                 // Escape
                 case 27:
@@ -110,17 +164,22 @@ function enableControls() {
             switch (event.keyCode) {
                 // Escape
                 case 27:
-                        closeModal();
-                        break;
+                    closeModal();
+                    break;
             }
         }
     }
     document.onkeyup = function(event) {
         switch (event.keyCode) {
+            // Enter
+            case 13:
+                buttonsUp.keyboard["13"] = true;
+                break;
             // Escape
             case 27:
                 clearTimeout(escapeDown);
                 escapeDown = null;
+                break;
         }
     }
 }
@@ -591,6 +650,23 @@ function displaySelectSave() {
 }
 
 /**
+ * Cycle to the next save.
+ * @param {Number} offset - the number of positions to cycle
+ */
+function cycleSave(offset) {
+    if( !makingRequest ) { 
+        var selected = getSelectedValues();
+        if( selected.system && selected.game && selected.save ) {
+            var saves = Object.keys(systemsDict[selected.system].games[selected.game].saves);
+            var currentSaveIndex = saves.indexOf( selected.save );
+            var nextIndex = getIndex(currentSaveIndex, saves, offset);
+            startRequest();
+            changeSave( selected.system, selected.game, saves[nextIndex] );
+        }
+    }
+}
+
+/**
  * Display the menu to add a save.
  */
 function displayAddSave() {
@@ -987,7 +1063,9 @@ function closeModal() {
             setTimeout( function() { 
                 if( modal && modal.parentElement ) {
                     modal.parentElement.removeChild(modal);
-                    disableMenuControls = false;
+                    if( !document.querySelector(".modal") ) {
+                        disableMenuControls = false;
+                    }
                 }
             }, 500 ); // Make sure this matches the transition time in the css
             document.body.onclick = null;
@@ -1253,3 +1331,175 @@ function getBase64(file, callback, errorCallback) {
     };
     reader.onerror = function() { errorCallback() };
 }
+
+/**
+ * Poll for gamepads. 
+ * Used for Chrome support
+ * See here: https://developer.mozilla.org/en-US/docs/Web/API/Gamepad_API/Using_the_Gamepad_API
+ */
+function pollGamepads() {
+    var gamepads = navigator.getGamepads ? navigator.getGamepads() : (navigator.webkitGetGamepads ? navigator.webkitGetGamepads : []);
+    for (var i = 0; i < gamepads.length; i++) {
+        var gp = gamepads[i];
+        if (gp) {
+            manageGamepadInput();
+            clearInterval(gamePadInterval);
+        }
+    }
+}
+
+/**
+ * Manage gamepad input.
+ */
+function manageGamepadInput() {
+    if( !disableMenuControls ) {
+
+        var gamepads = navigator.getGamepads ? navigator.getGamepads() : (navigator.webkitGetGamepads ? navigator.webkitGetGamepads : []);
+        if(!gamepads) return;
+
+        // See this helpful image for mappings: https://www.html5rocks.com/en/tutorials/doodles/gamepad/gamepad_diagram.png
+
+        var gp = gamepads[0];
+        
+        var aPressed = buttonPressed(gp.buttons[0]);
+        var startPressed = buttonPressed(gp.buttons[9]);
+        // A or Start - launch a game (no need to quit a game, since they should have escape mapped to a key so they can go back to the menu)
+        if( (aPressed && buttonsUp.gamepad["0"]) 
+            || (startPressed && buttonsUp.gamepad["9"]) ) {
+            
+            if( aPressed ) buttonsUp.gamepad["0"] = false;
+            if( startPressed ) buttonsUp.gamepad["9"] = false;
+            
+            document.querySelector("#launch-game").click();
+        }
+        else {
+            if(!aPressed) buttonsUp.gamepad["0"] = true;
+            if(!startPressed) buttonsUp.gamepad["9"] = true;
+        }
+      
+        var rightShoulderPressed = buttonPressed(gp.buttons[5]);
+        var rightTriggerPressed = buttonPressed(gp.buttons[7]);
+        // Right shoulder or trigger - cycle saves
+        if( (rightShoulderPressed && buttonsUp.gamepad["5"]) 
+            || (rightTriggerPressed && buttonsUp.gamepad["7"]) ) {
+            
+            if( rightShoulderPressed ) buttonsUp.gamepad["5"] = false;
+            if( rightTriggerPressed ) buttonsUp.gamepad["7"] = false;
+            
+            cycleSave(1);
+        }
+        else {
+            if(!rightShoulderPressed) buttonsUp.gamepad["5"] = true;
+            if(!rightTriggerPressed) buttonsUp.gamepad["7"] = true;
+        }
+
+        var leftShoulderPressed = buttonPressed(gp.buttons[4]);
+        var leftTriggerPressed = buttonPressed(gp.buttons[6]);
+        // Right shoulder or trigger - cycle saves
+        if( (leftShoulderPressed && buttonsUp.gamepad["4"]) 
+            || (leftTriggerPressed && buttonsUp.gamepad["6"]) ) {
+            
+            if( leftShoulderPressed ) buttonsUp.gamepad["4"] = false;
+            if( leftTriggerPressed ) buttonsUp.gamepad["6"] = false;
+            
+            cycleSave(1);
+        }
+        else {
+            if(!leftShoulderPressed) buttonsUp.gamepad["4"] = true;
+            if(!leftTriggerPressed) buttonsUp.gamepad["6"] = true;
+        }
+
+        var leftStickXPosition = gp.axes[0];
+        var leftStickYPosition = gp.axes[1];
+        // Right
+        if( leftStickXPosition > 0.5 || buttonsPressed(gp.buttons[15]) ) {
+            moveMenu( 1 );
+        }
+        // Left
+        else if( leftStickXPosition < -0.5 || buttonsPressed(gp.buttons[14]) ) {
+            moveMenu( -1 );
+        }
+        // Up
+        else if( leftStickYPosition > 0.5 || buttonsPressed(gp.buttons[12]) ) {
+            moveSubMenu( -1 );
+        }
+        // Down
+        else if( leftStickYPosition < -0.5 || buttonsPressed(gp.buttons[13]) ) {
+            moveSubMenu( 1 );
+        }
+
+        setTimeout(manageGamepadInput, GAMEPAD_INPUT_INTERVAL);
+
+    }
+}
+
+/**
+ * Determine if a button is pressed.
+ */
+function buttonPressed(b) {
+    if (typeof(b) == "object") {
+        return b.pressed;
+    }
+    return b == 1.0;
+}
+
+// Handles mobile input
+// Taken from here: https://stackoverflow.com/questions/2264072/detect-a-finger-swipe-through-javascript-on-the-iphone-and-android
+
+document.addEventListener('touchstart', handleTouchStart, false);        
+document.addEventListener('touchmove', handleTouchMove, false);
+
+var xDown = null;                                                        
+var yDown = null;
+
+/**
+ * Get the touches that occurred.
+ * @param {Event} evt - the touch event
+ */
+function getTouches(evt) {
+  return evt.touches ||             // browser API
+         evt.originalEvent.touches; // jQuery
+}                                                     
+
+/**
+ * Handle the touch start event.
+ * @param {Event} evt - the touch event
+ */
+function handleTouchStart(evt) {
+    const firstTouch = getTouches(evt)[0];                                      
+    xDown = firstTouch.clientX;                                      
+    yDown = firstTouch.clientY;                                      
+};                                                
+
+/**
+ * Handle the touch move event.
+ * @param {Event} evt - the touch event
+ */
+function handleTouchMove(evt) {
+    if ( ! xDown || ! yDown || disableMenuControls ) {
+        return;
+    }
+
+    var xUp = evt.touches[0].clientX;                                    
+    var yUp = evt.touches[0].clientY;
+
+    var xDiff = xDown - xUp;
+    var yDiff = yDown - yUp;
+
+    if ( Math.abs( xDiff ) > Math.abs( yDiff ) ) {/*most significant*/
+        if ( xDiff > 0 ) {
+            moveMenu(-1);
+        } else {
+            moveMenu(1);
+        }                       
+    } else {
+        if ( yDiff > 0 ) {
+            moveSubMenu(1);
+        } else { 
+            moveSubMenu(-1);
+        }                                                                 
+    }
+    /* reset values */
+    xDown = null;
+    yDown = null;                                             
+};

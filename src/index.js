@@ -112,6 +112,7 @@ staticApp.get("/", async function(request, response) {
 // Get Data
 app.get("/data", async function(request, response) {
     console.log("app serving /data (GET)");
+    getData();
     writeResponse( response, SUCCESS, {} );
 });
 
@@ -315,6 +316,10 @@ async function launchBrowser() {
 /**************** Data Functions ****************/
 
 // TODO more emulators
+// TODO add keyboard shortcut for remount google-drive and keyboard mapping - test gamepad api
+// TODO add credits for images especially
+// TODO - I can still select a system with no games in the change save menu. - change systems options but don't change systems options for add game
+// only mapping that should be necessary are the shoulder buttons for disconnect and the home button for escape
 
 /**
  * Generate data about available options to the user
