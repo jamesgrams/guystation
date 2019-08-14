@@ -319,7 +319,8 @@ async function launchBrowser() {
 // TODO add keyboard shortcut for remount google-drive and keyboard mapping - test gamepad api
 // TODO add credits for images especially
 // TODO - I can still select a system with no games in the change save menu. - change systems options but don't change systems options for add game
-// only mapping that should be necessary are the shoulder buttons for disconnect and the home button for escape
+// TODO allow click through pictures
+// TODO An xml mapping might be nice for controllers
 
 /**
  * Generate data about available options to the user

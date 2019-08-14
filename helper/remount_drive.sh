@@ -9,6 +9,6 @@
 
 # This script will unmount, clear the cache deleting any trace of the deleted file, and then remount google-drive.
 
-fusermount -u /home/james/google-drive
-google-drive-ocamlfuse -cc
-google-drive-ocamlfuse /home/james/google-drive/
+sudo fusermount -u /home/james/google-drive
+sudo google-drive-ocamlfuse -cc
+sudo google-drive-ocamlfuse /home/james/google-drive/

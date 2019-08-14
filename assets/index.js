@@ -18,7 +18,7 @@ var escapeDown = null; // Hold escape for 5 seconds to quit
 // These buttons need to be pressed again to trigger the action again
 var buttonsUp = {
     "gamepad": {
-        "0": true,
+        "1": true,
         "9": true,
         "5": true,
         "7": true,
@@ -92,7 +92,7 @@ function startTime() {
     var minutes = today.getMinutes();
     if( minutes < 10 ) minutes = "0" + minutes;
     var date = today.getDate();
-    var month = today.getMonth();
+    var month = today.getMonth() + 1;
     var year = today.getFullYear();
     var date = hours + ":" + minutes + " " + meridian + " - " + month + "/" + date + "/" + year;
     document.getElementById("time").innerHTML = date;
@@ -129,7 +129,7 @@ function enableControls() {
             switch (event.keyCode) {
                 // Left
                 case 37:
-                    moveMenu(-1);
+                    moveMenu(1);
                     break;
                 // Up
                 case 38:
@@ -137,7 +137,7 @@ function enableControls() {
                     break;
                 // Right
                 case 39:
-                    moveMenu(1);
+                    moveMenu(-1);
                     break;
                 // Down
                 case 40:
@@ -1352,28 +1352,29 @@ function pollGamepads() {
  * Manage gamepad input.
  */
 function manageGamepadInput() {
-    if( !disableMenuControls ) {
 
         var gamepads = navigator.getGamepads ? navigator.getGamepads() : (navigator.webkitGetGamepads ? navigator.webkitGetGamepads : []);
         if(!gamepads) return;
+    
+    if( !disableMenuControls ) {
 
         // See this helpful image for mappings: https://www.html5rocks.com/en/tutorials/doodles/gamepad/gamepad_diagram.png
 
         var gp = gamepads[0];
         
-        var aPressed = buttonPressed(gp.buttons[0]);
+        var aPressed = buttonPressed(gp.buttons[1]);
         var startPressed = buttonPressed(gp.buttons[9]);
         // A or Start - launch a game (no need to quit a game, since they should have escape mapped to a key so they can go back to the menu)
-        if( (aPressed && buttonsUp.gamepad["0"]) 
+        if( (aPressed && buttonsUp.gamepad["1"]) 
             || (startPressed && buttonsUp.gamepad["9"]) ) {
             
-            if( aPressed ) buttonsUp.gamepad["0"] = false;
+            if( aPressed ) buttonsUp.gamepad["1"] = false;
             if( startPressed ) buttonsUp.gamepad["9"] = false;
             
             document.querySelector("#launch-game").click();
         }
         else {
-            if(!aPressed) buttonsUp.gamepad["0"] = true;
+            if(!aPressed) buttonsUp.gamepad["1"] = true;
             if(!startPressed) buttonsUp.gamepad["9"] = true;
         }
       
@@ -1395,14 +1396,14 @@ function manageGamepadInput() {
 
         var leftShoulderPressed = buttonPressed(gp.buttons[4]);
         var leftTriggerPressed = buttonPressed(gp.buttons[6]);
-        // Right shoulder or trigger - cycle saves
+        // Left shoulder or trigger - cycle saves
         if( (leftShoulderPressed && buttonsUp.gamepad["4"]) 
             || (leftTriggerPressed && buttonsUp.gamepad["6"]) ) {
             
             if( leftShoulderPressed ) buttonsUp.gamepad["4"] = false;
             if( leftTriggerPressed ) buttonsUp.gamepad["6"] = false;
             
-            cycleSave(1);
+            cycleSave(-1);
         }
         else {
             if(!leftShoulderPressed) buttonsUp.gamepad["4"] = true;
@@ -1412,25 +1413,32 @@ function manageGamepadInput() {
         var leftStickXPosition = gp.axes[0];
         var leftStickYPosition = gp.axes[1];
         // Right
-        if( leftStickXPosition > 0.5 || buttonsPressed(gp.buttons[15]) ) {
-            moveMenu( 1 );
+        if( leftStickXPosition > 0.5 || buttonPressed(gp.buttons[16]) ) {
+            moveMenu( -1 );
+	    disableMenuControls = true;
+            setTimeout( function() { disableMenuControls = false; }, 250 );
         }
         // Left
-        else if( leftStickXPosition < -0.5 || buttonsPressed(gp.buttons[14]) ) {
-            moveMenu( -1 );
+        else if( leftStickXPosition < -0.5 || buttonPressed(gp.buttons[15]) ) {
+            moveMenu( 1 );
+	    disableMenuControls = true;
+            setTimeout( function() { disableMenuControls = false; }, 250 );
         }
         // Up
-        else if( leftStickYPosition > 0.5 || buttonsPressed(gp.buttons[12]) ) {
+        else if( leftStickYPosition > 0.5 || buttonPressed(gp.buttons[13]) ) {
             moveSubMenu( -1 );
+	    disableMenuControls = true;
+            setTimeout( function() { disableMenuControls = false; }, 250 );
         }
         // Down
-        else if( leftStickYPosition < -0.5 || buttonsPressed(gp.buttons[13]) ) {
+        else if( leftStickYPosition < -0.5 || buttonPressed(gp.buttons[14]) ) {
             moveSubMenu( 1 );
+	    disableMenuControls = true;
+            setTimeout( function() { disableMenuControls = false; }, 250 );
         }
 
-        setTimeout(manageGamepadInput, GAMEPAD_INPUT_INTERVAL);
-
     }
+    setTimeout(manageGamepadInput, GAMEPAD_INPUT_INTERVAL);
 }
 
 /**
