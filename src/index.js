@@ -317,6 +317,7 @@ async function launchBrowser() {
 
 // TODO more emulators
 // TODO An xml mapping might be nice for controllers
+// TODO refresh button keyboard mapping
 
 /**
  * Generate data about available options to the user
@@ -357,7 +358,6 @@ function getData() {
             let gameDirContents =  fs.readdirSync(generateGameDir(system, game));
             try {
                 gameData.rom = JSON.parse(fs.readFileSync(generateGameMetaDataLocation(system, game))).rom;
-                console.log(gameData.rom);
             }
             catch(err) {
                 // Try to figure out the ROM file
@@ -597,6 +597,11 @@ function launchGame(system, game, restart=false) {
         }
         if( systemsDict[system].extraFlags ) {
             arguments = arguments.concat( systemsDict[system].extraFlags );
+        }
+
+        if( systemsDict[system].argsFirst ) {
+            arguments.push(arguments[0]);
+            arguments.shift();
         }
 
         currentEmulator = proc.spawn( command, arguments, {detached: true} );
