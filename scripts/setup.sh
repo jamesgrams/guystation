@@ -15,7 +15,7 @@ sudo npm install -g npm@latest --force
 sudo apt-get -y install git
 
 # Install dependencies needed to desmume
-sudo apt-get -y install build-essential autoconf automake libgtk2.0-dev libglu1-mesa-dev libsdl1.2-dev libglade2-dev gettext zlib1g-dev libosmesa6-dev intltool libagg-dev libasound2-dev libsoundtouch-dev libpcap-dev default-jdk
+sudo apt-get -y install build-essential autoconf automake libgtk2.0-dev libglu1-mesa-dev libsdl1.2-dev libglade2-dev gettext zlib1g-dev libosmesa6-dev intltool libagg-dev libasound2-dev libsoundtouch-dev libpcap-dev default-jdk libboost-filesystem-dev
 
 # Install DeSmuME
 # https://wiki.desmume.org/index.php?title=Installing_DeSmuME_from_source_on_Linux
@@ -48,7 +48,7 @@ sudo apt-get -y install wmctrl
 cd ~
 
 # Install Mupen64
-./guystation/scripts/m64p_helper_scripts/m64p_get.sh && ./guystation/scripts/m64p_helper_scripts/m64p_build.sh && ./guystation/scripts/m64p_helper_scripts/m64p_test.sh
+./guystation/scripts/m64p_helper_scripts/m64p_get.sh && ./guystation/scripts/m64p_helper_scripts/m64p_build.sh && ./guystation/scripts/m64p_helper_scripts/m64p_install.sh
 
 # install the necessary modules for guystation
 cd guystation
