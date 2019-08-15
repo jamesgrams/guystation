@@ -5,6 +5,6 @@
   "saveDirArgType": " ",
   "screenshotsDirArgType": " ",
   "extraFlags": ["--fullscreen"],
-  "activateCommand": "wmctrl -a 'Mupen'",
+  "activateCommand": "wmctrl -a 'Glide64'",
   "argsFirst": true
 }
