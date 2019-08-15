@@ -59,5 +59,3 @@ GuyStation launches a Node.js server along with a Chromium browser (via Puppetee
 * Game Boy Advance emulator: [VisualBoyAdvance-m](https://vba-m.com/)
 * DS emulator: [DeSmuMe](http://desmume.org/)
 * Nintendo 64 emulator: [Mupen64Plus](https://mupen64plus.org/)
-
-Thanks to for the providing the emulators
