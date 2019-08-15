@@ -778,10 +778,10 @@ function displayUpdateGame() {
  */
 function displayAddGame() {
     var form = document.createElement("div");
-    var selected = getSelectedValues();
+    // var selected = getSelectedValues();
     form.setAttribute("id", "add-game-form");
     form.appendChild( createFormTitle("Add Game") );
-    form.appendChild( createSystemMenu( selected.system, false, true ) );
+    form.appendChild( createSystemMenu( document.querySelector(".system.selected").getAttribute("data-system"), false, true ) );
     var gameInput = createGameInput(null, true);
     form.appendChild( gameInput );
     var romFileInput = createRomFileInput(true);
