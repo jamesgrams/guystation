@@ -300,7 +300,6 @@ function draw( startSystem ) {
     }
     for( var i=1; i<expandCountLeft+1; i++ ) {
         var prevIndex = getIndex( startIndex, systemElements, -1*i );
-	    console.log(prevIndex);
         var prevElement = systemElements[prevIndex].cloneNode(true);
         prevElement.style.left = "calc( 50% + -" + (i*SPACING) + "px )";
         prevElement.querySelector("img").onclick = clickToMove;
@@ -610,7 +609,7 @@ function displayDeleteSave() {
     var selected = getSelectedValues();
     form.setAttribute("id", "delete-save-form");
     form.appendChild( createFormTitle("Delete Save") );
-    form.appendChild( createSystemMenu( selected.system, false, true ) );
+    form.appendChild( createSystemMenu( selected.system, false, true, true ) );
     form.appendChild( createGameMenu(selected.game, selected.system, false, true) );
     form.appendChild( createSaveMenu(selected.save, selected.system, selected.game, true) );
     form.appendChild( createButton( "Delete Save", function() {
@@ -635,7 +634,7 @@ function displaySelectSave() {
     var selected = getSelectedValues();
     form.setAttribute("id", "change-save-form");
     form.appendChild( createFormTitle("Change Save") );
-    form.appendChild( createSystemMenu( selected.system, false, true ) );
+    form.appendChild( createSystemMenu( selected.system, false, true, true ) );
     form.appendChild( createGameMenu(selected.game, selected.system, false, true) );
     form.appendChild( createSaveMenu(selected.save, selected.system, selected.game, true) );
     form.appendChild( createButton( "Change Save", function() {
@@ -675,7 +674,7 @@ function displayAddSave() {
     var selected = getSelectedValues();
     form.setAttribute("id", "add-save-form");
     form.appendChild( createFormTitle("Add Save") );
-    form.appendChild( createSystemMenu( selected.system, false, true ) );
+    form.appendChild( createSystemMenu( selected.system, false, true, true ) );
     form.appendChild( createGameMenu(selected.game, selected.system, false, true) );
     var saveInput = createSaveInput(null, true);
     form.appendChild( saveInput );
@@ -699,7 +698,7 @@ function displayDeleteGame() {
     var selected = getSelectedValues();
     form.setAttribute("id", "delete-game-form");
     form.appendChild( createFormTitle("Delete Game") );
-    form.appendChild( createSystemMenu( selected.system, false, true ) );
+    form.appendChild( createSystemMenu( selected.system, false, true, true ) );
     form.appendChild( createGameMenu(selected.game, selected.system, false, true) );
     form.appendChild( createButton( "Delete Game", function() {
         if( !makingRequest ) {
@@ -737,7 +736,7 @@ function displayUpdateGame() {
     var selected = getSelectedValues();
     form.setAttribute("id", "update-game-form");
     form.appendChild( createFormTitle("Update Game") );
-    form.appendChild( createSystemMenu( selected.system, true, true ) );
+    form.appendChild( createSystemMenu( selected.system, true, true, true ) );
     form.appendChild( createGameMenu( selected.game, selected.system, true, true ) );
     form.appendChild( createWarning("If you do not wish to change a field, you may leave it blank.") );
     form.appendChild( createSystemMenu( selected.system ) );
@@ -813,10 +812,15 @@ function displayAddGame() {
  * @param {string} selected - the system selected by default
  * @param {boolean} old - true if the old system for chanding (changes the id)
  * @param {boolean} required - if the field is required
+ * @param {boolean} onlyWithGames - true if we should only show systems with games in the menu
  * @returns {Element} - a select element containing the necessary keys
  */
-function createSystemMenu( selected, old, required ) {
-    return createMenu( selected, Object.keys(systemsDict), (old ? "old-" : "") + "system-select", (old ? "Current " : "") + "System: ", function() {
+function createSystemMenu( selected, old, required, onlyWithGames ) {
+    var systemsKeys = Object.keys(systemsDict);
+    if( onlyWithGames ) {
+        systemsKeys = systemsKeys.filter( (element) => Object.keys(systemsDict[element].games).length > 0 );
+    }
+    return createMenu( selected, systemsKeys, (old ? "old-" : "") + "system-select", (old ? "Current " : "") + "System: ", function() {
         var system = this.options[this.selectedIndex].text;
         var modal = document.querySelector(".modal");
         var gameSelect = modal.querySelector("#" + (old ? "old-" : "") + "game-select");

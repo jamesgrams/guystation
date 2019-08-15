@@ -47,6 +47,9 @@ sudo apt-get -y install wmctrl
 # Return to the home directory
 cd ~
 
+# Install Mupen64
+./guystation/scripts/m64p_helper_scripts/m64p_get.sh && ./guystation/scripts/m64p_helper_scripts/m64p_build.sh && ./guystation/scripts/m64p_helper_scripts/m64p_test.sh
+
 # install the necessary modules for guystation
 cd guystation
 npm install

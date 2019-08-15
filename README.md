@@ -5,7 +5,7 @@ An Emulator Hub for Ubuntu. This is a small frontend for emulators designed to b
 GuyStation is designed to run on Ubuntu (and to basically be the sole purpose of the machine). The steps to get it running are as follows:
 1. Clone this repository into your home directory
 2. `cd` into this repository
-3. Run `./setup.sh`
+3. Run `./scripts/setup.sh`
 4. Restart your computer, and GuyStation should boot automatically.
 5. Connect and setup any controllers or other devices that you want to use to control the emulators.
 6. Add games and have fun! You should be able to access the GuyStation frontend on any device within the same network by going to the IP that GuyStation displays in your browser.
@@ -52,3 +52,12 @@ GuyStation launches a Node.js server along with a Chromium browser (via Puppetee
                     * `current` (d) - symlink to the current save directory
                 * `metadata.json`
         * `metadata.json`
+
+## Credits and Special Thanks
+Game Boy Advance and DS Lite icons: [David Pérez](https://thenounproject.com/david730/)
+Nintendo 64 icon: [Guilherme Simoes](https://thenounproject.com/uberux/)
+Game Boy Advance emulator: [VisualBoyAdvance-m](https://vba-m.com/)
+DS emulator: [DeSmuMe](http://desmume.org/)
+Nintendo 64 emulator: [Mupen64Plus](https://mupen64plus.org/)
+
+Thanks to for the providing the emulators

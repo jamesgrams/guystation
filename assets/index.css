@@ -253,6 +253,8 @@ h1 {
     border-radius: 25px;
     animation: fade 5s;
     animation-timing-function: linear;
+    pointer-events: none;
+    user-select: none;
 }
 
 @keyframes fade {
