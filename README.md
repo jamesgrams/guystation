@@ -54,10 +54,10 @@ GuyStation launches a Node.js server along with a Chromium browser (via Puppetee
         * `metadata.json`
 
 ## Credits and Special Thanks
-Game Boy Advance and DS Lite icons: [David Pérez](https://thenounproject.com/david730/)
-Nintendo 64 icon: [Guilherme Simoes](https://thenounproject.com/uberux/)
-Game Boy Advance emulator: [VisualBoyAdvance-m](https://vba-m.com/)
-DS emulator: [DeSmuMe](http://desmume.org/)
-Nintendo 64 emulator: [Mupen64Plus](https://mupen64plus.org/)
+* Game Boy Advance and DS Lite icons: [David Pérez](https://thenounproject.com/david730/)
+* Nintendo 64 icon: [Guilherme Simoes](https://thenounproject.com/uberux/)
+* Game Boy Advance emulator: [VisualBoyAdvance-m](https://vba-m.com/)
+* DS emulator: [DeSmuMe](http://desmume.org/)
+* Nintendo 64 emulator: [Mupen64Plus](https://mupen64plus.org/)
 
 Thanks to for the providing the emulators
