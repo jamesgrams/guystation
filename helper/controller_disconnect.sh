@@ -2,8 +2,11 @@
 # stop contoller connect
 ps -aux | grep '[c]ontroller_connect' | awk '{print $2}' | xargs sudo kill -9
 # disconnect
-bash -c "echo -e 'disconnect 8C:CD:E8:BB:E5:8D\nquit' | bluetoothctl"
-# sleep 10
+PAIRED=$(bash -c "echo -e 'paired-devices\nquit' | bluetoothctl" | grep '^Device' | awk '{print $2}')
+while read -r line; do
+    bash -c "echo -e 'disconnect $line\nquit' | bluetoothctl"
+done <<< $PAIRED
+# sleep 8
 sleep 8
 # Try to only allow one program to run at a time
 ps -aux | grep '[c]ontroller_connect' | awk '{print $2}' | xargs sudo kill -9

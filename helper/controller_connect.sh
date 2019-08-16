@@ -1,6 +1,9 @@
 # This is run as an autocontrol script
 while true
 do
-	bash -c "echo -e 'connect 8C:CD:E8:BB:E5:8D\nquit' | bluetoothctl"
+	PAIRED=$(bash -c "echo -e 'paired-devices\nquit' | bluetoothctl" | grep '^Device' | awk '{print $2}')
+	while read -r line; do
+		echo $line
+	done <<< $PAIRED
 	sleep 5
 done

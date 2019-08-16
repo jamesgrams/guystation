@@ -317,9 +317,6 @@ async function launchBrowser() {
 
 // TODO more emulators
 // TODO An xml mapping might be nice for controllers
-// TODO refresh button keyboard mapping
-// TODO detect controller within game mupen - not a big deal
-// TODO auto update mupen64 config > s key for screenshot and $ key for quit (not escape) - use glide64 not rice
 
 /**
  * Generate data about available options to the user

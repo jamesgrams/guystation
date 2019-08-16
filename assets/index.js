@@ -5,6 +5,7 @@ var BUBBLE_SCREENSHOTS_INTERVAL = 10000;
 var QUIT_TIME = 5000; // Time to hold escape to quit a game
 var GAMEPAD_INTERVAL = 500;
 var GAMEPAD_INPUT_INTERVAL = 10;
+var REDRAW_INTERVAL = 10000;
 
 var expandCountLeft; // We always need to have a complete list of systems, repeated however many times we want, so the loop works properly
 var expandCountRight;
@@ -117,6 +118,20 @@ function load() {
         startTime();
         gamePadInterval = setInterval(pollGamepads, GAMEPAD_INTERVAL);
         addDog();
+        // Check for changes every 10 seconds
+        setInterval( function() {
+            if( !makingRequest ) {
+                makeRequest( "GET", "/data", {}, function(responseText) {
+                    var response = JSON.parse(responseText);
+                    var newSystemsDict = response.systems;
+                    if( JSON.stringify(newSystemsDict) != JSON.stringify(systemsDict) ) {
+                        createToast( "Changes detected" );
+                        systemsDict = newSystemsDict;
+                        redraw();
+                    }
+                } );
+            }
+        }, REDRAW_INTERVAL );
     }, load );
 }
 
@@ -1420,25 +1435,25 @@ function manageGamepadInput() {
         // Right
         if( leftStickXPosition > 0.5 || buttonPressed(gp.buttons[16]) ) {
             moveMenu( -1 );
-	    disableMenuControls = true;
+	        disableMenuControls = true;
             setTimeout( function() { disableMenuControls = false; }, 250 );
         }
         // Left
         else if( leftStickXPosition < -0.5 || buttonPressed(gp.buttons[15]) ) {
             moveMenu( 1 );
-	    disableMenuControls = true;
+	        disableMenuControls = true;
             setTimeout( function() { disableMenuControls = false; }, 250 );
         }
         // Up
         else if( leftStickYPosition > 0.5 || buttonPressed(gp.buttons[13]) ) {
             moveSubMenu( -1 );
-	    disableMenuControls = true;
+	        disableMenuControls = true;
             setTimeout( function() { disableMenuControls = false; }, 250 );
         }
         // Down
         else if( leftStickYPosition < -0.5 || buttonPressed(gp.buttons[14]) ) {
             moveSubMenu( 1 );
-	    disableMenuControls = true;
+	        disableMenuControls = true;
             setTimeout( function() { disableMenuControls = false; }, 250 );
         }
 
