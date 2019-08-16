@@ -1,0 +1,10 @@
+{
+  "command": "dolphin",
+  "saveDirFlag": "Dolphin.Core.GCIFolderAPathOverride",
+  "screenshotsDirFlag": "Dolphin.Core.ScreenshotPath",
+  "saveDirArgType": "=",
+  "screenshotsDirArgType": "=",
+  "extraFlags": ["Dolphin.Display.Fullscreen=True"],
+  "activateCommand": "wmctrl -a 'Dolphin'",
+  "argsFirst": true
+}
