@@ -3,7 +3,7 @@ while true
 do
 	PAIRED=$(bash -c "echo -e 'paired-devices\nquit' | bluetoothctl" | grep '^Device' | awk '{print $2}')
 	while read -r line; do
-		echo $line
+		bash -c "echo -e 'connect $line\nquit' | bluetoothctl"
 	done <<< $PAIRED
 	sleep 5
 done
