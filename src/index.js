@@ -318,6 +318,8 @@ async function launchBrowser() {
 // TODO more emulators
 // TODO An xml mapping might be nice for controllers
 // TODO gamecube files too big??? Upload failed...
+// TODO disable shoulder buttons for change save to not conflict with turn off controller
+// Use trigger buttons for mupen64 l and r
 
 /**
  * Generate data about available options to the user
@@ -569,9 +571,11 @@ function launchGame(system, game, restart=false) {
         let command = systemsDict[system].command;
 
         let arguments = [ 
-            generateRomLocation( system, game, systemsDict[system].games[game].rom ),
-            systemsDict[system].saveDirFlag
+            generateRomLocation( system, game, systemsDict[system].games[game].rom )
         ];
+
+        if( systemsDict[system].optionPrefix ) { arguments.push( systemsDict[system].optionPrefix ); }
+        arguments.push(systemsDict[system].saveDirFlag);
 
         let saveDir = generateSaveDir( system, game, CURRENT_SAVE_DIR );
         // for space seperated arguments, add to arguments
@@ -584,15 +588,16 @@ function launchGame(system, game, restart=false) {
         }
 
         if( systemsDict[system].screenshotsDirFlag ) {
+            if( systemsDict[system].optionPrefix ) { arguments.push( systemsDict[system].optionPrefix ); }
             arguments.push( systemsDict[system].screenshotsDirFlag );
             let screenshotsDir = generateScreenshotsDir( system, game, CURRENT_SAVE_DIR );
             // for space seperated arguments, add to arguments
             if( systemsDict[system].screenshotsDirArgType == SPACE ) {
-                arguments.push(screenshotsDir);
+                arguments.push(screenshotsDir + SEPARATOR);
             }
             // otherwise edit the argument
             else {
-                arguments[arguments.length-1] += systemsDict[system].screenshotsDirArgType + screenshotsDir;
+                arguments[arguments.length-1] += systemsDict[system].screenshotsDirArgType + screenshotsDir + SEPARATOR;
             }
         }
         if( systemsDict[system].extraFlags ) {

@@ -1,10 +1,11 @@
 {
-  "command": "dolphin",
+  "command": "dolphin-emu",
   "saveDirFlag": "Dolphin.Core.GCIFolderAPathOverride",
   "screenshotsDirFlag": "Dolphin.Core.ScreenshotPath",
   "saveDirArgType": "=",
   "screenshotsDirArgType": "=",
-  "extraFlags": ["Dolphin.Display.Fullscreen=True"],
-  "activateCommand": "wmctrl -a 'Dolphin'",
+  "extraFlags": ["-C", "Dolphin.Display.Fullscreen=True"],
+  "activateCommand": "wmctrl -a 'JIT64'",
+  "optionPrefix": "-C",
   "argsFirst": true
 }
