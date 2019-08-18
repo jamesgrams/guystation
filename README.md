@@ -34,6 +34,7 @@ Here are some recommendedations to make your experience better on Ubuntu.
 10. You may need to change the Video Plugin for Mupen64. It defaults to `mupen64plus-video-rice.so`, and I changed it to `mupen64plus-video-glide64.so` to work properly on my machine. You can change it in the mupen64 configuration file created after the first time you start Mupen64 in `~/.config/mupen64plus/mupen64plus.cfg`.
     * I also had to edit the controller configuration. Mupen64 is good at autodetecting controllers, but I had to change the Analog Peak, since the analog stick was too sensitive. If you do this, be sure to set the "mode" for the controller to 0, so your settings do not get overwritten.
     * This version of Mupen64 changes the quit key to F15 rather than Escape (since Escape takes you home) and sets the screenshot key to "S" by default (In DesMuME, the screenshot key is Ctrl+S, so mapping a button to Ctrl+S will allow you to take screenshots in both).
+11. Dolphin defaults to Escape being equal to quit. You will probably want to change this. You might also want to change the screenshot key to "S".
 
 ## Controls
 You can use the arrow keys to control the menu, and enter to start a game. Escape will return to the menu from a game, and holding escape for 5 seconds will quit a game (once you're already on the menu). Escape will also quit a modal in the menu. Adding games and performing similar functions are best done with a mouse (The UI is in a web browser though, so you can access the buttons however you normally would).
