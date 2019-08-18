@@ -317,6 +317,7 @@ async function launchBrowser() {
 
 // TODO more emulators
 // TODO An xml mapping might be nice for controllers
+// TODO gamecube files too big??? Upload failed...
 
 /**
  * Generate data about available options to the user

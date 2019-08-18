@@ -2,7 +2,7 @@ var SPACING = 400;
 var EXPAND_COUNT = 10; // Number to expand on each side of the selected element - Note: We may actually expand more than this. We need to have a number of items divisble by the number of systems for the loop to work properly.
 var ROM_READ_ERROR = "An error ocurred readline the ROM file.";
 var BUBBLE_SCREENSHOTS_INTERVAL = 10000;
-var QUIT_TIME = 5000; // Time to hold escape to quit a game
+var QUIT_TIME = 2500; // Time to hold escape to quit a game
 var GAMEPAD_INTERVAL = 500;
 var GAMEPAD_INPUT_INTERVAL = 10;
 var REDRAW_INTERVAL = 10000;
@@ -1373,8 +1373,11 @@ function pollGamepads() {
  */
 function manageGamepadInput() {
 
-        var gamepads = navigator.getGamepads ? navigator.getGamepads() : (navigator.webkitGetGamepads ? navigator.webkitGetGamepads : []);
-        if(!gamepads) return;
+    var gamepads = navigator.getGamepads ? navigator.getGamepads() : (navigator.webkitGetGamepads ? navigator.webkitGetGamepads : []);
+    if(!gamepads || !gamepads[0]) {
+        gamePadInterval = setInterval(pollGamepads, GAMEPAD_INTERVAL);
+        return;
+    }
     
     if( !disableMenuControls && document.hasFocus() ) {
 
