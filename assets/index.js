@@ -6,6 +6,8 @@ var QUIT_TIME = 2500; // Time to hold escape to quit a game
 var GAMEPAD_INTERVAL = 500;
 var GAMEPAD_INPUT_INTERVAL = 10;
 var REDRAW_INTERVAL = 10000;
+var FOCUS_NEXT_INTERVAL = 500;
+var BLOCK_MENU_MOVE_INTERVAL = 250;
 
 var expandCountLeft; // We always need to have a complete list of systems, repeated however many times we want, so the loop works properly
 var expandCountRight;
@@ -14,22 +16,34 @@ var ip;
 var disableMenuControls;
 var makingRequest = false;
 var bubbleScreenshotsSet;
+var focusInterval = null;
 
-var escapeDown = null; // Hold escape for 5 seconds to quit
+// Hold escape for 5 seconds to quit
+// Note this variable contains a function interval, not a boolean value
+var escapeDown = null; 
+
 // These buttons need to be pressed again to trigger the action again
+var joyMapping = {
+    "A": 1,
+    "Start": 9,
+    "Right Trigger": 7,
+    "Left Trigger": 6,
+    "D-pad Up": 13,
+    "D-pad Down": 14,
+    "D-pad Left": 15,
+    "D-pad Right": 16
+}
+// This will be used for buttons that we need to be up again before calling what they do again
 var buttonsUp = {
-    "gamepad": {
-        "1": true,
-        "9": true,
-        "5": true,
-        "7": true,
-        "4": true,
-        "6": true
-    },
+    "gamepad": {},
     "keyboard": {
-        "13": true
+        "13": true // Enter
     }
 };
+buttonsUp.gamepad[joyMapping["A"]] = true;
+buttonsUp.gamepad[joyMapping["Start"]] = true;
+buttonsUp.gamepad[joyMapping["Right Trigger"]] = true;
+buttonsUp.gamepad[joyMapping["Left Trigger"]] = true;
 
 /**
  * Bubble screenshots on the screen for the selected game.
@@ -110,8 +124,17 @@ function load() {
     makeRequest( "GET", "/data", {}, function(responseText) {
         var response = JSON.parse(responseText);
         systemsDict = response.systems;
+
+        var startSystem = {};
+        if( window.localStorage.guystationStartSystem ) {
+            startSystem = JSON.parse(window.localStorage.guystationStartSystem);
+        }
+        if( window.localStorage.guystationJoyMapping ) {
+            joyMapping = JSON.parse(window.localStorage.guystationJoyMapping);
+        }
+
         ip = response.ip;
-        draw();
+        draw(startSystem);
         enableControls();
         endRequest();
         resetBubbleScreenshots();
@@ -241,7 +264,12 @@ function draw( startSystem ) {
             if( j==startGameIndex ) {
                 gameElement.classList.add("selected");
                 if( j>0 ) {
+                    // Quickly add and remove the game element to the DOM to get its height
+                    gameElement.style.visibility = "hidden";
+                    document.body.appendChild(gameElement);
                     var height = document.querySelector(".game").offsetHeight;
+                    gameElement.style.visibility = "";
+                    gameElement.parentElement.removeChild(gameElement);
                     var newOffset = j * height * -1;
                     gamesElement.style.top = newOffset + "px";
                 }
@@ -332,6 +360,14 @@ function draw( startSystem ) {
     document.querySelector("#ip").innerText = ip;
 
     toggleButtons();
+    saveMenuPosition();
+}
+
+/**
+ * Save the current menu position
+ */
+function saveMenuPosition() {
+    window.localStorage.guystationStartSystem = JSON.stringify(generateStartSystem());
 }
 
 /**
@@ -375,6 +411,7 @@ function toggleButtons() {
     var addSaveButton = document.getElementById("add-save");
     var updateSaveButton = document.getElementById("update-save");
     var deleteSaveButton = document.getElementById("delete-save");
+    var joypadConfigButton = document.getElementById("joypad-config");
     if( !anyGame ) {
         updateGameButton.onclick = null; 
         updateGameButton.classList.add("inactive");
@@ -386,6 +423,8 @@ function toggleButtons() {
         updateSaveButton.classList.add("inactive");
         deleteSaveButton.onclick = null;
         deleteSaveButton.classList.add("inactive");
+        joypadConfigButton.onclick = null;
+        joypadConfigButton.classList.add("inactive");
     }
     else {
         updateGameButton.onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#update-game-form") ) displayUpdateGame(); };
@@ -398,6 +437,8 @@ function toggleButtons() {
         updateSaveButton.classList.remove("inactive");
         deleteSaveButton.onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#delete-save-form") ) displayDeleteSave(); };
         deleteSaveButton.classList.remove("inactive");
+        joypadConfigButton.onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#joypad-config-form") ) displayJoypadConfig(); };
+        joypadConfigButton.classList.remove("inactive");
     }
     
     // Always allow add game
@@ -422,6 +463,17 @@ function isBeingPlayed( system, game ) {
  * @param {string} newGameName - the new name of the game if it changed (null if it was deleted)
  */
 function redraw( oldGameName, newGameName ) {
+    
+    draw( generateStartSystem( oldGameName, newGameName ) );
+}
+
+/**
+ * Generate a startSystem object that can be passed to the draw function to start at the current position in the menu.
+ * @param {string} oldGameName - the old name of the game if it changed
+ * @param {string} newGameName - the new name of the game if it changed (null if it was deleted)
+ * @returns {object} - an object that can be passed to the draw function to start
+ */
+function generateStartSystem( oldGameName, newGameName ) {
     var currentSystem = document.querySelector(".system.selected").getAttribute("data-system");
     var systems = document.querySelectorAll(".system");
     var games = {};
@@ -450,7 +502,7 @@ function redraw( oldGameName, newGameName ) {
         }
         games[systems[i].getAttribute("data-system")] = selectedGame;
     }
-    draw( { system: currentSystem, games: games } );
+    return { system: currentSystem, games: games };
 }
 
 /**
@@ -517,6 +569,7 @@ function moveMenu( spaces ) {
         systems[i].style.left = "calc( 50% + " + (offset) + "px )";
     }
     toggleButtons();
+    saveMenuPosition();
 }
 
 /**
@@ -582,6 +635,7 @@ function moveSubMenu( spaces ) {
         // Set the submenu offset
         subMenu.style.top = newOffset + "px";
     }
+    saveMenuPosition();
 }
 
 /**
@@ -614,6 +668,32 @@ function getSelectedValues() {
     }
 
     return { system: currentSystem, game: currentGame, save: currentSave };
+}
+
+/**
+ * Display the menu to configure joypad controls.
+ */
+function displayJoypadConfig() {
+    var form = document.createElement("div");
+    form.setAttribute("id", "joypad-config-form");
+    var joyButtons = Object.keys(joyMapping);
+    form.appendChild( createFormTitle("Joypad Configuration") );
+    form.appendChild( createWarning("Click a field, then press a button on the controller.") );
+    for( var i=0; i<joyButtons.length; i++ ) {
+        var label = createInput( joyMapping[joyButtons[i]], "input-" + i, joyButtons[i] + ": ", "number", true );
+        label.setAttribute("data-button", joyButtons[i]);
+        form.appendChild( label );
+    }
+    form.appendChild( createButton( "Save", function() {
+        var inputs = document.querySelectorAll("#joypad-config-form input");
+        for(var i=0; i<inputs.length; i++) {
+            var button = inputs[i].parentElement.getAttribute("data-button");
+            joyMapping[button] = inputs[i].value;
+        }
+        window.localStorage.guystationJoyMapping = JSON.stringify(joyMapping);
+        closeModal();
+    } ) );
+    launchModal( form );
 }
 
 /**
@@ -768,21 +848,7 @@ function displayUpdateGame() {
             var gameInput = document.querySelector(".modal #update-game-form #game-input");
             var romFileInput = document.querySelector(".modal #update-game-form #rom-file-input");
 
-            if( romFileInput.files.length ) {
-                getBase64( romFileInput.files[0], function(encoded) {
-                    updateGame( oldSystemSelect.options[oldSystemSelect.selectedIndex].text, oldGameSelect.options[oldGameSelect.selectedIndex].text, systemSelect.options[systemSelect.selectedIndex].text, gameInput.value, {
-                        "name": romFileInput.files[0].name,
-                        "base64File": encoded
-                    } );
-                },
-                function() {
-                    alertError(ROM_READ_ERROR);
-                    endRequest();
-                } );
-            }
-            else {
-                updateGame( oldSystemSelect.options[oldSystemSelect.selectedIndex].text, oldGameSelect.options[oldGameSelect.selectedIndex].text, systemSelect.options[systemSelect.selectedIndex].text, gameInput.value, null );
-            }
+            updateGame( oldSystemSelect.options[oldSystemSelect.selectedIndex].text, oldGameSelect.options[oldGameSelect.selectedIndex].text, systemSelect.options[systemSelect.selectedIndex].text, gameInput.value, romFileInput.files[0] );
         }
     } ) );
     launchModal( form );
@@ -807,16 +873,8 @@ function displayAddGame() {
             var systemSelect = document.querySelector(".modal #add-game-form #system-select");
             var gameInput = document.querySelector(".modal #add-game-form #game-input");
             var romFileInput = document.querySelector(".modal #add-game-form #rom-file-input");
-            getBase64( romFileInput.files[0], function(encoded) {
-                addGame( systemSelect.options[systemSelect.selectedIndex].text, gameInput.value, {
-                    "name": romFileInput.files[0].name,
-                    "base64File": encoded
-                } );
-            },
-            function() {
-                alertError(ROM_READ_ERROR);
-                endRequest();
-            } );
+
+            addGame( systemSelect.options[systemSelect.selectedIndex].text, gameInput.value, romFileInput.files[0] );
         }
     }, [ gameInput.firstElementChild.nextElementSibling, romFileInput.firstElementChild.nextElementSibling ] ) );
     launchModal( form );
@@ -1166,7 +1224,7 @@ function quitGame() {
 function addGame( system, game, file ) {
     makeRequest( "POST", "/game", { "system": system, "game": game, "file": file }, 
     function( responseText ) { standardSuccess(responseText, "Game successfully added") },
-    function( responseText ) { standardFailure( responseText ) } );
+    function( responseText ) { standardFailure( responseText ) }, true );
 }
 
 /**
@@ -1180,7 +1238,7 @@ function addGame( system, game, file ) {
 function updateGame( oldSystem, oldGame, system, game, file ) {
     makeRequest( "PUT", "/game", { "oldSystem": oldSystem, "oldGame": oldGame, "system": system, "game": game, "file": file }, 
     function( responseText ) { standardSuccess(responseText, "Game successfully updated", oldGame, game) },
-    function( responseText ) { standardFailure( responseText ) } );
+    function( responseText ) { standardFailure( responseText ) }, true );
 }
 
 /**
@@ -1296,8 +1354,9 @@ function endRequest() {
  * @param {string} url - the url to make the request ro
  * @param {object} parameters - an object with keys being parameter keys and values being parameter values to send with the request
  * @param {function} callback - callback function to run upon request completion
+ * @param {boolean} useFormData - true if we should use form data instead of json
  */
-function makeRequest(type, url, parameters, callback, errorCallback) {
+function makeRequest(type, url, parameters, callback, errorCallback, useFormData) {
     var parameterKeys = Object.keys(parameters);
 
     url = "http://" + window.location.hostname + ":8080" + url;
@@ -1313,7 +1372,9 @@ function makeRequest(type, url, parameters, callback, errorCallback) {
     xhttp.open(type, url, true);
 
     if( type != "GET" && parameterKeys.length ) {
-        xhttp.setRequestHeader("Content-type", "application/json");
+        if( !useFormData ) {
+            xhttp.setRequestHeader("Content-type", "application/json");
+        }
     } 
 
     xhttp.onreadystatechange = function() {
@@ -1327,29 +1388,29 @@ function makeRequest(type, url, parameters, callback, errorCallback) {
         }
     }    
     if( type != "GET" && Object.keys(parameters).length ) {
-        xhttp.send( JSON.stringify(parameters) );
+        var sendParameters;
+        if( useFormData ) {
+            sendParameters = new FormData();
+            for ( var key in parameters ) {
+                sendParameters.append(key, parameters[key]);
+            }
+        }
+        else {
+            sendParameters = JSON.stringify(parameters);
+        }
+        xhttp.upload.onprogress = function(event) {
+            var button = document.querySelector(".modal button");
+            if( button ) {
+                var percent = event.loaded/event.total * 100;
+                button.style.opacity = 1;
+                button.style.background = "linear-gradient(90deg, black "+percent+"%, rgba(0,0,0,0.5) "+percent+"%)";
+            }
+        };
+        xhttp.send( sendParameters );
     }
     else {
         xhttp.send();
     }
-}
-
-/**
- * Get the base64 version of a file
- * Taken from https://stackoverflow.com/questions/36280818/how-to-convert-file-to-base64-in-javascript
- * @param {*} file - the file to base64
- */
-function getBase64(file, callback, errorCallback) {
-    var reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = function() {
-        var encoded = reader.result.replace(/^data:(.*,)?/, '');
-        if ((encoded.length % 4) > 0) {
-            encoded += '='.repeat(4 - (encoded.length % 4));
-        }
-        callback( encoded );
-    };
-    reader.onerror = function() { errorCallback() };
 }
 
 /**
@@ -1385,81 +1446,92 @@ function manageGamepadInput() {
 
         var gp = gamepads[0];
         
-        var aPressed = buttonPressed(gp.buttons[1]);
-        var startPressed = buttonPressed(gp.buttons[9]);
+        var aPressed = buttonPressed(gp.buttons[joyMapping["A"]]);
+        var startPressed = buttonPressed(gp.buttons[joyMapping["Start"]]);
         // A or Start - launch a game (no need to quit a game, since they should have escape mapped to a key so they can go back to the menu)
-        if( (aPressed && buttonsUp.gamepad["1"]) 
-            || (startPressed && buttonsUp.gamepad["9"]) ) {
+        if( (aPressed && buttonsUp.gamepad[joyMapping["A"]]) 
+            || (startPressed && buttonsUp.gamepad[joyMapping["Start"]]) ) {
             
-            if( aPressed ) buttonsUp.gamepad["1"] = false;
-            if( startPressed ) buttonsUp.gamepad["9"] = false;
+            if( aPressed ) buttonsUp.gamepad[joyMapping["A"]] = false;
+            if( startPressed ) buttonsUp.gamepad[joyMapping["Start"]] = false;
             
             document.querySelector("#launch-game").click();
         }
         else {
-            if(!aPressed) buttonsUp.gamepad["1"] = true;
-            if(!startPressed) buttonsUp.gamepad["9"] = true;
+            if(!aPressed) buttonsUp.gamepad[joyMapping["A"]] = true;
+            if(!startPressed) buttonsUp.gamepad[joyMapping["Start"]] = true;
         }
       
-        var rightShoulderPressed = buttonPressed(gp.buttons[5]);
-        var rightTriggerPressed = buttonPressed(gp.buttons[7]);
-        // Right shoulder or trigger - cycle saves
-        if( (rightShoulderPressed && buttonsUp.gamepad["5"]) 
-            || (rightTriggerPressed && buttonsUp.gamepad["7"]) ) {
-            
-            if( rightShoulderPressed ) buttonsUp.gamepad["5"] = false;
-            if( rightTriggerPressed ) buttonsUp.gamepad["7"] = false;
-            
+        var rightTriggerPressed = buttonPressed(gp.buttons[joyMapping["Right Trigger"]]);
+        // Right shoulder or trigger - cycle saves - only if there is a game in front of the user
+        if( rightTriggerPressed && buttonsUp.gamepad[joyMapping["Right Trigger"]] && document.querySelector(".system.selected .game.selected") ) {
+            buttonsUp.gamepad[joyMapping["Right Trigger"]] = false;
             cycleSave(1);
         }
         else {
-            if(!rightShoulderPressed) buttonsUp.gamepad["5"] = true;
-            if(!rightTriggerPressed) buttonsUp.gamepad["7"] = true;
+            buttonsUp.gamepad[joyMapping["Right Trigger"]] = true;
         }
 
-        var leftShoulderPressed = buttonPressed(gp.buttons[4]);
-        var leftTriggerPressed = buttonPressed(gp.buttons[6]);
+        var leftTriggerPressed = buttonPressed(gp.buttons[joyMapping["Left Trigger"]]);
         // Left shoulder or trigger - cycle saves
-        if( (leftShoulderPressed && buttonsUp.gamepad["4"]) 
-            || (leftTriggerPressed && buttonsUp.gamepad["6"]) ) {
-            
-            if( leftShoulderPressed ) buttonsUp.gamepad["4"] = false;
-            if( leftTriggerPressed ) buttonsUp.gamepad["6"] = false;
-            
+        if( leftTriggerPressed && buttonsUp.gamepad[joyMapping["Left Trigger"]] && document.querySelector(".system.selected .game.selected") ) {
+            buttonsUp.gamepad[joyMapping["Left Trigger"]] = false;
             cycleSave(-1);
         }
         else {
-            if(!leftShoulderPressed) buttonsUp.gamepad["4"] = true;
-            if(!leftTriggerPressed) buttonsUp.gamepad["6"] = true;
+            buttonsUp.gamepad[joyMapping["Left Trigger"]] = true;
         }
 
         var leftStickXPosition = gp.axes[0];
         var leftStickYPosition = gp.axes[1];
         // Right
-        if( leftStickXPosition > 0.5 || buttonPressed(gp.buttons[16]) ) {
+        if( leftStickXPosition > 0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Right"]]) ) {
             moveMenu( -1 );
 	        disableMenuControls = true;
-            setTimeout( function() { disableMenuControls = false; }, 250 );
+            setTimeout( function() { disableMenuControls = false; }, BLOCK_MENU_MOVE_INTERVAL );
         }
         // Left
-        else if( leftStickXPosition < -0.5 || buttonPressed(gp.buttons[15]) ) {
+        else if( leftStickXPosition < -0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Left"]]) ) {
             moveMenu( 1 );
 	        disableMenuControls = true;
-            setTimeout( function() { disableMenuControls = false; }, 250 );
+            setTimeout( function() { disableMenuControls = false; }, BLOCK_MENU_MOVE_INTERVAL );
         }
         // Up
-        else if( leftStickYPosition > 0.5 || buttonPressed(gp.buttons[13]) ) {
+        else if( leftStickYPosition > 0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Up"]]) ) {
             moveSubMenu( -1 );
 	        disableMenuControls = true;
-            setTimeout( function() { disableMenuControls = false; }, 250 );
+            setTimeout( function() { disableMenuControls = false; }, BLOCK_MENU_MOVE_INTERVAL );
         }
         // Down
-        else if( leftStickYPosition < -0.5 || buttonPressed(gp.buttons[14]) ) {
+        else if( leftStickYPosition < -0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Down"]]) ) {
             moveSubMenu( 1 );
 	        disableMenuControls = true;
-            setTimeout( function() { disableMenuControls = false; }, 250 );
+            setTimeout( function() { disableMenuControls = false; }, BLOCK_MENU_MOVE_INTERVAL );
         }
-
+    }
+    // Check if we are setting a key, and register the current gamepad key down
+    else if( document.hasFocus() && document.querySelector("#joypad-config-form") ) {
+        var inputs = document.querySelectorAll("#joypad-config-form input");
+        // Check if an input is focused
+        for( var i=0; i<inputs.length; i++ ) {
+            if( inputs[i].hasFocus() ) {
+                // If so, check if any buttons are pressed
+                for( var j=0; j<buttons.length; j++ ) {
+                    // If so, set the input's value to be that of the pressed button
+                    if(buttonPressed(buttonPressed[j])) {
+                        inputs[i].value = j;
+                        if( inputs[i+1] ) {
+                            if( focusInterval ) {
+                                clearTimeout(focusInterval);
+                                focusInterval = null;
+                            }
+                            focusInterval = setTimeout( function() { inputs[i+1].focus() }, FOCUS_NEXT_INTERVAL );
+                        } 
+                    }
+                }
+                break;
+            }
+        }
     }
     setTimeout(manageGamepadInput, GAMEPAD_INPUT_INTERVAL);
 }

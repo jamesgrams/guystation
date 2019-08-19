@@ -14,6 +14,8 @@ const ioHook = require('iohook');
 const rimraf = require('rimraf');
 const fsExtra = require('fs-extra');
 const ks = require("node-key-sender");
+const multer = require('multer');
+const upload = multer({ dest: '/tmp/' });
 
 const PORT = 8080;
 const STATIC_PORT = 80;
@@ -192,11 +194,11 @@ app.delete("/save", async function(request, response) {
 });
 
 // Add a game
-app.post("/game", async function(request, response) {
+app.post("/game", upload.single("file"), async function(request, response) {
     console.log("app serving /game (POST)");
     if( ! requestLocked ) {
         requestLocked = true;
-        let errorMessage = addGame( request.body.system, request.body.game, request.body.file );
+        let errorMessage = addGame( request.body.system, request.body.game, request.file );
         getData(); // Reload data
         requestLocked = false;
         writeActionResponse( response, errorMessage );
@@ -207,11 +209,11 @@ app.post("/game", async function(request, response) {
 });
 
 // Update a game
-app.put("/game", async function(request, response) {
+app.put("/game", upload.single("file"), async function(request, response) {
     console.log("app serving /game (PUT)");
     if( ! requestLocked ) {
         requestLocked = true;
-        let errorMessage = updateGame( request.body.oldSystem, request.body.oldGame, request.body.system, request.body.game, request.body.file );
+        let errorMessage = updateGame( request.body.oldSystem, request.body.oldGame, request.body.system, request.body.game, request.file );
         getData(); // Reload data
         requestLocked = false;
         writeActionResponse( response, errorMessage );
@@ -316,10 +318,7 @@ async function launchBrowser() {
 /**************** Data Functions ****************/
 
 // TODO more emulators
-// TODO An xml mapping might be nice for controllers
-// TODO gamecube files too big??? Upload failed...
-// TODO disable shoulder buttons for change save to not conflict with turn off controller
-// Use trigger buttons for mupen64 l and r
+// TODO add custom save file stuff for Wii now that we can get the save file for a title
 
 /**
  * Generate data about available options to the user
@@ -391,7 +390,7 @@ function getData() {
     }
 
     // Make a log of the data
-    console.log(JSON.stringify(systemsDict));
+    //console.log(JSON.stringify(systemsDict));
 }
 
 /**
@@ -829,9 +828,9 @@ function deleteSave(system, game, save) {
 
 /**
  * Add a game.
- * @param {string} system - the system to add the game on.
- * @param {string} game - the game name to add.
- * @param {object} file - and object with two keys: name and base64file each containing what you might expect
+ * @param {string} system - the system to add the game on
+ * @param {string} game - the game name to add
+ * @param {object} file - the file object
  */
 function addGame( system, game, file ) {
 
@@ -840,7 +839,7 @@ function addGame( system, game, file ) {
     if( !systemsDict[system] ) return ERROR_MESSAGES.noSystem;
     if( systemsDict[system].games[game] ) return ERROR_MESSAGES.gameAlreadyExists;
     if( !game ) return ERROR_MESSAGES.gameNameRequired;
-    if( !file || !file.name || !file.base64File ) return ERROR_MESSAGES.romFileRequired;
+    if( !file || !file.path || !file.originalname ) return ERROR_MESSAGES.romFileRequired;
 
     // Make the directory for the game
     let gameDir = generateGameDir( system, game );
@@ -862,21 +861,20 @@ function addGame( system, game, file ) {
 
 /**
  * Save an uploaded file.
- * @param {object} file - and object with two keys: name and base64file each containing what you might expect
+ * @param {object} file - a file object
  * @param {string} system - the system the game is on
  * @param {string} game - the game the ROM is for
  * @returns {*} - an error message if there was an error, false if there was not.
  */
 function saveUploadedRom( file, system, game ) {
-    if( !file.name || !file.base64File ) {
+    if( !file.originalname || !file.path ) {
         return ERROR_MESSAGES.noFileInUpload;
     }
     if( !fs.existsSync(generateGameDir(system, game)) ) {
         return ERROR_MESSAGES.locationDoesNotExist;
     }
-    let content = Buffer.from(file.base64File, 'base64');
-    fs.writeFileSync(generateRomLocation(system, game, file.name), content);
-    fs.writeFileSync(generateGameMetaDataLocation(system, game), JSON.stringify({"rom": file.name}));
+    fs.renameSync(file.path, generateRomLocation(system, game, file.originalname));
+    fs.writeFileSync(generateGameMetaDataLocation(system, game), JSON.stringify({"rom": file.originalname}));
     return false;
 }
 
@@ -886,7 +884,7 @@ function saveUploadedRom( file, system, game ) {
  * @param {string} oldGame - the old name for the game - needed so we know what we're updating
  * @param {string} system - the new system for the game - null if the same
  * @param {string} game - the new name for the game - null if the same
- * @param {object} file - the new file object with two keys: name and base64file each containing what you might expect for the new rom file - null if the same
+ * @param {object} file - the new file object - null if the same
  * @returns {*} - an error message if there was an error, false if there was not.
  */
 function updateGame( oldSystem, oldGame, system, game, file ) {

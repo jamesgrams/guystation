@@ -37,7 +37,9 @@ Here are some recommendedations to make your experience better on Ubuntu.
 11. Dolphin defaults to Escape being equal to quit. You will probably want to change this. You might also want to change the screenshot key to "S".
 
 ## Controls
-You can use the arrow keys to control the menu, and enter to start a game. Escape will return to the menu from a game, and holding escape for 5 seconds will quit a game (once you're already on the menu). Escape will also quit a modal in the menu. Adding games and performing similar functions are best done with a mouse (The UI is in a web browser though, so you can access the buttons however you normally would).
+You can use the arrow keys to control the menu, and enter to start a game. Escape will return to the menu from a game, and holding escape for 2.5 seconds will quit a game (once you're already on the menu). Escape will also quit a modal in the menu. Adding games and performing similar functions are best done with a mouse (The UI is in a web browser though, so you can access the buttons however you normally would). You can also use a game controller. The D-Pad and left analog stick will move the menu, A or Start will start a game, and the left and right triggers will cycle through saves. You can configure the Joypad controls by opening the menu, clicking "Joypad Config", and then selecting the field for the input you want (e.g. "Start", "Left Trigger", etc.) and pressing the button on the Joypad that you want to use. To restore to default, you should clear local storage in Chrome.
+
+You will want to use Antimicro to map home (or some other button) to the escape key. I also map the right analog stick press to Ctrl+S in Antrimicro to use for screenshots (See above for what emulators you need to update the settings in - I think it's just Dolphin for now). Beyond that, you can see my helper scripts mentioned above. I have some button combinations mapping to key combinations which are shortcuts for remounting Google Drive and disconnecting the controller. You should manually configure the emulators to have the control scheme you want for your controllers.
 
 
 ## Technical Notes
@@ -65,3 +67,4 @@ GuyStation launches a Node.js server along with a Chromium browser (via Puppetee
 * Game Boy Advance emulator: [VisualBoyAdvance-m](https://vba-m.com/)
 * DS emulator: [DeSmuMe](http://desmume.org/)
 * Nintendo 64 emulator: [Mupen64Plus](https://mupen64plus.org/)
+* Gamecube/Wii emulator: [Dolphin](https://dolphin-emu.org/)
