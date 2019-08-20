@@ -62,6 +62,7 @@ const ERROR_MESSAGES = {
     "gameNameRequired": "A name is required to add a new game",
     "romFileRequired": "A ROM file is required to add a new game",
     "saveNameRequired": "A name is required to add a new save",
+    "saveAlreadySelected": "Save already selected"
 }
 
 // We will only allow for one request at a time for app
@@ -447,7 +448,8 @@ function generateSaves( system, game ) {
     // if the current save isn't working -- i.e. the symlink is messed up, get another one.
     // we know there will be at least one, since if there were 0 we already created one
     if( !currentSave ) {
-        changeSave( system, game, saves[0] );
+        // force in case we just created a directory
+        changeSave( system, game, saves[0], true );
         currentSave = getCurrentSave(system, game);
     }
 
@@ -754,6 +756,9 @@ function changeSave(system, game, save, force) {
         if( !systemsDict[system].games[game].saves[save] ) {
             return ERROR_MESSAGES.saveDoesNotExist;
         }
+        if( systemsDict[system].games[game].currentSave == save ) {
+            return ERROR_MESSAGES.saveAlreadySelected;
+        }
     }
 
     // make sure the game currently isn't being played
@@ -937,6 +942,7 @@ function updateGame( oldSystem, oldGame, system, game, file ) {
         let gameDir = generateGameDir( system ? system : oldSystem, game ? game : oldGame ); // update the game directory
         fsExtra.moveSync( oldGameDir, gameDir );
         // Update the symlink for the game
+        // Force, since we've just updated the directory
         changeSave( system ? system : oldSystem, game ? game : oldGame, systemsDict[oldSystem].games[oldGame].currentSave, true );
     }
     
