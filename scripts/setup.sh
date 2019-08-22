@@ -15,7 +15,7 @@ sudo npm install -g npm@latest --force
 sudo apt-get -y install git
 
 # Install dependencies needed
-DEP_64="build-essential autoconf cmake automake libgtk2.0-dev libglu1-mesa-dev libsdl1.2-dev libglade2-dev gettext zlib1g-dev libosmesa6-dev intltool libagg-dev libasound2-dev libsoundtouch-dev libpcap-dev default-jdk libboost-filesystem-dev libevdev-dev qt5-default qtbase5-private-dev libbluetooth-dev gcc gcc-multilib g++ g++-multilib python-pyqt5 pyqt5-dev-tools python-pyqt5.qtopengl libsdl2-dev python-setuptools libwxbase3.0-dev wx-common libgtk-3-dev libwxbase3.0-dev libwxgtk3.0-dev libwxgtk3.0-gtk3-dev wx-common"
+DEP_64="build-essential autoconf cmake automake libgtk2.0-dev libglu1-mesa-dev libsdl1.2-dev libglade2-dev gettext zlib1g-dev libosmesa6-dev intltool libagg-dev libasound2-dev libsoundtouch-dev libpcap-dev default-jdk libboost-filesystem-dev libevdev-dev qt5-default qtbase5-private-dev libbluetooth-dev gcc gcc-multilib g++ g++-multilib python-pyqt5 pyqt5-dev-tools python-pyqt5.qtopengl libsdl2-dev python-setuptools libwxbase3.0-dev wx-common libgtk-3-dev libwxbase3.0-dev libwxgtk3.0-dev libwxgtk3.0-gtk3-dev wx-common python-sdl2"
 sudo apt-get -y install $DEP_64
 
 # Install DeSmuME
