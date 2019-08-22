@@ -1,10 +1,10 @@
 {
-  "command": "mupen64plus",
+  "command": "m64py",
   "saveDirFlag": "--savedir",
   "screenshotsDirFlag": "--sshotdir",
   "saveDirArgType": " ",
   "screenshotsDirArgType": " ",
   "extraFlags": ["--fullscreen"],
-  "activateCommand": "wmctrl -a 'Glide64'",
+  "activateCommand": "wmctrl -a 'M64Py'",
   "argsFirst": true
 }

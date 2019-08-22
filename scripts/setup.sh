@@ -14,8 +14,9 @@ sudo npm install -g npm@latest --force
 # They probably already have it installed to have the repository on their computer, but they might not
 sudo apt-get -y install git
 
-# Install dependencies needed to desmume
-sudo apt-get -y install build-essential autoconf cmake automake libgtk2.0-dev libglu1-mesa-dev libsdl1.2-dev libglade2-dev gettext zlib1g-dev libosmesa6-dev intltool libagg-dev libasound2-dev libsoundtouch-dev libpcap-dev default-jdk libboost-filesystem-dev libevdev-dev qt5-default qtbase5-private-dev libbluetooth-dev 
+# Install dependencies needed
+DEP_64="build-essential autoconf cmake automake libgtk2.0-dev libglu1-mesa-dev libsdl1.2-dev libglade2-dev gettext zlib1g-dev libosmesa6-dev intltool libagg-dev libasound2-dev libsoundtouch-dev libpcap-dev default-jdk libboost-filesystem-dev libevdev-dev qt5-default qtbase5-private-dev libbluetooth-dev gcc gcc-multilib g++ g++-multilib python-pyqt5 pyqt5-dev-tools python-pyqt5.qtopengl libsdl2-dev python-setuptools libwxbase3.0-dev wx-common libgtk-3-dev libwxbase3.0-dev libwxgtk3.0-dev libwxgtk3.0-gtk3-dev wx-common"
+sudo apt-get -y install $DEP_64
 
 # Install DeSmuME
 # https://wiki.desmume.org/index.php?title=Installing_DeSmuME_from_source_on_Linux
@@ -49,6 +50,11 @@ cd ~
 
 # Install Mupen64
 ./guystation/scripts/m64p_helper_scripts/m64p_get.sh && ./guystation/scripts/m64p_helper_scripts/m64p_build.sh && ./guystation/scripts/m64p_helper_scripts/m64p_install.sh
+cd ~
+git clone https://github.com/jamesgrams/mupen64plus-ui-python.git
+cd mupen64plus-ui-python
+python setup.py build
+sudo python setup.py install
 
 # Return to the home directory
 cd ~
@@ -60,6 +66,23 @@ mkdir build && cd build
 cmake ..
 make
 sudo make install
+
+# Return to the home directory
+cd ~
+
+# Install PCSX2
+# Note, we need to use some 32 bit libraries for PCSX2 - some will overwrite the 64 bit libraries
+# So, we need to install PCSX2 last
+sudo apt-get -y remove libsoundtouch-dev:amd64
+sudo apt-get -y install libaio-dev:i386 libbz2-dev:i386 libcggl:i386 libegl1-mesa-dev:i386 libglew-dev:i386 libgles2-mesa-dev libgtk2.0-dev:i386 libjpeg-dev:i386 libsdl1.2-dev:i386 libsoundtouch-dev:i386 libwxgtk3.0-dev:i386 nvidia-cg-toolkit portaudio19-dev:i386 zlib1g-dev:i386 libsdl2-dev:i386 libjack-jackd2-dev:i386 libportaudiocpp0:i386 portaudio19-dev:i386 liblzma-dev:i386 
+git clone https://github.com/jamesgrams/pcsx2.git
+cd pcsx2
+sudo ./build.sh
+# Reinstall 64 bit dependencies
+sudo apt-get -y install $DEP_64
+
+# Return to the home directory
+cd ~
 
 # install the necessary modules for guystation
 cd guystation

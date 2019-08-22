@@ -39,7 +39,13 @@ const HTTP_OK = 200;
 const HTTP_TEMPORARILY_UNAVAILABLE = 503;
 const INDEX_PAGE = "index.html";
 const LOCALHOST = "localhost";
-const IP = ip.address();
+var IP = "";
+try {
+    IP = ip.address();
+}
+catch(err) {
+    // Not connected
+}
 const ESCAPE_KEY = 1;
 const KILL_COMMAND = "kill -9 ";
 const SLEEP_COMMAND = "sleep 2";

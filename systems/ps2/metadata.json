@@ -1,0 +1,9 @@
+{
+  "command": "/home/*/pcsx2/bin/PCSX2",
+  "saveDirFlag": "memcardpath",
+  "screenshotsDirFlag": "snapshotpath",
+  "saveDirArgType": "=",
+  "screenshotsDirArgType": "=",
+  "extraFlags": ["--fullscreen"],
+  "activateCommand": "wmctrl -a 'Speed: '"
+}
