@@ -616,7 +616,7 @@ function launchGame(system, game, restart=false) {
             arguments.shift();
         }
 
-        currentEmulator = proc.spawn( command, arguments, {detached: true} );
+        currentEmulator = proc.spawn( command, arguments, {detached: true, stdio: 'ignore'} );
         currentEmulator.on('exit', blankCurrentGame);
 
         currentGame = game;

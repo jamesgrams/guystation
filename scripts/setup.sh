@@ -3,6 +3,8 @@
 
 # Switch to home directory
 cd ~
+# Update the metadata for PS2 to include the user's home directory
+sed -i "s/james/$USER/g" ~/guystation/systems/ps2/metadata.json
 
 # Install nodejs
 sudo apt-get -y install curl
