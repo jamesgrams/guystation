@@ -1,0 +1,12 @@
+{
+  "command": "dolphin-emu",
+  "saveDirFlag": "Dolphin.Core.GCIFolderAPathOverride",
+  "screenshotsDirFlag": "Dolphin.Core.ScreenshotPath",
+  "saveDirArgType": "=",
+  "screenshotsDirArgType": "=",
+  "extraFlags": ["-C", "Dolphin.Display.Fullscreen=True"],
+  "activateCommand": "wmctrl -a 'JIT64'",
+  "optionPrefix": "-C",
+  "argsFirst": true,
+  "nandPathCommand": "echo \"$(eval echo '~')/.local/share/dolphin-emu/Wii$(dolphin-emu-nogui --save-path='ROM_FILE_PLACEHOLDER')\""
+}

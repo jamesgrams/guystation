@@ -1,5 +1,6 @@
 # Setup script for Ubuntu
 # Clone guystation in your home directory and run this.
+# Run this as your user, not root
 
 # Switch to home directory
 cd ~
@@ -17,7 +18,7 @@ sudo npm install -g npm@latest --force
 sudo apt-get -y install git
 
 # Install dependencies needed
-DEP_64="build-essential autoconf cmake automake libgtk2.0-dev libglu1-mesa-dev libsdl1.2-dev libglade2-dev gettext zlib1g-dev libosmesa6-dev intltool libagg-dev libasound2-dev libsoundtouch-dev libpcap-dev default-jdk libboost-filesystem-dev libevdev-dev qt5-default qtbase5-private-dev libbluetooth-dev gcc gcc-multilib g++ g++-multilib python-pyqt5 pyqt5-dev-tools python-pyqt5.qtopengl libsdl2-dev python-setuptools libwxbase3.0-dev wx-common libgtk-3-dev libwxbase3.0-dev libwxgtk3.0-dev libwxgtk3.0-gtk3-dev wx-common python-sdl2"
+DEP_64="build-essential autoconf cmake automake libgtk2.0-dev libglu1-mesa-dev libsdl1.2-dev libglade2-dev gettext zlib1g-dev libosmesa6-dev intltool libagg-dev libasound2-dev libsoundtouch-dev libpcap-dev default-jdk libboost-filesystem-dev libevdev-dev qt5-default qtbase5-private-dev libbluetooth-dev gcc gcc-multilib g++ g++-multilib python-pyqt5 pyqt5-dev-tools python-pyqt5.qtopengl libsdl2-dev python-setuptools libwxbase3.0-dev wx-common libgtk-3-dev libwxbase3.0-dev libwxgtk3.0-dev libwxgtk3.0-gtk3-dev wx-common python-sdl2 qtbase5-dev libqt5opengl5-dev qtmultimedia5-dev"
 sudo apt-get -y install $DEP_64
 
 # Install DeSmuME
@@ -72,6 +73,17 @@ sudo make install
 # Return to the home directory
 cd ~
 
+# Install Citra
+git clone --recursive https://github.com/jamesgrams/citra.git
+cd citra
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+make
+sudo make install
+
+# Return to the home directory
+cd ~
+
 # Install PCSX2
 # Note, we need to use some 32 bit libraries for PCSX2 - some will overwrite the 64 bit libraries
 # So, we need to install PCSX2 last
@@ -81,6 +93,7 @@ git clone https://github.com/jamesgrams/pcsx2.git
 cd pcsx2
 sudo ./build.sh
 # Reinstall 64 bit dependencies
+sudo apt-get -y remove libsdl2-dev:i386 libsoundtouch-dev:i386
 sudo apt-get -y install $DEP_64
 
 # Return to the home directory

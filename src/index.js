@@ -48,9 +48,10 @@ catch(err) {
 }
 const ESCAPE_KEY = 1;
 const KILL_COMMAND = "kill -9 ";
-const SLEEP_COMMAND = "sleep 2";
+const SLEEP_COMMAND = "sleep 5";
 const FOCUS_CHROMIUM_COMMAND = "wmctrl -a 'Chromium'";
 const TMP_ROM_LOCATION = "/tmp/tmprom";
+const NAND_ROM_FILE_PLACEHOLDER = "ROM_FILE_PLACEHOLDER";
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -325,7 +326,6 @@ async function launchBrowser() {
 /**************** Data Functions ****************/
 
 // TODO more emulators
-// TODO add custom save file stuff for Wii now that we can get the save file for a title
 
 /**
  * Generate data about available options to the user
@@ -767,7 +767,6 @@ function changeSave(system, game, save, force) {
         }
     }
 
-    // make sure the game currently isn't being played
     let currentSaveDir = generateSaveDir( system, game, CURRENT_SAVE_DIR );
     // Remove the current symlink
     try {
@@ -862,12 +861,119 @@ function addGame( system, game, file ) {
         rimraf.sync( gameDir );
         // Return the error message
         return errorMessage;
-    }  
+    }
 
     // Update the data (this will take care of making all the necessary directories for the game as well as updating the data)
     getData();
 
+    // Do this AFTER running get data, so we know we are all set with the save directories
+    updateNandSymlinks(system, game);
+
     return false;
+}
+
+/**
+ * Get the NAND save path for a game on a system that requires a specific structure.
+ * @param {String} system - the system the game is on
+ * @param {String} game - the name of the game
+ */
+function getNandPath( system, game ) {
+    if( systemsDict[system].nandPathCommand ) {
+        let nandPathCommand = systemsDict[system].nandPathCommand.replace(NAND_ROM_FILE_PLACEHOLDER, generateRomLocation( system, game, systemsDict[system].games[game].rom ));
+        let nandSavePath = proc.execSync(nandPathCommand);
+        return nandSavePath;
+    }
+    return "";
+}
+
+/**
+ * Update the save symlinks to the NAND folders for systems that need a specific file structure in place for saves.
+ * Some systems like the Wii and 3DS require a specific file structure for saves
+ * as such, we have to make a symlink from that directory to the current directory in systems
+ * On add game, we'll look to see if the title currently has any save data in it, and copy it if it does
+ * When we update a game, if the name is changed, the current symlink will break and will have to be updated
+ * When we update a game, if the rom is changed, the save path is changed, and we'll want to do what we do on create
+ *      except we'll want to place what we have currently in the directory of the old rom and remove any symlink
+ * @param {String} system - the system the game is on
+ * @param {String} game - the name of the game
+ */
+function updateNandSymlinks( system, game, oldRomNandPath ) {
+    // Make sure this is a system with the special file structure needed
+    if( systemsDict[system].nandPathCommand ) {
+        let nandSavePath = getNandPath( system, game );
+        let currentSaveDir = generateSaveDir( system, game, CURRENT_SAVE_DIR );
+
+        // If the rom file has changed, we want to leave behind our current save data in the old rom location
+        // because it will not work with the new rom. To do this, we'll have to remove the old symlink, make a directory,
+        // and move the current save's contents
+        if( oldRomNandPath && fs.existsSync(oldRomNandPath) ) {
+            // The oldRom path will be a symlink that may or may not be broken (depending on if the name changed)
+            try {
+                fs.unlinkSync(oldRomNandPath);
+            }
+            catch(err) { /*I don't know why it wouldn't be a symlink, but they could have been messing with the files*/}
+            // Make a directory
+            try {
+                fs.mkdirSync(oldRomNandPath);
+            }
+            catch(err) {/*should be ok*/}
+            let currentSaveDirContents = fs.readdirSync(currentSaveDir);
+            // Place the current save contents in the old rom's directory, and we should have no save content
+            // in our guystation save directory now
+            for( let currentFile of currentSaveDirContents ) {
+                fs.moveSync( currentSaveDir + SEPARATOR + currentFile, nandSavePath + SEPARATOR + currentFile );
+            }
+        }
+
+        // If there is an existing save for the new rom
+        if( fs.existsSync(nandSavePath) ) {
+            // check if it is a symlink
+            // this would be the case if we updated the game name only and we're looking at the same directory
+            // no need to try to copy files (from what is now a broken link)
+            let lstat = fs.lstatSync(nandSavePath);
+            if( !lstat.isSymbolicLink() ) {
+                // We found some current contents in an actual directory (add game or rom file changed)
+                // Move the contents of the directory to our new directory
+                // Basically, there was a non-guystation save for the game
+                let currentFiles = fs.readdirSync(nandSavePath);
+                for(let currentFile of currentFiles) {
+                    fs.moveSync( nandSavePath + SEPARATOR + currentFile, currentSaveDir + SEPARATOR + currentFile );
+                }
+                // Delete the current directory, we'll add a symlink
+                rimraf.sync( nandSavePath );
+            }
+            else {
+                // Unlink the old broken symlink
+                // There is a case where the link might not be broken
+                // If we are adding/updating a new game with a rom we already have.
+                // This is kind of silly to do, but it this is the case, we'll basically
+                // just be taking over the game with the rom and getting rid of the existing symlinks.
+                // The data will be safe in their guystation directories.
+                // We can't have two guystation games linked to the same game in the NAND structure, so
+                // the user will have to deal with that manually.
+                // The link would also be broken if we are readding a game we once broke if we didn't take care
+                // of that in deleteGame
+                fs.unlinkSync( nandSavePath );
+            }
+        }
+        // Make the necessary directories to set up nandSavePath
+        // try /home, /home/james, /home/james/.local, etc.
+        let nandSavePathParts = nandSavePath.split(SEPARATOR);
+        for( let i=2; i<nandSavePathParts.length; i++ ) {
+            let currentParts = [];
+            for( let j=0; j<i; j++ ) {
+                currentParts.push( nandSavePathParts[j] );
+            }
+            let path = currentParts.join(SEPARATOR);
+
+            // make the directory if it does not exist
+            if( path && !fs.existsSync(path) ) {
+                fs.mkdirSync(path);
+            }
+        }
+        // Now, create the symlink
+        fs.symlinkSync( currentSaveDir, nandSavePath, 'dir');
+    }
 }
 
 /**
@@ -915,6 +1021,8 @@ function updateGame( oldSystem, oldGame, system, game, file ) {
     // Get the current game directory
     let oldGameDir = generateGameDir( oldSystem, oldGame );
 
+    let oldRomNandPath = "";
+
     // Update the rom file if necessary 
     if( file ) {
         // Get the current game file and its name. We will move it for now,
@@ -922,6 +1030,7 @@ function updateGame( oldSystem, oldGame, system, game, file ) {
         // upload into the old directory and that will change if necessary next
         let oldRomPath = systemsDict[oldSystem].games[oldGame].rom ? generateRomLocation( oldSystem, oldGame, systemsDict[oldSystem].games[oldGame].rom ) : "";
         if( oldRomPath ) {
+            oldRomNandPath = getNandPath(oldRomNandPath); // We'll need this to clean up the old rom for NAND systems
             fs.renameSync( oldRomPath, TMP_ROM_LOCATION );
         }
         
@@ -955,6 +1064,9 @@ function updateGame( oldSystem, oldGame, system, game, file ) {
     // Update the data (this will take care of making all the necessary directories for the game as well as updating the data)
     getData();
 
+    // Do this AFTER running get data, so we know we are all set with the save directories
+    updateNandSymlinks(system, game, oldRomNandPath);
+
     return false;
 }
 
@@ -977,6 +1089,18 @@ function deleteGame( system, game ) {
 
     rimraf.sync( generateGameDir( system, game ) );
     getData();
+
+    // If this is a NAND game, make sure we have a directory in place
+    // in case they want to play the game outside of guystation
+    let nandPath = getNandPath( system, game );
+    if( nandPath && fs.existsSync(nandPath) ) {
+        try {
+            nandPath.unlinkSync();
+            fs.mkdirSync(nandPath);
+        }
+        catch(err) { /*It's already a directory for some reason*/ }
+    }
+
     return false;
 }
 

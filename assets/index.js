@@ -1497,13 +1497,13 @@ function manageGamepadInput() {
             setTimeout( function() { disableMenuControls = false; }, BLOCK_MENU_MOVE_INTERVAL );
         }
         // Up
-        else if( leftStickYPosition > 0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Up"]]) ) {
+        else if( leftStickYPosition < -0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Up"]]) ) {
             moveSubMenu( -1 );
 	        disableMenuControls = true;
             setTimeout( function() { disableMenuControls = false; }, BLOCK_MENU_MOVE_INTERVAL );
         }
         // Down
-        else if( leftStickYPosition < -0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Down"]]) ) {
+        else if( leftStickYPosition > 0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Down"]]) ) {
             moveSubMenu( 1 );
 	        disableMenuControls = true;
             setTimeout( function() { disableMenuControls = false; }, BLOCK_MENU_MOVE_INTERVAL );
