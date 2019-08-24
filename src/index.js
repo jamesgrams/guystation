@@ -1030,7 +1030,7 @@ function updateGame( oldSystem, oldGame, system, game, file ) {
         // upload into the old directory and that will change if necessary next
         let oldRomPath = systemsDict[oldSystem].games[oldGame].rom ? generateRomLocation( oldSystem, oldGame, systemsDict[oldSystem].games[oldGame].rom ) : "";
         if( oldRomPath ) {
-            oldRomNandPath = getNandPath(oldRomNandPath); // We'll need this to clean up the old rom for NAND systems
+            oldRomNandPath = getNandPath( oldSystem, oldGame ); // We'll need this to clean up the old rom for NAND systems
             fs.renameSync( oldRomPath, TMP_ROM_LOCATION );
         }
         
