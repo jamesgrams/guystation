@@ -1,0 +1,8 @@
+{
+  "command": "citra-qt",
+  "screenshotsDirFlag": "--screenshot-path",
+  "screenshotsDirArgType": "=",
+  "extraFlags": ["--fullscreen"],
+  "activateCommand": "wmctrl -a 'Citra'",
+  "nandPathCommand": "citra --save-path='ROM_FILE_PLACEHOLDER'"
+}

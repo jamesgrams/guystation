@@ -14,6 +14,7 @@ var expandCountRight;
 var systemsDict;
 var ip;
 var disableMenuControls;
+var enableModalControls;
 var makingRequest = false;
 var bubbleScreenshotsSet;
 var focusInterval = null;
@@ -168,18 +169,22 @@ function enableControls() {
                 // Left
                 case 37:
                     moveMenu(1);
+                    menuChangeDelay();
                     break;
                 // Up
                 case 38:
                     moveSubMenu(-1);
+                    menuChangeDelay();
                     break;
                 // Right
                 case 39:
                     moveMenu(-1);
+                    menuChangeDelay();
                     break;
                 // Down
                 case 40:
                     moveSubMenu(1);
+                    menuChangeDelay();
                     break;
                 // Enter
                 case 13:
@@ -190,6 +195,16 @@ function enableControls() {
                     break;
                 // Escape
                 case 27:
+                    // Go to the currently playing game if there is one
+                    var currentPlayingGameElement = document.querySelector(".system .game.playing");
+                    if( currentPlayingGameElement ) {
+                        var startSystem = generateStartSystem();
+                        var currentPlayingGame = currentPlayingGameElement.getAttribute("data-game");
+                        var currentPlayingSystem = currentPlayingGameElement.closest(".system").getAttribute("data-system");
+                        startSystem.games[currentPlayingSystem] = currentPlayingGame;
+                        startSystem.system = currentPlayingSystem;
+                        draw( startSystem );
+                    }
                     if( !escapeDown ) {
                         escapeDown = setTimeout(function() {
                             document.querySelector("#quit-game").click();
@@ -198,13 +213,17 @@ function enableControls() {
                     break;
             }
         }
-        else {
+        else if( enableModalControls ) {
             switch (event.keyCode) {
                 // Escape
                 case 27:
                     closeModal();
                     break;
             }
+        }
+        // Prevent Ctrl + S
+        if( event.keyCode == 83 && (navigator.platform.match("Mac") ? event.metaKey : event.ctrlKey) ) {
+            event.preventDefault();
         }
     }
     document.onkeyup = function(event) {
@@ -635,6 +654,7 @@ function moveSubMenu( spaces ) {
         // Set the submenu offset
         subMenu.style.top = newOffset + "px";
     }
+    toggleButtons();
     saveMenuPosition();
 }
 
@@ -1115,6 +1135,7 @@ function launchModal( element ) {
         modal.classList.add("modal");
         modal.appendChild(element);
         disableMenuControls = true;
+        enableModalControls = true;
         document.body.appendChild(modal);
         // set timeout to force draw prior
         setTimeout( function() { 
@@ -1143,6 +1164,7 @@ function closeModal() {
                     modal.parentElement.removeChild(modal);
                     if( !document.querySelector(".modal") ) {
                         disableMenuControls = false;
+                        enableModalControls = false;
                     }
                 }
             }, 500 ); // Make sure this matches the transition time in the css
@@ -1467,6 +1489,7 @@ function manageGamepadInput() {
         if( rightTriggerPressed && buttonsUp.gamepad[joyMapping["Right Trigger"]] && document.querySelector(".system.selected .game.selected") ) {
             buttonsUp.gamepad[joyMapping["Right Trigger"]] = false;
             cycleSave(1);
+            menuChangeDelay();
         }
         else {
             buttonsUp.gamepad[joyMapping["Right Trigger"]] = true;
@@ -1477,6 +1500,7 @@ function manageGamepadInput() {
         if( leftTriggerPressed && buttonsUp.gamepad[joyMapping["Left Trigger"]] && document.querySelector(".system.selected .game.selected") ) {
             buttonsUp.gamepad[joyMapping["Left Trigger"]] = false;
             cycleSave(-1);
+            menuChangeDelay();
         }
         else {
             buttonsUp.gamepad[joyMapping["Left Trigger"]] = true;
@@ -1487,26 +1511,22 @@ function manageGamepadInput() {
         // Right
         if( leftStickXPosition > 0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Right"]]) ) {
             moveMenu( -1 );
-	        disableMenuControls = true;
-            setTimeout( function() { disableMenuControls = false; }, BLOCK_MENU_MOVE_INTERVAL );
+            menuChangeDelay();
         }
         // Left
         else if( leftStickXPosition < -0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Left"]]) ) {
             moveMenu( 1 );
-	        disableMenuControls = true;
-            setTimeout( function() { disableMenuControls = false; }, BLOCK_MENU_MOVE_INTERVAL );
+	        menuChangeDelay();
         }
         // Up
         else if( leftStickYPosition < -0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Up"]]) ) {
             moveSubMenu( -1 );
-	        disableMenuControls = true;
-            setTimeout( function() { disableMenuControls = false; }, BLOCK_MENU_MOVE_INTERVAL );
+	        menuChangeDelay();
         }
         // Down
         else if( leftStickYPosition > 0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Down"]]) ) {
             moveSubMenu( 1 );
-	        disableMenuControls = true;
-            setTimeout( function() { disableMenuControls = false; }, BLOCK_MENU_MOVE_INTERVAL );
+	        menuChangeDelay();
         }
     }
     // Check if we are setting a key, and register the current gamepad key down
@@ -1534,6 +1554,14 @@ function manageGamepadInput() {
         }
     }
     setTimeout(manageGamepadInput, GAMEPAD_INPUT_INTERVAL);
+}
+
+/**
+ * Delay the ability to change position in the menu.
+ */
+function menuChangeDelay() {
+    disableMenuControls = true;
+    setTimeout( function() { disableMenuControls = false; }, BLOCK_MENU_MOVE_INTERVAL );
 }
 
 /**

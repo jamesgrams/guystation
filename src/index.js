@@ -581,17 +581,19 @@ function launchGame(system, game, restart=false) {
             generateRomLocation( system, game, systemsDict[system].games[game].rom )
         ];
 
-        if( systemsDict[system].optionPrefix ) { arguments.push( systemsDict[system].optionPrefix ); }
-        arguments.push(systemsDict[system].saveDirFlag);
+        if( systemsDict[system].saveDirFlag ) {
+            if( systemsDict[system].optionPrefix ) { arguments.push( systemsDict[system].optionPrefix ); }
+            arguments.push(systemsDict[system].saveDirFlag);
 
-        let saveDir = generateSaveDir( system, game, CURRENT_SAVE_DIR );
-        // for space seperated arguments, add to arguments
-        if( systemsDict[system].saveDirArgType == SPACE ) {
-            arguments.push(saveDir);
-        }
-        // otherwise edit the argument
-        else {
-            arguments[arguments.length-1] += systemsDict[system].saveDirArgType + saveDir;
+            let saveDir = generateSaveDir( system, game, CURRENT_SAVE_DIR );
+            // for space seperated arguments, add to arguments
+            if( systemsDict[system].saveDirArgType == SPACE ) {
+                arguments.push(saveDir);
+            }
+            // otherwise edit the argument
+            else {
+                arguments[arguments.length-1] += systemsDict[system].saveDirArgType + saveDir;
+            }
         }
 
         if( systemsDict[system].screenshotsDirFlag ) {
@@ -879,7 +881,7 @@ function addGame( system, game, file ) {
  */
 function getNandPath( system, game ) {
     if( systemsDict[system].nandPathCommand ) {
-        let nandPathCommand = systemsDict[system].nandPathCommand.replace(NAND_ROM_FILE_PLACEHOLDER, generateRomLocation( system, game, systemsDict[system].games[game].rom ));
+        let nandPathCommand = systemsDict[system].nandPathCommand.replace(NAND_ROM_FILE_PLACEHOLDER, generateRomLocation( system, game, systemsDict[system].games[game].rom ).replace("'", "'\"'\"'"));
         let nandSavePath = proc.execSync(nandPathCommand);
         return nandSavePath;
     }
