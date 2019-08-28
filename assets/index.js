@@ -201,9 +201,11 @@ function enableControls() {
                         var startSystem = generateStartSystem();
                         var currentPlayingGame = currentPlayingGameElement.getAttribute("data-game");
                         var currentPlayingSystem = currentPlayingGameElement.closest(".system").getAttribute("data-system");
-                        startSystem.games[currentPlayingSystem] = currentPlayingGame;
-                        startSystem.system = currentPlayingSystem;
-                        draw( startSystem );
+                        if( !(startSystem.system == currentPlayingSystem && startSystem.games[currentPlayingSystem] == currentPlayingGame) ) {
+                            startSystem.games[currentPlayingSystem] = currentPlayingGame;
+                            startSystem.system = currentPlayingSystem;
+                            draw( startSystem );
+                        }
                     }
                     if( !escapeDown ) {
                         escapeDown = setTimeout(function() {
