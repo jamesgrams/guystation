@@ -882,7 +882,7 @@ function addGame( system, game, file ) {
 function getNandPath( system, game ) {
     if( systemsDict[system].nandPathCommand ) {
         let nandPathCommand = systemsDict[system].nandPathCommand.replace(NAND_ROM_FILE_PLACEHOLDER, generateRomLocation( system, game, systemsDict[system].games[game].rom ).replace("'", "'\"'\"'"));
-        let nandSavePath = proc.execSync(nandPathCommand);
+        let nandSavePath = proc.execSync(nandPathCommand).toString().replace("\n","");
         return nandSavePath;
     }
     return "";
@@ -923,23 +923,30 @@ function updateNandSymlinks( system, game, oldRomNandPath ) {
             // Place the current save contents in the old rom's directory, and we should have no save content
             // in our guystation save directory now
             for( let currentFile of currentSaveDirContents ) {
-                fs.moveSync( currentSaveDir + SEPARATOR + currentFile, nandSavePath + SEPARATOR + currentFile );
+                if( currentFile != "screenshots" ) {
+                    fsExtra.moveSync( currentSaveDir + SEPARATOR + currentFile, nandSavePath + SEPARATOR + currentFile );
+                }
             }
         }
 
+        let isSymbolicLink = false;
+	try {
+            let lstat = fs.lstatSync(nandSavePath);
+            isSymbolicLink = lstat.isSymbolicLink();
+	}
+	catch(err) {/*ok*/}
         // If there is an existing save for the new rom
-        if( fs.existsSync(nandSavePath) ) {
+        if( fs.existsSync(nandSavePath) || isSymbolicLink ) {
             // check if it is a symlink
             // this would be the case if we updated the game name only and we're looking at the same directory
             // no need to try to copy files (from what is now a broken link)
-            let lstat = fs.lstatSync(nandSavePath);
-            if( !lstat.isSymbolicLink() ) {
+            if( !isSymbolicLink ) {
                 // We found some current contents in an actual directory (add game or rom file changed)
                 // Move the contents of the directory to our new directory
                 // Basically, there was a non-guystation save for the game
                 let currentFiles = fs.readdirSync(nandSavePath);
                 for(let currentFile of currentFiles) {
-                    fs.moveSync( nandSavePath + SEPARATOR + currentFile, currentSaveDir + SEPARATOR + currentFile );
+                    fsExtra.moveSync( nandSavePath + SEPARATOR + currentFile, currentSaveDir + SEPARATOR + currentFile );
                 }
                 // Delete the current directory, we'll add a symlink
                 rimraf.sync( nandSavePath );
@@ -1089,19 +1096,20 @@ function deleteGame( system, game ) {
         return ERROR_MESSAGES.gameBeingPlayed;
     }
 
-    rimraf.sync( generateGameDir( system, game ) );
-    getData();
-
     // If this is a NAND game, make sure we have a directory in place
     // in case they want to play the game outside of guystation
     let nandPath = getNandPath( system, game );
     if( nandPath && fs.existsSync(nandPath) ) {
         try {
-            nandPath.unlinkSync();
+            fs.unlinkSync(nandPath);
             fs.mkdirSync(nandPath);
         }
         catch(err) { /*It's already a directory for some reason*/ }
     }
+    
+    rimraf.sync( generateGameDir( system, game ) );
+    
+    getData();
 
     return false;
 }
