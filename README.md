@@ -100,6 +100,7 @@ GuyStation launches a Node.js server along with a Chromium browser (via Puppetee
 * PS2 icon: [Icon-Library.net](https://icon-library.net/icon/playstation-controller-icon-5.html)
 * 3DS icon: [Sweet Design, Man](https://www.iconfinder.com/sweetdesignman)
 * WiiMote icon: [Jon Koop](https://www.iconfinder.com/Koop_Designs)
+* Internet icon: [flaticon.com](https://www.flaticon.com/)
 * Game Boy Advance emulator: [VisualBoyAdvance-m](https://vba-m.com/)
 * DS emulator: [DeSmuMe](http://desmume.org/)
 * Nintendo 64 emulator: [Mupen64Plus](https://mupen64plus.org/)

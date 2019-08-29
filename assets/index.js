@@ -8,6 +8,8 @@ var GAMEPAD_INPUT_INTERVAL = 10;
 var REDRAW_INTERVAL = 10000;
 var FOCUS_NEXT_INTERVAL = 500;
 var BLOCK_MENU_MOVE_INTERVAL = 250;
+var SEND_INPUT_TIME = 1000;
+var BROWSER_ADDRESS_HEARTBEAT_TIME = 500;
 
 var expandCountLeft; // We always need to have a complete list of systems, repeated however many times we want, so the loop works properly
 var expandCountRight;
@@ -18,6 +20,11 @@ var enableModalControls;
 var makingRequest = false;
 var bubbleScreenshotsSet;
 var focusInterval = null;
+var canvasImageInfo;
+var closeModalCallback;
+var sendInputTimeout;
+var currentAddress;
+var browserAddressHeartbeat;
 
 // Hold escape for 5 seconds to quit
 // Note this variable contains a function interval, not a boolean value
@@ -54,6 +61,7 @@ function bubbleScreenshots() {
     var currentGameElement = currentSystemElement.querySelector(".system.selected .game.selected");
     if( currentGameElement ) {
         var currentSystem = currentSystemElement.getAttribute("data-system");
+        if( currentSystem == "browser" ) return;
         var currentGame = currentGameElement.getAttribute("data-game");
         var currentSave = currentGameElement.querySelector(".current-save").innerText;
         if( systemsDict[currentSystem] 
@@ -156,7 +164,60 @@ function load() {
                 } );
             }
         }, REDRAW_INTERVAL );
+
+        var socket = io.connect("http://"+window.location.hostname+":3000");
+        socket.on("connect", function() {console.log("socket connected")});
+        socket.on("canvas", function(data) {
+            drawCanvas(data);
+        });
     }, load );
+}
+
+/**
+ * Draw image data about the browser on the canvas.
+ * @param data {string} base64 jpeg image data
+ */
+function drawCanvas(data) {
+    var canvas = document.getElementById("stream");
+    if( canvas ) {
+        var context = canvas.getContext('2d');
+        var img = new Image();
+        img.src = "data:image/jpeg;base64," + data;
+        var canvasWidth = canvas.getAttribute("width");
+        var canvasHeight = canvas.getAttribute("height");
+        context.width = canvasWidth;
+        context.height = canvasHeight;
+        var borderWidth = 2;
+        img.onload = function() {
+            var clearImage = context.createImageData(canvasWidth, canvasWidth);
+            for (var i = clearImage.data.length; --i >= 0; ) {
+                clearImage.data[i] = 0;
+            }
+            context.putImageData(clearImage, 0, 0);
+            var imgWidth;
+            var imgHeight;
+            var xOffset = borderWidth/2;
+            var yOffset = borderWidth/2;
+            if( img.width >= img.height ) {
+                var ratio = img.height / img.width;
+                imgWidth = context.width-borderWidth;
+                imgHeight = imgWidth * ratio;
+                yOffset = (context.height - imgHeight)/2;
+            }
+            else {
+                var ratio = img.width / img.height;
+                imgHeight = context.height-borderWidth;
+                imgWidth = imgHeight * ratio;
+                xOffset = (context.width - imgWidth)/2;
+            }
+            context.drawImage( img, xOffset, yOffset, imgWidth, imgHeight);
+            context.strokeRect( xOffset-borderWidth/2, yOffset-borderWidth/2, imgWidth+borderWidth, imgHeight+borderWidth );
+            canvasImageInfo = { x: xOffset, y: yOffset, width: imgWidth, height: imgHeight };
+        };
+    }
+    else {
+        canvasImageInfo = null;
+    }
 }
 
 /**
@@ -305,12 +366,14 @@ function draw( startSystem ) {
             }
 
             // Create an element for the current save
-            var currentSaveDiv = document.createElement("div");
-            currentSaveDiv.classList.add("current-save");
-            currentSaveDiv.innerText = game.currentSave;
+            if( system.system != "browser" ) {
+                var currentSaveDiv = document.createElement("div");
+                currentSaveDiv.classList.add("current-save");
+                currentSaveDiv.innerText = game.currentSave;
 
-            // Append the game element to the list of elements
-            gameElement.appendChild(currentSaveDiv);
+                // Append the game element to the list of elements
+                gameElement.appendChild(currentSaveDiv);
+            }
             gamesElement.appendChild(gameElement);
         }
 
@@ -423,6 +486,17 @@ function toggleButtons() {
     else {
         quitGameButton.classList.remove("inactive");
         quitGameButton.onclick = quitGame;
+    }
+
+    // Only allow browser if we are "playing" it
+    var browserControlsButton = document.getElementById("browser-controls");
+    if( !systemsDict["browser"].games[ Object.keys(systemsDict["browser"].games)[0] ].playing ) {
+        browserControlsButton.onclick = null;
+        browserControlsButton.classList.add("inactive");
+    }
+    else {
+        browserControlsButton.onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#browser-controls-form") ) displayBrowserControls(); };
+        browserControlsButton.classList.remove("inactive");
     }
 
     // Only allow save configuration menus and update/delete game menus if there is at least one game
@@ -668,16 +742,19 @@ function getSelectedValues() {
     var currentSystem = currentSystemElement.getAttribute("data-system");
     var currentGame = "";
     var currentSave = "";
+    var highlighted = false;
 
     var currentGameElement = document.querySelector(".system.selected .game.selected");
-    if( currentGameElement ) {
+    console.log(currentSystem);
+    if( currentGameElement && currentSystem != "browser" ) {
         // We have a currently selected game we can use
         currentGame = currentGameElement.getAttribute("data-game");
         currentSave = currentGameElement.querySelector(".current-save").innerText;
+        highlighted = true; // The system is selected to the user
     }
     else {
         // We'll have to use a different system
-        var anySelectedGameElement = document.querySelector(".system .game.selected");
+        var anySelectedGameElement = document.querySelector(".system:not([data-system='browser']) .game.selected");
         if( anySelectedGameElement ) {
             currentSystem = anySelectedGameElement.closest(".system").getAttribute("data-system");
             currentGame = anySelectedGameElement.getAttribute("data-game");
@@ -689,7 +766,83 @@ function getSelectedValues() {
         }
     }
 
-    return { system: currentSystem, game: currentGame, save: currentSave };
+    return { system: currentSystem, game: currentGame, save: currentSave, highlighted: highlighted };
+}
+
+/**
+ * Display the browser control menu.
+ */
+function displayBrowserControls() {
+    var form = document.createElement("div");
+    form.setAttribute("id", "browser-controls-form");
+    form.appendChild( createFormTitle("Browser Control") );
+    form.appendChild( createInput( "", "address-bar", "Address: " ) );
+    form.appendChild( createButton( "Go", function() {
+        currentAddress = ""; // Clear out the current address so a new one can show up
+        makeRequest("POST", "/browser/navigate", {url: document.querySelector("#address-bar").value})
+    } ) );
+    
+    var forwardInputLabel = createInput( "", "forward-input", "Forward Input: " );
+    var forwardInput = forwardInputLabel.children[1];
+    forwardInput.oninput = function() {
+        if( sendInputTimeout ) {
+            clearTimeout(sendInputTimeout);
+        }
+        sendInputTimeout = setTimeout( function() {
+            forwardInput.setAttribute("disabled", "disabled");
+            makeRequest( "POST", "/browser/input", { input: forwardInput.value }, function( ) {
+                forwardInput.value = "";
+                forwardInput.removeAttribute("disabled");
+                forwardInput.focus();
+            }, function( ) { forwardInput.removeAttribute("disabled"); forwardInput.focus(); } );
+        }, SEND_INPUT_TIME);
+    }
+    form.appendChild( forwardInputLabel );
+
+    var canvas = document.createElement("canvas");
+    canvas.setAttribute("id", "stream");
+    canvas.setAttribute("width", 500);
+    canvas.setAttribute("height", 300);
+    canvas.addEventListener('mousedown', function(e) {
+        var rect = canvas.getBoundingClientRect();
+        var x = event.clientX - rect.left;
+        var y = event.clientY - rect.top;
+        var xPercent = (x - canvasImageInfo.x)/canvasImageInfo.width;
+        var yPercent = (y - canvasImageInfo.y)/canvasImageInfo.height;
+        if( xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
+            makeRequest( "POST", "/browser/click", {"xPercent": xPercent, "yPercent": yPercent} );
+        }
+    })
+    form.appendChild(canvas);
+
+    launchModal( form, function() { makeRequest( "GET", "/browser/stop-streaming", {} ); clearInterval(browserAddressHeartbeat); } );
+    
+    if( browserAddressHeartbeat ) {
+        clearInterval(browserAddressHeartbeat);
+    }
+    browserAddressHeartbeat = setInterval( function() {
+        var addressInput = document.querySelector("#address-bar");
+        if( addressInput ) {
+            makeRequest( "GET", "/browser/url", {}, function(data) {
+                try {
+                    if( addressInput ) {
+
+                        var address = JSON.parse(data).url;
+                        if( address != currentAddress ) {
+
+                            currentAddress = address;
+                            if( document.activeElement !== addressInput ) {
+                                addressInput.value = currentAddress;
+                            }
+                        }
+                    }
+                }
+                catch(err) {};
+            } );
+        }
+    }, BROWSER_ADDRESS_HEARTBEAT_TIME );
+    // Start streaming now for memory conservation
+    makeRequest( "GET", "/browser/start-streaming", {} );
 }
 
 /**
@@ -773,7 +926,7 @@ function displaySelectSave() {
 function cycleSave(offset) {
     if( !makingRequest ) { 
         var selected = getSelectedValues();
-        if( selected.system && selected.game && selected.save ) {
+        if( selected.system && selected.game && selected.save && selected.highlighted ) {
             var saves = Object.keys(systemsDict[selected.system].games[selected.game].saves);
             var currentSaveIndex = saves.indexOf( selected.save );
             var nextIndex = getIndex(currentSaveIndex, saves, offset);
@@ -911,7 +1064,7 @@ function displayAddGame() {
  * @returns {Element} - a select element containing the necessary keys
  */
 function createSystemMenu( selected, old, required, onlyWithGames ) {
-    var systemsKeys = Object.keys(systemsDict);
+    var systemsKeys = Object.keys(systemsDict).filter( (element) => element != "browser" );
     if( onlyWithGames ) {
         systemsKeys = systemsKeys.filter( (element) => Object.keys(systemsDict[element].games).length > 0 );
     }
@@ -1129,10 +1282,14 @@ function createFormTitle( title ) {
 /**
  * Launch a modal.
  * @param {Element} element - the element within the modal.
+ * @param {Function} closeModalCallbackFunction - a function to set the global closeModalCallback to after any current modal has closed
  */
-function launchModal( element ) {
+function launchModal( element, closeModalCallbackFunction ) {
     if( !makingRequest ) {
         closeModal(); // Close any current modal
+        if( closeModalCallbackFunction ) {
+            closeModalCallback = closeModalCallbackFunction;
+        }
         var modal = document.createElement("div");
         modal.classList.add("modal");
         modal.appendChild(element);
@@ -1160,6 +1317,10 @@ function closeModal() {
             modal.classList.add("dying-modal"); // Dummy modal class for css
             modal.classList.remove("modal-shown");
             document.body.classList.remove("modal-open");
+            if( closeModalCallback ) {
+                closeModalCallback();
+                closeModalCallback = null;
+            }
             // set timeout to force draw prior
             setTimeout( function() { 
                 if( modal && modal.parentElement ) {

@@ -16,8 +16,12 @@ const fsExtra = require('fs-extra');
 const ks = require("node-key-sender");
 const multer = require('multer');
 const upload = multer({ dest: '/tmp/' });
+// IO Sockets server for screen
+const server = require('http').createServer();
+const io = require('socket.io')(server);
 
 const PORT = 8080;
+const SOCKETS_PORT = 3000;
 const STATIC_PORT = 80;
 const ASSETS_DIR = "assets";
 const CURRENT_SAVE_DIR = "current";
@@ -52,6 +56,10 @@ const SLEEP_COMMAND = "sleep 5";
 const FOCUS_CHROMIUM_COMMAND = "wmctrl -a 'Chromium'";
 const TMP_ROM_LOCATION = "/tmp/tmprom";
 const NAND_ROM_FILE_PLACEHOLDER = "ROM_FILE_PLACEHOLDER";
+const FULL_SCREEN_KEY = "f11";
+const BROWSER = "browser";
+const GOOGLE_SEARCH_URL = "https://google.com/search?q=";
+const HTTP = "http://";
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -69,7 +77,9 @@ const ERROR_MESSAGES = {
     "gameNameRequired": "A name is required to add a new game",
     "romFileRequired": "A ROM file is required to add a new game",
     "saveNameRequired": "A name is required to add a new save",
-    "saveAlreadySelected": "Save already selected"
+    "saveAlreadySelected": "Save already selected",
+    "browsePageClosed": "The browser is closed",
+    "browsePageInvalidCoordinates": "Invalid click coordinates"
 }
 
 // We will only allow for one request at a time for app
@@ -82,6 +92,8 @@ let currentEmulator = null;
 let systemsDict = {};
 
 let browser = null;
+let menuPage = null;
+let browsePage = null;
 
 // Load the data on startup
 getData();
@@ -246,7 +258,79 @@ app.delete("/game", async function(request, response) {
     }
 });
 
+// Respond to a click event from a browser
+app.post("/browser/click", async function(request, response) {
+    console.log("app serving /browser/click with body: " + JSON.stringify(request.body));
+    if( ! requestLocked ) {
+        requestLocked = true;
+        let errorMessage = await performClick( request.body.xPercent, request.body.yPercent );
+        requestLocked = false;
+        writeActionResponse( response, errorMessage );
+    }
+    else {
+        writeLockedResponse( response );
+    }
+});
+
+// Get input for the a browser
+app.post("/browser/input", async function(request, response) {
+    console.log("app serving /browser/input with body: " + JSON.stringify(request.body));
+    if( ! requestLocked ) {
+        requestLocked = true;
+        let errorMessage = await performInput( request.body.input );
+        requestLocked = false;
+        writeActionResponse( response, errorMessage );
+    }
+    else {
+        writeLockedResponse( response );
+    }
+});
+
+// Get input for the a browser
+app.get("/browser/start-streaming", async function(request, response) {
+    console.log("app serving /browser/start-streaming");
+    // Don't worry about locking for these
+    let errorMessage = await startStreaming();
+    writeActionResponse( response, errorMessage );
+});
+
+// Get input for the a browser
+app.get("/browser/stop-streaming", async function(request, response) {
+    console.log("app serving /browser/stop-streaming");
+    // Don't worry about locking for these
+    let errorMessage = await stopStreaming();
+    writeActionResponse( response, errorMessage );
+});
+
+// Get input for the a browser
+app.get("/browser/url", async function(request, response) {
+    console.log("app serving /browser/url");
+    // Don't worry about locking for these
+    let url = await getUrl();
+    if( !(url in ERROR_MESSAGES) ) {
+        writeResponse( response, SUCCESS, {url: url} );
+    }
+    else {
+        writeResponse( response, FAILURE, {message: url});
+    }
+});
+
+// Navigate the browser to a page
+app.post("/browser/navigate", async function(request, response) {
+    console.log("app serving /browser/navigate");
+    if( ! requestLocked ) {
+        requestLocked = true;
+        let errorMessage = await navigate( request.body.url );
+        requestLocked = false;
+        writeActionResponse( response, errorMessage );
+    }
+    else {
+        writeLockedResponse( response );
+    }
+});
+
 // START PROGRAM (Launch Browser and Listen)
+server.listen(SOCKETS_PORT); // This is the screencast server
 staticApp.listen(STATIC_PORT); // Launch the static assets first, so the browser can access them
 launchBrowser().then( () => app.listen(PORT) );
 
@@ -318,14 +402,19 @@ async function launchBrowser() {
         args: ['--start-fullscreen', '--no-sandbox']
     });
     let pages = await browser.pages();
-    let page = await pages[0];
-    await page.goto(LOCALHOST + ":" + STATIC_PORT);
+    menuPage = await pages[0];
+    await menuPage.goto(LOCALHOST + ":" + STATIC_PORT);
     ks.sendKey('tab');
 }
 
 /**************** Data Functions ****************/
 
 // TODO more emulators
+// TODO find a way to use the error values returned from the asynchronous browser functions
+// scroll and refresh
+// Put in the README that only one control will stream reliably at a time
+// MOBILE browser control
+// review necessity of locking for browser requests - review the browser requests and the flow
 
 /**
  * Generate data about available options to the user
@@ -377,9 +466,11 @@ function getData() {
                 }
             }
             
-	        let savesInfo = generateSaves(system, game);
-            gameData.currentSave = savesInfo.currentSave;
-            gameData.saves = savesInfo.savesDict;
+            if( system != BROWSER ) {
+                let savesInfo = generateSaves(system, game);
+                gameData.currentSave = savesInfo.currentSave;
+                gameData.saves = savesInfo.savesDict;
+            }
 
             // If this game is being played, indicate as such
             if( isBeingPlayed( system, game ) ) {
@@ -567,7 +658,7 @@ function launchGame(system, game, restart=false) {
     if( isInvalid ) {
         return isInvalid;
     }
-    else if( !fs.existsSync(generateRomLocation( system, game, systemsDict[system].games[game].rom )) ) {
+    else if( !fs.existsSync(generateRomLocation( system, game, systemsDict[system].games[game].rom )) && system != BROWSER ) {
         return ERROR_MESSAGES.noRomFile;
     }
 
@@ -576,6 +667,14 @@ function launchGame(system, game, restart=false) {
         quitGame();
 
         let command = systemsDict[system].command;
+        // We know it must be browser
+        if( !command ) {
+            launchBrowseTab();
+            currentSystem = systemsDict[system].system;
+            currentGame = systemsDict[system].games[ Object.keys(systemsDict[system].games)[0] ].game;
+            currentEmulator = true; // Kind of hacky... but will pass for playing
+            return false;
+        }
 
         let arguments = [ 
             generateRomLocation( system, game, systemsDict[system].games[game].rom )
@@ -631,7 +730,7 @@ function launchGame(system, game, restart=false) {
         if( systemsDict[system].fullScreenPress ) {
             try {
                 proc.execSync( systemsDict[system].activateCommand );
-                ks.sendKey("f11");
+                ks.sendKey(FULL_SCREEN_KEY);
             }
             catch(err) { console.log("full screen failed."); }
         }
@@ -642,6 +741,11 @@ function launchGame(system, game, restart=false) {
         }
         catch(err) { console.log("activate failed."); }
     }
+    else if( system == BROWSER ) {
+        if ( browsePage && !browsePage.isClosed() ) {
+            browsePage.bringToFront();
+        }
+    }
     return false;
 }
 
@@ -651,8 +755,13 @@ function launchGame(system, game, restart=false) {
  */
 function quitGame() {
     if(currentEmulator) {
-        currentEmulator.removeListener('exit', blankCurrentGame);
-        proc.execSync( KILL_COMMAND + currentEmulator.pid );
+        if(currentSystem != BROWSER) {
+            currentEmulator.removeListener('exit', blankCurrentGame);
+            proc.execSync( KILL_COMMAND + currentEmulator.pid );
+        }
+        else if( browsePage && !browsePage.isClosed() ) {
+            closeBrowseTab();
+        }
         currentEmulator = null;
         currentGame = null;
         currentSystem = null;
@@ -1114,10 +1223,136 @@ function deleteGame( system, game ) {
     return false;
 }
 
+/**
+ * Perform a click on the page.
+ * @param {Number} xPercent - the percentage x offset on which to perform the click
+ * @param {Number} yPercent - the percentage y offset on which to perform the click
+ * @returns {Promise} - a promise that is false if the action was successful or contains an error message if not
+ */
+async function performClick( xPercent, yPercent ) {
+    if( !browsePage || browsePage.isClosed() ) {
+        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
+    }
+    else if( xPercent > xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
+        return Promise.resolve( ERROR_MESSAGES.browsePageInvalidCoordinates );
+    }
+    
+    let width = await browsePage.evaluate( () => { return document.documentElement.clientWidth; } );
+    let height = await browsePage.evaluate( () => { return document.documentElement.clientHeight; } );
+    let x = width * xPercent;
+    let y = height * yPercent;
+    await browsePage.mouse.click(x, y);
+
+    return Promise.resolve(false);
+}
+
+/**
+ * Perform input on the page.
+ * @param {String} input - the input to type
+ * @returns {Promise} - a promise that is false if the action was successful or contains an error message if not
+ */
+async function performInput( input ) {
+    if( !browsePage || browsePage.isClosed() ) {
+        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
+    }
+    
+    await browsePage.keyboard.type(input);
+
+    return Promise.resolve(false);
+}
+
+/**
+ * Start streaming the browse page.
+ * @returns {Promise} - a promise that is false if the action was successful or contains an error message if not
+ */
+async function startStreaming() {
+    if( !browsePage || browsePage.isClosed() ) {
+        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
+    }
+
+    await browsePage._client.send("Page.startScreencast");
+    browsePage._client.on("Page.screencastFrame", event => { io.sockets.emit("canvas", event.data) } );
+}
+
+/**
+ * Stop streaming the browse page.
+ * @returns {Promise} - a promise that is false if the action was successful or contains an error message if not
+ */
+async function stopStreaming() {
+    if( !browsePage || browsePage.isClosed() ) {
+        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
+    }
+
+    await browsePage._client.send("Page.stopScreencast");
+}
+
+/**
+ * Get the current address of the browse page.
+ * @returns {Promise} - a promise containing the current page or an error message
+ */
+async function getUrl() {
+    if( !browsePage || browsePage.isClosed() ) {
+        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
+    }
+
+    return Promise.resolve(browsePage.url());
+}
+
+/**
+ * Navigate to a url.
+ * @param {String} url - the url to navigate to
+ */
+async function navigate( url ) {
+    if( !browsePage || browsePage.isClosed() ) {
+        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
+    }
+
+    try {
+        await browsePage.goto( url ) ;
+    }
+    catch(err) {
+        try {
+            await browsePage.goto( HTTP + url );
+        }
+        catch(err) {
+            await browsePage.goto(GOOGLE_SEARCH_URL + url);
+        }
+    }
+    return Promise.resolve(false);
+}
+
+/**
+ * Launch a browse tab.
+ * @returns {Promise} - a promise that is false if the action was successful or contains an error message if not
+ */
+async function launchBrowseTab() {
+    browsePage = await browser.newPage();
+    browsePage.on("close", blankCurrentGame);
+    return Promise.resolve(false);
+}
+
+/**
+ * Close a browse tab.
+ * @returns {Promise} - a promise that is false if the action was successful or contains an error message if not
+ */
+async function closeBrowseTab() {
+    if( !browsePage || browsePage.isClosed() ) {
+        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
+    }
+
+    await browsePage.close();
+    browsePage = null;
+    return Promise.resolve(false);
+}
+
 // Listen for the "home" button to be pressed
 ioHook.on("keydown", event => {
     if( event.keycode == ESCAPE_KEY ) {
         proc.execSync(FOCUS_CHROMIUM_COMMAND);
+        try {
+            menuPage.bringToFront();
+        }
+        catch(err) {/*ok*/}
     }
 });
 ioHook.start();

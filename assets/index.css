@@ -257,6 +257,12 @@ h1 {
     user-select: none;
 }
 
+#stream {
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
 @keyframes fade {
     0% {transform: translateY(100%); opacity: 1;}
     75% {transform: translateY(0%); opacity: 0.7;}
