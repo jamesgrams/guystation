@@ -577,7 +577,7 @@ async function scroll(direction) {
 async function launchBrowseTab() {
     browsePage = await browser.newPage();
     await browsePage.goto(HOMEPAGE);
-    browsePage.on("close", blankCurrentGame);
+    browsePage.on("close", function() { if( currentSystem === BROWSER ) { blankCurrentGame(); } });
     return Promise.resolve(false);
 }
 
@@ -601,6 +601,7 @@ async function closeBrowseTab() {
 // TODO find a way to use the error values returned from the asynchronous browser functions
 // back
 // kill -9 not working right after start
+// Mobile click stream not working
 
 /**
  * Generate data about available options to the user
