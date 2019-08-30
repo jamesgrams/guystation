@@ -60,6 +60,9 @@ const FULL_SCREEN_KEY = "f11";
 const BROWSER = "browser";
 const GOOGLE_SEARCH_URL = "https://google.com/search?q=";
 const HTTP = "http://";
+const UP = "up";
+const DOWN = "down";
+const SCROLL_AMOUNT_MULTIPLIER = 0.8;
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -79,7 +82,8 @@ const ERROR_MESSAGES = {
     "saveNameRequired": "A name is required to add a new save",
     "saveAlreadySelected": "Save already selected",
     "browsePageClosed": "The browser is closed",
-    "browsePageInvalidCoordinates": "Invalid click coordinates"
+    "browsePageInvalidCoordinates": "Invalid click coordinates",
+    "browseInvalidDirection": "Invalid scroll direction"
 }
 
 // We will only allow for one request at a time for app
@@ -261,29 +265,15 @@ app.delete("/game", async function(request, response) {
 // Respond to a click event from a browser
 app.post("/browser/click", async function(request, response) {
     console.log("app serving /browser/click with body: " + JSON.stringify(request.body));
-    if( ! requestLocked ) {
-        requestLocked = true;
-        let errorMessage = await performClick( request.body.xPercent, request.body.yPercent );
-        requestLocked = false;
-        writeActionResponse( response, errorMessage );
-    }
-    else {
-        writeLockedResponse( response );
-    }
+    let errorMessage = await performClick( request.body.xPercent, request.body.yPercent );
+    writeActionResponse( response, errorMessage );
 });
 
 // Get input for the a browser
 app.post("/browser/input", async function(request, response) {
     console.log("app serving /browser/input with body: " + JSON.stringify(request.body));
-    if( ! requestLocked ) {
-        requestLocked = true;
-        let errorMessage = await performInput( request.body.input );
-        requestLocked = false;
-        writeActionResponse( response, errorMessage );
-    }
-    else {
-        writeLockedResponse( response );
-    }
+    let errorMessage = await performInput( request.body.input );
+    writeActionResponse( response, errorMessage );
 });
 
 // Get input for the a browser
@@ -318,15 +308,22 @@ app.get("/browser/url", async function(request, response) {
 // Navigate the browser to a page
 app.post("/browser/navigate", async function(request, response) {
     console.log("app serving /browser/navigate");
-    if( ! requestLocked ) {
-        requestLocked = true;
-        let errorMessage = await navigate( request.body.url );
-        requestLocked = false;
-        writeActionResponse( response, errorMessage );
-    }
-    else {
-        writeLockedResponse( response );
-    }
+    let errorMessage = await navigate( request.body.url );
+    writeActionResponse( response, errorMessage );
+});
+
+// Refresh the browser page
+app.get("/browser/refresh", async function(request, response) {
+    console.log("app serving /browser/refresh");
+    let errorMessage = await refresh();
+    writeActionResponse( response, errorMessage );
+});
+
+// Scroll
+app.post("/browser/scroll", async function(request, response) {
+    console.log("app serving /browser/scroll");
+    let errorMessage = await scroll( request.body.direction );
+    writeActionResponse( response, errorMessage );
 });
 
 // START PROGRAM (Launch Browser and Listen)
@@ -407,14 +404,180 @@ async function launchBrowser() {
     ks.sendKey('tab');
 }
 
+/**
+ * Perform a click on the page.
+ * @param {Number} xPercent - the percentage x offset on which to perform the click
+ * @param {Number} yPercent - the percentage y offset on which to perform the click
+ * @returns {Promise} - a promise that is false if the action was successful or contains an error message if not
+ */
+async function performClick( xPercent, yPercent ) {
+    if( !browsePage || browsePage.isClosed() ) {
+        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
+    }
+    else if( xPercent > xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
+        return Promise.resolve( ERROR_MESSAGES.browsePageInvalidCoordinates );
+    }
+    
+    let width = await browsePage.evaluate( () => { return document.documentElement.clientWidth; } );
+    let height = await browsePage.evaluate( () => { return document.documentElement.clientHeight; } );
+    let x = width * xPercent;
+    let y = height * yPercent;
+    await browsePage.mouse.click(x, y);
+
+    return Promise.resolve(false);
+}
+
+/**
+ * Perform input on the page.
+ * @param {String} input - the input to type
+ * @returns {Promise} - a promise that is false if the action was successful or contains an error message if not
+ */
+async function performInput( input ) {
+    if( !browsePage || browsePage.isClosed() ) {
+        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
+    }
+    
+    await browsePage.keyboard.type(input);
+
+    return Promise.resolve(false);
+}
+
+/**
+ * Start streaming the browse page.
+ * @returns {Promise} - a promise that is false if the action was successful or contains an error message if not
+ */
+async function startStreaming() {
+    if( !browsePage || browsePage.isClosed() ) {
+        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
+    }
+
+    await browsePage._client.send("Page.startScreencast");
+    browsePage._client.on("Page.screencastFrame", event => { io.sockets.emit("canvas", event.data) } );
+    return Promise.resolve(false);
+}
+
+/**
+ * Stop streaming the browse page.
+ * @returns {Promise} - a promise that is false if the action was successful or contains an error message if not
+ */
+async function stopStreaming() {
+    if( !browsePage || browsePage.isClosed() ) {
+        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
+    }
+
+    await browsePage._client.send("Page.stopScreencast");
+    return Promise.resolve(false);
+}
+
+/**
+ * Get the current address of the browse page.
+ * @returns {Promise} - a promise containing the current page or an error message
+ */
+async function getUrl() {
+    if( !browsePage || browsePage.isClosed() ) {
+        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
+    }
+
+    return Promise.resolve(browsePage.url());
+}
+
+/**
+ * Navigate to a url.
+ * @param {String} url - the url to navigate to
+ * @returns {Promise} - a promise containing the current page or an error message
+ */
+async function navigate( url ) {
+    if( !browsePage || browsePage.isClosed() ) {
+        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
+    }
+
+    try {
+        await browsePage.goto( url ) ;
+    }
+    catch(err) {
+        try {
+            await browsePage.goto( HTTP + url );
+        }
+        catch(err) {
+            await browsePage.goto(GOOGLE_SEARCH_URL + url);
+        }
+    }
+    return Promise.resolve(false);
+}
+
+/**
+ * Refresh a url.
+ * @returns {Promise} - a promise containing the current page or an error message
+ */
+async function refresh() {
+    if( !browsePage || browsePage.isClosed() ) {
+        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
+    }
+
+    try {
+        await browsePage.goto( browsePage.url() ) ;
+    }
+    catch(err) {}
+    return Promise.resolve(false);
+}
+
+/**
+ * Scroll.
+ * @returns {Promise} - a promise containing the current page or an error message
+ */
+async function scroll(direction) {
+    if( !browsePage || browsePage.isClosed() ) {
+        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
+    }
+    if( !direction || (direction != UP && direction != DOWN) ) {
+        return Promise.resolve( ERROR_MESSAGES.browseInvalidDirection ) ;
+    }
+
+    let scrollAmount = SCROLL_AMOUNT_MULTIPLIER;
+    if( direction == UP ) {
+        scrollAmount =  -SCROLL_AMOUNT_MULTIPLIER;
+    }
+
+    try {
+        await browsePage.evaluate( (scrollAmount) => { window.scrollBy(0, scrollAmount * window.innerHeight) }, scrollAmount );
+    }
+    catch(err) {}
+    return Promise.resolve(false);
+}
+
+/**
+ * Launch a browse tab.
+ * @returns {Promise} - a promise that is false if the action was successful or contains an error message if not
+ */
+async function launchBrowseTab() {
+    browsePage = await browser.newPage();
+    browsePage.on("close", blankCurrentGame);
+    return Promise.resolve(false);
+}
+
+/**
+ * Close a browse tab.
+ * @returns {Promise} - a promise that is false if the action was successful or contains an error message if not
+ */
+async function closeBrowseTab() {
+    if( !browsePage || browsePage.isClosed() ) {
+        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
+    }
+
+    await browsePage.close();
+    browsePage = null;
+    return Promise.resolve(false);
+}
+
 /**************** Data Functions ****************/
 
 // TODO more emulators
 // TODO find a way to use the error values returned from the asynchronous browser functions
-// scroll and refresh
-// Put in the README that only one control will stream reliably at a time
+// scroll and back
 // MOBILE browser control
-// review necessity of locking for browser requests - review the browser requests and the flow
+// keyboard input all goes into input foraed on desktop
+// kill =9 not working right after star
+// steam limit?
 
 /**
  * Generate data about available options to the user
@@ -1221,128 +1384,6 @@ function deleteGame( system, game ) {
     getData();
 
     return false;
-}
-
-/**
- * Perform a click on the page.
- * @param {Number} xPercent - the percentage x offset on which to perform the click
- * @param {Number} yPercent - the percentage y offset on which to perform the click
- * @returns {Promise} - a promise that is false if the action was successful or contains an error message if not
- */
-async function performClick( xPercent, yPercent ) {
-    if( !browsePage || browsePage.isClosed() ) {
-        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
-    }
-    else if( xPercent > xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
-        return Promise.resolve( ERROR_MESSAGES.browsePageInvalidCoordinates );
-    }
-    
-    let width = await browsePage.evaluate( () => { return document.documentElement.clientWidth; } );
-    let height = await browsePage.evaluate( () => { return document.documentElement.clientHeight; } );
-    let x = width * xPercent;
-    let y = height * yPercent;
-    await browsePage.mouse.click(x, y);
-
-    return Promise.resolve(false);
-}
-
-/**
- * Perform input on the page.
- * @param {String} input - the input to type
- * @returns {Promise} - a promise that is false if the action was successful or contains an error message if not
- */
-async function performInput( input ) {
-    if( !browsePage || browsePage.isClosed() ) {
-        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
-    }
-    
-    await browsePage.keyboard.type(input);
-
-    return Promise.resolve(false);
-}
-
-/**
- * Start streaming the browse page.
- * @returns {Promise} - a promise that is false if the action was successful or contains an error message if not
- */
-async function startStreaming() {
-    if( !browsePage || browsePage.isClosed() ) {
-        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
-    }
-
-    await browsePage._client.send("Page.startScreencast");
-    browsePage._client.on("Page.screencastFrame", event => { io.sockets.emit("canvas", event.data) } );
-}
-
-/**
- * Stop streaming the browse page.
- * @returns {Promise} - a promise that is false if the action was successful or contains an error message if not
- */
-async function stopStreaming() {
-    if( !browsePage || browsePage.isClosed() ) {
-        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
-    }
-
-    await browsePage._client.send("Page.stopScreencast");
-}
-
-/**
- * Get the current address of the browse page.
- * @returns {Promise} - a promise containing the current page or an error message
- */
-async function getUrl() {
-    if( !browsePage || browsePage.isClosed() ) {
-        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
-    }
-
-    return Promise.resolve(browsePage.url());
-}
-
-/**
- * Navigate to a url.
- * @param {String} url - the url to navigate to
- */
-async function navigate( url ) {
-    if( !browsePage || browsePage.isClosed() ) {
-        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
-    }
-
-    try {
-        await browsePage.goto( url ) ;
-    }
-    catch(err) {
-        try {
-            await browsePage.goto( HTTP + url );
-        }
-        catch(err) {
-            await browsePage.goto(GOOGLE_SEARCH_URL + url);
-        }
-    }
-    return Promise.resolve(false);
-}
-
-/**
- * Launch a browse tab.
- * @returns {Promise} - a promise that is false if the action was successful or contains an error message if not
- */
-async function launchBrowseTab() {
-    browsePage = await browser.newPage();
-    browsePage.on("close", blankCurrentGame);
-    return Promise.resolve(false);
-}
-
-/**
- * Close a browse tab.
- * @returns {Promise} - a promise that is false if the action was successful or contains an error message if not
- */
-async function closeBrowseTab() {
-    if( !browsePage || browsePage.isClosed() ) {
-        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
-    }
-
-    await browsePage.close();
-    browsePage = null;
-    return Promise.resolve(false);
 }
 
 // Listen for the "home" button to be pressed

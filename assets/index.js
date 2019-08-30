@@ -25,6 +25,7 @@ var closeModalCallback;
 var sendInputTimeout;
 var currentAddress;
 var browserAddressHeartbeat;
+var navigating = false;
 
 // Hold escape for 5 seconds to quit
 // Note this variable contains a function interval, not a boolean value
@@ -771,17 +772,14 @@ function getSelectedValues() {
 
 /**
  * Display the browser control menu.
+ * Note: The web requests here aren't handled synchnously necessarily (why we don't set making request).
+ * We let node queue them and run them in order.
  */
 function displayBrowserControls() {
     var form = document.createElement("div");
     form.setAttribute("id", "browser-controls-form");
     form.appendChild( createFormTitle("Browser Control") );
-    form.appendChild( createInput( "", "address-bar", "Address: " ) );
-    form.appendChild( createButton( "Go", function() {
-        currentAddress = ""; // Clear out the current address so a new one can show up
-        makeRequest("POST", "/browser/navigate", {url: document.querySelector("#address-bar").value})
-    } ) );
-    
+
     var forwardInputLabel = createInput( "", "forward-input", "Forward Input: " );
     var forwardInput = forwardInputLabel.children[1];
     forwardInput.oninput = function() {
@@ -799,11 +797,24 @@ function displayBrowserControls() {
     }
     form.appendChild( forwardInputLabel );
 
+    form.appendChild( createInput( "", "address-bar", "Address: " ) );
+    var endNavigation = function() { navigating = false; };
+    form.appendChild( createButton( "Go", function() {
+        navigating = true;
+        currentAddress = ""; // Clear out the current address so a new one can show up
+        makeRequest("POST", "/browser/navigate", {url: document.querySelector("#address-bar").value}, endNavigation, endNavigation);
+    } ) );
+    form.appendChild( createButton( "Refresh", function() {
+        navigating = true;
+        currentAddress = ""; // Clear out the current address so a new one can show up
+        makeRequest("GET", "/browser/refresh", {}, endNavigation, endNavigation);
+    } ) );
+
     var canvas = document.createElement("canvas");
     canvas.setAttribute("id", "stream");
     canvas.setAttribute("width", 500);
     canvas.setAttribute("height", 300);
-    canvas.addEventListener('mousedown', function(e) {
+    canvas.onclick = function(e) {
         var rect = canvas.getBoundingClientRect();
         var x = event.clientX - rect.left;
         var y = event.clientY - rect.top;
@@ -812,8 +823,15 @@ function displayBrowserControls() {
         if( xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
             makeRequest( "POST", "/browser/click", {"xPercent": xPercent, "yPercent": yPercent} );
         }
-    })
+    };
     form.appendChild(canvas);
+
+    form.appendChild( createButton( "▲", function() {
+        makeRequest("POST", "/browser/scroll", { direction: "up"} );
+    } ) );
+    form.appendChild( createButton( "▼", function() {
+        makeRequest("POST", "/browser/scroll", { direction: "down"} );
+    } ) );
 
     launchModal( form, function() { makeRequest( "GET", "/browser/stop-streaming", {} ); clearInterval(browserAddressHeartbeat); } );
     
@@ -828,7 +846,7 @@ function displayBrowserControls() {
                     if( addressInput ) {
 
                         var address = JSON.parse(data).url;
-                        if( address != currentAddress ) {
+                        if( address != currentAddress && !navigating ) {
 
                             currentAddress = address;
                             if( document.activeElement !== addressInput ) {

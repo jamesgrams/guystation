@@ -24,6 +24,10 @@ Note: You can press F11 to get GuyStation out of full screen mode at any time.
 * PlayStation 1
 * PlayStation 2
 
+## Extras
+* Internet Browser - you can remotely control a browser running on your GuyStation
+    * Note: It is recommended to only control the browser with one remote device at a time and to close the Browser controls when not using them (this will turn off streaming and help with speeds).
+
 ## Recommendations
 Here are some recommendedations to make your experience better on Ubuntu.
 1. Disable screen lock in settings
