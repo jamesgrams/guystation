@@ -826,12 +826,16 @@ function displayBrowserControls() {
     };
     form.appendChild(canvas);
 
-    form.appendChild( createButton( "▲", function() {
+    let upButton = createButton( "▲", function() {
         makeRequest("POST", "/browser/scroll", { direction: "up"} );
-    } ) );
-    form.appendChild( createButton( "▼", function() {
+    } );
+    upButton.setAttribute("id", "scroll-up");
+    let downButton = createButton( "▼", function() {
         makeRequest("POST", "/browser/scroll", { direction: "down"} );
-    } ) );
+    } );
+    downButton.setAttribute("id", "scroll-down");
+    form.appendChild( upButton );
+    form.appendChild( downButton );
 
     launchModal( form, function() { makeRequest( "GET", "/browser/stop-streaming", {} ); clearInterval(browserAddressHeartbeat); } );
     

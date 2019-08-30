@@ -153,6 +153,7 @@ h1 {
     border-radius: 25px;
     max-height: 80%;
     overflow: auto;
+    max-width: 100vw;
 }
 
 .modal-shown, .dying-modal .modal-shown {
@@ -177,7 +178,7 @@ h1 {
 
 .modal button, .dying-modal button, #functions button {
     float: right;
-    margin-top: 10px;
+    margin-top: 2px;
     background-color: black;
     color: white;
     border-radius: 5px;
@@ -257,10 +258,32 @@ h1 {
     user-select: none;
 }
 
-#stream {
+#browser-controls-form {
+    position: relative;
+    min-width: 500px;
+}
+
+#browser-controls-form #stream {
     position: relative;
     left: 50%;
     transform: translateX(-50%);
+    padding: 0 90px;
+    display: block;
+    clear: both;
+}
+
+#browser-controls-form #scroll-up, #browser-controls-form #scroll-down {
+    width: 80px;
+    position: absolute;
+    left: calc(50% + 250px);
+}
+
+#browser-controls-form #scroll-up {
+    bottom: 230px;
+}
+
+#browser-controls-form #scroll-down {
+    bottom: 11px;
 }
 
 @keyframes fade {

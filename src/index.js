@@ -53,7 +53,7 @@ catch(err) {
 const ESCAPE_KEY = 1;
 const KILL_COMMAND = "kill -9 ";
 const SLEEP_COMMAND = "sleep 5";
-const FOCUS_CHROMIUM_COMMAND = "wmctrl -a 'Chromium'";
+const FOCUS_CHROMIUM_COMMAND = "wmctrl -a 'Chrom'";
 const TMP_ROM_LOCATION = "/tmp/tmprom";
 const NAND_ROM_FILE_PLACEHOLDER = "ROM_FILE_PLACEHOLDER";
 const FULL_SCREEN_KEY = "f11";
@@ -63,6 +63,9 @@ const HTTP = "http://";
 const UP = "up";
 const DOWN = "down";
 const SCROLL_AMOUNT_MULTIPLIER = 0.8;
+const LINUX_CHROME_PATH = "/usr/bin/google-chrome";
+const STREAM_LIMIT_TIME = 300;
+const HOMEPAGE = "https://game103.net";
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -98,6 +101,8 @@ let systemsDict = {};
 let browser = null;
 let menuPage = null;
 let browsePage = null;
+let lastOutputTime = 0;
+let outputTimeout = null;
 
 // Load the data on startup
 getData();
@@ -393,11 +398,15 @@ function writeResponse( response, status, object, code, contentType ) {
  * Launch a puppeteer browser
  */
 async function launchBrowser() {
-    browser = await puppeteer.launch({
+    let options = {
         headless: false,
         defaultViewport: null,
         args: ['--start-fullscreen', '--no-sandbox']
-    });
+    };
+    if(process.argv.indexOf("--chromium") == -1) {
+        options.executablePath = LINUX_CHROME_PATH;
+    }
+    browser = await puppeteer.launch(options);
     let pages = await browser.pages();
     menuPage = await pages[0];
     await menuPage.goto(LOCALHOST + ":" + STATIC_PORT);
@@ -452,7 +461,23 @@ async function startStreaming() {
     }
 
     await browsePage._client.send("Page.startScreencast");
-    browsePage._client.on("Page.screencastFrame", event => { io.sockets.emit("canvas", event.data) } );
+    browsePage._client.on("Page.screencastFrame", event => {
+        let curOutputTime = Date.now();
+        let timeToWait = STREAM_LIMIT_TIME - (curOutputTime - lastOutputTime);
+        if (timeToWait < 0) {
+            timeToWait = 0;
+        }
+        // Clear any current image waiting to send
+        if( outputTimeout ) {
+            clearTimeout(outputTimeout);
+        }
+        // Set the timeout to emit
+        outputTimeout = setTimeout( function() {
+            io.sockets.emit("canvas", event.data);
+            lastOutputTime = Date.now();
+            outputTimeout = null;
+        }, timeToWait );
+    } );
     return Promise.resolve(false);
 }
 
@@ -551,6 +576,7 @@ async function scroll(direction) {
  */
 async function launchBrowseTab() {
     browsePage = await browser.newPage();
+    await browsePage.goto(HOMEPAGE);
     browsePage.on("close", blankCurrentGame);
     return Promise.resolve(false);
 }
@@ -573,11 +599,8 @@ async function closeBrowseTab() {
 
 // TODO more emulators
 // TODO find a way to use the error values returned from the asynchronous browser functions
-// scroll and back
-// MOBILE browser control
-// keyboard input all goes into input foraed on desktop
-// kill =9 not working right after star
-// steam limit?
+// back
+// kill -9 not working right after start
 
 /**
  * Generate data about available options to the user

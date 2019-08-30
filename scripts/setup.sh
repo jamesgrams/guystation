@@ -104,9 +104,18 @@ cd guystation
 npm install
 cd ..
 
+# install google chrome so we can watch video in the browser
+cd /tmp
+wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+sudo dpkg -i google-chrome-stable_current_amd64.deb
+
 # Disable Chromium Infobars
 sudo mkdir -p /etc/chromium/policies/managed
 sudo sh -c "echo '{\"CommandLineFlagSecurityWarningsEnabled\": false}' > /etc/chromium/policies/managed/policy.json"
+
+# Disable Chrome Infobars
+sudo mkdir -p /etc/opt/chrome/policies/managed
+sudo sh -c "echo '{\"CommandLineFlagSecurityWarningsEnabled\": false}' > /etc/opt/chrome/policies/managed/policy.json"
 
 # Setup autostart
 mkdir -p ~/.config/autostart
