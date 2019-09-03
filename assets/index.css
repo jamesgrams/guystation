@@ -145,7 +145,6 @@ h1 {
     position: absolute;
     top: 50%;
     transform: translateY(-50%)translateX(-50%);
-    padding: 20px;
     left: 50%;
     background-color: white;
     opacity: 0;
@@ -154,6 +153,17 @@ h1 {
     max-height: 80%;
     overflow: auto;
     max-width: 100vw;
+    box-sizing: border-box;
+}
+
+.modal > div, .dying-modal > div {
+    padding: 20px;
+}
+
+.modal > div::after, .dying-modal > div::after {
+    clear: both;
+    content: " ";
+    display: block;
 }
 
 .modal-shown, .dying-modal .modal-shown {
@@ -225,6 +235,7 @@ h1 {
     transition: opacity 0.5s;
     left: 50%;
     transform: translateX(-50%);
+    text-align: center;
 }
 
 .toast-shown {
@@ -260,30 +271,51 @@ h1 {
 
 #browser-controls-form {
     position: relative;
-    min-width: 500px;
+    min-width: 900px;
 }
 
 #browser-controls-form #stream {
     position: relative;
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 0 90px;
+    margin: 0 auto;
     display: block;
     clear: both;
 }
 
-#browser-controls-form #scroll-up, #browser-controls-form #scroll-down {
+#browser-controls-form #scroll-up, #browser-controls-form #scroll-down, 
+#browser-controls-form #go-back, #browser-controls-form #go-forward {
     width: 80px;
     position: absolute;
-    left: calc(50% + 250px);
+    height: 58px;
+    margin: 0;
+}
+
+#browser-controls-form #scroll-up, #browser-controls-form #scroll-down {
+    left: calc(50% + 360px);
 }
 
 #browser-controls-form #scroll-up {
-    bottom: 230px;
+    bottom: 366px;
 }
 
 #browser-controls-form #scroll-down {
-    bottom: 11px;
+    bottom: 37px;
+}
+
+#browser-controls-form #go-back, #browser-controls-form #go-forward {
+    transform: translateX(-100%);
+    left: calc(50% - 360px);
+}
+
+#browser-controls-form #go-back {
+    bottom: 366px;
+}
+
+#browser-controls-form #go-forward {
+    bottom: 295px;
+}
+
+#browser-controls-form #address-bar {
+    min-width: calc( 100% - 205px );
 }
 
 @keyframes fade {

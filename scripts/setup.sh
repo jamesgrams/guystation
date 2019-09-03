@@ -92,9 +92,10 @@ sudo apt-get -y install libaio-dev:i386 libbz2-dev:i386 libcggl:i386 libegl1-mes
 git clone https://github.com/jamesgrams/pcsx2.git
 cd pcsx2
 sudo ./build.sh
-# Reinstall 64 bit dependencies
+# Reinstall 64 bit dependencies except libportaudio2:i386 (ps2 needs it) which is removed by libjack-dev for 3ds (3ds no longer needs it)
 sudo apt-get -y remove libsdl2-dev:i386 libsoundtouch-dev:i386
 sudo apt-get -y install $DEP_64
+sudo apt-get -y install libportaudio2:i386
 
 # Return to the home directory
 cd ~

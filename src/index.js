@@ -64,7 +64,7 @@ const UP = "up";
 const DOWN = "down";
 const SCROLL_AMOUNT_MULTIPLIER = 0.8;
 const LINUX_CHROME_PATH = "/usr/bin/google-chrome";
-const STREAM_LIMIT_TIME = 300;
+const STREAM_LIMIT_TIME = 750;
 const HOMEPAGE = "https://game103.net";
 
 const ERROR_MESSAGES = {
@@ -331,6 +331,20 @@ app.post("/browser/scroll", async function(request, response) {
     writeActionResponse( response, errorMessage );
 });
 
+// Forward
+app.get("/browser/forward", async function(request, response) {
+    console.log("app serving /browser/forward");
+    let errorMessage = await goForward();
+    writeActionResponse( response, errorMessage );
+});
+
+// Back
+app.get("/browser/back", async function(request, response) {
+    console.log("app serving /browser/back");
+    let errorMessage = await goBack();
+    writeActionResponse( response, errorMessage );
+});
+
 // START PROGRAM (Launch Browser and Listen)
 server.listen(SOCKETS_PORT); // This is the screencast server
 staticApp.listen(STATIC_PORT); // Launch the static assets first, so the browser can access them
@@ -571,6 +585,40 @@ async function scroll(direction) {
 }
 
 /**
+ * Go forward.
+ * This function will be a no-op if the browser cannot go forward.
+ * @returns {Promise} - a promise containing the current page or an error message
+ */
+async function goForward() {
+    if( !browsePage || browsePage.isClosed() ) {
+        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
+    }
+
+    try {
+        await browsePage.goForward();
+    }
+    catch(err) {}
+    return Promise.resolve(false);
+}
+
+/**
+ * Go back.
+ * This function will be a no-op if the browser cannot go back.
+ * @returns {Promise} - a promise containing the current page or an error message
+ */
+async function goBack() {
+    if( !browsePage || browsePage.isClosed() ) {
+        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
+    }
+
+    try {
+        await browsePage.goBack();
+    }
+    catch(err) {}
+    return Promise.resolve(false);
+}
+
+/**
  * Launch a browse tab.
  * @returns {Promise} - a promise that is false if the action was successful or contains an error message if not
  */
@@ -599,9 +647,7 @@ async function closeBrowseTab() {
 
 // TODO more emulators
 // TODO find a way to use the error values returned from the asynchronous browser functions
-// back
 // kill -9 not working right after start
-// Mobile click stream not working
 
 /**
  * Generate data about available options to the user

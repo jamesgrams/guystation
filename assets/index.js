@@ -26,6 +26,7 @@ var sendInputTimeout;
 var currentAddress;
 var browserAddressHeartbeat;
 var navigating = false;
+var sendString = "";
 
 // Hold escape for 5 seconds to quit
 // Note this variable contains a function interval, not a boolean value
@@ -283,6 +284,12 @@ function enableControls() {
                 case 27:
                     closeModal();
                     break;
+                // Enter
+                case 13:
+                    if( document.querySelector(".modal #address-bar") && document.querySelector(".modal #address-bar") === document.activeElement && !navigating ) {
+                        document.querySelector(".modal #go-button").click();
+                    }
+                    break;
             }
         }
         // Prevent Ctrl + S
@@ -301,6 +308,29 @@ function enableControls() {
                 clearTimeout(escapeDown);
                 escapeDown = null;
                 break;
+        }
+    }
+    // keypress for forwarding input
+    // Forward input for the browser
+    document.onkeypress = function(event) {
+        if( document.querySelector( "#browser-controls-form" ) && (document.activeElement === document.body || document.activeElement === document.querySelector("#forward-input") ) ) {
+            var keyLetter = String.fromCharCode(event.which);
+            // the user has pressed a key
+            if( keyLetter ) {
+                sendString += keyLetter;
+
+                if( sendInputTimeout ) {
+                    clearTimeout(sendInputTimeout);
+                }
+                sendInputTimeout = setTimeout( function() {
+                    makeRequest( "POST", "/browser/input", { input: sendString } );
+                    sendString = "";
+                    document.querySelector("#forward-input").value = "";
+                }, SEND_INPUT_TIME);
+                document.querySelector("#forward-input").value = sendString;
+            }
+            
+            event.preventDefault();
         }
     }
 }
@@ -398,7 +428,7 @@ function draw( startSystem ) {
     var clickToMove = function() {
         var myOffset = this.parentElement.style.left;
         if( myOffset )
-            myOffset = parseInt(myOffset.match(/(-?\d+)px/)[1]);
+            myOffset = parseInt(myOffset.match(/(-?\s?\d+)px/)[1].replace(/\s/,""));
         else
             myOffset = 0;
         var mySpaces = myOffset/SPACING;
@@ -639,7 +669,7 @@ function moveMenu( spaces ) {
         // Get the current offset of the system
         var offset = systems[i].style.left;
         if( offset ) {
-            offset = parseInt(offset.match(/(-?\d+)px/)[1]);
+            offset = parseInt(offset.match(/(-?\s?\d+)px/)[1].replace(/\s/,""));
         }
         else {
             offset = 0;
@@ -746,7 +776,6 @@ function getSelectedValues() {
     var highlighted = false;
 
     var currentGameElement = document.querySelector(".system.selected .game.selected");
-    console.log(currentSystem);
     if( currentGameElement && currentSystem != "browser" ) {
         // We have a currently selected game we can use
         currentGame = currentGameElement.getAttribute("data-game");
@@ -780,30 +809,19 @@ function displayBrowserControls() {
     form.setAttribute("id", "browser-controls-form");
     form.appendChild( createFormTitle("Browser Control") );
 
-    var forwardInputLabel = createInput( "", "forward-input", "Forward Input: " );
-    var forwardInput = forwardInputLabel.children[1];
-    forwardInput.oninput = function() {
-        if( sendInputTimeout ) {
-            clearTimeout(sendInputTimeout);
-        }
-        sendInputTimeout = setTimeout( function() {
-            forwardInput.setAttribute("disabled", "disabled");
-            makeRequest( "POST", "/browser/input", { input: forwardInput.value }, function( ) {
-                forwardInput.value = "";
-                forwardInput.removeAttribute("disabled");
-                forwardInput.focus();
-            }, function( ) { forwardInput.removeAttribute("disabled"); forwardInput.focus(); } );
-        }, SEND_INPUT_TIME);
-    }
+    sendString = "";
+    var forwardInputLabel = createInput( "", "forward-input", "Mobile Forward Input: " );
     form.appendChild( forwardInputLabel );
 
     form.appendChild( createInput( "", "address-bar", "Address: " ) );
     var endNavigation = function() { navigating = false; };
-    form.appendChild( createButton( "Go", function() {
+    var goButton = createButton( "Go", function() {
         navigating = true;
         currentAddress = ""; // Clear out the current address so a new one can show up
         makeRequest("POST", "/browser/navigate", {url: document.querySelector("#address-bar").value}, endNavigation, endNavigation);
-    } ) );
+    } );
+    goButton.setAttribute("id", "go-button");
+    form.appendChild( goButton );
     form.appendChild( createButton( "Refresh", function() {
         navigating = true;
         currentAddress = ""; // Clear out the current address so a new one can show up
@@ -812,8 +830,8 @@ function displayBrowserControls() {
 
     var canvas = document.createElement("canvas");
     canvas.setAttribute("id", "stream");
-    canvas.setAttribute("width", 500);
-    canvas.setAttribute("height", 300);
+    canvas.setAttribute("width", 700);
+    canvas.setAttribute("height", 420);
     canvas.onclick = function(e) {
         var rect = canvas.getBoundingClientRect();
         var x = event.clientX - rect.left;
@@ -836,6 +854,24 @@ function displayBrowserControls() {
     downButton.setAttribute("id", "scroll-down");
     form.appendChild( upButton );
     form.appendChild( downButton );
+
+    var toggleBackForward = function() {
+
+    }
+    let backButton = createButton( "◀", function() {
+        navigating = true;
+        currentAddress = ""; // Clear out the current address so a new one can show up
+        makeRequest("GET", "/browser/back", {}, endNavigation, endNavigation );
+    } );
+    backButton.setAttribute("id", "go-back");
+    let forwardButton = createButton( "▶", function() {
+        navigating = true;
+        currentAddress = ""; // Clear out the current address so a new one can show up
+        makeRequest("GET", "/browser/forward", {}, endNavigation, endNavigation );
+    } );
+    forwardButton.setAttribute("id", "go-forward");
+    form.appendChild( backButton );
+    form.appendChild( forwardButton );
 
     launchModal( form, function() { makeRequest( "GET", "/browser/stop-streaming", {} ); clearInterval(browserAddressHeartbeat); } );
     
@@ -1719,7 +1755,7 @@ function manageGamepadInput() {
         var inputs = document.querySelectorAll("#joypad-config-form input");
         // Check if an input is focused
         for( var i=0; i<inputs.length; i++ ) {
-            if( inputs[i].hasFocus() ) {
+            if( inputs[i] === document.activeElement ) {
                 // If so, check if any buttons are pressed
                 for( var j=0; j<buttons.length; j++ ) {
                     // If so, set the input's value to be that of the pressed button
