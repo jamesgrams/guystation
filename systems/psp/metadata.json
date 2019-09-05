@@ -1,6 +1,6 @@
 {
   "command": "/home/james/ppsspp/build/PPSSPPQt",
-  "screenshotsDirFlag": "--screenshotsdir",
+  "screenshotsDirFlag": "--screenshotdir",
   "screenshotsDirArgType": "=",
   "extraFlags": ["--fullscreen"],
   "activateCommand": "wmctrl -a 'PPSSPP'",
