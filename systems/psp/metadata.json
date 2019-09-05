@@ -1,0 +1,8 @@
+{
+  "command": "/home/james/ppsspp/build/PPSSPPQt",
+  "screenshotsDirFlag": "--screenshotsdir",
+  "screenshotsDirArgType": "=",
+  "extraFlags": ["--fullscreen"],
+  "activateCommand": "wmctrl -a 'PPSSPP'",
+  "nandPathCommand": "echo \"$(eval echo '~')/.config/ppsspp/PSP/SAVEDATA\""
+}

@@ -6,6 +6,8 @@
 cd ~
 # Update the metadata for PS2 to include the user's home directory
 sed -i "s/james/$USER/g" ~/guystation/systems/ps2/metadata.json
+# Update the metadata for PSP to include the user's home directory
+sed -i "s/james/$USER/g" ~/guystation/systems/psp/metadata.json
 
 # Install nodejs
 sudo apt-get -y install curl
@@ -18,7 +20,7 @@ sudo npm install -g npm@latest --force
 sudo apt-get -y install git
 
 # Install dependencies needed
-DEP_64="build-essential autoconf cmake automake libgtk2.0-dev libglu1-mesa-dev libsdl1.2-dev libglade2-dev gettext zlib1g-dev libosmesa6-dev intltool libagg-dev libasound2-dev libsoundtouch-dev libpcap-dev default-jdk libboost-filesystem-dev libevdev-dev qt5-default qtbase5-private-dev libbluetooth-dev gcc gcc-multilib g++ g++-multilib python-pyqt5 pyqt5-dev-tools python-pyqt5.qtopengl libsdl2-dev python-setuptools libwxbase3.0-dev wx-common libgtk-3-dev libwxbase3.0-dev libwxgtk3.0-dev libwxgtk3.0-gtk3-dev wx-common python-sdl2 qtbase5-dev libqt5opengl5-dev qtmultimedia5-dev libjack-dev"
+DEP_64="build-essential autoconf cmake automake libgtk2.0-dev libglu1-mesa-dev libsdl1.2-dev libglade2-dev gettext zlib1g-dev libosmesa6-dev intltool libagg-dev libasound2-dev libsoundtouch-dev libpcap-dev default-jdk libboost-filesystem-dev libevdev-dev qt5-default qtbase5-private-dev libbluetooth-dev gcc gcc-multilib g++ g++-multilib python-pyqt5 pyqt5-dev-tools python-pyqt5.qtopengl libsdl2-dev python-setuptools libwxbase3.0-dev wx-common libgtk-3-dev libwxbase3.0-dev libwxgtk3.0-dev libwxgtk3.0-gtk3-dev wx-common python-sdl2 qtbase5-dev libqt5opengl5-dev qtmultimedia5-dev libjack-dev libvulkan-dev libgl1-mesa-dev qttools5-dev-tools qt5-qmake"
 sudo apt-get -y install $DEP_64
 
 # Install DeSmuME
@@ -80,6 +82,14 @@ mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release
 make
 sudo make install
+
+# Return to the home directory
+cd ~
+
+# Instal PPSSPP
+git clone --recursive https://github.com/jamesgrams/ppsspp.git
+cd ppsspp
+./b.sh --qt
 
 # Return to the home directory
 cd ~

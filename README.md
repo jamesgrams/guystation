@@ -23,6 +23,7 @@ Note: You can press F11 to get GuyStation out of full screen mode at any time.
 * Wii
 * PlayStation 1
 * PlayStation 2
+* PSP
 
 ## Extras
 * Internet Browser - you can remotely control a browser running on your GuyStation
@@ -46,7 +47,8 @@ Here are some recommendedations to make your experience better on Ubuntu.
     * You'll have to kill this script when you add a new controller, I've found.
 8. Disable `apport`, so you don't have to deal with crash menu popups.
 9. Several of the programs mentioned above are good to have run on startup. To do this, create a file in `~/.config/autocontrol/` - the setup script should already set one up for guystation itself.
-    * The `/helper/autocontrol` directory contains example scripts for antimicro (with hidden GUI), google-drice-ocamlfuse, and the controller_connect script. 
+    * The `/helper/autocontrol` directory contains example scripts for antimicro (with hidden GUI), google-drice-ocamlfuse, and the controller_connect script.
+10. There is a script called `backup_saves.sh` in the `helper` directory that you can edit to copy your savedata to another location on your computer. Personally, I run the script each night in cron and copy the data to my mounted Google Drive.
 
 ## Emulator Specific Setup
 For all emulators, you will have to setup your controller(s).
@@ -70,6 +72,9 @@ The version of PCSX2 changes the default screenshot key to S. In addition, you w
 
 ### Citra (3DS)
 The version of Citra changes the default screenshot key to Ctrl+S, the default toggle status bar key to Ctrl+P, and the default exit full screen key to F12. In addition, this version removes the prompt that asks you for a screenshot file name and simply uses the current timestamp as the name. When Citra first starts up, it will ask if you want to send data to the Citra team for debugging. Finally, there are some points within games where you might have to do something that usually would interact with shared 3DS data such as select a Mii. Citra handles this nicely and shows a dialog box. You'll likely have to use a mouse to navigate these, however. 
+
+### PPSSPP (PSP)
+Make sure set to set a key for taking screenshots if you want to.
 
 ## Backwards Compatibility
 Some emulators have Backwards compability. From what I understand, VisualBoyAdvance-M supports Game Boy Color and Game Boy Games (like the Game Boy Advance), and PCSX2 supports PS1 games (like the Playstation 2). Dolphin could be thought of as a Wii emulator with backwards compability for the GameCube (like the Wii), however they are two seperate menu options since the Wii requires some extra commands due to the structure it uses for save games. Citra does not support DS games.

@@ -645,10 +645,6 @@ async function closeBrowseTab() {
 
 /**************** Data Functions ****************/
 
-// TODO more emulators
-// TODO find a way to use the error values returned from the asynchronous browser functions
-// kill -9 not working right after start
-
 /**
  * Generate data about available options to the user
  * The result is cached
