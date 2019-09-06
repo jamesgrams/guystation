@@ -1646,7 +1646,7 @@ function makeRequest(type, url, parameters, callback, errorCallback, useFormData
             if( button ) {
                 var percent = event.loaded/event.total * 100;
                 button.style.opacity = 1;
-                button.style.background = "linear-gradient(90deg, black "+percent+"%, rgba(0,0,0,0.5) "+percent+"%)";
+                button.style.background = "linear-gradient(90deg, white "+percent+"%, rgba(255,255,255,0.5) "+percent+"%)";
             }
         };
         xhttp.send( sendParameters );

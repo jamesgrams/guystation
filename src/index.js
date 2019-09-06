@@ -86,7 +86,8 @@ const ERROR_MESSAGES = {
     "saveAlreadySelected": "Save already selected",
     "browsePageClosed": "The browser is closed",
     "browsePageInvalidCoordinates": "Invalid click coordinates",
-    "browseInvalidDirection": "Invalid scroll direction"
+    "browseInvalidDirection": "Invalid scroll direction",
+    "browsePageNotFound": "The specified page was not found"
 }
 
 // We will only allow for one request at a time for app
@@ -625,23 +626,123 @@ async function goBack() {
 async function launchBrowseTab() {
     browsePage = await browser.newPage();
     await browsePage.goto(HOMEPAGE);
-    browsePage.on("close", function() { if( currentSystem === BROWSER ) { blankCurrentGame(); } });
+    browsePage.on("close", async function() {
+        // If there are no more browse tabs, the browser has been quit
+        let pages = await browser.pages();
+        if( pages.length == 1 ) { // only the menu page is open
+            browsePage = null; // There is no browse page
+            if( currentSystem === BROWSER ) { 
+                blankCurrentGame(); 
+            } 
+        }
+        else {
+            let currentPage;
+            let currentPageIndex = 0;
+            // Get the currently visible (active) page
+            for(let page of pages) {
+                if( await page.evaluate(() => {return document.visibilityState == 'visible'} ) ) {
+                    currentPage = page;
+                    break;
+                }
+                currentPageIndex ++;
+            }
+            // If the current page is the menu page, we need to switch it
+            if( currentPage.mainFrame()._id === menuPage.mainFrame()._id ) {
+                // there is necessarily at least one other browse tab, since the open pages > 1
+                currentPageIndex++;
+                if( currentPageIndex >= pages.length ) {
+                    currentPageIndex = 0;
+                }
+                currentPage = pages[currentPageIndex];
+            }
+            browsePage = currentPage;
+        }
+    });
     return Promise.resolve(false);
 }
 
 /**
- * Close a browse tab.
- * @returns {Promise} - a promise that is false if the action was successful or contains an error message if not
+ * Get the currently open browse tabs.
+ * @returns {Promise} - a promise that contains an array of object with titles and ids or an error message if there is an error
  */
-async function closeBrowseTab() {
+async function getBrowseTabs() {
     if( !browsePage || browsePage.isClosed() ) {
         return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
     }
 
-    await browsePage.close();
-    browsePage = null;
+    let response = [];
+    let pages = await browser.pages();
+    for( let page of pages ) {
+        if( page.mainFrame()._id !== menuPage.mainFrame()._id ) {
+            let title = await page.title();
+            pages.push( { title: title, id: page.mainFrame().id } );
+        }
+    }
+
+    return Promise.resolve(response);
+}
+
+/**
+ * Close a browse tab.
+ * @param {string} id - the id of the tab to close
+ * @returns {Promise} - a promise that is false if the action was successful or contains an error message if not
+ */
+async function closeBrowseTab(id) {
+    if( !browsePage || browsePage.isClosed() ) {
+        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
+    }
+
+    let pages = await browser.pages();
+    for( let page of pages ) {
+        if( page.mainFrame()._id === id && page.mainFrame()._id !== menuPage.mainFrame()._id ) {
+            await page.close();
+            return Promise.resolve(false);
+        }
+    }
+
+    return Promise.resolve( ERROR_MESSAGES.browsePageNotFound );
+}
+
+/**
+ * Close all tabs for browsing.
+ * @returns {Promise} - a promise that is false if the action was successful or contains an error message if not
+ */
+async function closeBrowseTabs() {
+    if( !browsePage || browsePage.isClosed() ) {
+        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
+    }
+
+    // Close all the non-menu pages
+    let pages = await browser.pages();
+    for( let page of pages ) {
+        if( page.mainFrame()._id !== menuPage.mainFrame()._id ) {
+            await page.close();
+        }
+    }
+
     return Promise.resolve(false);
 }
+
+/**
+ * Switch the current browse tab.
+ * @param {String} id - the id of the tab to switch to
+ */
+async function switchBrowseTab(id) {
+    if( !browsePage || browsePage.isClosed() ) {
+        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
+    }
+
+    let pages = await browser.pages();
+    for( let page of pages ) {
+        if( page.mainFrame()._id === id && page.mainFrame()._id !== menuPage.mainFrame()._id ) {
+            await page.bringToFront();
+            return Promise.resolve(false);
+        }
+    }
+
+    return Promise.resolve( ERROR_MESSAGES.browsePageNotFound );
+}
+
 
 /**************** Data Functions ****************/
 
@@ -905,6 +1006,11 @@ function launchGame(system, game, restart=false) {
             return false;
         }
 
+        // If the symlink to the save directory is the same for all games, update the symlink
+        if( systemsDict[system].allGamesShareNand ) {
+            updateNandSymlinks( system, game );
+        }
+
         let arguments = [ 
             generateRomLocation( system, game, systemsDict[system].games[game].rom )
         ];
@@ -989,7 +1095,7 @@ function quitGame() {
             proc.execSync( KILL_COMMAND + currentEmulator.pid );
         }
         else if( browsePage && !browsePage.isClosed() ) {
-            closeBrowseTab();
+            closeBrowseTabs();
         }
         currentEmulator = null;
         currentGame = null;
@@ -1268,11 +1374,11 @@ function updateNandSymlinks( system, game, oldRomNandPath ) {
         }
 
         let isSymbolicLink = false;
-	try {
+        try {
             let lstat = fs.lstatSync(nandSavePath);
             isSymbolicLink = lstat.isSymbolicLink();
-	}
-	catch(err) {/*ok*/}
+        }
+        catch(err) {/*ok*/}
         // If there is an existing save for the new rom
         if( fs.existsSync(nandSavePath) || isSymbolicLink ) {
             // check if it is a symlink
@@ -1300,6 +1406,10 @@ function updateNandSymlinks( system, game, oldRomNandPath ) {
                 // the user will have to deal with that manually.
                 // The link would also be broken if we are readding a game we once broke if we didn't take care
                 // of that in deleteGame
+                // This will also occur when we have to update symlinks for systems like the PSP
+                // in which there is no per-game directory, so we have to update the savedata directory
+                // whenever we change games. The savedata directory will be a symlink from one game and then
+                // it will be replaced by another game.
                 fs.unlinkSync( nandSavePath );
             }
         }

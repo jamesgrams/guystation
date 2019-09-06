@@ -33,22 +33,22 @@
 }
 
 .dog {
-    fill: white;
+    fill: rgb(165, 81, 42);
     transition: fill 1s;
 }
 
 .dog-cover {
-    stroke: white;
+    stroke: rgb(165, 81, 42);
     transition: stroke 1s;
 }
 
-body.modal-open .dog {
-    fill: gray;
+/*body.modal-open .dog {
+    fill:  rgb(140, 56, 17);
 }
 
 body.modal-open .dog-cover {
-    stroke: gray;
-}
+    stroke:  rgb(140, 56, 17);
+}*/
 
 .dog-body {
     transform-origin: 50% 50%;

@@ -9,7 +9,8 @@ body {
     margin: 0;
     overflow: hidden;
     font-family: 'blinker', sans-serif;
-    background-color: white;
+    background-color: #191919;
+    color: white;
     transition: background-color 1s;
     font-size: 30px;
     position: relative;
@@ -19,7 +20,7 @@ body {
 }
 
 body.modal-open {
-    background-color: gray;
+    background-color: black;
 }
 
 h1 {
@@ -67,6 +68,9 @@ h1 {
 .system img {
     width: 175px;
     cursor: pointer;
+    filter: invert(1);
+    position: relative;
+    z-index: 100;
 }
 
 .system.selected .game:not(.above) {
@@ -123,7 +127,7 @@ h1 {
 
 #ip {
     position: absolute;
-    padding: 5px;
+    padding: 10px;
     top: 0;
     right: 0;
 }
@@ -134,7 +138,7 @@ h1 {
 
 #time {
     position: absolute;
-    padding: 5px;
+    padding: 10px;
     top: 0;
     left: 0;
     user-select: none;
@@ -146,7 +150,7 @@ h1 {
     top: 50%;
     transform: translateY(-50%)translateX(-50%);
     left: 50%;
-    background-color: white;
+    background-color: #191919;
     opacity: 0;
     transition: opacity 0.5s;
     border-radius: 25px;
@@ -189,8 +193,8 @@ h1 {
 .modal button, .dying-modal button, #functions button {
     float: right;
     margin-top: 2px;
-    background-color: black;
-    color: white;
+    background-color: white;
+    color: #191919;
     border-radius: 5px;
     padding: 8px;
     font-family: blinker;
@@ -198,7 +202,7 @@ h1 {
     margin-left: 10px;
     width: 220px;
     cursor: pointer;
-    transition: opactiy 0.5s;
+    transition: opacity 0.5s;
     border: none;
 }
 
@@ -228,8 +232,8 @@ h1 {
     z-index: 1000;
     top: 10%;
     padding: 20px;
-    background-color: black;
-    color: white;
+    background-color: white;
+    color: #191919;
     border-radius: 25px;
     opacity: 0;
     transition: opacity 0.5s;
@@ -348,7 +352,7 @@ h1 {
 
 @media only screen and (max-width: 500px) {
     #time, #ip {
-        font-size: 60%;
+        display: none
     }
     input {
         min-width: 280px;
@@ -356,5 +360,8 @@ h1 {
     }
     .modal label > span, .dying-modal label > span {
         display: block;
+    }
+    .system img {
+        width: 125px;
     }
 }
