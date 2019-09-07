@@ -303,7 +303,7 @@ app.get("/browser/url", async function(request, response) {
     console.log("app serving /browser/url");
     // Don't worry about locking for these
     let url = await getUrl();
-    if( !(url in ERROR_MESSAGES) ) {
+    if( !Object.values(ERROR_MESSAGES).includes(url) ) {
         writeResponse( response, SUCCESS, {url: url} );
     }
     else {
@@ -343,6 +343,39 @@ app.get("/browser/forward", async function(request, response) {
 app.get("/browser/back", async function(request, response) {
     console.log("app serving /browser/back");
     let errorMessage = await goBack();
+    writeActionResponse( response, errorMessage );
+});
+
+// Get browse tabs
+app.get("/browser/tabs", async function(request, response) {
+    console.log("app serving /browser/tabs");
+    let tabs = await getBrowseTabs();
+    if( !Object.values(ERROR_MESSAGES).includes(tabs) ) {
+        writeResponse( response, SUCCESS, {tabs: tabs} );
+    }
+    else {
+        writeResponse( response, FAILURE, {message: tabs});
+    }
+});
+
+// Change browse tabs
+app.put("/browser/tab", async function(request, response) {
+    console.log("app serving /browser/tab");
+    let errorMessage = await switchBrowseTab(request.body.id);
+    writeActionResponse( response, errorMessage );
+});
+
+// Close a browse tab
+app.delete("/browser/tab", async function(request, response) {
+    console.log("app serving /browser/tab");
+    let errorMessage = await closeBrowseTab(request.body.id);
+    writeActionResponse( response, errorMessage );
+});
+
+// Add a browse tab
+app.post("/browser/tab", async function(request, response) {
+    console.log("app serving /browser/tab");
+    let errorMessage = await launchBrowseTab();
     writeActionResponse( response, errorMessage );
 });
 
@@ -630,6 +663,7 @@ async function launchBrowseTab() {
         // If there are no more browse tabs, the browser has been quit
         let pages = await browser.pages();
         if( pages.length == 1 ) { // only the menu page is open
+            await stopStreaming();
             browsePage = null; // There is no browse page
             if( currentSystem === BROWSER ) { 
                 blankCurrentGame(); 
@@ -640,7 +674,7 @@ async function launchBrowseTab() {
             let currentPageIndex = 0;
             // Get the currently visible (active) page
             for(let page of pages) {
-                if( await page.evaluate(() => {return document.visibilityState == 'visible'} ) ) {
+                if( await isActivePage(page) ) {
                     currentPage = page;
                     break;
                 }
@@ -655,10 +689,18 @@ async function launchBrowseTab() {
                 }
                 currentPage = pages[currentPageIndex];
             }
-            browsePage = currentPage;
+            await switchBrowseTab( currentPage.mainFrame()._id );
         }
     });
     return Promise.resolve(false);
+}
+
+/**
+ * Check if a page is active.
+ * @param {Page} page - the puppeteer page to check is active
+ */
+async function isActivePage(page) {
+    return Promise.resolve(await page.evaluate(() => {return document.visibilityState == 'visible'} ));
 }
 
 /**
@@ -674,8 +716,15 @@ async function getBrowseTabs() {
     let pages = await browser.pages();
     for( let page of pages ) {
         if( page.mainFrame()._id !== menuPage.mainFrame()._id ) {
-            let title = await page.title();
-            pages.push( { title: title, id: page.mainFrame().id } );
+            try {
+                let title = await page.title();
+                let data = { title: title, id: page.mainFrame()._id };
+                if( await isActivePage(page) ) {
+                    data.active = true;
+                }
+                response.push( data );
+            }
+            catch(err) {}
         }
     }
 
@@ -695,7 +744,10 @@ async function closeBrowseTab(id) {
     let pages = await browser.pages();
     for( let page of pages ) {
         if( page.mainFrame()._id === id && page.mainFrame()._id !== menuPage.mainFrame()._id ) {
-            await page.close();
+            try {
+                await page.close();
+            }
+            catch(err) {}
             return Promise.resolve(false);
         }
     }
@@ -728,17 +780,21 @@ async function closeBrowseTabs() {
  * @param {String} id - the id of the tab to switch to
  */
 async function switchBrowseTab(id) {
-    if( !browsePage || browsePage.isClosed() ) {
+    if( menuPage.isClosed() ) {
         return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
     }
 
+    await stopStreaming();
     let pages = await browser.pages();
     for( let page of pages ) {
         if( page.mainFrame()._id === id && page.mainFrame()._id !== menuPage.mainFrame()._id ) {
             await page.bringToFront();
+            browsePage = page;
+            await startStreaming();
             return Promise.resolve(false);
         }
     }
+    await startStreaming();
 
     return Promise.resolve( ERROR_MESSAGES.browsePageNotFound );
 }

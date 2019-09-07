@@ -10,6 +10,7 @@ var FOCUS_NEXT_INTERVAL = 500;
 var BLOCK_MENU_MOVE_INTERVAL = 250;
 var SEND_INPUT_TIME = 1000;
 var BROWSER_ADDRESS_HEARTBEAT_TIME = 500;
+var TABS_HEARTBEAT_TIME = 500;
 
 var expandCountLeft; // We always need to have a complete list of systems, repeated however many times we want, so the loop works properly
 var expandCountRight;
@@ -25,8 +26,10 @@ var closeModalCallback;
 var sendInputTimeout;
 var currentAddress;
 var browserAddressHeartbeat;
+var tabsHeartbeat;
 var navigating = false;
 var sendString = "";
+var activePageId = null;
 
 // Hold escape for 5 seconds to quit
 // Note this variable contains a function interval, not a boolean value
@@ -828,6 +831,10 @@ function displayBrowserControls() {
         makeRequest("GET", "/browser/refresh", {}, endNavigation, endNavigation);
     } ) );
 
+    var tabsDiv = document.createElement("div");
+    tabsDiv.setAttribute("id", "browser-tabs");
+    form.appendChild( tabsDiv );
+
     var canvas = document.createElement("canvas");
     canvas.setAttribute("id", "stream");
     canvas.setAttribute("width", 700);
@@ -855,9 +862,6 @@ function displayBrowserControls() {
     form.appendChild( upButton );
     form.appendChild( downButton );
 
-    var toggleBackForward = function() {
-
-    }
     let backButton = createButton( "◀", function() {
         navigating = true;
         currentAddress = ""; // Clear out the current address so a new one can show up
@@ -873,7 +877,7 @@ function displayBrowserControls() {
     form.appendChild( backButton );
     form.appendChild( forwardButton );
 
-    launchModal( form, function() { makeRequest( "GET", "/browser/stop-streaming", {} ); clearInterval(browserAddressHeartbeat); } );
+    launchModal( form, function() { makeRequest( "GET", "/browser/stop-streaming", {} ); clearInterval(browserAddressHeartbeat); clearInterval(tabsHeartbeat); } );
     
     if( browserAddressHeartbeat ) {
         clearInterval(browserAddressHeartbeat);
@@ -886,6 +890,9 @@ function displayBrowserControls() {
                     if( addressInput ) {
 
                         var address = JSON.parse(data).url;
+                        if( !address ) {
+                            address = "";
+                        }
                         if( address != currentAddress && !navigating ) {
 
                             currentAddress = address;
@@ -899,6 +906,76 @@ function displayBrowserControls() {
             } );
         }
     }, BROWSER_ADDRESS_HEARTBEAT_TIME );
+    if( tabsHeartbeat ) {
+        clearInterval( tabsHeartbeat );
+    }
+    tabsHeartbeat = setInterval( function() {
+        if( tabsDiv ) {
+            makeRequest( "GET", "/browser/tabs", {}, function(data) {
+                try {
+                    if( tabsDiv ) {
+                        var newTabsDiv = document.createElement("div");
+                        newTabsDiv.setAttribute("id", "browser-tabs");
+                        var tabs = JSON.parse(data).tabs;
+                        var newActivePageId;
+                        for( var i=0; i<tabs.length; i++ ) {
+                            var tabDiv = document.createElement("div");
+                            tabDiv.classList.add("browser-tab");
+                            tabDiv.innerText = tabs[i].title;
+
+                            // Add the X out
+                            var tabQuit = document.createElement("div");
+                            tabQuit.classList.add("browser-tab-quit");
+                            tabQuit.innerText = "X";
+                            tabQuit.onclick = function(e) {
+                                makeRequest( "DELETE", "/browser/tab", {"id": this.parentElement.getAttribute("data-id")});
+                                // No tabs left, the browser is "quit"
+                                // The backend will recongnize this and update, but we can do it manually here
+                                // and then close the modal
+                                // the tabs/active tab will update in the heartbeat
+                                if( document.querySelectorAll( ".browser-tab").length <= 1 ) {
+                                    quitGame();
+                                    activePageId = null;
+                                    closeModal();
+                                }
+                                e.stopPropagation();
+                            }
+                            tabDiv.appendChild(tabQuit);
+
+                            tabDiv.setAttribute("data-id", tabs[i].id);
+                            tabDiv.onclick = function() {
+                                makeRequest( "PUT", "/browser/tab", {"id": this.getAttribute("data-id")});
+                            };
+                            if( tabs[i].active ) {
+                                tabDiv.classList.add("active");
+                                newActivePageId = tabs[i].id;
+                            }
+                            newTabsDiv.appendChild(tabDiv);
+                        }
+
+                        var addDiv = document.createElement("div");
+                        addDiv.setAttribute("id", "add-tab");
+                        addDiv.innerText = "+";
+                        addDiv.onclick = function() {
+                            makeRequest( "POST", "/browser/tab", {} );
+                        }
+                        newTabsDiv.appendChild(addDiv);
+
+                        var curTabsDiv = document.querySelector("#browser-tabs");
+                        if( newTabsDiv.innerHTML != curTabsDiv.innerHTML ) {
+                            curTabsDiv.replaceWith(newTabsDiv);
+                            // Make sure the right tab is active if there is an update
+                            if( activePageId != newActivePageId ) {
+                                makeRequest( "PUT", "/browser/tab", {"id": newActivePageId});
+                                activePageId = newActivePageId;
+                            }
+                        }
+                    }
+                }
+                catch(err) {}
+            });
+        }
+    }, TABS_HEARTBEAT_TIME);
     // Start streaming now for memory conservation
     makeRequest( "GET", "/browser/start-streaming", {} );
 }

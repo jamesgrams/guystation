@@ -322,6 +322,52 @@ h1 {
     min-width: calc( 100% - 205px );
 }
 
+#browser-controls-form #browser-tabs {
+    clear: both;
+    margin: 5px;
+    padding-top: 15px;
+    margin-bottom: 0;
+}
+
+#browser-controls-form .browser-tab.active {
+    opacity: 1;
+}
+
+#browser-controls-form .browser-tab, #browser-controls-form #add-tab {
+    display: inline-block;
+    width: 150px;
+    font-size: 60%;
+    color: #191919;
+    background-color: white;
+    opacity: 0.5;
+    padding: 8px;
+    border-radius: 5px;
+    margin: 5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+    height: 21px;
+    padding-right: 20px;
+    position: relative;
+    transition: opacity 0.5s;
+}
+
+#browser-controls-form #add-tab {
+    width: 21px;
+    padding-right: 8px;
+    text-align: center;
+    opacity: 1;
+}
+
+#browser-controls-form .browser-tab-quit {
+    float: right;
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
 @keyframes fade {
     0% {transform: translateY(100%); opacity: 1;}
     75% {transform: translateY(0%); opacity: 0.7;}
