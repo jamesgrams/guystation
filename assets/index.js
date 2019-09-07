@@ -711,7 +711,7 @@ function moveSubMenu( spaces ) {
     // Get the currently selected system
     var currentSystem = document.querySelector(".system.selected").getAttribute("data-system");
     // Get all menu items matching that system
-    var subMenus = document.querySelectorAll(".system[data-system="+currentSystem+"] .games");
+    var subMenus = document.querySelectorAll(".system[data-system='"+currentSystem+"'] .games");
     // Get the height of elements
     var height = document.querySelector(".game").offsetHeight;
 
