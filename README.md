@@ -62,9 +62,14 @@ You may need to change the Video Plugin for Mupen64Plus. It defaults to `mupen64
     * I also had to edit the controller configuration. Mupen64Plus is good at autodetecting controllers, but I had to change the Analog Peak, since the analog stick was too sensitive. If you do this, be sure to set the "mode" for the controller to 0, so your settings do not get overwritten.
     * This version of Mupen64Plus changes the quit key to F15 rather than Escape (since Escape takes you home) and sets the screenshot key to "S" by default (In DesMuME, the screenshot key is Ctrl+S, so mapping a button to Ctrl+S will allow you to take screenshots in both).
     * Guystation will install M64Py, a frontend for Mupen64Plus, but will not use it due to it having problems with Fullscreen. You can still use it to esily configure settings, however. It can be opened by running m64py in the command line.
+    * The best resolution that I have found is 720x526 with aspect set to 2 (stretch). This runs in fullscreen, full-speed, with proper sound. The aspect ratio is an important factor. If it is too high (for me, 1920x1080), games can be very slow, and some games stuggled with sound through HDMI with an aspect ratio of 640x480 in my experience.
 
 ### Dolphin (Gamecube/Wii)
-The version of Dolphin used changes the default screenshot key to Ctrl+S, and the quit key to Delete+F12.
+The version of Dolphin used changes the default screenshot key to Ctrl+S, and the quit key to Delete+F12. I have found the easiest way to connect Wiimotes is to do the following:
+* Change the Dolphin controller settings to use a real Wiimote
+* DO NOT connect/pair the wiimote to your system using Bluetooth Manager (this is mainly to avoid the script that tries to connect to paired devices, so it probably doesn't matter if you aren't using that script)
+* Every time you start a Wii game, press the red sync button on your Wiimote to connect.
+ * I have found that sometimes it takes several tries to work (It may be a conflict with the `controller_connect.sh` script). Dolphin will disconnect the Bluetooth controller you are using for GuyStation (paired with Bluetooth Manager) when you start it, but you can connect it again easily by pressing a button (provided `controller_connect.sh` is running). I use this controller to go back to GuyStation home if necessary as the Wiimote is completely taken over by Dolphin. The reason I find this is best is because the buttons on the Wiimote don't have much support compared to typical gamepads on Ubuntu (For example, the D-Pad doesn't work). I have also found the Wiimote often successfully connects to Dolphin (with a press of the sync button) right after connecting the seperate controller (the one paired with Bluetooth Manager that connects through `controller_connect.sh` - also just needs a button press).
 
 ### PXSX2 (PS2)
 The version of PCSX2 changes the default screenshot key to S. In addition, you will have to run PCSX2 once to get it set up first (you can do that by running `/home/*/pcsx2/bin/PCSX2` in the command line). The main configuration you will have to make is providing PS2 BIOS. You can look more into how this can be acheived online.
@@ -74,7 +79,7 @@ The version of PCSX2 changes the default screenshot key to S. In addition, you w
 The version of Citra changes the default screenshot key to Ctrl+S, the default toggle status bar key to Ctrl+P, and the default exit full screen key to F12. In addition, this version removes the prompt that asks you for a screenshot file name and simply uses the current timestamp as the name. When Citra first starts up, it will ask if you want to send data to the Citra team for debugging. Finally, there are some points within games where you might have to do something that usually would interact with shared 3DS data such as select a Mii. Citra handles this nicely and shows a dialog box. You'll likely have to use a mouse to navigate these, however. 
 
 ### PPSSPP (PSP)
-Make sure set to set a key for taking screenshots if you want to.
+Make sure set to set a key for taking screenshots if you want to. By default, PPSSPP uses Escape to pause the game meaning returning to the menu will pause the game. Feel free to change this if you do not want this to occur.
 
 ## Backwards Compatibility
 Some emulators have Backwards compability. From what I understand, VisualBoyAdvance-M supports Game Boy Color and Game Boy Games (like the Game Boy Advance), and PCSX2 supports PS1 games (like the Playstation 2). Dolphin could be thought of as a Wii emulator with backwards compability for the GameCube (like the Wii), however they are two seperate menu options since the Wii requires some extra commands due to the structure it uses for save games. Citra does not support DS games.
@@ -110,9 +115,11 @@ GuyStation launches a Node.js server along with a Chromium browser (via Puppetee
 * 3DS icon: [Sweet Design, Man](https://www.iconfinder.com/sweetdesignman)
 * WiiMote icon: [Jon Koop](https://www.iconfinder.com/Koop_Designs)
 * Internet icon: [flaticon.com](https://www.flaticon.com/)
+* PSP icon: [Guilherme Simoes](https://icons-for-free.com/icons-author-Guilherme+Simoes/)
 * Game Boy Advance emulator: [VisualBoyAdvance-m](https://vba-m.com/)
 * DS emulator: [DeSmuMe](http://desmume.org/)
 * Nintendo 64 emulator: [Mupen64Plus](https://mupen64plus.org/)
 * Gamecube/Wii emulator: [Dolphin](https://dolphin-emu.org/)
 * PS2 emulator: [PCSX2](https://pcsx2.net/)
 * 3DS emulator: [Citra](https://citra-emu.org/)
+* PSP emulator: [PPSSPP](https://www.ppsspp.org/)
