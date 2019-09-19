@@ -24,6 +24,7 @@ Note: You can press F11 to get GuyStation out of full screen mode at any time.
 * PlayStation 1
 * PlayStation 2
 * PSP
+* SNES
 
 ## Extras
 * Internet Browser - you can remotely control a browser running on your GuyStation
@@ -116,6 +117,7 @@ GuyStation launches a Node.js server along with a Chromium browser (via Puppetee
 * WiiMote icon: [Jon Koop](https://www.iconfinder.com/Koop_Designs)
 * Internet icon: [flaticon.com](https://www.flaticon.com/)
 * PSP icon: [Guilherme Simoes](https://icons-for-free.com/icons-author-Guilherme+Simoes/)
+* SNES icon: [Icon-Library.net](https://icon-library.net/icon/nintendo-controller-icon-14.html)
 * Game Boy Advance emulator: [VisualBoyAdvance-m](https://vba-m.com/)
 * DS emulator: [DeSmuMe](http://desmume.org/)
 * Nintendo 64 emulator: [Mupen64Plus](https://mupen64plus.org/)
@@ -123,3 +125,4 @@ GuyStation launches a Node.js server along with a Chromium browser (via Puppetee
 * PS2 emulator: [PCSX2](https://pcsx2.net/)
 * 3DS emulator: [Citra](https://citra-emu.org/)
 * PSP emulator: [PPSSPP](https://www.ppsspp.org/)
+* SNES emulator: [Snes9X](http://www.snes9x.com/)

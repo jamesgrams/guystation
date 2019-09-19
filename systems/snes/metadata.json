@@ -1,0 +1,10 @@
+{
+  "command": "snes9x-gtk",
+  "saveDirFlag": "-sramdir",
+  "screenshotsDirFlag": "-sshotdir",
+  "saveDirArgType": " ",
+  "screenshotsDirArgType": " ",
+  "extraFlags": ["-fullscreen"],
+  "activateCommand": "wmctrl -a 'Snes9X'",
+  "argsFirst": true
+}
