@@ -29,6 +29,11 @@ Note: You can press F11 to get GuyStation out of full screen mode at any time.
 ## Extras
 * Internet Browser - you can remotely control a browser running on your GuyStation
     * Note: It is recommended to only control the browser with one remote device at a time and to close the Browser controls when not using them (this will turn off streaming and help with speeds).
+    * You can control remotely through the "Browser Control" menu option.
+* Media - you can play media files uing VLC or stream them to any device using the GuyStation web interface.
+    * Note: if you accidently move a game under media, your save files are save! Just move the game to the correct console, and your save files will be there.
+    * You add a media file just like a game. Upload the audio/video file as the ROM file.
+    * You can access media remotely by using the "Remote Media" menu option.
 
 ## Recommendations
 Here are some recommendedations to make your experience better on Ubuntu.
@@ -81,6 +86,9 @@ The version of Citra changes the default screenshot key to Ctrl+S, the default t
 
 ### PPSSPP (PSP)
 Make sure set to set a key for taking screenshots if you want to. By default, PPSSPP uses Escape to pause the game meaning returning to the menu will pause the game. Feel free to change this if you do not want this to occur.
+
+### Snes9X (SNES)
+No keys are mapped by default, so it is recommended that you map "Take Screenshot" to "S" when you are setting up your controller. This version also removes functionality for the Escape key. Finally, it is recommended that you use the "PulseAudio" sound driver (I had some trouble with the default PortAudio driver on my machine).
 
 ## Backwards Compatibility
 Some emulators have Backwards compability. From what I understand, VisualBoyAdvance-M supports Game Boy Color and Game Boy Games (like the Game Boy Advance), and PCSX2 supports PS1 games (like the Playstation 2). Dolphin could be thought of as a Wii emulator with backwards compability for the GameCube (like the Wii), however they are two seperate menu options since the Wii requires some extra commands due to the structure it uses for save games. Citra does not support DS games.

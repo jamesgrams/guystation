@@ -5,6 +5,17 @@ var dogMoveRate = 20;
 var playTimeout;
 var MENU_OPEN_TIME = 500;
 
+/*window.onresize = function() {
+    var functions = document.querySelector("#functions");
+    if( functions && functions.classList.contains("open") ) {
+        var playerWrapper = document.querySelector(".player-wrapper");
+        // 2% is originally visible
+        // So the player position will be the original player position, plus 98% of the functions width
+        playerWrapper.style.right = functions.offsetWidth * 0.98 + parseInt(playerWrapper.getAttribute("data-original-right").replace("px",""));        
+        clearTimeout(playTimeout);
+    }
+}*/
+
 /**
  * Add the dog to the screen.
  */
@@ -17,7 +28,7 @@ function addDog() {
     document.body.appendChild(wrapper);
     drawDog(0, 0, container);
 
-    // When the dog is clieck
+    // When the dog is click
     wrapper.onclick = function() {
         if( !disableMenuControls ) {
             var functions = document.querySelector("#functions");

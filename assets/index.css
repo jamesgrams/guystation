@@ -209,6 +209,38 @@ h1 {
 #functions button {
     display: inline-block;
     float: none;
+    vertical-align: bottom;
+}
+
+#game-functions, #save-functions {
+    background-color: white;
+    text-align: center;
+    color: #191919;
+    margin-top: 2px;
+    background-color: white;
+    color: #191919;
+    border-radius: 5px;
+    padding: 8px;
+    font-family: blinker;
+    font-size: 100%;
+    margin-left: 10px;
+    display: inline-block;
+    vertical-align: bottom;
+}
+
+.function-title {
+    padding: 8px;
+}
+
+.function-row {
+    display: inline-block;
+}
+
+#game-functions button, #save-functions button {
+    display: inline-block;
+    width: 52px;
+    margin-left: 0;
+    margin-top: 0;
 }
 
 .modal button.inactive, .dying-modal button.inactive, #functions button.inactive {
@@ -368,6 +400,10 @@ h1 {
     transform: translateY(-50%);
 }
 
+#remote-media-form video {
+    width: 250px;
+}
+
 @keyframes fade {
     0% {transform: translateY(100%); opacity: 1;}
     75% {transform: translateY(0%); opacity: 0.7;}
@@ -389,10 +425,14 @@ h1 {
     }
 }
 
-@media only screen and (max-width: 2400px) {
+@media only screen and (max-width: 1350px) {
     #functions {
         width: 240px;
         transform: translateX(90%);
+    }
+    #game-functions, #save-functions {
+        padding: 8px 0;
+        width: 220px;
     }
 }
 

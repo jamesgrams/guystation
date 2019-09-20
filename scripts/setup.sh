@@ -100,7 +100,7 @@ cd snes9x/gtk
 meson builddir
 cd builddir
 ninja
-cp snes9x-gtk /usr/bin/
+ninja install
 
 # Return to the home directory
 cd ~
@@ -117,6 +117,14 @@ sudo ./build.sh
 sudo apt-get -y remove libsdl2-dev:i386 libsoundtouch-dev:i386
 sudo apt-get -y install $DEP_64
 sudo apt-get -y install libportaudio2:i386
+
+# Return to the home directory
+cd ~
+
+# Install VLC
+sudo apt-get -y install vlc
+# Allow run as root
+sed -i 's/geteuid/getppid/' /usr/bin/vlc
 
 # Return to the home directory
 cd ~

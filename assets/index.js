@@ -30,6 +30,8 @@ var tabsHeartbeat;
 var navigating = false;
 var sendString = "";
 var activePageId = null;
+var nonGameSystems = ["browser"];
+var nonSaveSystems = ["browser", "media"];
 
 // Hold escape for 5 seconds to quit
 // Note this variable contains a function interval, not a boolean value
@@ -66,7 +68,7 @@ function bubbleScreenshots() {
     var currentGameElement = currentSystemElement.querySelector(".system.selected .game.selected");
     if( currentGameElement ) {
         var currentSystem = currentSystemElement.getAttribute("data-system");
-        if( currentSystem == "browser" ) return;
+        if( nonSaveSystems.includes(currentSystem) ) return;
         var currentGame = currentGameElement.getAttribute("data-game");
         var currentSave = currentGameElement.querySelector(".current-save").innerText;
         if( systemsDict[currentSystem] 
@@ -400,7 +402,7 @@ function draw( startSystem ) {
             }
 
             // Create an element for the current save
-            if( system.system != "browser" ) {
+            if( !nonSaveSystems.includes(system.system) ) {
                 var currentSaveDiv = document.createElement("div");
                 currentSaveDiv.classList.add("current-save");
                 currentSaveDiv.innerText = game.currentSave;
@@ -531,6 +533,17 @@ function toggleButtons() {
     else {
         browserControlsButton.onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#browser-controls-form") ) displayBrowserControls(); };
         browserControlsButton.classList.remove("inactive");
+    }
+
+    // Only allow media if we are "on" a playable file
+    var remoteMediaButton = document.getElementById("remote-media");
+    if( selectedSystem.getAttribute("data-system") == "media" && selectedGame ) {
+        remoteMediaButton.onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#remote-media-form") ) displayRemoteMedia(); };
+        remoteMediaButton.classList.remove("inactive");
+    }
+    else {
+        remoteMediaButton.onclick = null;
+        remoteMediaButton.classList.add("inactive");
     }
 
     // Only allow save configuration menus and update/delete game menus if there is at least one game
@@ -770,8 +783,9 @@ function moveSubMenu( spaces ) {
 
 /**
  * Get the selected values to display in menus.
+ * @param {boolean} needSave - true if we should only consider systems that allow for saves - the current save will not be returned without it.
  */
-function getSelectedValues() {
+function getSelectedValues(needSave) {
     var currentSystemElement = document.querySelector(".system.selected");
     var currentSystem = currentSystemElement.getAttribute("data-system");
     var currentGame = "";
@@ -779,19 +793,25 @@ function getSelectedValues() {
     var highlighted = false;
 
     var currentGameElement = document.querySelector(".system.selected .game.selected");
-    if( currentGameElement && currentSystem != "browser" ) {
+    var excludeArray = needSave ? nonSaveSystems : nonGameSystems;
+    if( currentGameElement && !excludeArray.includes(currentSystem) ) {
         // We have a currently selected game we can use
         currentGame = currentGameElement.getAttribute("data-game");
-        currentSave = currentGameElement.querySelector(".current-save").innerText;
+        if( needSave ) {
+            currentSave = currentGameElement.querySelector(".current-save").innerText;
+        }
         highlighted = true; // The system is selected to the user
     }
     else {
         // We'll have to use a different system
-        var anySelectedGameElement = document.querySelector(".system:not([data-system='browser']) .game.selected");
+        var nots = excludeArray.map( el => { return ":not([data-system='" + el + "'])"} ).join("");
+        var anySelectedGameElement = document.querySelector(".system" + nots + " .game.selected");
         if( anySelectedGameElement ) {
             currentSystem = anySelectedGameElement.closest(".system").getAttribute("data-system");
             currentGame = anySelectedGameElement.getAttribute("data-game");
-            currentSave = anySelectedGameElement.querySelector(".current-save").innerText;
+            if( needSave ) {
+                currentSave = anySelectedGameElement.querySelector(".current-save").innerText;
+            }
         }
         else {
             // If there is no selected game, the only thing this can be if the menu is shown
@@ -800,6 +820,25 @@ function getSelectedValues() {
     }
 
     return { system: currentSystem, game: currentGame, save: currentSave, highlighted: highlighted };
+}
+
+/**
+ * Display remote media controls.
+ */
+function displayRemoteMedia() {
+    var form = document.createElement("div");
+    form.setAttribute("id", "remote-media-form");
+    var selected = getSelectedValues();
+    var path = ["systems", encodeURIComponent(selected.system), "games", encodeURIComponent(selected.game), encodeURIComponent(systemsDict[selected.system].games[selected.game].rom)].join("/");
+    
+    var videoElement = document.createElement("video");
+    videoElement.setAttribute("controls", "true");
+    var sourceElement = document.createElement("source");
+    sourceElement.setAttribute("src", path);
+    videoElement.appendChild(sourceElement);
+    form.appendChild(videoElement);
+    
+    launchModal( form );
 }
 
 /**
@@ -1011,10 +1050,10 @@ function displayJoypadConfig() {
  */
 function displayDeleteSave() {
     var form = document.createElement("div");
-    var selected = getSelectedValues();
+    var selected = getSelectedValues(true);
     form.setAttribute("id", "delete-save-form");
     form.appendChild( createFormTitle("Delete Save") );
-    form.appendChild( createSystemMenu( selected.system, false, true, true ) );
+    form.appendChild( createSystemMenu( selected.system, false, true, true, true ) );
     form.appendChild( createGameMenu(selected.game, selected.system, false, true) );
     form.appendChild( createSaveMenu(selected.save, selected.system, selected.game, true) );
     form.appendChild( createButton( "Delete Save", function() {
@@ -1036,10 +1075,10 @@ function displayDeleteSave() {
  */
 function displaySelectSave() {
     var form = document.createElement("div");
-    var selected = getSelectedValues();
+    var selected = getSelectedValues(true);
     form.setAttribute("id", "change-save-form");
     form.appendChild( createFormTitle("Change Save") );
-    form.appendChild( createSystemMenu( selected.system, false, true, true ) );
+    form.appendChild( createSystemMenu( selected.system, false, true, true, true ) );
     form.appendChild( createGameMenu(selected.game, selected.system, false, true) );
     form.appendChild( createSaveMenu(selected.save, selected.system, selected.game, true) );
     form.appendChild( createButton( "Change Save", function() {
@@ -1060,7 +1099,7 @@ function displaySelectSave() {
  */
 function cycleSave(offset) {
     if( !makingRequest ) { 
-        var selected = getSelectedValues();
+        var selected = getSelectedValues(true);
         if( selected.system && selected.game && selected.save && selected.highlighted ) {
             var saves = Object.keys(systemsDict[selected.system].games[selected.game].saves);
             var currentSaveIndex = saves.indexOf( selected.save );
@@ -1076,10 +1115,10 @@ function cycleSave(offset) {
  */
 function displayAddSave() {
     var form = document.createElement("div");
-    var selected = getSelectedValues();
+    var selected = getSelectedValues(true);
     form.setAttribute("id", "add-save-form");
     form.appendChild( createFormTitle("Add Save") );
-    form.appendChild( createSystemMenu( selected.system, false, true, true ) );
+    form.appendChild( createSystemMenu( selected.system, false, true, true, true ) );
     form.appendChild( createGameMenu(selected.game, selected.system, false, true) );
     var saveInput = createSaveInput(null, true);
     form.appendChild( saveInput );
@@ -1196,10 +1235,14 @@ function displayAddGame() {
  * @param {boolean} old - true if the old system for chanding (changes the id)
  * @param {boolean} required - if the field is required
  * @param {boolean} onlyWithGames - true if we should only show systems with games in the menu
+ * @param {boolean} onlySystemsSupportingSaves - true if we should only allow systems supporting saves
  * @returns {Element} - a select element containing the necessary keys
  */
-function createSystemMenu( selected, old, required, onlyWithGames ) {
-    var systemsKeys = Object.keys(systemsDict).filter( (element) => element != "browser" );
+function createSystemMenu( selected, old, required, onlyWithGames, onlySystemsSupportingSaves ) {
+    var systemsKeys = Object.keys(systemsDict).filter( (element) => !nonGameSystems.includes(element) );
+    if( onlySystemsSupportingSaves ) {
+        systemsKeys = systemsKeys.filter( (element) => !nonSaveSystems.includes(element) );
+    }
     if( onlyWithGames ) {
         systemsKeys = systemsKeys.filter( (element) => Object.keys(systemsDict[element].games).length > 0 );
     }
