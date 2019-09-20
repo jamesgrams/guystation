@@ -285,7 +285,8 @@ h1 {
     right: 0;
     text-align: center;
     transform: translateX(98%);
-    transition: transform 0.5s;
+    width: 1210px;
+    transition: transform 0.5s, width 0.5s;
 }
 
 #functions.open {
@@ -451,3 +452,58 @@ h1 {
         width: 125px;
     }
 }
+
+
+.fa,
+.fas,
+.far,
+.fal,
+.fab {
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-font-smoothing: antialiased;
+  display: inline-block;
+  font-style: normal;
+  font-variant: normal;
+  text-rendering: auto;
+  line-height: 1; }
+
+/* Font Awesome uses the Unicode Private Use Area (PUA) to ensure screen
+readers do not read off random characters that represent icons */
+.fa-rocket:before {
+    content: "\f135"; }
+
+.fa-stop:before {
+    content: "\f04d"; }
+
+.fa-plus:before {
+    content: "\f067"; }
+
+.fa-sync:before {
+    content: "\f021"; }
+
+.fa-trash:before {
+    content: "\f1f8"; }  
+
+.sr-only-focusable:active, .sr-only-focusable:focus {
+  clip: auto;
+  height: auto;
+  margin: 0;
+  overflow: visible;
+  position: static;
+  width: auto; }
+
+.far {
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 400; }
+@font-face {
+  font-family: 'Font Awesome 5 Free';
+  font-style: normal;
+  font-weight: 900;
+  font-display: auto;
+  src: url("/assets/fa-solid-900.ttf") format("truetype");
+}
+
+.fa,
+.fas {
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900; }

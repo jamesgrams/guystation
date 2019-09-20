@@ -134,3 +134,4 @@ GuyStation launches a Node.js server along with a Chromium browser (via Puppetee
 * 3DS emulator: [Citra](https://citra-emu.org/)
 * PSP emulator: [PPSSPP](https://www.ppsspp.org/)
 * SNES emulator: [Snes9X](http://www.snes9x.com/)
+* Menu Icons: [Font Awesome](https://fontawesome.com/)

@@ -3,18 +3,49 @@
 var frame = 1;
 var dogMoveRate = 20;
 var playTimeout;
+// These need to match the css
 var MENU_OPEN_TIME = 500;
 
-/*window.onresize = function() {
+// On resize take care of the dog position
+window.onresize = function() {
     var functions = document.querySelector("#functions");
     if( functions && functions.classList.contains("open") ) {
         var playerWrapper = document.querySelector(".player-wrapper");
-        // 2% is originally visible
-        // So the player position will be the original player position, plus 98% of the functions width
-        playerWrapper.style.right = functions.offsetWidth * 0.98 + parseInt(playerWrapper.getAttribute("data-original-right").replace("px",""));        
-        clearTimeout(playTimeout);
+        var newRight = Math.floor(getFunctionsAddedPixels() + parseInt(playerWrapper.getAttribute("data-original-right").replace("px","")));        
+        var playerRight = parseInt(playerWrapper.style.right.replace("px",""));
+        if( playerRight != newRight ) {
+            if( playerRight > newRight ) {
+                playerWrapper.querySelector(".player").classList.add("player-flipped");
+            }
+            playerWrapper.style.right = newRight;
+            clearTimeout(playTimeout);
+            playTimeout = setTimeout(play, dogMoveRate);
+            setTimeout( function() {
+                clearTimeout(playTimeout);
+                playTimeout = null;
+                var player = document.querySelector(".player");
+                player.innerHTML = "";
+                drawDog(0,0,player);
+                playerWrapper.querySelector(".player").classList.remove("player-flipped");
+            }, MENU_OPEN_TIME ); // Make sure this matches the css
+        }
     }
-}*/
+}
+
+/**
+ * Get the difference between the number of pixels between the left side of the functions menu
+ * and the right side of the screen when the functions menu is open and when it is closed.
+ */
+function getFunctionsAddedPixels() {
+    var functions = document.querySelector("#functions");
+    var dummyFunctions = functions.cloneNode(true);
+    dummyFunctions.classList.remove("open");
+    //dummyFunctions.style.visible = false;
+    document.body.appendChild(dummyFunctions);
+    var addedPixelsFromOpeningFunctions = new WebKitCSSMatrix(window.getComputedStyle(dummyFunctions).getPropertyValue("transform")).m41;
+    document.body.removeChild(dummyFunctions);
+    return addedPixelsFromOpeningFunctions;
+}
 
 /**
  * Add the dog to the screen.
@@ -39,7 +70,7 @@ function addDog() {
                 functions.classList.add("open");
                 // New right is current right plus the number of pixels that will be added by the functions menu coming out (should be 98% of the element width)
                 playerWrapper.setAttribute("data-original-right", window.getComputedStyle(playerWrapper).getPropertyValue("right"));
-                playerWrapper.style.right = parseInt(window.getComputedStyle(playerWrapper).getPropertyValue("right").replace("px","")) + (new WebKitCSSMatrix(window.getComputedStyle(functions).getPropertyValue("transform")).m41) + "px";
+                playerWrapper.style.right = parseInt(window.getComputedStyle(playerWrapper).getPropertyValue("right").replace("px","")) + Math.floor(new WebKitCSSMatrix(window.getComputedStyle(functions).getPropertyValue("transform")).m41) + "px";
                 playTimeout = setTimeout(play, dogMoveRate);
                 setTimeout( function() {
                     clearTimeout(playTimeout);
