@@ -1687,7 +1687,7 @@ function updateGame( oldSystem, oldGame, oldParents, system, game, file, parents
     // Make sure the new game doesn't already exist
     if( system && !systemsDict[system] ) return ERROR_MESSAGES.noSystem;
     if( game && getGameDictEntry(system ? system : oldSystem, game, parents ? parents : oldParents) ) return ERROR_MESSAGES.gameAlreadyExists;
-    else if( !game && parents && getGameDictEntry(system ? system : oldSystem, oldGame, parents) ) return ERROR_MESSAGES.gameAlreadyExists;
+    else if( !game && ((parents && JSON.stringify(parents) != JSON.stringify(oldParents)) || system && system != oldSystem) && getGameDictEntry(system ? system : oldSystem, oldGame, parents) ) return ERROR_MESSAGES.gameAlreadyExists;
        
     // Get the current game directory
     let oldGameDir = generateGameDir( oldSystem, oldGame, oldParents );

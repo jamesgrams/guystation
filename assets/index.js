@@ -653,7 +653,7 @@ function toggleButtons() {
                     saveMenuPosition(); // Save what folders are now open/closed
                 }
                 else {
-                    launchGame( document.querySelector(".system.selected").getAttribute( "data-system" ), decodeURIComponent( selectedGameElement.getAttribute( "data-game" ) ), selectedGameElement.getAttribute( "data-parents" ) );
+                    launchGame( document.querySelector(".system.selected").getAttribute( "data-system" ), decodeURIComponent( selectedGameElement.getAttribute( "data-game" ) ), parentsStringToArray( selectedGameElement.getAttribute( "data-parents" ) ) );
                 }
             }
         };
