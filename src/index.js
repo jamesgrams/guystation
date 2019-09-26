@@ -66,6 +66,7 @@ const SCROLL_AMOUNT_MULTIPLIER = 0.8;
 const LINUX_CHROME_PATH = "/usr/bin/google-chrome";
 const STREAM_LIMIT_TIME = 750;
 const HOMEPAGE = "https://game103.net";
+const INVALID_CHARACTERS = ["/"];
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -87,7 +88,13 @@ const ERROR_MESSAGES = {
     "browsePageClosed": "The browser is closed",
     "browsePageInvalidCoordinates": "Invalid click coordinates",
     "browseInvalidDirection": "Invalid scroll direction",
-    "browsePageNotFound": "The specified page was not found"
+    "browsePageNotFound": "The specified page was not found",
+    "nonEmptyDirectory": "A folder with items inside it can't be deleted",
+    "convertGameToFolder": "A game can't be converted to a folder",
+    "convertFolderToGame": "A folder can't be converted to a game",
+    "folderHasGameBeingPlayed": "This folder has games in it that are being played",
+    "folderCantBeUnderItself": "A folder can't be moved under itself",
+    "invalidCharacterInName": "Invalid character in name"
 }
 
 // We will only allow for one request at a time for app
@@ -95,6 +102,7 @@ let requestLocked = false;
 
 let currentSystem = null;
 let currentGame = null;
+let currentParentsString = null;
 let currentEmulator = null;
 
 let systemsDict = {};
@@ -153,7 +161,7 @@ app.post("/launch", async function(request, response) {
     console.log("app serving /launch (POST) with body: " + JSON.stringify(request.body));
     if( ! requestLocked ) {
         requestLocked = true;
-        let errorMessage = launchGame( request.body.system, request.body.game );
+        let errorMessage = launchGame( request.body.system, request.body.game, null, request.body.parents );
         getData();
         requestLocked = false;
         writeActionResponse( response, errorMessage );
@@ -183,7 +191,7 @@ app.post("/save", async function(request, response) {
     console.log("app serving /save (POST) with body: " + JSON.stringify(request.body));
     if( ! requestLocked ) {
         requestLocked = true;
-        let errorMessage = newSave( request.body.system, request.body.game, request.body.save );
+        let errorMessage = newSave( request.body.system, request.body.game, request.body.save, null, request.body.parents );
         getData(); // Reload data
         requestLocked = false;
         writeActionResponse( response, errorMessage );
@@ -198,7 +206,7 @@ app.put("/save", async function(request, response) {
     console.log("app serving /save/ (PUT) with body: " + JSON.stringify(request.body));
     if( ! requestLocked ) {
         requestLocked = true;
-        let errorMessage = changeSave( request.body.system, request.body.game, request.body.save );
+        let errorMessage = changeSave( request.body.system, request.body.game, request.body.save, null, request.body.parents );
         getData(); // Reload data
         requestLocked = false;
         writeActionResponse( response, errorMessage );
@@ -213,7 +221,7 @@ app.delete("/save", async function(request, response) {
     console.log("app serving /save (DELETE) with body: " + JSON.stringify(request.body));
     if( ! requestLocked ) {
         requestLocked = true;
-        let errorMessage = deleteSave( request.body.system, request.body.game, request.body.save );
+        let errorMessage = deleteSave( request.body.system, request.body.game, request.body.save, request.body.parents );
         getData(); // Reload data
         requestLocked = false;
         writeActionResponse( response, errorMessage );
@@ -228,7 +236,7 @@ app.post("/game", upload.single("file"), async function(request, response) {
     console.log("app serving /game (POST)");
     if( ! requestLocked ) {
         requestLocked = true;
-        let errorMessage = addGame( request.body.system, request.body.game, request.file );
+        let errorMessage = addGame( request.body.system, request.body.game, request.file, JSON.parse(request.body.parents), request.body.isFolder );
         getData(); // Reload data
         requestLocked = false;
         writeActionResponse( response, errorMessage );
@@ -243,7 +251,7 @@ app.put("/game", upload.single("file"), async function(request, response) {
     console.log("app serving /game (PUT)");
     if( ! requestLocked ) {
         requestLocked = true;
-        let errorMessage = updateGame( request.body.oldSystem, request.body.oldGame, request.body.system, request.body.game, request.file );
+        let errorMessage = updateGame( request.body.oldSystem, request.body.oldGame, JSON.parse(request.body.oldParents), request.body.system, request.body.game, request.file, JSON.parse(request.body.parents), request.body.isFolder );
         getData(); // Reload data
         requestLocked = false;
         writeActionResponse( response, errorMessage );
@@ -258,7 +266,7 @@ app.delete("/game", async function(request, response) {
     console.log("app serving /game (DELETE) with body: " + JSON.stringify(request.body));
     if( ! requestLocked ) {
         requestLocked = true;
-        let errorMessage = deleteGame( request.body.system, request.body.game );
+        let errorMessage = deleteGame( request.body.system, request.body.game, request.body.parents );
         getData(); // Reload data
         requestLocked = false;
         writeActionResponse( response, errorMessage );
@@ -388,16 +396,33 @@ launchBrowser().then( () => app.listen(PORT) );
 
 /**
  * Determine if a game is not available.
+ * Note: In this case, a folder is NOT a game.
  * @param {string} system - the system the game is on
  * @param {string} game - the game to play
+ * @param {Array} parents - an array of parent directories for the game
  * @returns false if the game is available, or an error message if it is not
  */
-function isInvalidGame( system, game ) {
+function isInvalidGame( system, game, parents ) {
     if( !system || !systemsDict[system] ) {
         return ERROR_MESSAGES.noSystem;
     }
-    else if( !game || !systemsDict[system].games[game] ) {
+    // Check to make sure there is a game, it exists, and it is not a folder
+    else if( !game || !getGameDictEntry(system, game, parents) || getGameDictEntry(system, game, parents).isFolder ) {
         return ERROR_MESSAGES.noGame;
+    }
+    return false;
+}
+
+/**
+ * Determine if a name is invalid
+ * @param {string} name - the name to check for validity
+ * @returns false if the name is ok, or an error message if it is not
+ */
+function isInvalidName( name ) {
+    for( let invalidCharacter of INVALID_CHARACTERS ) {
+        if( name.includes(invalidCharacter) ) {
+            return ERROR_MESSAGES.invalidCharacterInName;
+        }
     }
     return false;
 }
@@ -820,8 +845,6 @@ function getData() {
         // The key is the name of the system
         systemData.system = system;
 
-        // Create the games dictionary - the key will be the name of the game
-        let gamesDict = {};
         // Read all the games
         let games = [];
         let gamesDir = generateGamesDir(system);
@@ -831,41 +854,9 @@ function getData() {
         catch( err ) {
             fs.mkdirSync( gamesDir );
         }
-        // For each of the games
-        for( let game of games ) {
-            // Create an object the hold the game data
-            let gameData = {};
-            gameData.game = game;
-            
-            // Get the contents of the games directory
-            let gameDirContents =  fs.readdirSync(generateGameDir(system, game));
-            try {
-                gameData.rom = JSON.parse(fs.readFileSync(generateGameMetaDataLocation(system, game))).rom;
-            }
-            catch(err) {
-                // Try to figure out the ROM file
-                for( let gameDirContent of gameDirContents ) {
-                    if( gameDirContent != SAVES_DIR && !gameDirContent.match(/^\./) ) {
-                        gameData.rom = gameDirContent;
-                        break;
-                    }
-                }
-            }
-            
-            if( system != BROWSER ) {
-                let savesInfo = generateSaves(system, game);
-                gameData.currentSave = savesInfo.currentSave;
-                gameData.saves = savesInfo.savesDict;
-            }
-
-            // If this game is being played, indicate as such
-            if( isBeingPlayed( system, game ) ) {
-                gameData.playing = true;
-            }
-
-            // Add this game to the dictionary of games for this system
-            gamesDict[game] = gameData;
-        }
+        // Create the games dictionary - the key will be the name of the game
+        let gamesDict = generateGames( system, games );
+        
         // Set the games for this system
         systemData.games = gamesDict;
 
@@ -878,14 +869,65 @@ function getData() {
 }
 
 /**
+ * Generate the information about games for a system.
+ * This function calls itself recusively to find subdirectories.
+ * @param {string} system - the system the games are on
+ * @param {string} games - the games we want to look at
+ * @param {Array} parents - an array of parent folders
+ */
+function generateGames(system, games, parents) {
+    if( !parents ) parents = [];
+    let gamesDict = {};
+    // For each of the games
+    for( let game of games ) {
+        // copy the parents array so other calls don't mess it up
+        let curParents = parents.slice(0);
+        // Create an object the hold the game data
+        let gameData = {};
+        gameData.game = game;
+        
+        // Get the contents of the games directory
+        let gameDirContents =  fs.readdirSync(generateGameDir(system, game, curParents));
+        try {
+            // This line will throw the error if there is no metadata file
+            gameData.rom = JSON.parse(fs.readFileSync(generateGameMetaDataLocation(system, game, curParents))).rom;
+        }
+        catch(err) {
+            // This is a directory of games - there is no metadata file
+            curParents.push(game);
+            gameData.isFolder = true;
+            gameData.games = generateGames(system, gameDirContents, curParents);
+        }
+
+        if( !gameData.isFolder ) {
+            if( system != BROWSER ) {
+                let savesInfo = generateSaves(system, game, curParents);
+                gameData.currentSave = savesInfo.currentSave;
+                gameData.saves = savesInfo.savesDict;
+            }
+
+            // If this game is being played, indicate as such
+            if( isBeingPlayed( system, game, curParents ) ) {
+                gameData.playing = true;
+            }
+        }
+
+        // Add this game to the dictionary of games for this system
+        gamesDict[game] = gameData;
+    }
+    return gamesDict;
+}
+
+/**
  * Generate the information about saves for a game
  * This function will create data (and files) if necessary
  * @param {string} system - the system the game is on
  * @param {string} game - the game we want to get saves information for
+ * @param {Array} parents - an array of parent folders for a game
  * @returns {object} an object with a currentSave key containing the current save and a savesDict key containing the saves information
  */
-function generateSaves( system, game ) {
-    let savesDir = generateSavesDir(system, game);
+function generateSaves( system, game, parents ) {
+    let savesDir = generateSavesDir(system, game, parents);
     let saves = [];
     // Try to read all the saves in the saves directory
     // save states are handled from within the emulator itself
@@ -900,8 +942,8 @@ function generateSaves( system, game ) {
     if( saves.length == 0 ) {
         // Force the save update, becase systemsDict won't be updated to pass the error check yet,
         // and since we're doing it, there won't be any errors.
-        newSave( system, game, DEFAULT_SAVE_DIR, true ); // create a default save directory
-        changeSave( system, game, DEFAULT_SAVE_DIR, true );
+        newSave( system, game, DEFAULT_SAVE_DIR, true, parents ); // create a default save directory
+        changeSave( system, game, DEFAULT_SAVE_DIR, true, parents );
         saves.push( DEFAULT_SAVE_DIR );
     }
 
@@ -909,7 +951,7 @@ function generateSaves( system, game ) {
     let savesDict = {};
     // Get the contents of the screenshots for the save
     for( let save of saves ) {
-        let screenshotsDir = generateScreenshotsDir(system, game, save);
+        let screenshotsDir = generateScreenshotsDir(system, game, save, parents);
         let saveData = {};
         saveData.save = save;
         saveData.screenshots = [];
@@ -927,13 +969,13 @@ function generateSaves( system, game ) {
         savesDict[save] = saveData;
     }
 
-    let currentSave = getCurrentSave(system, game);
+    let currentSave = getCurrentSave(system, game, parents);
     // if the current save isn't working -- i.e. the symlink is messed up, get another one.
     // we know there will be at least one, since if there were 0 we already created one
     if( !currentSave ) {
         // force in case we just created a directory
-        changeSave( system, game, saves[0], true );
-        currentSave = getCurrentSave(system, game);
+        changeSave( system, game, saves[0], true, parents );
+        currentSave = getCurrentSave(system, game, parents);
     }
 
     return { savesDict: savesDict, currentSave: currentSave };
@@ -970,10 +1012,15 @@ function generateGamesDir(system) {
  * Generate the full directory for a game.
  * @param {string} system - the system the game is on
  * @param {string} game - the game to get the directory of
+ * @param {Array} parents - parent directories for the game
  * @returns the directory of the game (e.g. /home/user/guystation/systems/gba/games/super-mario-world)
  */
-function generateGameDir(system, game) {
-    return generateGamesDir(system) + SEPARATOR + game;
+function generateGameDir(system, game, parents) {
+    let parentsPart = "";
+    if( parents && parents.length ) {
+        parentsPart = SEPARATOR + parents.join(SEPARATOR);
+    }
+    return generateGamesDir(system) + parentsPart + SEPARATOR + game;
 }
 
 /**
@@ -981,30 +1028,33 @@ function generateGameDir(system, game) {
  * @param {string} system - the system the game is on
  * @param {string} game - the game to get the ROM for
  * @param {string} rom - the ROM's filename
+ * @param {Array} parents - parent directories for the game
  * @returns the ROM filepath for the game (e.g. /home/user/guystation/systems/gba/games/super-mario-world/mario-world.gba)
  */
-function generateRomLocation(system, game, rom) {
-    return generateGameDir(system, game) + SEPARATOR + rom;
+function generateRomLocation(system, game, rom, parents) {
+    return generateGameDir(system, game, parents) + SEPARATOR + rom;
 }
 
 /**
  * Generate the full path for the metadata of a game.
  * @param {string} system - the system the game is on
  * @param {string} game - the game
+ * @param {Array} parents - parent directories for the game
  * @returns the metadata filepath for the game (e.g. /home/user/guystation/systems/gba/games/super-mario-world/metadata.json)
  */
-function generateGameMetaDataLocation(system, game) {
-    return generateGameDir(system, game) + SEPARATOR + METADATA_FILENAME;
+function generateGameMetaDataLocation(system, game, parents) {
+    return generateGameDir(system, game, parents) + SEPARATOR + METADATA_FILENAME;
 }
 
 /**
  * Generate the full directory for game saves.
  * @param {string} system - the system the game is on
  * @param {string} game - the game to get the directory of
+ * @param {Array} parents - parent directories for the game
  * @returns the directory of the game saves (e.g. /home/user/guystation/systems/gba/games/super-mario-world/saves)
  */
-function generateSavesDir(system, game) {
-    return generateGameDir(system, game) + SEPARATOR + SAVES_DIR;
+function generateSavesDir(system, game, parents) {
+    return generateGameDir(system, game, parents) + SEPARATOR + SAVES_DIR;
 }
 
 /**
@@ -1012,10 +1062,11 @@ function generateSavesDir(system, game) {
  * @param {string} system - the system the game is on
  * @param {string} system - the game the save if for
  * @param {string} save - the save directory to get
+ * @param {Array} parents - parent directories for the game
  * @returns the directory of the save (e.g. /home/user/guystation/systems/gba/games/super-mario-world/saves/default)
  */
-function generateSaveDir(system, game, save) {
-    return generateSavesDir(system, game) + SEPARATOR + save;
+function generateSaveDir(system, game, save, parents) {
+    return generateSavesDir(system, game, parents) + SEPARATOR + save;
 }
 
 /**
@@ -1024,10 +1075,29 @@ function generateSaveDir(system, game, save) {
  * @param {string} system - the system the game is on
  * @param {string} system - the game the screenshots are for
  * @param {string} save - the save directory
+ * @param {Array} parents - parent directories for the game
  * @returns the directory of the screenshots (e.g. /home/user/guystation/systems/gba/games/super-mario-world/saves/default/screenshots)
  */
-function generateScreenshotsDir(system, game, save) {
-    return generateSaveDir(system, game, save) + SEPARATOR + SCREENSHOTS_DIR;
+function generateScreenshotsDir(system, game, save, parents) {
+    return generateSaveDir(system, game, save, parents) + SEPARATOR + SCREENSHOTS_DIR;
+}
+
+/**
+ * Get the entry of systems dict for a game.
+ * @param {string} system - the system the game is on
+ * @param {string} system - the game the entry we want are for
+ * @param {Array} parents - parent directories for the game
+ */
+function getGameDictEntry(system, game, parents) {
+    if( !system || !game ) {
+        return null;
+    }
+    let games = systemsDict[system].games;
+    let parentsCopy = parents.slice(0);
+    while( parentsCopy && parentsCopy.length ) {
+        games = games[parentsCopy.shift()].games;
+    }
+    return games[game];
 }
 
 /**
@@ -1035,21 +1105,22 @@ function generateScreenshotsDir(system, game, save) {
  * @param {string} system - the system to run the game on.
  * @param {string} game - the game to run.
  * @param {boolean} restart - if true, the game will be reloaded no matter what. If false, and the game is currently being played, it will just be brought to focus.
+ * @param {Array} parents - an array of parent folders for a game
  * @returns {*} an error message if there was an error, or false if there was not
  */
-function launchGame(system, game, restart=false) {
+function launchGame(system, game, restart=false, parents) {
 
     // Error check
-    let isInvalid = isInvalidGame( system, game );
+    let isInvalid = isInvalidGame( system, game, parents );
     if( isInvalid ) {
         return isInvalid;
     }
-    else if( !fs.existsSync(generateRomLocation( system, game, systemsDict[system].games[game].rom )) && system != BROWSER ) {
+    else if( !fs.existsSync(generateRomLocation( system, game, getGameDictEntry(system, game, parents).rom, parents )) && system != BROWSER ) {
         return ERROR_MESSAGES.noRomFile;
     }
 
     // Restart unless restart is false, we have a current emulator, and we are playing the game we selected
-    if( !isBeingPlayed(system, game) || restart || !currentEmulator ) {
+    if( !isBeingPlayed(system, game, parents) || restart || !currentEmulator ) {
         quitGame();
 
         let command = systemsDict[system].command;
@@ -1058,24 +1129,25 @@ function launchGame(system, game, restart=false) {
             launchBrowseTab();
             currentSystem = systemsDict[system].system;
             currentGame = systemsDict[system].games[ Object.keys(systemsDict[system].games)[0] ].game;
+            currentParentsString = "";
             currentEmulator = true; // Kind of hacky... but will pass for playing
             return false;
         }
 
         // If the symlink to the save directory is the same for all games, update the symlink
         if( systemsDict[system].allGamesShareNand ) {
-            updateNandSymlinks( system, game );
+            updateNandSymlinks( system, game, null, parents );
         }
 
         let arguments = [ 
-            generateRomLocation( system, game, systemsDict[system].games[game].rom )
+            generateRomLocation( system, game, getGameDictEntry(system, game, parents).rom, parents )
         ];
 
         if( systemsDict[system].saveDirFlag ) {
             if( systemsDict[system].optionPrefix ) { arguments.push( systemsDict[system].optionPrefix ); }
             arguments.push(systemsDict[system].saveDirFlag);
 
-            let saveDir = generateSaveDir( system, game, CURRENT_SAVE_DIR );
+            let saveDir = generateSaveDir( system, game, CURRENT_SAVE_DIR, parents );
             // for space seperated arguments, add to arguments
             if( systemsDict[system].saveDirArgType == SPACE ) {
                 arguments.push(saveDir);
@@ -1089,7 +1161,7 @@ function launchGame(system, game, restart=false) {
         if( systemsDict[system].screenshotsDirFlag ) {
             if( systemsDict[system].optionPrefix ) { arguments.push( systemsDict[system].optionPrefix ); }
             arguments.push( systemsDict[system].screenshotsDirFlag );
-            let screenshotsDir = generateScreenshotsDir( system, game, CURRENT_SAVE_DIR );
+            let screenshotsDir = generateScreenshotsDir( system, game, CURRENT_SAVE_DIR, parents );
             // for space seperated arguments, add to arguments
             if( systemsDict[system].screenshotsDirArgType == SPACE ) {
                 arguments.push(screenshotsDir + SEPARATOR);
@@ -1113,6 +1185,7 @@ function launchGame(system, game, restart=false) {
 
         currentGame = game;
         currentSystem = system;
+        currentParentsString = parents.join(SEPARATOR);
 
         // Sleep before either activating or full-screening, to give the program time to open
         if( systemsDict[system].activateCommand || systemsDict[system].fullScreenPress ) {
@@ -1155,6 +1228,7 @@ function quitGame() {
         }
         currentEmulator = null;
         currentGame = null;
+        currentParentsString = null;
         currentSystem = null;
         return false;
     }
@@ -1169,6 +1243,7 @@ function quitGame() {
 function blankCurrentGame() {
     currentGame = null;
     currentSystem = null;
+    currentParentsString = null;
     currentEmulator = null;
 }
 
@@ -1176,21 +1251,42 @@ function blankCurrentGame() {
  * Check if a game is currently being played.
  * @param {string} system - the system of the game to see if it's being played
  * @param {string} game - the game to check if it's being played
+ * @param {Array} parents - an array of parent folders for a game
  * @returns true if the game is being played; false if it is not
  */
-function isBeingPlayed(system, game) {
-    return (currentSystem == system && currentGame == game && currentEmulator);
+function isBeingPlayed(system, game, parents) {
+    return (currentSystem == system && currentGame == game && parents.join(SEPARATOR) == currentParentsString && currentEmulator);
+}
+
+/**
+ * Check if anything within a folder is being played
+ */
+function isBeingPlayedRecursive(system, folder, parents) {
+    let curGameDictEntry = getGameDictEntry(system, folder, parents);
+    for( let game of Object.keys(curGameDictEntry.games) ) {
+        let gameDict = curGameDictEntry.games[game];
+        let curParents = parents.slice(0);
+        curParents.push(folder);
+        if( !gameDict.isFolder ) {
+            if ( isBeingPlayed(system, gameDict.game, curParents) ) return true;
+        }
+        else {
+            if (isBeingPlayedRecursive(system, game, curParents)) return true;
+        }
+    }
+    return false;
 }
 
 /**
  * Get the current save for a game
  * @param {string} system - the system the game is for
  * @param {string} game - the game to get the current save for
+ * @param {Array} parents - an array of parent folders for a game
  * @returns the name of the current save or false if the save couldn't be fetched
  */
-function getCurrentSave(system, game) {
+function getCurrentSave(system, game, parents) {
 
-    let currentSaveDir = generateSaveDir( system, game, CURRENT_SAVE_DIR );
+    let currentSaveDir = generateSaveDir( system, game, CURRENT_SAVE_DIR, parents );
 
     try {
         let readLink = fs.readlinkSync( currentSaveDir );
@@ -1211,21 +1307,24 @@ function getCurrentSave(system, game) {
  * @param {string} game - the game to create a save for
  * @param {string} save - the name of the new save
  * @param {boolean} force - skip error check
+ * @param {Array} parents - an array of parent folders for a game
  * @returns {*} - an error message if there was an error, otherwise false
  */
-function newSave(system, game, save, force) {
+function newSave(system, game, save, force, parents) {
 
     if( !force ) {
         // Error check
+        var invalidName = isInvalidName( save );
+        if( invalidName ) return invalidName;
         // Make sure the game is valid
-        let isInvalid = isInvalidGame( system, game );
+        let isInvalid = isInvalidGame( system, game, parents );
         if( isInvalid ) return isInvalid;
         // This name is reserved (current)
         if( save == CURRENT_SAVE_DIR ) {
             return ERROR_MESSAGES.usingReservedSaveName;
         }
         // Make sure the name is not already being used
-        if( systemsDict[system].games[game].saves[save] ) {
+        if( getGameDictEntry(system, game, parents).saves[save] ) {
             return ERROR_MESSAGES.saveAlreadyExists;
         }
         // Make sure there is a save
@@ -1233,10 +1332,10 @@ function newSave(system, game, save, force) {
     }
 
     // Create a new save directory
-    fs.mkdirSync( generateSaveDir( system, game, save ) );
+    fs.mkdirSync( generateSaveDir( system, game, save, parents ) );
     // Create the screenshots directory for the save
     // Since we don't want spoilers for other saves, keep screenshots save specific
-    fs.mkdirSync( generateScreenshotsDir( system, game, save ) );
+    fs.mkdirSync( generateScreenshotsDir( system, game, save, parents ) );
 
     return false;
 }
@@ -1247,29 +1346,32 @@ function newSave(system, game, save, force) {
  * @param {string} game - the game to change saves for
  * @param {string} save - the name of the save
  * @param {boolean} force - skip error check
+ * @param {Array} parents - an array of parent folders for a game
  * @returns {*} - an error message if there was an error, otherwise false
  */
-function changeSave(system, game, save, force) {
+function changeSave(system, game, save, force, parents) {
 
     if( !force ) {
         // Error check
+        var invalidName = isInvalidName( save );
+        if( invalidName ) return invalidName;
         // Make sure the game is valid
-        let isInvalid = isInvalidGame( system, game );
+        let isInvalid = isInvalidGame( system, game, parents );
         if( isInvalid ) return isInvalid;
         // Can't change the save of a playing game
-        if( isBeingPlayed( system, game) ) {
+        if( isBeingPlayed( system, game, parents ) ) {
             return ERROR_MESSAGES.gameBeingPlayed;
         }
         // We need the save file to exist
-        if( !systemsDict[system].games[game].saves[save] ) {
+        if( !getGameDictEntry(system, game, parents).saves[save] ) {
             return ERROR_MESSAGES.saveDoesNotExist;
         }
-        if( systemsDict[system].games[game].currentSave == save ) {
+        if( getGameDictEntry(system, game, parents).currentSave == save ) {
             return ERROR_MESSAGES.saveAlreadySelected;
         }
     }
 
-    let currentSaveDir = generateSaveDir( system, game, CURRENT_SAVE_DIR );
+    let currentSaveDir = generateSaveDir( system, game, CURRENT_SAVE_DIR, parents );
     // Remove the current symlink
     try {
         fs.unlinkSync( currentSaveDir );
@@ -1277,7 +1379,7 @@ function changeSave(system, game, save, force) {
     catch(err) {} // OK, just means there was no current symlink
 
     // Symlink the current save
-    fs.symlinkSync( generateSaveDir( system, game, save ), currentSaveDir, 'dir');
+    fs.symlinkSync( generateSaveDir( system, game, save, parents ), currentSaveDir, 'dir');
 
     return false;
 }
@@ -1287,49 +1389,52 @@ function changeSave(system, game, save, force) {
  * @param {string} system - the name of the system.
  * @param {string} game - the name of the game.
  * @param {string} save - the name of the save.
+ * @param {Array} parents - an array of parent folders for a game
  * @returns {*} - an error message if there was an error, otherwise false
  */
-function deleteSave(system, game, save) {
+function deleteSave(system, game, save, parents) {
 
     // Error check
+    var invalidName = isInvalidName( save );
+    if( invalidName ) return invalidName;
     // Make sure the game is valid
-    let isInvalid = isInvalidGame( system, game );
+    let isInvalid = isInvalidGame( system, game, parents );
     if( isInvalid ) return isInvalid;
     // Can't change the save of a playing game
-    if( isBeingPlayed( system, game) ) {
+    if( isBeingPlayed( system, game, parents ) ) {
         return ERROR_MESSAGES.gameBeingPlayed;
     }
     // We need the save file to exist
-    if( !systemsDict[system].games[game].saves[save] ) {
+    if( !getGameDictEntry(system, game, parents).saves[save] ) {
         return ERROR_MESSAGES.saveDoesNotExist;
     }
 
-    let savesDir = generateSavesDir( system, game );
-    let saveDir = generateSaveDir( system, game, save );
+    let savesDir = generateSavesDir( system, game, parents );
+    let saveDir = generateSaveDir( system, game, save, parents );
 
     // Delete the save
     rimraf.sync( saveDir );
         
     // Check if the symbolic link is now broken
-    let currentSave = getCurrentSave( system, game );
+    let currentSave = getCurrentSave( system, game, parents );
     if( !currentSave ) {
 
         // If it is, try to switch to the default directory
-        let defaultSaveDir = generateSaveDir( system, game, DEFAULT_SAVE_DIR );
+        let defaultSaveDir = generateSaveDir( system, game, DEFAULT_SAVE_DIR, parents );
         if( fs.existsSync( defaultSaveDir ) ) {
-            changeSave( system, game, DEFAULT_SAVE_DIR );
+            changeSave( system, game, DEFAULT_SAVE_DIR, null, parents );
         }
         // If the default directory does not exist, try to switch to any other save
         else {
             let currentSaves = fs.readdirSync(savesDir, {withFileTypes: true}).filter(file => file.isDirectory()).map(dir => dir.name);
             if( currentSaves.length ) {
-                changeSave( system, game, currentSaves[0] );
+                changeSave( system, game, currentSaves[0], null, parents );
             }
             // Otherwise, create the default directory and switch to that save
             else {
                 // force is true, since we know there is no other directory and we know we want to make the save
-                newSave( system, game, DEFAULT_SAVE_DIR, true );
-                changeSave( system, game, DEFAULT_SAVE_DIR, true );
+                newSave( system, game, DEFAULT_SAVE_DIR, true, parents );
+                changeSave( system, game, DEFAULT_SAVE_DIR, true, parents );
             }
         }
         
@@ -1343,33 +1448,42 @@ function deleteSave(system, game, save) {
  * @param {string} system - the system to add the game on
  * @param {string} game - the game name to add
  * @param {object} file - the file object
+ * @param {Array} parents - an array of parent folders for a game
+ * @param {boolean} isFolder - true if we are actually making a folder
  */
-function addGame( system, game, file ) {
+function addGame( system, game, file, parents, isFolder ) {
 
     // Error check
     // Make sure the game is valid
     if( !systemsDict[system] ) return ERROR_MESSAGES.noSystem;
-    if( systemsDict[system].games[game] ) return ERROR_MESSAGES.gameAlreadyExists;
+    if( getGameDictEntry(system, game, parents) ) return ERROR_MESSAGES.gameAlreadyExists;
     if( !game ) return ERROR_MESSAGES.gameNameRequired;
-    if( !file || !file.path || !file.originalname ) return ERROR_MESSAGES.romFileRequired;
+    var invalidName = isInvalidName( game );
+    if( invalidName ) return invalidName;
+    if( (!file || !file.path || !file.originalname) && !isFolder ) return ERROR_MESSAGES.romFileRequired;
 
     // Make the directory for the game
-    let gameDir = generateGameDir( system, game );
+    let gameDir = generateGameDir( system, game, parents );
     fs.mkdirSync( gameDir );
-    // Move the rom into the directory
-    let errorMessage = saveUploadedRom( file, system, game );  
-    if( errorMessage ) {
-        // Delete the game directory
-        rimraf.sync( gameDir );
-        // Return the error message
-        return errorMessage;
+
+    if( !isFolder ) {
+        // Move the rom into the directory
+        let errorMessage = saveUploadedRom( file, system, game, parents );  
+        if( errorMessage ) {
+            // Delete the game directory
+            rimraf.sync( gameDir );
+            // Return the error message
+            return errorMessage;
+        }
     }
 
     // Update the data (this will take care of making all the necessary directories for the game as well as updating the data)
     getData();
 
-    // Do this AFTER running get data, so we know we are all set with the save directories
-    updateNandSymlinks(system, game);
+    if( !isFolder ) {
+        // Do this AFTER running get data, so we know we are all set with the save directories
+        updateNandSymlinks(system, game, null, parents);
+    }
 
     return false;
 }
@@ -1378,10 +1492,11 @@ function addGame( system, game, file ) {
  * Get the NAND save path for a game on a system that requires a specific structure.
  * @param {String} system - the system the game is on
  * @param {String} game - the name of the game
+ * @param {Array} parents - an array of parent folders for a game
  */
-function getNandPath( system, game ) {
+function getNandPath( system, game, parents ) {
     if( systemsDict[system].nandPathCommand ) {
-        let nandPathCommand = systemsDict[system].nandPathCommand.replace(NAND_ROM_FILE_PLACEHOLDER, generateRomLocation( system, game, systemsDict[system].games[game].rom ).replace("'", "'\"'\"'"));
+        let nandPathCommand = systemsDict[system].nandPathCommand.replace(NAND_ROM_FILE_PLACEHOLDER, generateRomLocation( system, game, getGameDictEntry(system, game, parents).rom, parents ).replace("'", "'\"'\"'"));
         let nandSavePath = proc.execSync(nandPathCommand).toString().replace("\n","");
         return nandSavePath;
     }
@@ -1398,12 +1513,13 @@ function getNandPath( system, game ) {
  *      except we'll want to place what we have currently in the directory of the old rom and remove any symlink
  * @param {String} system - the system the game is on
  * @param {String} game - the name of the game
+ * @param {Array} parents - an array of parent folders for a game
  */
-function updateNandSymlinks( system, game, oldRomNandPath ) {
+function updateNandSymlinks( system, game, oldRomNandPath, parents ) {
     // Make sure this is a system with the special file structure needed
     if( systemsDict[system].nandPathCommand ) {
-        let nandSavePath = getNandPath( system, game );
-        let currentSaveDir = generateSaveDir( system, game, CURRENT_SAVE_DIR );
+        let nandSavePath = getNandPath( system, game, parents );
+        let currentSaveDir = generateSaveDir( system, game, CURRENT_SAVE_DIR, parents );
 
         // If the rom file has changed, we want to leave behind our current save data in the old rom location
         // because it will not work with the new rom. To do this, we'll have to remove the old symlink, make a directory,
@@ -1494,17 +1610,18 @@ function updateNandSymlinks( system, game, oldRomNandPath ) {
  * @param {object} file - a file object
  * @param {string} system - the system the game is on
  * @param {string} game - the game the ROM is for
+ * @param {Array} parents - an array of parent folders for a game
  * @returns {*} - an error message if there was an error, false if there was not.
  */
-function saveUploadedRom( file, system, game ) {
+function saveUploadedRom( file, system, game, parents ) {
     if( !file.originalname || !file.path ) {
         return ERROR_MESSAGES.noFileInUpload;
     }
-    if( !fs.existsSync(generateGameDir(system, game)) ) {
+    if( !fs.existsSync(generateGameDir(system, game, parents)) ) {
         return ERROR_MESSAGES.locationDoesNotExist;
     }
-    fs.renameSync(file.path, generateRomLocation(system, game, file.originalname));
-    fs.writeFileSync(generateGameMetaDataLocation(system, game), JSON.stringify({"rom": file.originalname}));
+    fs.renameSync(file.path, generateRomLocation(system, game, file.originalname, parents));
+    fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"rom": file.originalname}));
     return false;
 }
 
@@ -1512,43 +1629,84 @@ function saveUploadedRom( file, system, game ) {
  * Update a game.
  * @param {string} oldSystem - the old system for the game - needed so we know what we're updating
  * @param {string} oldGame - the old name for the game - needed so we know what we're updating
+ * @param {Array} oldParents - the old array of parent folders for a game
  * @param {string} system - the new system for the game - null if the same
  * @param {string} game - the new name for the game - null if the same
  * @param {object} file - the new file object - null if the same
+ * @param {Array} parents - an array of parent folders for a game
+ * @param {boolean} isFolder - true if this game is really a folder of other games
  * @returns {*} - an error message if there was an error, false if there was not.
  */
-function updateGame( oldSystem, oldGame, system, game, file ) {
+function updateGame( oldSystem, oldGame, oldParents, system, game, file, parents, isFolder ) {
 
     // Error check
     // Make sure the game and system are valid for old
-    isInvalid = isInvalidGame( oldSystem, oldGame );
-    if( isInvalid ) return isInvalid;
+    if( game ) {
+        var invalidName = isInvalidName( game );
+        if( invalidName ) return invalidName;
+    }
+    isInvalid = isInvalidGame( oldSystem, oldGame, oldParents );
+    if( isInvalid ) {
+        // Check to see if it is a folder
+        let gameDictEntry = getGameDictEntry(oldSystem, oldGame, oldParents);
+        if( gameDictEntry ) {
+            if( !isFolder ) {
+                return ERROR_MESSAGES.convertFolderToGame;
+            }
+            // check to make sure we aren't moving the folder underneath itself
+            else if( isFolder ) {
+                let testOldParents = oldParents.slice(0);
+                testOldParents.push(oldGame);
+                var matching = true;
+                for( let i=0; i<testOldParents.length; i++ ) {
+                    if( !parents[i] || testOldParents[i] != parents[i] ) {
+                        matching = false;
+                    }
+                }
+                if( matching ) {
+                    return ERROR_MESSAGES.folderCantBeUnderItself;
+                }
+            }
+            // changing folder is OK
+        }
+        else {
+            return isInvalid;
+        }
+    }
+    // The old game is a game, but they are trying to convert to a folder
+    else if( isFolder ) {
+        return ERROR_MESSAGES.convertGameToFolder;
+    }
     // Can't change the save of a playing game
-    if( isBeingPlayed( oldSystem, oldGame ) ) {
+    if( isBeingPlayed( oldSystem, oldGame, oldParents ) ) {
         return ERROR_MESSAGES.gameBeingPlayed;
+    }
+    if( isFolder && isBeingPlayedRecursive(oldSystem, oldGame, oldParents)) {
+        return ERROR_MESSAGES.folderHasGameBeingPlayed;
     }
     // Make sure the new game doesn't already exist
     if( system && !systemsDict[system] ) return ERROR_MESSAGES.noSystem;
-    if( game && systemsDict[system].games[game] ) return ERROR_MESSAGES.gameAlreadyExists;
+    if( game && getGameDictEntry(system ? system : oldSystem, game, parents ? parents : oldParents) ) return ERROR_MESSAGES.gameAlreadyExists;
+    else if( !game && parents && getGameDictEntry(system ? system : oldSystem, oldGame, parents) ) return ERROR_MESSAGES.gameAlreadyExists;
        
     // Get the current game directory
-    let oldGameDir = generateGameDir( oldSystem, oldGame );
+    let oldGameDir = generateGameDir( oldSystem, oldGame, oldParents );
 
     let oldRomNandPath = "";
 
     // Update the rom file if necessary 
-    if( file ) {
+    if( file && !isFolder ) {
         // Get the current game file and its name. We will move it for now,
         // but we will ultimately either move it back or get rid of it.
         // upload into the old directory and that will change if necessary next
-        let oldRomPath = systemsDict[oldSystem].games[oldGame].rom ? generateRomLocation( oldSystem, oldGame, systemsDict[oldSystem].games[oldGame].rom ) : "";
+        let oldRomPath = getGameDictEntry(oldSystem, oldGame, oldParents).rom ? generateRomLocation( oldSystem, oldGame, getGameDictEntry(oldSystem, oldGame, oldParents).rom, oldParents ) : "";
         if( oldRomPath ) {
-            oldRomNandPath = getNandPath( oldSystem, oldGame ); // We'll need this to clean up the old rom for NAND systems
+            oldRomNandPath = getNandPath( oldSystem, oldGame, oldParents ); // We'll need this to clean up the old rom for NAND systems
             fs.renameSync( oldRomPath, TMP_ROM_LOCATION );
         }
         
         // Try to upload the new file
-        errorMessage = saveUploadedRom( file, oldSystem, oldGame );
+        errorMessage = saveUploadedRom( file, oldSystem, oldGame, oldParents );
 
         // We failed
         if( errorMessage ) {
@@ -1565,53 +1723,137 @@ function updateGame( oldSystem, oldGame, system, game, file ) {
         }
     }
     // Move some of the directories around
-    if( (system && oldSystem != system) || (game && oldGame != game) ) {
+    if( (system && oldSystem != system) || (game && oldGame != game) || (oldParents.join(SEPARATOR) != parents.join(SEPARATOR)) ) {
         // Use the system command because node fs can't move directories
-        let gameDir = generateGameDir( system ? system : oldSystem, game ? game : oldGame ); // update the game directory
+        let gameDir = generateGameDir( system ? system : oldSystem, game ? game : oldGame, parents ? parents : oldParents ); // update the game directory
         fsExtra.moveSync( oldGameDir, gameDir );
         // Update the symlink for the game
         // Force, since we've just updated the directory
-        changeSave( system ? system : oldSystem, game ? game : oldGame, systemsDict[oldSystem].games[oldGame].currentSave, true );
+        if( !isFolder ) {
+            changeSave( system ? system : oldSystem, game ? game : oldGame, getGameDictEntry(oldSystem, oldGame, oldParents).currentSave, true, parents ? parents : oldParents );
+        }
+        else {
+            ensureSaveSymlinks( system ? system : oldSystem, game ? game : oldGame, parents ? parents : oldParents, getGameDictEntry(oldSystem, oldGame, oldParents), oldSystem, oldGame, oldParents );
+        }
+        // Otherwise, we have to update the symlinks of all the children directories
     }
     
     // Update the data (this will take care of making all the necessary directories for the game as well as updating the data)
     getData();
 
     // Do this AFTER running get data, so we know we are all set with the save directories
-    updateNandSymlinks(system, game, oldRomNandPath);
+    if( !isFolder ) {
+        updateNandSymlinks(system ? system : oldSystem, game ? game : oldGame, oldRomNandPath, parents ? parents : oldParents);
+    }
+    else {
+        ensureNandSymlinks(system ? system : oldSystem, game ? game : oldGame, parents ? parents : oldParents, getGameDictEntry(system ? system : oldSystem, game ? game : oldGame, parents ? parents : oldParents) );
+    }
 
     return false;
+}
+
+/**
+ * Ensure the nand symlinks are all valid for a folder
+ * @param {string} system - the name of the system the game is for
+ * @param {string} folder - the name of the folder the system uses
+ * @param {Array} parents - parent directories for the folder
+ * @param {string} gameDictEntry - the game dict entry for the old system / old game (since this is run prior to calling getData in updateGame)
+ */
+function ensureNandSymlinks( system, folder, parents, gameDictEntry ) {
+    for( let game of Object.keys(gameDictEntry.games) ) {
+        let curGameDictEntry = gameDictEntry.games[game];
+        let curParents = parents.slice(0);
+        curParents.push( folder );
+        // This is a real game
+        if( !curGameDictEntry.isFolder ) {
+            // Note: there will be no oldRamPath, because we updated the folder, thus the rom never changes for these
+            updateNandSymlinks( system, curGameDictEntry.game, null, curParents );
+        }
+        else {
+            ensureNandSymlinks( system, game, curParents, curGameDictEntry );
+        }
+    }
+}
+
+/**
+ * Ensure the save symlinks are all valid for a folder
+ * @param {string} system - the name of the system the game is for
+ * @param {string} folder - the name of the folder the system uses
+ * @param {Array} parents - parent directories for the folder
+ * @param {string} oldSystem - the old system - needed to get the game dict entry
+ * @param {string} oldFolder - the old folder - needed to get the game dict entry
+ * @param {Array} oldParents - the old parents - needed to get the game dict entry
+ * @param {string} gameDictEntry - the game dict entry for the old system / old game (since this is run prior to calling getData in updateGame)
+ */
+function ensureSaveSymlinks( system, folder, parents, gameDictEntry, oldSystem, oldFolder, oldParents ) {
+    for( let game of Object.keys(gameDictEntry.games) ) {
+        let curGameDictEntry = gameDictEntry.games[game];
+        let curParents = parents.slice(0);
+        let curOldParents = oldParents.slice(0);
+        curParents.push( folder );
+        curOldParents.push( oldFolder );
+
+        // This is a real game
+        // this is the problem - we are passing in the new parents but that means the entries dont exist
+        // but we need the new parents to pass to changeSave forced since the directories have already moved
+        if( !curGameDictEntry.isFolder ) {
+            changeSave( system, curGameDictEntry.game, getGameDictEntry( oldSystem, curGameDictEntry.game, curOldParents ).currentSave, true, curParents );
+        }
+        else {
+            ensureSaveSymlinks( system, game, curParents, curGameDictEntry, oldSystem, game, curOldParents );
+        }
+    }
 }
 
 /**
  * Delete a game.
  * @param {string} system - the game the system is on
  * @param {string} game - the game to delete
+ * @param {Array} parents - an array of parent folders for a game
  * @returns {*} - an error message if there was an error, false if there was not.
  */
-function deleteGame( system, game ) {
+function deleteGame( system, game, parents ) {
+    let isFolder = false;
 
     // Error check
+    var invalidName = isInvalidName( game );
+    if( invalidName ) return invalidName;
     // Make sure the game and system are valid
-    isInvalid = isInvalidGame( system, game );
-    if( isInvalid ) return isInvalid;
+    isInvalid = isInvalidGame( system, game, parents );
+    if( isInvalid ) {
+        // Check to see if it is a folder
+        let gameDictEntry = getGameDictEntry(system, game, parents);
+        if( gameDictEntry ) {
+            if( Object.keys(gameDictEntry.games).length ) {
+                return ERROR_MESSAGES.nonEmptyDirectory;
+            }
+            else {
+                isFolder = true;
+            }
+        }
+        else {
+            return isInvalid;
+        }
+    }
     // Can't change the save of a playing game
-    if( isBeingPlayed( system, game ) ) {
+    if( isBeingPlayed( system, game, parents ) ) {
         return ERROR_MESSAGES.gameBeingPlayed;
     }
 
-    // If this is a NAND game, make sure we have a directory in place
-    // in case they want to play the game outside of guystation
-    let nandPath = getNandPath( system, game );
-    if( nandPath && fs.existsSync(nandPath) ) {
-        try {
-            fs.unlinkSync(nandPath);
-            fs.mkdirSync(nandPath);
+    if( !isFolder ) {
+        // If this is a NAND game, make sure we have a directory in place
+        // in case they want to play the game outside of guystation
+        let nandPath = getNandPath( system, game, parents );
+        if( nandPath && fs.existsSync(nandPath) ) {
+            try {
+                fs.unlinkSync(nandPath);
+                fs.mkdirSync(nandPath);
+            }
+            catch(err) { /*It's already a directory for some reason*/ }
         }
-        catch(err) { /*It's already a directory for some reason*/ }
     }
     
-    rimraf.sync( generateGameDir( system, game ) );
+    rimraf.sync( generateGameDir( system, game, parents ) );
     
     getData();
 

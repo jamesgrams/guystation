@@ -105,15 +105,16 @@ GuyStation launches a Node.js server along with a Chromium browser (via Puppetee
 * `systems`
     * `<system>` (d)
         * `games` (d)
-            * `<game>` (d)
-                * `<ROM>`
-                * `saves` (d)
-                    * `<save>` (d)
-                        * `<save file>`
-                        * `screenshots` (d)
-                            * `<screenshot>`
-                    * `current` (d) - symlink to the current save directory
-                * `metadata.json`
+            * `<gamefolder>` (d) (optional, multiple allowed)
+                * `<game>` (d)
+                    * `<ROM>`
+                    * `saves` (d)
+                        * `<save>` (d)
+                            * `<save file>`
+                            * `screenshots` (d)
+                                * `<screenshot>`
+                        * `current` (d) - symlink to the current save directory
+                    * `metadata.json`
         * `metadata.json`
 
 ## Credits and Special Thanks

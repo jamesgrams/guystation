@@ -112,6 +112,23 @@ h1 {
     opacity: 0;
 }
 
+.game.hidden, .hidden {
+    display: none !important;
+}
+
+.game[data-is-folder]::after {
+    content: "\25be";
+    padding-left: 10px;
+    display: inline-block;
+}
+
+.game[data-is-folder].children-showing::after {
+    transform: scale(-1, -1);
+    padding-right: 10px;
+    padding-left: 0;
+    padding-bottom: 5px;
+}
+
 .game.playing::before {
     content: "\2022";
     padding-right: 5px;
@@ -403,6 +420,20 @@ h1 {
 
 #remote-media-form video {
     width: 250px;
+}
+
+#folder-select-container label, #old-folder-select-container label {
+    display: inline-block;
+    padding: 0;
+}
+
+#folder-select-container label span, #old-folder-select-container label span {
+    display: none;
+}
+
+#folder-select-container label select, #old-folder-select-container label select {
+    background-color: white;
+    width: 120px;
 }
 
 @keyframes fade {
