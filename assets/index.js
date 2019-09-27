@@ -2586,7 +2586,7 @@ function manageGamepadInput() {
 	        menuChangeDelay("down-stick");
         }
         // no buttons are pressed
-        else if( menuDirection.match(/-stick$/) ) {
+        else if( menuDirection && menuDirection.match(/-stick$/) ) {
             menuDirection = null;
         }
     }
