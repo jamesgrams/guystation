@@ -33,6 +33,8 @@ var sendString = "";
 var activePageId = null;
 var nonGameSystems = ["browser"];
 var nonSaveSystems = ["browser", "media"];
+var menuDirection = null;
+var menuMoveSpeedMultiplier = 1;
 
 // Hold escape for 5 seconds to quit
 // Note this variable contains a function interval, not a boolean value
@@ -177,6 +179,10 @@ function load() {
         startTime();
         gamePadInterval = setInterval(pollGamepads, GAMEPAD_INTERVAL);
         addDog();
+        document.body.onclick = closeMenu;
+        document.querySelector("#functions").onclick = function(e) {
+            e.stopPropagation();
+        }
         // Check for changes every 10 seconds
         setInterval( function() {
             if( !makingRequest ) {
@@ -198,6 +204,15 @@ function load() {
             drawCanvas(data);
         });
     }, load );
+}
+
+/**
+ * Close the menu by clicking Cocoa
+ */
+function closeMenu() {
+    if( document.querySelector("#functions.open") ) {
+        document.querySelector(".player-wrapper").click();
+    }
 }
 
 /**
@@ -257,22 +272,22 @@ function enableControls() {
                 // Left
                 case 37:
                     moveMenu(1);
-                    menuChangeDelay();
+                    menuChangeDelay("left-keyboard");
                     break;
                 // Up
                 case 38:
                     moveSubMenu(-1);
-                    menuChangeDelay();
+                    menuChangeDelay("up-keyboard");
                     break;
                 // Right
                 case 39:
                     moveMenu(-1);
-                    menuChangeDelay();
+                    menuChangeDelay("right-keyboard");
                     break;
                 // Down
                 case 40:
                     moveSubMenu(1);
-                    menuChangeDelay();
+                    menuChangeDelay("down-keyboard");
                     break;
                 // Enter
                 case 13:
@@ -326,6 +341,22 @@ function enableControls() {
     }
     document.onkeyup = function(event) {
         switch (event.keyCode) {
+            // Left
+            case 37:
+                if( menuDirection == "left-keyboard") menuDirection = null;
+                break;
+            // Up
+            case 38:
+                if( menuDirection == "up-keyboard") menuDirection = null;
+                break;
+            // Right
+            case 39:
+                if( menuDirection == "right-keyboard") menuDirection = null;
+                break;
+            // Down
+            case 40:
+                if( menuDirection == "down-keyboard") menuDirection = null;
+                break;
             // Enter
             case 13:
                 buttonsUp.keyboard["13"] = true;
@@ -2179,7 +2210,7 @@ function closeModal() {
                     }
                 }
             }, 500 ); // Make sure this matches the transition time in the css
-            document.body.onclick = null;
+            document.body.onclick = closeMenu;
         }
     }
 }
@@ -2513,9 +2544,10 @@ function manageGamepadInput() {
         if( rightTriggerPressed && buttonsUp.gamepad[joyMapping["Right Trigger"]] && document.querySelector(".system.selected .game.selected") ) {
             buttonsUp.gamepad[joyMapping["Right Trigger"]] = false;
             cycleSave(1);
-            menuChangeDelay();
+            menuChangeDelay("right-trigger");
         }
         else {
+            if( menuDirection == "right-trigger" ) menuDirection = null;
             buttonsUp.gamepad[joyMapping["Right Trigger"]] = true;
         }
 
@@ -2524,9 +2556,10 @@ function manageGamepadInput() {
         if( leftTriggerPressed && buttonsUp.gamepad[joyMapping["Left Trigger"]] && document.querySelector(".system.selected .game.selected") ) {
             buttonsUp.gamepad[joyMapping["Left Trigger"]] = false;
             cycleSave(-1);
-            menuChangeDelay();
+            menuChangeDelay("left-trigger");
         }
         else {
+            if( menuDirection == "left-trigger" ) menuDirection = null;
             buttonsUp.gamepad[joyMapping["Left Trigger"]] = true;
         }
 
@@ -2535,22 +2568,26 @@ function manageGamepadInput() {
         // Right
         if( leftStickXPosition > 0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Right"]]) ) {
             moveMenu( -1 );
-            menuChangeDelay();
+            menuChangeDelay("right-stick");
         }
         // Left
         else if( leftStickXPosition < -0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Left"]]) ) {
             moveMenu( 1 );
-	        menuChangeDelay();
+	        menuChangeDelay("left-stick");
         }
         // Up
         else if( leftStickYPosition < -0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Up"]]) ) {
             moveSubMenu( -1 );
-	        menuChangeDelay();
+	        menuChangeDelay("up-stick");
         }
         // Down
         else if( leftStickYPosition > 0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Down"]]) ) {
             moveSubMenu( 1 );
-	        menuChangeDelay();
+	        menuChangeDelay("down-stick");
+        }
+        // no buttons are pressed
+        else if( menuDirection.match(/-stick$/) ) {
+            menuDirection = null;
         }
     }
     // Check if we are setting a key, and register the current gamepad key down
@@ -2582,10 +2619,20 @@ function manageGamepadInput() {
 
 /**
  * Delay the ability to change position in the menu.
+ * @param {string} direction - the direction we just moved the menu
  */
-function menuChangeDelay() {
+function menuChangeDelay(direction) {
+    if( menuDirection == direction ) {
+        if( menuMoveSpeedMultiplier > 0.3 ) {
+            menuMoveSpeedMultiplier = menuMoveSpeedMultiplier / 1.075;
+        }
+    }
+    else {
+        menuMoveSpeedMultiplier = 1;
+    }
+    menuDirection = direction;
     disableMenuControls = true;
-    setTimeout( function() { disableMenuControls = false; }, BLOCK_MENU_MOVE_INTERVAL );
+    setTimeout( function() { disableMenuControls = false; }, BLOCK_MENU_MOVE_INTERVAL*menuMoveSpeedMultiplier );
 }
 
 /**

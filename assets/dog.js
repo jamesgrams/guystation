@@ -60,7 +60,7 @@ function addDog() {
     drawDog(0, 0, container);
 
     // When the dog is click
-    wrapper.onclick = function() {
+    wrapper.onclick = function(e) {
         if( !disableMenuControls ) {
             var functions = document.querySelector("#functions");
             var playerWrapper = document.querySelector(".player-wrapper");
@@ -95,6 +95,7 @@ function addDog() {
                     playerWrapper.querySelector(".player").classList.remove("player-flipped");
                 }, MENU_OPEN_TIME ); // Make sure this matches the css
             }
+            e.stopPropagation();
 
         }
     }

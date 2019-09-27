@@ -205,6 +205,11 @@ h1 {
     font-size: 24px;
     font-family: blinker;
     margin: 5px 0;
+    padding: 5px;
+    border-radius: 5px;
+    background-color: black;
+    color: white;
+    border: 1px solid white;
 }
 
 .modal button, .dying-modal button, #functions button {
@@ -429,11 +434,6 @@ h1 {
 
 #folder-select-container label span, #old-folder-select-container label span {
     display: none;
-}
-
-#folder-select-container label select, #old-folder-select-container label select {
-    background-color: white;
-    width: 120px;
 }
 
 @keyframes fade {
