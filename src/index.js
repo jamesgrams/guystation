@@ -875,8 +875,7 @@ function getData() {
  * @param {string} games - the games we want to look at
  * @param {Array} parents - an array of parent folders
  */
-function generateGames(system, games, parents) {
-    if( !parents ) parents = [];
+function generateGames(system, games, parents=[]) {
     let gamesDict = {};
     // For each of the games
     for( let game of games ) {
@@ -1108,7 +1107,7 @@ function getGameDictEntry(system, game, parents) {
  * @param {Array} parents - an array of parent folders for a game
  * @returns {*} an error message if there was an error, or false if there was not
  */
-function launchGame(system, game, restart=false, parents) {
+function launchGame(system, game, restart=false, parents=[]) {
 
     // Error check
     let isInvalid = isInvalidGame( system, game, parents );
@@ -1310,7 +1309,7 @@ function getCurrentSave(system, game, parents) {
  * @param {Array} parents - an array of parent folders for a game
  * @returns {*} - an error message if there was an error, otherwise false
  */
-function newSave(system, game, save, force, parents) {
+function newSave(system, game, save, force, parents=[]) {
 
     if( !force ) {
         // Error check
@@ -1349,7 +1348,7 @@ function newSave(system, game, save, force, parents) {
  * @param {Array} parents - an array of parent folders for a game
  * @returns {*} - an error message if there was an error, otherwise false
  */
-function changeSave(system, game, save, force, parents) {
+function changeSave(system, game, save, force, parents=[]) {
 
     if( !force ) {
         // Error check
@@ -1392,7 +1391,7 @@ function changeSave(system, game, save, force, parents) {
  * @param {Array} parents - an array of parent folders for a game
  * @returns {*} - an error message if there was an error, otherwise false
  */
-function deleteSave(system, game, save, parents) {
+function deleteSave(system, game, save, parents=[]) {
 
     // Error check
     var invalidName = isInvalidName( save );
@@ -1451,7 +1450,7 @@ function deleteSave(system, game, save, parents) {
  * @param {Array} parents - an array of parent folders for a game
  * @param {boolean} isFolder - true if we are actually making a folder
  */
-function addGame( system, game, file, parents, isFolder ) {
+function addGame( system, game, file, parents, isFolder=[] ) {
 
     // Error check
     // Make sure the game is valid
@@ -1637,7 +1636,7 @@ function saveUploadedRom( file, system, game, parents ) {
  * @param {boolean} isFolder - true if this game is really a folder of other games
  * @returns {*} - an error message if there was an error, false if there was not.
  */
-function updateGame( oldSystem, oldGame, oldParents, system, game, file, parents, isFolder ) {
+function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, parents=[], isFolder ) {
 
     // Error check
     // Make sure the game and system are valid for old
@@ -1812,7 +1811,7 @@ function ensureSaveSymlinks( system, folder, parents, gameDictEntry, oldSystem, 
  * @param {Array} parents - an array of parent folders for a game
  * @returns {*} - an error message if there was an error, false if there was not.
  */
-function deleteGame( system, game, parents ) {
+function deleteGame( system, game, parents=[] ) {
     let isFolder = false;
 
     // Error check

@@ -288,9 +288,11 @@ function enableControls() {
                     if( currentPlayingGameElement ) {
                         var startSystem = generateStartSystem();
                         var currentPlayingGame = decodeURIComponent(currentPlayingGameElement.getAttribute("data-game"));
+                        var currentPlayingParentsString = currentPlayingGameElement.getAttribute("data-parents");
                         var currentPlayingSystem = currentPlayingGameElement.closest(".system").getAttribute("data-system");
-                        if( !(startSystem.system == currentPlayingSystem && startSystem.games[currentPlayingSystem] == currentPlayingGame) ) {
-                            startSystem.games[currentPlayingSystem] = currentPlayingGame;
+                        if( !(startSystem.system == currentPlayingSystem && startSystem.games[currentPlayingSystem].game == currentPlayingGame && startSystem.games[currentPlayingSystem].parents == currentPlayingParentsString ) ) {
+                            startSystem.games[currentPlayingSystem].game = currentPlayingGame;
+                            startSystem.games[currentPlayingSystem].parents = currentPlayingParentsString;
                             startSystem.system = currentPlayingSystem;
                             draw( startSystem );
                         }
@@ -441,16 +443,18 @@ function draw( startSystem ) {
         var mySpaces = myOffset/SPACING;
         moveMenu(-mySpaces);
     };
-    var clickToMoveSubmenu = function() {
+    var clickToMoveSubmenu = function(element) {
         // Add the onclick element
-        var parentGamesList = this.closest(".games");
-        if( parentGamesList.parentElement.classList.contains("selected") && !this.classList.contains("above") ) {
+        var parentGamesList = element.closest(".games");
+        if( parentGamesList.parentElement.classList.contains("selected") && !element.classList.contains("above") ) {
             var parentGamesArray = Array.prototype.slice.call( parentGamesList.querySelectorAll(".game") );
             var currentGame = parentGamesList.querySelector(".game.selected");
             var currentPosition = parentGamesArray.indexOf( currentGame );
-            var myPosition = parentGamesArray.indexOf( this );
+            var myPosition = parentGamesArray.indexOf( element );
             moveSubMenu( myPosition - currentPosition );
+            return myPosition - currentPosition; 
         }
+        return -1;
     }
 
     systemsElementNew.appendChild( systemElements[startIndex] );
@@ -471,7 +475,10 @@ function draw( startSystem ) {
         systemsElementNew.appendChild(prevElement);
     }
 
-    systemsElementNew.querySelectorAll(".games .game").forEach( function(element) { element.onclick = clickToMoveSubmenu } );
+    // onclick move submenu, if we don't move anywhere, then launch the game
+    systemsElementNew.querySelectorAll(".games .game").forEach( function(element) { element.onclick = function() {
+        var spacesMoved = clickToMoveSubmenu(element); if(!spacesMoved) document.querySelector("#launch-game").click(); }
+    } );
 
     // Add the selected class
     systemElements[startIndex].classList.add("selected");
@@ -757,7 +764,7 @@ function isBeingPlayed( system, game, parents ) {
  * @param {string} oldGameName - the old name of the game if it changed
  * @param {string} newGameName - the new name of the game if it changed (null if it was deleted)
  * @param {Array} oldParents - the old parents if it changed
- * @param {Array} newParents - the new parents if it changed (null if it was deleted)
+ * @param {Array} newParents - the new parents if it changed
  */
 function redraw( oldSystemName, newSystemName, oldGameName, newGameName, oldParents, newParents ) {
     draw( generateStartSystem( oldSystemName, newSystemName, oldGameName, newGameName, oldParents, newParents ) );
@@ -774,7 +781,7 @@ function redraw( oldSystemName, newSystemName, oldGameName, newGameName, oldPare
  * @param {string} oldGameName - the old name of the game if it changed
  * @param {string} newGameName - the new name of the game if it changed (null if it was deleted)
  * @param {Array} oldParents - the old parents if it changed
- * @param {Array} newParents - the new parents if it changed (null if it was deleted)
+ * @param {Array} newParents - the new parents if it changed
  */
 function getOpenFolders(games, arr, parents, system, oldSystemName, newSystemName, oldGameName, newGameName, oldParents, newParents) {
     for( var game of Object.keys(games) ) {
@@ -829,8 +836,8 @@ function getOpenFolders(games, arr, parents, system, oldSystemName, newSystemNam
  * @param {string} oldGameName - the old name of the game if it changed
  * @param {string} newGameName - the new name of the game if it changed (null if it was deleted)
  * @param {Array} oldParents - the old parents if it changed
- * @param {Array} newParents - the new parents if it changed (null if it was deleted)
- * @returns {object} - an object that can be passed to the draw function to start
+ * @param {Array} newParents - the new parents if it changed
+ * @returns {object} - an object that can be passed to the draw function to start - include the parents string and game
  */
 function generateStartSystem( oldSystemName, newSystemName, oldGameName, newGameName, oldParents, newParents ) {
     var currentSystem = document.querySelector(".system.selected").getAttribute("data-system");
@@ -2332,7 +2339,7 @@ function deleteSave( system, game, save, parents ) {
  * @param {string} oldGameName - the old name of the game if it changed
  * @param {string} newGameName - the new name of the game if it changed (null if it was deleted)
  * @param {Array} oldParents - the old parents if it changed
- * @param {Array} newParents - the new parents if it changed (null if it was deleted)
+ * @param {Array} newParents - the new parents if it changed
  */
 function standardSuccess( responseText, message, oldSystemName, newSystemName, oldGameName, newGameName, oldParents, newParents ) {
     var response = JSON.parse(responseText);
@@ -2555,7 +2562,7 @@ function manageGamepadInput() {
                 // If so, check if any buttons are pressed
                 for( var j=0; j<buttons.length; j++ ) {
                     // If so, set the input's value to be that of the pressed button
-                    if(buttonPressed(buttonPressed[j])) {
+                    if(buttonPressed(buttons[j])) {
                         inputs[i].value = j;
                         if( inputs[i+1] ) {
                             if( focusInterval ) {
