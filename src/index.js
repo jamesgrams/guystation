@@ -1200,6 +1200,7 @@ function launchGame(system, game, restart=false, parents=[]) {
                 try {
                     proc.execSync( systemsDict[system].activateCommand );
                     ks.sendKey(FULL_SCREEN_KEY);
+                    break;
                 }
                 catch(err) { 
                     console.log("full screen failed.");
@@ -1212,6 +1213,7 @@ function launchGame(system, game, restart=false, parents=[]) {
         for( let i=0; i<activateTries; i++ ) {
             try {
                 proc.execSync( systemsDict[system].activateCommand );
+                break;
             }
             catch(err) { 
                 console.log("activate failed."); 
