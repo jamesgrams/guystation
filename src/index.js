@@ -55,6 +55,7 @@ const KILL_COMMAND = "kill -9 ";
 const RESUME_COMMAND = "kill -CONT ";
 const PAUSE_COMMAND = "kill -STOP ";
 const SLEEP_COMMAND = "sleep 1";
+const SLEEP_HALF_COMMAND = "sleep 0.5";
 const MAX_ACTIVATE_TRIES = 20;
 const FOCUS_CHROMIUM_COMMAND = "wmctrl -a 'Chrom'";
 const TMP_ROM_LOCATION = "/tmp/tmprom";
@@ -1885,6 +1886,7 @@ function deleteGame( system, game, parents=[] ) {
  */
 function pauseGame() {
     if(currentEmulator && currentSystem != BROWSER) {
+        proc.execSync( SLEEP_HALF_COMMAND ); // give time to go back to the menu
         proc.execSync( PAUSE_COMMAND + currentEmulator.pid );
         return false;
     }
@@ -1895,6 +1897,7 @@ function pauseGame() {
  */
 function resumeGame() {
     if(currentEmulator && currentSystem != BROWSER) {
+        proc.execSync( SLEEP_HALF_COMMAND ); // give time to load to avoid button press issues
         proc.execSync( RESUME_COMMAND + currentEmulator.pid );
         return false;
     }
