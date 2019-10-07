@@ -54,7 +54,7 @@ sudo apt-get -y install wmctrl
 cd ~
 
 # Install Mupen64
-./guystation/scripts/m64p_helper_scripts/m64p_get.sh && ./guystation/scripts/m64p_helper_scripts/m64p_build.sh && ./guystation/scripts/m64p_helper_scripts/m64p_install.sh
+sudo ./guystation/scripts/m64p_helper_scripts/m64p_get.sh && sudo ./guystation/scripts/m64p_helper_scripts/m64p_build.sh && sudo ./guystation/scripts/m64p_helper_scripts/m64p_install.sh
 cd ~
 git clone https://github.com/jamesgrams/mupen64plus-ui-python.git
 cd mupen64plus-ui-python
@@ -100,7 +100,7 @@ cd snes9x/gtk
 meson builddir
 cd builddir
 ninja
-ninja install
+sudo ninja install
 
 # Return to the home directory
 cd ~
@@ -128,6 +128,12 @@ sed -i 's/geteuid/getppid/' /usr/bin/vlc
 
 # Return to the home directory
 cd ~
+
+# Make sure nodjs is installed
+sudo apt-get -y install curl
+curl -sL https://deb.nodesource.com/setup_12.x | sudo sh
+sudo apt-get -y install nodejs
+sudo npm install -g npm@latest --force
 
 # install the necessary modules for guystation
 cd guystation
