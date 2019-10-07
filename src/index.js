@@ -52,7 +52,10 @@ catch(err) {
 }
 const ESCAPE_KEY = 1;
 const KILL_COMMAND = "kill -9 ";
-const SLEEP_COMMAND = "sleep 5";
+const RESUME_COMMAND = "kill -CONT ";
+const PAUSE_COMMAND = "kill -STOP ";
+const SLEEP_COMMAND = "sleep 1";
+const MAX_ACTIVATE_TRIES = 20;
 const FOCUS_CHROMIUM_COMMAND = "wmctrl -a 'Chrom'";
 const TMP_ROM_LOCATION = "/tmp/tmprom";
 const NAND_ROM_FILE_PLACEHOLDER = "ROM_FILE_PLACEHOLDER";
@@ -1119,6 +1122,8 @@ function launchGame(system, game, restart=false, parents=[]) {
     }
 
     // Restart unless restart is false, we have a current emulator, and we are playing the game we selected
+    let fullScreenTries = MAX_ACTIVATE_TRIES;
+    let activateTries = MAX_ACTIVATE_TRIES;
     if( !isBeingPlayed(system, game, parents) || restart || !currentEmulator ) {
         quitGame();
 
@@ -1186,23 +1191,37 @@ function launchGame(system, game, restart=false, parents=[]) {
         currentSystem = system;
         currentParentsString = parents.join(SEPARATOR);
 
-        // Sleep before either activating or full-screening, to give the program time to open
-        if( systemsDict[system].activateCommand || systemsDict[system].fullScreenPress ) {
-            proc.execSync( SLEEP_COMMAND ); // sleep before activating.
-        }
         if( systemsDict[system].fullScreenPress ) {
-            try {
-                proc.execSync( systemsDict[system].activateCommand );
-                ks.sendKey(FULL_SCREEN_KEY);
+            activateTries = 1; // We know the program since we waited until we could full screen
+            // I guess the only time this would come into play is if we failed to full screen
+            // due to this program not opening. I think it is best we don't wait another X tries
+            // in that case.
+            for( let i=0; i<fullScreenTries; i++ ) {
+                try {
+                    proc.execSync( systemsDict[system].activateCommand );
+                    ks.sendKey(FULL_SCREEN_KEY);
+                }
+                catch(err) { 
+                    console.log("full screen failed.");
+                    proc.execSync( SLEEP_COMMAND );
+                }
             }
-            catch(err) { console.log("full screen failed."); }
         }
     }
     if( systemsDict[system].activateCommand ) {
-        try {
-            proc.execSync( systemsDict[system].activateCommand );
+        for( let i=0; i<activateTries; i++ ) {
+            try {
+                proc.execSync( systemsDict[system].activateCommand );
+            }
+            catch(err) { 
+                console.log("activate failed."); 
+                proc.execSync( SLEEP_COMMAND );
+            }
         }
-        catch(err) { console.log("activate failed."); }
+        try {
+            resumeGame();
+        }
+        catch(err) {/*ok*/}
     }
     else if( system == BROWSER ) {
         if ( browsePage && !browsePage.isClosed() ) {
@@ -1859,12 +1878,33 @@ function deleteGame( system, game, parents=[] ) {
     return false;
 }
 
+/**
+ * Freeze the game process.
+ */
+function pauseGame() {
+    if(currentEmulator && currentSystem != BROWSER) {
+        proc.execSync( PAUSE_COMMAND + currentEmulator.pid );
+        return false;
+    }
+}
+
+/**
+ * Continue the game process.
+ */
+function resumeGame() {
+    if(currentEmulator && currentSystem != BROWSER) {
+        proc.execSync( RESUME_COMMAND + currentEmulator.pid );
+        return false;
+    }
+}
+
 // Listen for the "home" button to be pressed
 ioHook.on("keydown", event => {
     if( event.keycode == ESCAPE_KEY ) {
         proc.execSync(FOCUS_CHROMIUM_COMMAND);
         try {
             menuPage.bringToFront();
+            pauseGame();
         }
         catch(err) {/*ok*/}
     }

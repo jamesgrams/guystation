@@ -35,6 +35,7 @@ var nonGameSystems = ["browser"];
 var nonSaveSystems = ["browser", "media"];
 var menuDirection = null;
 var menuMoveSpeedMultiplier = 1;
+var currentSearch = "";
 
 // Hold escape for 5 seconds to quit
 // Note this variable contains a function interval, not a boolean value
@@ -423,7 +424,7 @@ function draw( startSystem ) {
         var selectedGameElement = gamesElement.querySelector(".game.selected");
         // no selected games, element, create one if possible
         if( !selectedGameElement ) {
-            selectedGameElement = gamesElement.querySelector(".game");
+            selectedGameElement = gamesElement.querySelector(".game:not(.hidden)");
             if( selectedGameElement ) {
                 selectedGameElement.classList.add("selected");
             }
@@ -555,9 +556,33 @@ function populateGames(system, games, startSystem, gamesElement, hidden, parents
         gameElement.setAttribute("data-game", encodeURIComponent(game.game));
         gameElement.setAttribute("data-parents", parentsArrayToString( curParents ) );
 
+        /* Begin Search Override */
+        // see if there is a search, if so, check if this element matches
+        if( currentSearch && game.game.match( currentSearch ) ) {
+            hidden = false;
+            // show all parents > don't worry about siblings
+            var searchMatchedParents = curParents.slice(0);
+            while(searchMatchedParents.length) {
+                var curParentName = searchMatchedParents.pop();
+                var searchMatchedParentElements = gamesElement.querySelectorAll(".game[data-parents='"+parentsArrayToString(searchMatchedParents)+"'][data-game='"+encodeURIComponent(curParentName)+"']");
+                for( let i=0; i<searchMatchedParentElements.length; i++ ) {
+                    var searchMatchedParentElement = searchMatchedParentElements[i];
+                    if( searchMatchedParentElement ) {
+                        searchMatchedParentElement.classList.remove("hidden");
+                        searchMatchedParentElement.classList.add("children-showing");
+                    }
+                }
+            }
+        }
+        else if(currentSearch) {
+            hidden = true;
+        }
+        /* End Search Override */
+
         // Make sure all the selected games parent folders are shown
         // this is really only necessary when a game is moved on update as far as I know, since in all other
         // times, the menus should have been opened manually (causing startSystem.openFolders to take care of them)
+        // we are checking if this is a folder in the selectedGame's parent list
         var tempHidden = true;
         if( startSystem.games && startSystem.games[system] && startSystem.games[system].parents ) { // check for parents, some problems caused when first in list and deleting
             var tmpCurParents = curParents.slice(0);
@@ -605,13 +630,14 @@ function populateGames(system, games, startSystem, gamesElement, hidden, parents
 
         if( game.isFolder ) {
             // look in the openFolders dictionary
-            //var tempHidden = true;
+            // if we aren't hidden and we are supposed to be open, show children
             if( startSystem.openFolders && startSystem.openFolders[system] ) {
                 for( var i=0; i<startSystem.openFolders[system].length; i++ ) {
                     var curTestItem = startSystem.openFolders[system][i];
                     if( curTestItem.game == game.game && JSON.stringify(curParents) == JSON.stringify(curTestItem.parents) ) {
                         if( !hidden ) tempHidden = false;
                         // arrow indication
+                        // even if it is a hidden open folder, once visible, it's children will be too
                         gameElement.classList.add("children-showing");
                     }
                 }
