@@ -125,7 +125,7 @@ h1 {
     padding-bottom: 5px;
 }
 
-.game.playing::before {
+.game.playing .game-title::before {
     content: "\2022";
     padding-right: 5px;
 }
@@ -181,6 +181,7 @@ h1 {
     left: 50%;
     transform: translateX(-50%);
     top: 0;
+    z-index: 1000;
 }
 
 #time {
