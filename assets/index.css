@@ -98,10 +98,6 @@ h1 {
     transition: opacity 0.5s;
     height: 50px;
     width: 400px;
-    user-select: none;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 .game.selected {
@@ -116,13 +112,13 @@ h1 {
     display: none !important;
 }
 
-.game[data-is-folder]::after {
+.game[data-is-folder] .game-title::after {
     content: "\25be";
     padding-left: 10px;
-    display: inline-block;
+    display: inline-flex;
 }
 
-.game[data-is-folder].children-showing::after {
+.game[data-is-folder].children-showing .game-title::after {
     transform: scale(-1, -1);
     padding-right: 10px;
     padding-left: 0;
@@ -134,8 +130,34 @@ h1 {
     padding-right: 5px;
 }
 
+.game, .game-folder, .current-save, .game-title {
+    user-select: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Marquee for long titles */
+.game-marquee {
+    animation: marquee linear infinite; /* duration and time are calcualted in the JS */
+    padding-left: calc(100% + 10px); /* start the animation at 410px from 0*/
+    display: table;
+}
+
+.game-folder { 
+    font-size: 45%;
+}
+
+.game-folder + .game-title {
+    font-size: 75%;
+}
+
 .current-save {
     font-size: 70%;
+}
+
+.game-folder ~ .current-save {
+    font-size: 55%;
 }
 
 .current-save::before {
@@ -151,6 +173,14 @@ h1 {
 
 #ip::before {
     content: "http://";
+}
+
+#search {
+    position: absolute;
+    margin: 10px 0 !important;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 0;
 }
 
 #time {
@@ -201,7 +231,7 @@ h1 {
     display: inline-block;
 }
 
-.modal label > input, .modal label > select, .dying-modal label > input, .dying-modal label > select {
+.modal label > input, .modal label > select, .dying-modal label > input, .dying-modal label > select, #search {
     font-size: 24px;
     font-family: blinker;
     margin: 5px 0;
@@ -448,13 +478,9 @@ h1 {
     100% {transform: rotate(3deg);}
 }
 
-@media screen and (max-width: 700px) {
-    h1 {
-        top: 15%;
-    }
-    #systems {
-        top: 30%;
-    }
+@keyframes marquee {
+    0% { transform: translate(0, 0); }
+    100% { transform: translate(calc(-100% - 10px), 0); } /* End the animation after the element has traveled to the left its entire width and then 10 more px to put it past the padding */
 }
 
 @media only screen and (max-width: 1350px) {
@@ -468,11 +494,17 @@ h1 {
     }
 }
 
-@media only screen and (max-width: 500px) {
+@media only screen and (max-width: 775px) {
+    h1 {
+        top: 20%;
+    }
+    #systems {
+        top: 35%;
+    }
     #time, #ip {
         display: none
     }
-    input {
+    .modal input, .dying-modal input {
         min-width: 280px;
         width: 100%;
     }

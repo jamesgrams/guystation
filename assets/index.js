@@ -11,7 +11,10 @@ var BLOCK_MENU_MOVE_INTERVAL = 250;
 var SEND_INPUT_TIME = 1000;
 var BROWSER_ADDRESS_HEARTBEAT_TIME = 500;
 var TABS_HEARTBEAT_TIME = 500;
+var SEARCH_TIMEOUT_TIME = 350;
 var UUID = "7c0bb0113f6249f7b3ce3d550d1f3771"; // no non-url safe characters in here please
+var MARQUEE_TIMEOUT_TIME = 1000;
+var MARQUEE_PIXELS_PER_SECOND = 50;
 
 var expandCountLeft; // We always need to have a complete list of systems, repeated however many times we want, so the loop works properly
 var expandCountRight;
@@ -36,6 +39,9 @@ var nonSaveSystems = ["browser", "media"];
 var menuDirection = null;
 var menuMoveSpeedMultiplier = 1;
 var currentSearch = "";
+var searchTimeout;
+var marqueeTimeoutTitle;
+var marqueeTimeoutFolder;
 
 // Hold escape for 5 seconds to quit
 // Note this variable contains a function interval, not a boolean value
@@ -83,7 +89,7 @@ function bubbleScreenshots() {
                 folderParents.push( gameDictEntry.game );
                 getRealGamesInFolderRecursive(gameDictEntry.games, arr, folderParents);
                 gameDictEntry = arr[Math.floor(Math.random() * arr.length)];
-                currentGameElement = document.querySelector( ".system[data-system='"+currentSystem+"'] .game[data-game='"+encodeURIComponent(gameDictEntry.game)+"'][data-parents='"+parentsArrayToString(gameDictEntry.parents)+"']");
+                currentGameElement = document.querySelector( '.system[data-system="'+currentSystem+'"] .game[data-game="'+encodeURIComponent(gameDictEntry.game)+'"][data-parents="'+parentsArrayToString(gameDictEntry.parents)+'"]');
                 currentGame = decodeURIComponent(currentGameElement.getAttribute("data-game"));
             }
             else {
@@ -123,6 +129,81 @@ function resetBubbleScreenshots() {
         clearInterval( bubbleScreenshotsSet );
     }
     bubbleScreenshotsSet = setInterval( bubbleScreenshots, BUBBLE_SCREENSHOTS_INTERVAL );
+}
+
+/**
+ * Set the marquee for the selected element
+ */
+function setMarquee() {
+    // Just to be safe
+    removeMarquee();
+    var selectedGame = document.querySelector(".system.selected .game.selected");
+    if( selectedGame ) {
+        var selectedFolder = selectedGame.querySelector(".game-folder");
+        // marquee for the folder
+        if( selectedFolder ) {
+            if( selectedFolder.offsetWidth < selectedFolder.scrollWidth ) {
+                marqueeTimeoutFolder = setTimeout( function() {
+                    addMarquee( selectedFolder, selectedGame );
+                }, MARQUEE_TIMEOUT_TIME );
+            }
+        }
+        // marquee for the game
+        var selectedTitle = selectedGame.querySelector(".game-title");
+        if( selectedTitle ) {
+            if( selectedTitle.offsetWidth < selectedTitle.scrollWidth ) {
+                marqueeTimeoutTitle = setTimeout( function() {
+                    var childrenShowing = false;
+                    // for some reason chrome doesn't calculate the width properly when we have the transform:scale
+                    // applied, so remove if temporarily if there
+                    if( selectedGame.classList.contains("children-showing") ) {
+                        selectedGame.classList.remove("children-showing");
+                        childrenShowing = true;
+                    }
+                    addMarquee( selectedTitle, selectedGame );
+                    if( childrenShowing ) {
+                        selectedGame.classList.add("children-showing");
+                    }
+                }, MARQUEE_TIMEOUT_TIME );
+            }
+        } 
+    }
+}
+
+/**
+ * Remove all marquees
+ */
+function removeMarquee() {
+    clearTimeout(marqueeTimeoutTitle);
+    clearTimeout(marqueeTimeoutFolder);
+    var marquees = document.querySelectorAll(".game-marquee");
+    marquees.forEach( function(el) {
+        el.classList.remove("game-marquee");
+    });
+}
+
+/**
+ * Add marquee to an element within a game element
+ * @param {HTMLElement} element - the element to add marquee too
+ * @param {HTMLElement} gameElement - the game element containing the element
+ */
+function addMarquee(element, gameElement) {
+    // calculate the animation delay
+    var gameElementPadding = parseInt(window.getComputedStyle(gameElement).getPropertyValue("padding").replace("px","")); // todo get this value somehow
+    var gameElementWidth = parseInt(window.getComputedStyle(gameElement).getPropertyValue("width").replace("px","")); // todo get this value somehow
+    var paddingWidth = gameElementWidth + gameElementPadding; // since we start at 0, we only need one padding 
+    var textWidth = element.scrollWidth;
+    var totalDistance = paddingWidth + textWidth + gameElementPadding; // the total distiance traveled will be textwidth, paddingwidth, and the 10px on the left side of the element
+
+    // we travel at 50px/s
+    var totalAnimationTime = totalDistance / MARQUEE_PIXELS_PER_SECOND; // todo get this value somehow
+    // when have we traveled all the padding
+    var textAtBeginningPercentage = paddingWidth / totalDistance;
+    var textAtBeginningTime = textAtBeginningPercentage * totalAnimationTime * -1;
+
+    element.style.animationDelay = textAtBeginningTime + "s";
+    element.style.animationDuration = totalAnimationTime + "s";
+    element.classList.add("game-marquee");
 }
 
 /**
@@ -184,6 +265,7 @@ function load() {
         document.querySelector("#functions").onclick = function(e) {
             e.stopPropagation();
         }
+        enableSearch();
         // Check for changes every 10 seconds
         setInterval( function() {
             if( !makingRequest ) {
@@ -205,6 +287,29 @@ function load() {
             drawCanvas(data);
         });
     }, load );
+}
+
+/**
+ * Enable searching.
+ */
+function enableSearch() {
+    document.getElementById("search").oninput = function() {
+        currentSearch = this.value;
+        clearTimeout( searchTimeout );
+        searchTimeout = setTimeout( function() {
+            redraw(null, null, null, null, null, null, true);
+        }, SEARCH_TIMEOUT_TIME );
+    }
+}
+
+/**
+ * Clear search.
+ * Note: this will not do a redraw
+ */
+function clearSearch() {
+    clearTimeout( searchTimeout );
+    document.getElementById("search").value = "";
+    currentSearch = "";
 }
 
 /**
@@ -522,6 +627,7 @@ function draw( startSystem ) {
 
     toggleButtons();
     saveMenuPosition();
+    setMarquee();
 }
 
 /**
@@ -558,33 +664,20 @@ function populateGames(system, games, startSystem, gamesElement, hidden, parents
 
         /* Begin Search Override */
         // see if there is a search, if so, check if this element matches
-        if( currentSearch && game.game.match( currentSearch ) ) {
+        if( currentSearch && termsMatch(currentSearch, game.game) ) {
             hidden = false;
-            // show all parents > don't worry about siblings
-            var searchMatchedParents = curParents.slice(0);
-            while(searchMatchedParents.length) {
-                var curParentName = searchMatchedParents.pop();
-                var searchMatchedParentElements = gamesElement.querySelectorAll(".game[data-parents='"+parentsArrayToString(searchMatchedParents)+"'][data-game='"+encodeURIComponent(curParentName)+"']");
-                for( let i=0; i<searchMatchedParentElements.length; i++ ) {
-                    var searchMatchedParentElement = searchMatchedParentElements[i];
-                    if( searchMatchedParentElement ) {
-                        searchMatchedParentElement.classList.remove("hidden");
-                        searchMatchedParentElement.classList.add("children-showing");
-                    }
-                }
-            }
         }
         else if(currentSearch) {
             hidden = true;
         }
         /* End Search Override */
 
-        // Make sure all the selected games parent folders are shown
+        // Make sure all the selected games parent folders are shown (only if there is no search)
         // this is really only necessary when a game is moved on update as far as I know, since in all other
         // times, the menus should have been opened manually (causing startSystem.openFolders to take care of them)
         // we are checking if this is a folder in the selectedGame's parent list
         var tempHidden = true;
-        if( startSystem.games && startSystem.games[system] && startSystem.games[system].parents ) { // check for parents, some problems caused when first in list and deleting
+        if( !currentSearch && startSystem.games && startSystem.games[system] && startSystem.games[system].parents ) { // check for parents, some problems caused when first in list and deleting
             var tmpCurParents = curParents.slice(0);
             tmpCurParents.push(gamesKeys[j]);
             if( startSystem.system == system && startSystem.games[system].parents.startsWith(parentsArrayToString(tmpCurParents)) ) {
@@ -604,11 +697,17 @@ function populateGames(system, games, startSystem, gamesElement, hidden, parents
         else  {
             gameElement.classList.add("hidden");
         }
-        var folderMarker = "";
-        for(var i=0;i<curParents.length;i++) {
-            folderMarker+= "-";
+        if( curParents.length ) {
+            var folderText = curParents.join(" > ");
+            var folderElement = document.createElement("div");
+            folderElement.classList.add("game-folder");
+            folderElement.innerText = folderText + " >";
+            gameElement.appendChild(folderElement);
         }
-        gameElement.innerText = folderMarker + game.game;
+        var gameTitleDiv = document.createElement("div");
+        gameTitleDiv.classList.add("game-title");
+        gameTitleDiv.innerText = game.game;
+        gameElement.appendChild(gameTitleDiv);
 
         if( game.playing ) {
             gameElement.classList.add("playing");
@@ -649,6 +748,20 @@ function populateGames(system, games, startSystem, gamesElement, hidden, parents
 }
 
 /**
+ * Determine if two terms match for searching
+ * @param {string} searchTerm - the first term
+ * @param {string} matchTerm - the second term
+ */
+function termsMatch(searchTerm, matchTerm) {
+    searchTerm = searchTerm.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()\s]/g,"");
+    matchTerm = matchTerm.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()\s]/g,"");
+    if( matchTerm.match(searchTerm) ) {
+        return true;
+    }
+    return false;
+}
+
+/**
  * Save the current menu position
  */
 function saveMenuPosition() {
@@ -678,7 +791,7 @@ function toggleButtons() {
                     var parents = selectedGameElement.getAttribute("data-parents");
                     var game = decodeURIComponent(selectedGameElement.getAttribute("data-game"));
 
-                    var likewiseElements = document.querySelectorAll(".system[data-system='"+selectedSystem+"'] .game[data-parents='"+parents+"'][data-game='"+encodeURIComponent(game)+"']");
+                    var likewiseElements = document.querySelectorAll('.system[data-system="'+selectedSystem+'"] .game[data-parents="'+parents+'"][data-game="'+encodeURIComponent(game)+'"]');
                     likewiseElements.forEach( function(gameElement) {
                         if( parents ) {
                             parents += UUID;
@@ -687,7 +800,7 @@ function toggleButtons() {
                             parents = "";
                         }
                         parents += encodeURIComponent(game);
-                        var children = document.querySelectorAll(".system[data-system='"+selectedSystem+"'] .game[data-parents^='"+parents+"']");
+                        var children = document.querySelectorAll('.system[data-system="'+selectedSystem+'"] .game[data-parents^="'+parents+'"]');
                         if( gameElement.classList.contains("children-showing") ) {
                             // note the difference that cghildnre is anything that starts with here
                             gameElement.classList.remove("children-showing");
@@ -703,7 +816,7 @@ function toggleButtons() {
                                 var myParents = parentsStringToArray( element.getAttribute("data-parents") );
                                 var tmpParents = [];
                                 for( var i=0; i<myParents.length; i++ ) {
-                                    var parent = document.querySelector(".system[data-system='"+selectedSystem+"'] .game[data-game='"+encodeURIComponent(myParents[i])+"'][data-parents='"+parentsArrayToString(tmpParents)+"']");
+                                    var parent = document.querySelector('.system[data-system="'+selectedSystem+'"] .game[data-game="'+encodeURIComponent(myParents[i])+'"][data-parents="'+parentsArrayToString(tmpParents)+'"]');
                                     if( !parent.classList.contains("children-showing") ) {
                                         shouldOpen = false;
                                         break;
@@ -822,8 +935,12 @@ function isBeingPlayed( system, game, parents ) {
  * @param {string} newGameName - the new name of the game if it changed (null if it was deleted)
  * @param {Array} oldParents - the old parents if it changed
  * @param {Array} newParents - the new parents if it changed
+ * @param {boolean} keepCurrentSearch - keep the current search (only in place on a search to not blank out search, other than that we don't want redraw to keep a search)
  */
-function redraw( oldSystemName, newSystemName, oldGameName, newGameName, oldParents, newParents ) {
+function redraw( oldSystemName, newSystemName, oldGameName, newGameName, oldParents, newParents, keepCurrentSearch ) {
+    if( !keepCurrentSearch ) {
+        clearSearch();
+    }
     draw( generateStartSystem( oldSystemName, newSystemName, oldGameName, newGameName, oldParents, newParents ) );
 }
 
@@ -873,7 +990,7 @@ function getOpenFolders(games, arr, parents, system, oldSystemName, newSystemNam
                 }
             }
 
-            var lookingElement = document.querySelector(".system[data-system='"+lookingSystem+"'] .game[data-game='"+encodeURIComponent(lookingGame)+"'][data-parents='"+parentsArrayToString(lookingParents)+"']");
+            var lookingElement = document.querySelector('.system[data-system="'+lookingSystem+'"] .game[data-game="'+encodeURIComponent(lookingGame)+'"][data-parents="'+parentsArrayToString(lookingParents)+'"]');
             if( lookingElement && lookingElement.classList.contains("children-showing") ) {
                 var cpyGameEntry = JSON.parse( JSON.stringify(gameEntry ));
                 cpyGameEntry.parents = curParents.slice(0);
@@ -1015,6 +1132,7 @@ function moveMenu( spaces ) {
     }
     toggleButtons();
     saveMenuPosition();
+    setMarquee();
 }
 
 /**
@@ -1029,7 +1147,14 @@ function moveSubMenu( spaces ) {
     // Get all menu items matching that system
     var subMenus = document.querySelectorAll(".system[data-system='"+currentSystem+"'] .games");
     // Get the height of elements
-    var height = document.querySelector(".game").offsetHeight;
+    var height;
+    try {
+        height = document.querySelector(".game:not(.hidden)").offsetHeight;
+    }
+    catch(err) {
+        // there is no visible element to move
+        return;
+    }
 
     // For each matching submenu
     for( var i=0; i<subMenus.length; i++ ) {
@@ -1089,6 +1214,7 @@ function moveSubMenu( spaces ) {
     }
     toggleButtons();
     saveMenuPosition();
+    setMarquee();
 }
 
 /**
@@ -1124,8 +1250,8 @@ function getSelectedValues(systemSaveAllowedOnly, noFolders) {
     // We have an item, but its a folder, and we aren't allowing folders
     // Try to find another item in the same system that is not a folder
     // note how we know know we don't want a folder
-    else if( currentGameElement && !excludeArray.includes(currentSystem) && document.querySelector(".system.selected .game[data-parents='"+gameElementParentsString+"']:not([data-is-folder])") ) {
-        currentGameElement = document.querySelector(".system.selected .game[data-parents='"+gameElementParentsString+"']:not([data-is-folder])");
+    else if( currentGameElement && !excludeArray.includes(currentSystem) && document.querySelector('.system.selected .game[data-parents="'+gameElementParentsString+'"]:not([data-is-folder])') ) {
+        currentGameElement = document.querySelector('.system.selected .game[data-parents="'+gameElementParentsString+'"]:not([data-is-folder])');
         currentGame = decodeURIComponent(currentGameElement.getAttribute("data-game"));
         currentParents = parentsStringToArray(currentGameElement.getAttribute("data-parents"));
         if( systemSaveAllowedOnly && noFolders ) {
@@ -1673,7 +1799,7 @@ function createSystemMenu( selected, old, required, onlyWithGames, onlySystemsSu
             // next try to look for a folder in the same level as the selected game like we do in getSelected
             else if( currentGameElement ) {
                 var folderParents = currentGameElement.getAttribute("data-parents");
-                currentGameElement = document.querySelector(".system[data-system='"+system+"'] .game[data-parents='"+folderParents+"']:not([data-is-folder])");
+                currentGameElement = document.querySelector('.system[data-system="'+system+'"] .game[data-parents="'+folderParents+'"]:not([data-is-folder])');
                 if( currentGameElement ) {
                     currentGame = decodeURIComponent(currentGameElement.getAttribute("data-game"));
                 }
@@ -1770,7 +1896,7 @@ function createGameMenu( selected, system, old, required, parents, onlyWithRealG
         var currentSystem = system.options[system.selectedIndex].text;
         var saveSelect = modal.querySelector("#save-select");
         if( saveSelect ) {
-            var currentSaveElement = document.querySelector(".system[data-system='"+currentSystem+"'] .game[data-game='"+encodeURIComponent(game)+"'] .current-save");
+            var currentSaveElement = document.querySelector('.system[data-system="'+currentSystem+'"] .game[data-game="'+encodeURIComponent(game)+'"] .current-save');
             var currentSave = null;
             if( currentSaveElement ) {
                 currentSave = currentSaveElement.innerText;
@@ -1977,7 +2103,7 @@ function createFolderMenu( parents, system, old, required, onlyWithGames, onlyWi
                     if( gameSelect ) { // See important note : this means onlyWithGames should be true
                         var parentsForGameMenu = extractParentsFromFolderMenu(old);
                         // Get the game element that is selected - it must be available for this folder though
-                        var selectedGameElement = document.querySelector(".system[data-system='"+system+"'] .game.selected[data-parents='"+parentsArrayToString(parentsForGameMenu)+"']");
+                        var selectedGameElement = document.querySelector('.system[data-system="'+system+'"] .game.selected[data-parents="'+parentsArrayToString(parentsForGameMenu)+'"]');
                         if( onlyWithRealGames && selectedGameElement && selectedGameElement.hasAttribute("data-is-folder") ) {
                             selectedGameElement = null;
                         }
@@ -1989,7 +2115,7 @@ function createFolderMenu( parents, system, old, required, onlyWithGames, onlyWi
                         // we KNOW there is at least one game (with the same parents) in there since we filtered earlier
                         else {
                             var not = onlyWithRealGames ? ":not([data-is-folder])" : ""; // if onlyWithGames - IMPORTANT NOTE: gameSelect shouldn't exist without either onlyWithGames or onlyWithRequiredGames - otherwise this might throw an error as we'd have an empty folder - you should not  allow a game select with the potentiality of there being nothing to have selected by default
-                            selectedGameElement = document.querySelector(".system[data-system='"+system+"'] .game[data-parents='"+parentsArrayToString(parentsForGameMenu)+"']" + not);
+                            selectedGameElement = document.querySelector('.system[data-system="'+system+'"] .game[data-parents="'+parentsArrayToString(parentsForGameMenu)+'"]' + not);
                             selectedGame = decodeURIComponent(selectedGameElement.getAttribute("data-game"));
                         }
                         
