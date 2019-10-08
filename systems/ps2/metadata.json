@@ -5,5 +5,5 @@
   "saveDirArgType": "=",
   "screenshotsDirArgType": "=",
   "extraFlags": ["--fullscreen"],
-  "activateCommand": "wmctrl -a 'Speed: '"
+  "activateCommand": "wmctrl -F -a 'PCSX2'"
 }
