@@ -75,6 +75,8 @@ const INVALID_CHARACTERS = ["/"];
 const GET_RESOLUTION_COMMAND = "xdpyinfo | grep dimensions | tr -s ' ' | cut -d' ' -f3"; // e.g. "1920x1080"
 const SET_RESOLUTION_COMMAND = "xrandr -s ";
 const CHECK_TIMEOUT = 100;
+const ACTIVE_WINDOW_COMMAND = "xdotool getwindowfocus getwindowname";
+const PAGE_TITLE = "GuyStation - Google Chrome";
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -1926,9 +1928,12 @@ function saveCurrentResolution() {
  * and/or using kill -9. Nonetheless, this should restore the proper resolution.
  */
 function ensureProperResolution() {
+    console.log("ensure");
     if( properResolution ) {
+        console.log("got proper");
         let currentResolution = proc.execSync(GET_RESOLUTION_COMMAND).toString();
         if( currentResolution != properResolution ) {
+            console.log("setting");
             proc.execSync(SET_RESOLUTION_COMMAND + properResolution);
         }
     }
@@ -2022,8 +2027,10 @@ ioHook.on("keydown", event => {
         try {
             menuPage.bringToFront();
             // these functions will check if they are applicable
-            pauseGame();
-            pauseRemoteMedia();
+            if( proc.execSync(ACTIVE_WINDOW_COMMAND).toString != PAGE_TITLE ) {
+                pauseGame();
+                pauseRemoteMedia();
+            }
         }
         catch(err) {/*ok*/}
     }

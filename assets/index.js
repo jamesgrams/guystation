@@ -242,7 +242,6 @@ window.addEventListener('load', load );
  * Load.
  */
 function load() {
-    document.activeElement.blur();
     startRequest();
     makeRequest( "GET", "/data", {}, function(responseText) {
         var response = JSON.parse(responseText);
@@ -269,6 +268,7 @@ function load() {
             e.stopPropagation();
         }
         enableSearch();
+        document.activeElement.blur();
         // Check for changes every 10 seconds
         setInterval( function() {
             if( !makingRequest ) {
@@ -2898,7 +2898,7 @@ function manageGamepadInput() {
                 document.querySelector(".modal #remote-media-form video").requestFullscreen();
             }
         }
-        else {
+        else if(!selectPressed) {
             buttonsUp.gamepad[joyMapping["Select"]] = true;
         }
 
@@ -2909,7 +2909,7 @@ function manageGamepadInput() {
 
             playNextMedia(1);
         }
-        else {
+        else if(!rightTriggerPressed) {
             buttonsUp.gamepad[joyMapping["Right Trigger"]] = true;
         }
 
@@ -2920,7 +2920,7 @@ function manageGamepadInput() {
 
             playNextMedia(-1);
         }
-        else {
+        else if(!leftTriggerPressed) {
             buttonsUp.gamepad[joyMapping["Left Trigger"]] = true;
         }
     }
