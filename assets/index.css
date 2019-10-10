@@ -112,16 +112,16 @@ h1 {
     display: none !important;
 }
 
-.game[data-is-folder] .game-title::after {
+.game[data-is-folder] .game-title::before {
     content: "\25be";
-    padding-left: 10px;
+    padding-right: 10px;
     display: inline-flex;
 }
 
-.game[data-is-folder].children-showing .game-title::after {
+.game[data-is-folder].children-showing .game-title::before {
     transform: scale(-1, -1);
-    padding-right: 10px;
-    padding-left: 0;
+    padding-left: 10px;
+    padding-right: 0;
     padding-bottom: 5px;
 }
 
@@ -181,7 +181,7 @@ h1 {
     left: 50%;
     transform: translateX(-50%);
     top: 0;
-    z-index: 1000;
+    z-index: 998;
 }
 
 #time {
@@ -340,6 +340,7 @@ h1 {
     transform: translateX(98%);
     width: 1210px;
     transition: transform 0.5s, width 0.5s;
+    z-index: 999;
 }
 
 #functions.open {
@@ -454,8 +455,26 @@ h1 {
     transform: translateY(-50%);
 }
 
+#remote-media-placeholder {
+    display: none;
+}
+
 #remote-media-form video {
-    width: 250px;
+    width: 100%;
+}
+
+#remote-media-form #previous-media, #remote-media-form #next-media {
+    width: 80px;
+    height: 58px;
+    margin: 10px 0 0 0;
+}
+
+#remote-media-form #previous-media {
+    float: left;
+}
+
+#remote-media-form #next-media {
+    float: right
 }
 
 #folder-select-container label, #old-folder-select-container label {

@@ -51,6 +51,7 @@ var escapeDown = null;
 var joyMapping = {
     "A": 1,
     "Start": 9,
+    "Select": 8,
     "Right Trigger": 7,
     "Left Trigger": 6,
     "D-pad Up": 13,
@@ -67,6 +68,7 @@ var buttonsUp = {
 };
 buttonsUp.gamepad[joyMapping["A"]] = true;
 buttonsUp.gamepad[joyMapping["Start"]] = true;
+buttonsUp.gamepad[joyMapping["Select"]] = true;
 buttonsUp.gamepad[joyMapping["Right Trigger"]] = true;
 buttonsUp.gamepad[joyMapping["Left Trigger"]] = true;
 
@@ -428,10 +430,6 @@ function enableControls() {
         }
         else if( enableModalControls ) {
             switch (event.keyCode) {
-                // Escape
-                case 27:
-                    closeModal();
-                    break;
                 // Enter
                 case 13:
                     if( document.querySelector(".modal #address-bar") && document.querySelector(".modal #address-bar") === document.activeElement && !navigating ) {
@@ -1295,11 +1293,18 @@ function getSelectedValues(systemSaveAllowedOnly, noFolders) {
 
 /**
  * Display remote media controls.
+ * @param {string} system - the system to look at instead of the selected system (optional)
+ * @param {string} game - the game to look at instead of the selected game (optional)
+ * @param {Array} parents - the parents to look at instead of the selected parents (optional)
+ * @param {boolean} serverLaunched - true if the modal was launched by the server (will call quitGame when modal closed)
  */
-function displayRemoteMedia() {
+function displayRemoteMedia(system, game, parents, serverLaunched) {
     var form = document.createElement("div");
     form.setAttribute("id", "remote-media-form");
     var selected = getSelectedValues();
+    if( system ) selected.system = system;
+    if( game ) selected.game = game;
+    if( parents ) selected.parents = parents;
     var path = ["systems", encodeURIComponent(selected.system), "games"].concat(selected.parents).concat([encodeURIComponent(selected.game), encodeURIComponent(getGamesInFolder(selected.parents, selected.system)[selected.game].rom)]).join("/");
     
     var videoElement = document.createElement("video");
@@ -1307,9 +1312,96 @@ function displayRemoteMedia() {
     var sourceElement = document.createElement("source");
     sourceElement.setAttribute("src", path);
     videoElement.appendChild(sourceElement);
+    videoElement.setAttribute( "data-system", selected.system );
+    videoElement.setAttribute( "data-game", encodeURIComponent(selected.game) );
+    videoElement.setAttribute( "data-parents", parentsArrayToString( selected.parents ) );
     form.appendChild(videoElement);
+
+    var backButton = createButton( "◀", function() {
+        playNextMedia(-1);
+    } );
+    backButton.setAttribute("id", "previous-media");
+    var forwardButton = createButton( "▶", function() {
+        playNextMedia(1);
+    } );
+    forwardButton.setAttribute("id", "next-media");
+    form.appendChild( backButton );
+    form.appendChild( forwardButton );
+
+    if(serverLaunched) {
+        form.setAttribute("data-is-server-launched", "true");
+    }
     
-    launchModal( form );
+    launchModal( form, function() { if(serverLaunched) { quitGame(); } }, serverLaunched ? true : false );
+}
+
+/**
+ * Play the next piece of media in a folder
+ * @param {Number} offset - the offset of media to play 
+ */
+function playNextMedia(offset) {
+    if( !offset ) offset = 1;
+    var video = document.querySelector(".modal #remote-media-form video");
+    if( video ) {
+        var system = video.getAttribute("data-system");
+        var game = video.getAttribute("data-game");
+        var parents = video.getAttribute("data-parents");
+        var mediaElement = document.querySelector('.system[data-system="'+system+'"] .game[data-game="'+game+'"][data-parents="'+parents+'"]');
+        var folderElements = document.querySelectorAll('.system[data-system="'+system+'"] .game[data-parents="'+parents+'"]');
+        var elementIndex = Array.prototype.indexOf.call( folderElements, mediaElement );
+        var newIndex = getIndex( elementIndex, folderElements, offset );
+        var newGame = folderElements[newIndex].getAttribute("data-game");
+        var isServerLaunched = document.querySelector(".modal #remote-media-form").hasAttribute("data-is-server-launched");
+        // If this is a server game using remote media, we want to launch a new game in the same fashion
+        // the server will call diplayRemoteMedia after the server does what it needs too
+        if( isServerLaunched ) {
+            launchGame( system, decodeURIComponent(newGame), parentsStringToArray(parents) );
+        }
+        // Otherwise this is plain old remote media, so we just want to open a new modal with the new system
+        else {
+            closeModalCallback = null;
+            displayRemoteMedia( system, decodeURIComponent(newGame), parentsStringToArray(parents) );
+        }
+    }
+}
+
+/**
+ * Minimize the remote media (for server calls only)
+ */
+function minimizeRemoteMedia() {
+    var remoteMedia = document.querySelector("#remote-media-form");
+    if( remoteMedia ) {
+        var remoteMediaPlaceholder = document.createElement("div");
+        remoteMediaPlaceholder.setAttribute("id", "remote-media-placeholder");
+        remoteMediaPlaceholder.appendChild(remoteMedia);
+        document.body.appendChild(remoteMediaPlaceholder);
+        // we don't want to quit the game on minimize
+        closeModalCallback = null;
+        closeModal();
+    }
+}
+
+/**
+ * Maximize the remote media (for server calls only)
+ * This is a no-op is there is no remote media already minimized.
+ */
+function maximizeRemoteMedia() {
+    var remoteMediaPlaceholder = document.querySelector("#remote-media-placeholder");
+    if( remoteMediaPlaceholder ) {
+        var remoteMedia = remoteMediaPlaceholder.querySelector("#remote-media-form");
+        launchModal( remoteMedia, function() { if( document.querySelector("#remote-media-form").hasAttribute("data-is-server-launched") ) { quitGame(); } } );
+        remoteMediaPlaceholder.parentElement.removeChild(remoteMediaPlaceholder);
+    }
+}
+
+/**
+ * Remove the remote media placeholder if it exists.
+ */
+function removeRemoteMediaPlaceholder() {
+    var remoteMediaPlaceholder = document.querySelector("#remote-media-placeholder");
+    if( remoteMediaPlaceholder ) {
+        remoteMediaPlaceholder.parentElement.removeChild(remoteMediaPlaceholder);
+    }
 }
 
 /**
@@ -2314,10 +2406,11 @@ function createFormTitle( title ) {
  * Launch a modal.
  * @param {Element} element - the element within the modal.
  * @param {Function} closeModalCallbackFunction - a function to set the global closeModalCallback to after any current modal has closed
+ * @param {boolean} force - allow launch during a request - should only happen from a server side request
  */
-function launchModal( element, closeModalCallbackFunction ) {
-    if( !makingRequest ) {
-        closeModal(); // Close any current modal
+function launchModal( element, closeModalCallbackFunction, force ) {
+    if( !makingRequest || force ) {
+        closeModal(force); // Close any current modal
         if( closeModalCallbackFunction ) {
             closeModalCallback = closeModalCallbackFunction;
         }
@@ -2339,9 +2432,10 @@ function launchModal( element, closeModalCallbackFunction ) {
 
 /**
  * Close the modal on the page.
+ * @param {boolean} force - allow launch during a request - should only happen from a server side request
  */
-function closeModal() {
-    if( !makingRequest ) {
+function closeModal(force) {
+    if( !makingRequest || force ) {
         var modal = document.querySelector(".modal");
         if( modal ) {
             modal.classList.remove("modal"); // We need to do this as to not get it mixed up with another modal
@@ -2409,12 +2503,13 @@ function createToast(message, type) {
  * Launch a game
  * @param {string} system - the system to launch the game on
  * @param {string} game - the game to launch
+ * @param {Array} parents - the parents of the game to launch
  */
 function launchGame( system, game, parents ) {
     if( !makingRequest ) {
         startRequest(); // Most other functions do this prior since they need to do other things
         makeRequest( "POST", "/launch", { "system": system, "game": game, "parents": parents },
-        function( responseText ) { standardSuccess(responseText, "Game launched") },
+        function( responseText ) { standardSuccess(responseText, "Game launched", null, null, null, null, null, null, true) },
         function( responseText ) { standardFailure( responseText ) } );
     }
 }
@@ -2426,7 +2521,7 @@ function quitGame() {
     if( !makingRequest ) {
         startRequest(); // Most other functions do this prior since they need to do other things
         makeRequest( "POST", "/quit", {},
-        function( responseText ) { standardSuccess(responseText, "Game quit") },
+        function( responseText ) { standardSuccess(responseText, "Game quit", null, null, null, null, null, null, true) },
         function( responseText ) { standardFailure( responseText ) } );
     }
 }
@@ -2523,14 +2618,15 @@ function deleteSave( system, game, save, parents ) {
  * @param {string} newGameName - the new name of the game if it changed (null if it was deleted)
  * @param {Array} oldParents - the old parents if it changed
  * @param {Array} newParents - the new parents if it changed
+ * @param {boolean} preventModalClose - true if the modal should not close
  */
-function standardSuccess( responseText, message, oldSystemName, newSystemName, oldGameName, newGameName, oldParents, newParents ) {
+function standardSuccess( responseText, message, oldSystemName, newSystemName, oldGameName, newGameName, oldParents, newParents, preventModalClose ) {
     var response = JSON.parse(responseText);
     systemsDict = response.systems;
     redraw(oldSystemName, newSystemName, oldGameName, newGameName, oldParents, newParents);
     alertSuccess(message);
     endRequest();
-    closeModal();
+    if( !preventModalClose) closeModal();
 }
 
 /**
@@ -2669,11 +2765,10 @@ function manageGamepadInput() {
         return;
     }
     
+    var gp = gamepads[0];
     if( !disableMenuControls && document.hasFocus() ) {
 
         // See this helpful image for mappings: https://www.html5rocks.com/en/tutorials/doodles/gamepad/gamepad_diagram.png
-
-        var gp = gamepads[0];
         
         var aPressed = buttonPressed(gp.buttons[joyMapping["A"]]);
         var startPressed = buttonPressed(gp.buttons[joyMapping["Start"]]);
@@ -2749,9 +2844,9 @@ function manageGamepadInput() {
         for( var i=0; i<inputs.length; i++ ) {
             if( inputs[i] === document.activeElement ) {
                 // If so, check if any buttons are pressed
-                for( var j=0; j<buttons.length; j++ ) {
+                for( var j=0; j<gp.buttons.length; j++ ) {
                     // If so, set the input's value to be that of the pressed button
-                    if(buttonPressed(buttons[j])) {
+                    if(buttonPressed(gp.buttons[j])) {
                         inputs[i].value = j;
                         if( inputs[i+1] ) {
                             if( focusInterval ) {
@@ -2764,6 +2859,46 @@ function manageGamepadInput() {
                 }
                 break;
             }
+        }
+    }
+    // Check if we are controlling media
+    else if( document.hasFocus() && document.querySelector(".modal #remote-media-form") ) {
+        var aPressed = buttonPressed(gp.buttons[joyMapping["A"]]);
+        var startPressed = buttonPressed(gp.buttons[joyMapping["Start"]]);
+        // A or Start - will pause/play
+        if( (aPressed && buttonsUp.gamepad[joyMapping["A"]]) 
+            || (startPressed && buttonsUp.gamepad[joyMapping["Start"]]) ) {
+            
+            if( aPressed ) buttonsUp.gamepad[joyMapping["A"]] = false;
+            if( startPressed ) buttonsUp.gamepad[joyMapping["Start"]] = false;
+            
+            var video = document.querySelector(".modal #remote-media-form video");
+            if( video.paused ) {
+                video.play();
+            }
+            else {
+                video.pause();
+            }
+        }
+        else {
+            if(!aPressed) buttonsUp.gamepad[joyMapping["A"]] = true;
+            if(!startPressed) buttonsUp.gamepad[joyMapping["Start"]] = true;
+        }
+
+        // Select will go full screen
+        var selectPressed = buttonPressed(gp.buttons[joyMapping["Select"]]);
+        if( selectPressed && buttonsUp.gamepad[joyMapping["Select"]] ) {
+            buttonsUp.gamepad[joyMapping["Select"]] = false;
+
+            if(document.fullscreenElement) {
+                document.closeFullscreen();
+            }
+            else {
+                document.querySelector(".modal #remote-media-form video").requestFullscreen();
+            }
+        }
+        else {
+            buttonsUp.gamepad[joyMapping["Select"]] = true;
         }
     }
     setTimeout(manageGamepadInput, GAMEPAD_INPUT_INTERVAL);

@@ -62,6 +62,7 @@ const TMP_ROM_LOCATION = "/tmp/tmprom";
 const NAND_ROM_FILE_PLACEHOLDER = "ROM_FILE_PLACEHOLDER";
 const FULL_SCREEN_KEY = "f11";
 const BROWSER = "browser";
+const MEDIA = "media";
 const GOOGLE_SEARCH_URL = "https://google.com/search?q=";
 const HTTP = "http://";
 const UP = "up";
@@ -71,6 +72,9 @@ const LINUX_CHROME_PATH = "/usr/bin/google-chrome";
 const STREAM_LIMIT_TIME = 750;
 const HOMEPAGE = "https://game103.net";
 const INVALID_CHARACTERS = ["/"];
+const GET_RESOLUTION_COMMAND = "xdpyinfo | grep dimensions | tr -s ' ' | cut -d' ' -f3"; // e.g. "1920x1080"
+const SET_RESOLUTION_COMMAND = "xrandr -s ";
+const CHECK_TIMEOUT = 100;
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -98,7 +102,8 @@ const ERROR_MESSAGES = {
     "convertFolderToGame": "A folder can't be converted to a game",
     "folderHasGameBeingPlayed": "This folder has games in it that are being played",
     "folderCantBeUnderItself": "A folder can't be moved under itself",
-    "invalidCharacterInName": "Invalid character in name"
+    "invalidCharacterInName": "Invalid character in name",
+    "menuPageClosed": "The menu page is closed"
 }
 
 // We will only allow for one request at a time for app
@@ -116,6 +121,7 @@ let menuPage = null;
 let browsePage = null;
 let lastOutputTime = 0;
 let outputTimeout = null;
+let properResolution = null;
 
 // Load the data on startup
 getData();
@@ -165,7 +171,7 @@ app.post("/launch", async function(request, response) {
     console.log("app serving /launch (POST) with body: " + JSON.stringify(request.body));
     if( ! requestLocked ) {
         requestLocked = true;
-        let errorMessage = launchGame( request.body.system, request.body.game, null, request.body.parents );
+        let errorMessage = await launchGame( request.body.system, request.body.game, null, request.body.parents );
         getData();
         requestLocked = false;
         writeActionResponse( response, errorMessage );
@@ -180,7 +186,7 @@ app.post("/quit", async function(request, response) {
     console.log("app serving /quit (POST) with body: " + JSON.stringify(request.body));
     if( ! requestLocked ) {
         requestLocked = true;
-        let errorMessage = quitGame();
+        let errorMessage = await quitGame();
         getData(); // Reload data
         requestLocked = false;
         writeActionResponse( response, errorMessage );
@@ -1109,35 +1115,48 @@ function getGameDictEntry(system, game, parents) {
  * @param {string} game - the game to run.
  * @param {boolean} restart - if true, the game will be reloaded no matter what. If false, and the game is currently being played, it will just be brought to focus.
  * @param {Array} parents - an array of parent folders for a game
- * @returns {*} an error message if there was an error, or false if there was not
+ * @returns {Promise} a promise containing an error message if there was an error, or false if there was not
  */
-function launchGame(system, game, restart=false, parents=[]) {
+async function launchGame(system, game, restart=false, parents=[]) {
 
     // Error check
     let isInvalid = isInvalidGame( system, game, parents );
     if( isInvalid ) {
-        return isInvalid;
+        return Promise.resolve(isInvalid);
     }
     else if( !fs.existsSync(generateRomLocation( system, game, getGameDictEntry(system, game, parents).rom, parents )) && system != BROWSER ) {
-        return ERROR_MESSAGES.noRomFile;
+        return Promise.resolve(ERROR_MESSAGES.noRomFile);
+    }
+    else if( system == MEDIA && (!menuPage || menuPage.isClosed())) {
+        return Promise.resolve(ERROR_MESSAGES.menuPageClosed);
     }
 
     // Restart unless restart is false, we have a current emulator, and we are playing the game we selected
     let fullScreenTries = MAX_ACTIVATE_TRIES;
     let activateTries = MAX_ACTIVATE_TRIES;
     if( !isBeingPlayed(system, game, parents) || restart || !currentEmulator ) {
-        quitGame();
+        await quitGame();
 
         let command = systemsDict[system].command;
-        // We know it must be browser
-        if( !command ) {
-            launchBrowseTab();
+        if( system == BROWSER ) {
+            await launchBrowseTab();
             currentSystem = systemsDict[system].system;
             currentGame = systemsDict[system].games[ Object.keys(systemsDict[system].games)[0] ].game;
             currentParentsString = "";
             currentEmulator = true; // Kind of hacky... but will pass for playing
-            return false;
+            return Promise.resolve(false);
         }
+        else if( system == MEDIA ) {
+            await launchRemoteMedia( system, game, parents );
+            currentSystem = system;
+            currentGame = game;
+            currentParentsString = parents.join(SEPARATOR);
+            currentEmulator = true; // Kind of hacky... but will pass for playing
+            return Promise.resolve(false);
+        }
+
+        // Get the screen dimensions
+        saveCurrentResolution();
 
         // If the symlink to the save directory is the same for all games, update the symlink
         if( systemsDict[system].allGamesShareNand ) {
@@ -1210,6 +1229,7 @@ function launchGame(system, game, restart=false, parents=[]) {
             }
         }
     }
+
     if( systemsDict[system].activateCommand ) {
         for( let i=0; i<activateTries; i++ ) {
             try {
@@ -1231,30 +1251,39 @@ function launchGame(system, game, restart=false, parents=[]) {
             browsePage.bringToFront();
         }
     }
-    return false;
+    else if( system == MEDIA ) {
+        if( menuPage && !menuPage.isClosed() ) {
+            resumeRemoteMedia();
+        }
+    }
+    return Promise.resolve(false);
 }
 
 /**
  * Quit the game currently being played.
- * @returns {*} an error message if there was an error or false if there was not
+ * @returns {Promise} a promise containing an error message if there was an error or false if there was not
  */
-function quitGame() {
+async function quitGame() {
     if(currentEmulator) {
-        if(currentSystem != BROWSER) {
+        if(currentSystem != BROWSER && currentSystem != MEDIA) {
             currentEmulator.removeListener('exit', blankCurrentGame);
             proc.execSync( KILL_COMMAND + currentEmulator.pid );
+            ensureProperResolution();
+        }
+        else if( currentSystem == MEDIA ) {
+            await closeRemoteMedia();
         }
         else if( browsePage && !browsePage.isClosed() ) {
-            closeBrowseTabs();
+            await closeBrowseTabs();
         }
         currentEmulator = null;
         currentGame = null;
         currentParentsString = null;
         currentSystem = null;
-        return false;
+        return Promise.resolve(false);
     }
     else {
-        return ERROR_MESSAGES.noRunningGame;
+        return Promise.resolve(ERROR_MESSAGES.noRunningGame);
     }
 }
 
@@ -1882,10 +1911,36 @@ function deleteGame( system, game, parents=[] ) {
 }
 
 /**
+ * Save the current screen resolution
+ */
+function saveCurrentResolution() {
+    properResolution = proc.execSync(GET_RESOLUTION_COMMAND).toString();
+}
+
+/**
+ * Ensure that the screen is set to its proper resolution.
+ * This is mainly in place to deal with emulators that change the screen
+ * resolution (Mupen64Plus). From what I have seen SDL_Quit should restore
+ * the resolution, but it looks like sometimes that does not get called while
+ * other times it does. This might have something to do with pausing the application
+ * and/or using kill -9. Nonetheless, this should restore the proper resolution.
+ */
+function ensureProperResolution() {
+    if( properResolution ) {
+        let currentResolution = proc.execSync(GET_RESOLUTION_COMMAND).toString();
+        if( currentResolution != properResolution ) {
+            proc.execSync(SET_RESOLUTION_COMMAND + properResolution);
+        }
+    }
+}
+
+/**
  * Freeze the game process.
+ * This is only for programs.
  */
 function pauseGame() {
-    if(currentEmulator && currentSystem != BROWSER) {
+    if(currentEmulator && currentSystem != BROWSER && currentSystem != MEDIA) {
+        ensureProperResolution(); // Instantly get the right resolution
         proc.execSync( SLEEP_HALF_COMMAND ); // give time to go back to the menu
         proc.execSync( PAUSE_COMMAND + currentEmulator.pid );
         return false;
@@ -1894,13 +1949,70 @@ function pauseGame() {
 
 /**
  * Continue the game process.
+ * This is only for programs.
  */
 function resumeGame() {
-    if(currentEmulator && currentSystem != BROWSER) {
+    if(currentEmulator && currentSystem != BROWSER && currentSystem != MEDIA) {
         proc.execSync( SLEEP_HALF_COMMAND ); // give time to load to avoid button press issues
         proc.execSync( RESUME_COMMAND + currentEmulator.pid );
         return false;
     }
+}
+
+/**
+ * Launch remote media
+ * @param {string} system - the system the media is on (should be "media")
+ * @param {string} game - the name of the media
+ * @param {Array} parents - the parents of the media
+ */
+async function launchRemoteMedia( system, game, parents ) {
+    // You are calling launch which is calling quit but async so before quit can remove the modal callback the “new game” has already launched which will trigger the modal (there can only be one modal at a time)
+    // to close IFF the new game is media which will then call quit.
+    await menuPage.evaluate( (system, game, parents) => { displayRemoteMedia(system, game, parents, true) }, system, game, parents);
+}
+
+/**
+ * Pause remote media
+ */
+async function pauseRemoteMedia() {
+    if(currentEmulator && currentSystem == MEDIA) {
+        if( menuPage && !menuPage.isClosed() ) {
+            await menuPage.evaluate( () => minimizeRemoteMedia() );
+        }
+    }
+}
+
+/**
+ * Resume remote media
+ */
+async function resumeRemoteMedia() {
+    if(currentEmulator && currentSystem == MEDIA) {
+        if( menuPage && !menuPage.isClosed() ) {
+            await menuPage.evaluate( () => maximizeRemoteMedia() );
+        }
+    }
+}
+
+/**
+ * Destroy remote media state
+ */
+async function destroyRemoteMedia() {
+    if( menuPage && !menuPage.isClosed() ) {
+        await menuPage.evaluate( () => removeRemoteMediaPlaceholder() );
+    }
+}
+
+/**
+ * Close remote media
+ */
+async function closeRemoteMedia() {
+    let remoteMediaForm = await menuPage.$("#remote-media-form", {timeout: CHECK_TIMEOUT});
+    if( remoteMediaForm ) {
+        // the closeModalCallback is to quit the game. But this is called when a game is quit. we do not want to call
+        // it again. remove the callback, and then quit the media.
+        await menuPage.evaluate( () => { closeModalCallback=null; closeModal(); } );
+    }
+    await destroyRemoteMedia(); // destory any instances of remote media placeholders
 }
 
 // Listen for the "home" button to be pressed
@@ -1909,7 +2021,9 @@ ioHook.on("keydown", event => {
         proc.execSync(FOCUS_CHROMIUM_COMMAND);
         try {
             menuPage.bringToFront();
+            // these functions will check if they are applicable
             pauseGame();
+            pauseRemoteMedia();
         }
         catch(err) {/*ok*/}
     }

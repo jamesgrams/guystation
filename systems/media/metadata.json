@@ -1,5 +1,1 @@
-{
-  "command": "vlc",
-  "extraFlags": ["--fullscreen"],
-  "activateCommand": "wmctrl -a 'VLC media player'"
-}
+{}

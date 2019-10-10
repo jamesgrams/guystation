@@ -5,5 +5,5 @@
   "saveDirArgType": "=",
   "screenshotsDirArgType": "=",
   "extraFlags": ["--fullscreen"],
-  "activateCommand": "wmctrl -F -a 'PCSX2'"
+  "activateCommand": "wmctrl -l | grep -E \"PCSX2\\s*|Speed: \" | cut -d' ' -f1 | xargs wmctrl -i -a"
 }

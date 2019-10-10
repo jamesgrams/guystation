@@ -121,14 +121,6 @@ sudo apt-get -y install libportaudio2:i386
 # Return to the home directory
 cd ~
 
-# Install VLC
-sudo apt-get -y install vlc
-# Allow run as root
-sed -i 's/geteuid/getppid/' /usr/bin/vlc
-
-# Return to the home directory
-cd ~
-
 # Make sure nodjs is installed
 sudo apt-get -y install curl
 curl -sL https://deb.nodesource.com/setup_12.x | sudo sh
