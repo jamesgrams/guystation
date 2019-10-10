@@ -242,6 +242,7 @@ window.addEventListener('load', load );
  * Load.
  */
 function load() {
+    document.activeElement.blur();
     startRequest();
     makeRequest( "GET", "/data", {}, function(responseText) {
         var response = JSON.parse(responseText);
@@ -2899,6 +2900,28 @@ function manageGamepadInput() {
         }
         else {
             buttonsUp.gamepad[joyMapping["Select"]] = true;
+        }
+
+        // Right trigger will got to next
+        var rightTriggerPressed = buttonPressed(gp.buttons[joyMapping["Right Trigger"]]);
+        if( rightTriggerPressed && buttonsUp.gamepad[joyMapping["Right Trigger"]] ) {
+            buttonsUp.gamepad[joyMapping["Right Trigger"]] = false;
+
+            playNextMedia(1);
+        }
+        else {
+            buttonsUp.gamepad[joyMapping["Right Trigger"]] = true;
+        }
+
+        // Left trigger will go to previous
+        var leftTriggerPressed = buttonPressed(gp.buttons[joyMapping["Left Trigger"]]);
+        if( leftTriggerPressed && buttonsUp.gamepad[joyMapping["Left Trigger"]] ) {
+            buttonsUp.gamepad[joyMapping["Left Trigger"]] = false;
+
+            playNextMedia(-1);
+        }
+        else {
+            buttonsUp.gamepad[joyMapping["Left Trigger"]] = true;
         }
     }
     setTimeout(manageGamepadInput, GAMEPAD_INPUT_INTERVAL);
