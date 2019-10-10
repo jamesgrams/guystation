@@ -2023,9 +2023,9 @@ async function closeRemoteMedia() {
 // Listen for the "home" button to be pressed
 ioHook.on("keydown", event => {
     if( event.keycode == ESCAPE_KEY ) {
-        var needsPause = false;
+        var needsPause = true;
         if( proc.execSync(ACTIVE_WINDOW_COMMAND).toString().startsWith(PAGE_TITLE) ) {
-            needsPause = true;
+            needsPause = false;
         }
         proc.execSync(FOCUS_CHROMIUM_COMMAND);
         try {
