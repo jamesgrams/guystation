@@ -77,6 +77,7 @@ const SET_RESOLUTION_COMMAND = "xrandr -s ";
 const CHECK_TIMEOUT = 100;
 const ACTIVE_WINDOW_COMMAND = "xdotool getwindowfocus getwindowname";
 const PAGE_TITLE = "GuyStation - Google Chrome";
+const CHECK_MEDIA_PLAYING_INTERVAL = 100;
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -124,6 +125,7 @@ let browsePage = null;
 let lastOutputTime = 0;
 let outputTimeout = null;
 let properResolution = null;
+let clearMediaPlayingInterval = null;
 
 // Load the data on startup
 getData();
@@ -1961,8 +1963,13 @@ function resumeGame() {
     }
 }
 
+// The following remote media functions are to make the media functionality like that of a game
+// The remote media option allows media to be played on any device, but we also want it to be played
+// on the host device when launched either locally or remotely. As such, we manipulate the menuPage JavaScript
+// to pull up the remote media function on the host device.
+
 /**
- * Launch remote media
+ * Launch remote media like a game
  * @param {string} system - the system the media is on (should be "media")
  * @param {string} game - the name of the media
  * @param {Array} parents - the parents of the media
@@ -1971,6 +1978,7 @@ async function launchRemoteMedia( system, game, parents ) {
     // You are calling launch which is calling quit but async so before quit can remove the modal callback the “new game” has already launched which will trigger the modal (there can only be one modal at a time)
     // to close IFF the new game is media which will then call quit.
     await menuPage.evaluate( (system, game, parents) => { displayRemoteMedia(system, game, parents, true) }, system, game, parents);
+    await checkRemoteMedia( system, game, parents );
 }
 
 /**
@@ -2008,13 +2016,45 @@ async function destroyRemoteMedia() {
  * Close remote media
  */
 async function closeRemoteMedia() {
-    let remoteMediaForm = await menuPage.$("#remote-media-form", {timeout: CHECK_TIMEOUT});
-    if( remoteMediaForm ) {
-        // the closeModalCallback is to quit the game. But this is called when a game is quit. we do not want to call
-        // it again. remove the callback, and then quit the media.
-        await menuPage.evaluate( () => { closeModalCallback=null; closeModal(); } );
+    await clearCheckRemoteMedia();
+    if( menuPage && !menuPage.isClosed() ) {
+        let remoteMediaForm = await menuPage.$("#remote-media-form", {timeout: CHECK_TIMEOUT});
+        if( remoteMediaForm ) {
+            // the closeModalCallback is to quit the game. But this is called when a game is quit. we do not want to call
+            // it again. remove the callback, and then quit the media.
+            await menuPage.evaluate( () => { closeModalCallback=null; closeModal(); } );
+        }
+        await destroyRemoteMedia(); // destory any instances of remote media placeholders
     }
-    await destroyRemoteMedia(); // destory any instances of remote media placeholders
+}
+
+/**
+ * Begin checking for remote media status
+ * @param {string} system 
+ * @param {string} game 
+ * @param {Array} parents 
+ */
+async function checkRemoteMedia( system, game, parents ) {
+    clearMediaPlayingInterval = setInterval( async function() {
+        if( !menuPage || menuPage.isClosed() ) {
+            await quitGame();
+            return;
+        }
+        let isPlaying = await menuPage.evaluate( (system, game, parents) => isRemoteMediaPlaying(system, game, parents), system, game, parents );
+        if( !isPlaying ) {
+            // Sanity checks to make sure we are still on the same game
+            if( currentEmulator && currentSystem == system && currentGame == game && currentParentsString == parents.join(SEPARATOR) ) {
+                await quitGame();
+            }
+        }
+    }, CHECK_MEDIA_PLAYING_INTERVAL );
+}
+
+/**
+ * Stop checking for remote media status
+ */
+async function clearCheckRemoteMedia() {
+    clearInterval( clearMediaPlayingInterval );
 }
 
 // Listen for the "home" button to be pressed

@@ -1307,8 +1307,10 @@ function displayRemoteMedia(system, game, parents, serverLaunched) {
     if( parents ) selected.parents = parents;
     var path = ["systems", encodeURIComponent(selected.system), "games"].concat(selected.parents).concat([encodeURIComponent(selected.game), encodeURIComponent(getGamesInFolder(selected.parents, selected.system)[selected.game].rom)]).join("/");
     
+    form.appendChild( createFormTitle(selected.game) );
     var videoElement = document.createElement("video");
     videoElement.setAttribute("controls", "true");
+    videoElement.setAttribute("autoplay", "true");
     var sourceElement = document.createElement("source");
     sourceElement.setAttribute("src", path);
     videoElement.appendChild(sourceElement);
@@ -1377,7 +1379,7 @@ function minimizeRemoteMedia() {
         document.body.appendChild(remoteMediaPlaceholder);
         // we don't want to quit the game on minimize
         closeModalCallback = null;
-        closeModal();
+        closeModal(true);
     }
 }
 
@@ -1389,19 +1391,29 @@ function maximizeRemoteMedia() {
     var remoteMediaPlaceholder = document.querySelector("#remote-media-placeholder");
     if( remoteMediaPlaceholder ) {
         var remoteMedia = remoteMediaPlaceholder.querySelector("#remote-media-form");
-        launchModal( remoteMedia, function() { if( document.querySelector("#remote-media-form").hasAttribute("data-is-server-launched") ) { quitGame(); } } );
+        launchModal( remoteMedia, function() { if( document.querySelector("#remote-media-form").hasAttribute("data-is-server-launched") ) { quitGame(); } }, true );
         remoteMediaPlaceholder.parentElement.removeChild(remoteMediaPlaceholder);
     }
 }
 
 /**
- * Remove the remote media placeholder if it exists.
+ * Remove the remote media placeholder if it exists. (for server calls only)
  */
 function removeRemoteMediaPlaceholder() {
     var remoteMediaPlaceholder = document.querySelector("#remote-media-placeholder");
     if( remoteMediaPlaceholder ) {
         remoteMediaPlaceholder.parentElement.removeChild(remoteMediaPlaceholder);
     }
+}
+
+/**
+ * Determine if remote media is being played (for server calls only)
+ * @param {string} system - the system to determine if being played 
+ * @param {string} game - the game to determine if being played
+ * @param {Array} parents - the parents of the game being determined if it is being played
+ */
+function isRemoteMediaPlaying( system, game, parents ) {
+    return document.querySelector('#remote-media-form[data-is-server-launched] video[data-system="'+system+'"][data-game="'+encodeURIComponent(game)+'"][data-parents="'+parentsArrayToString(parents)+'"]') ? true : false;
 }
 
 /**
