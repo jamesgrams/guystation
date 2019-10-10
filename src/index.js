@@ -2023,11 +2023,15 @@ async function closeRemoteMedia() {
 // Listen for the "home" button to be pressed
 ioHook.on("keydown", event => {
     if( event.keycode == ESCAPE_KEY ) {
+        var needsPause = false;
+        if( proc.execSync(ACTIVE_WINDOW_COMMAND).toString().startsWith(PAGE_TITLE) ) {
+            needsPause = true;
+        }
         proc.execSync(FOCUS_CHROMIUM_COMMAND);
         try {
             menuPage.bringToFront();
             // these functions will check if they are applicable
-            if( proc.execSync(ACTIVE_WINDOW_COMMAND).toString() != PAGE_TITLE ) {
+            if( needsPause ) {
                 pauseGame();
                 pauseRemoteMedia();
             }
