@@ -263,7 +263,6 @@ function load() {
         startTime();
         gamePadInterval = setInterval(pollGamepads, GAMEPAD_INTERVAL);
         addDog();
-        document.body.click();
         document.body.onclick = closeMenu;
         document.querySelector("#functions").onclick = function(e) {
             e.stopPropagation();

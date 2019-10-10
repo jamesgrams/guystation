@@ -181,7 +181,7 @@ h1 {
     left: 50%;
     transform: translateX(-50%);
     top: 0;
-    z-index: 998;
+    z-index: 997;
 }
 
 #time {
@@ -206,6 +206,7 @@ h1 {
     overflow: auto;
     max-width: 100vw;
     box-sizing: border-box;
+    z-index: 999;
 }
 
 .modal > div, .dying-modal > div {
@@ -340,7 +341,7 @@ h1 {
     transform: translateX(98%);
     width: 1210px;
     transition: transform 0.5s, width 0.5s;
-    z-index: 999;
+    z-index: 998;
 }
 
 #functions.open {
