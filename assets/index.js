@@ -268,7 +268,6 @@ function load() {
             e.stopPropagation();
         }
         enableSearch();
-        document.activeElement.blur();
         // Check for changes every 10 seconds
         setInterval( function() {
             if( !makingRequest ) {

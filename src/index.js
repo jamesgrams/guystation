@@ -2027,7 +2027,7 @@ ioHook.on("keydown", event => {
         try {
             menuPage.bringToFront();
             // these functions will check if they are applicable
-            if( proc.execSync(ACTIVE_WINDOW_COMMAND).toString != PAGE_TITLE ) {
+            if( proc.execSync(ACTIVE_WINDOW_COMMAND).toString() != PAGE_TITLE ) {
                 pauseGame();
                 pauseRemoteMedia();
             }
