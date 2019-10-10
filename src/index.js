@@ -1928,12 +1928,9 @@ function saveCurrentResolution() {
  * and/or using kill -9. Nonetheless, this should restore the proper resolution.
  */
 function ensureProperResolution() {
-    console.log("ensure");
     if( properResolution ) {
-        console.log("got proper");
         let currentResolution = proc.execSync(GET_RESOLUTION_COMMAND).toString();
         if( currentResolution != properResolution ) {
-            console.log("setting");
             proc.execSync(SET_RESOLUTION_COMMAND + properResolution);
         }
     }
@@ -2033,8 +2030,8 @@ ioHook.on("keydown", event => {
             // these functions will check if they are applicable
             if( needsPause ) {
                 pauseGame();
-                pauseRemoteMedia();
             }
+            pauseRemoteMedia();
         }
         catch(err) {/*ok*/}
     }
