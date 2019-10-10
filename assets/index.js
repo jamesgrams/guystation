@@ -77,42 +77,17 @@ buttonsUp.gamepad[joyMapping["Left Trigger"]] = true;
  */
 function bubbleScreenshots() {
     var currentSystemElement = document.querySelector(".system.selected");
-    var currentGameElement = currentSystemElement.querySelector(".system.selected .game.selected");
+    var currentGameElement = currentSystemElement.querySelector(".game.selected");
     if( currentGameElement ) {
         var currentSystem = currentSystemElement.getAttribute("data-system");
         if( nonSaveSystems.includes(currentSystem) ) return;
-        var currentGame = decodeURIComponent(currentGameElement.getAttribute("data-game"));
-        var gameDictEntry = getGamesInFolder( parentsStringToArray(currentGameElement.getAttribute("data-parents")), currentSystem )[currentGame];
-        // if it is a folder, get some sub items
-        if( gameDictEntry.isFolder ) {
-            if( folderContainsRealGames(gameDictEntry.games) ) {
-                var arr = [];
-                var folderParents = parentsStringToArray(currentGameElement.getAttribute("data-parents"));
-                folderParents.push( gameDictEntry.game );
-                getRealGamesInFolderRecursive(gameDictEntry.games, arr, folderParents);
-                gameDictEntry = arr[Math.floor(Math.random() * arr.length)];
-                currentGameElement = document.querySelector( '.system[data-system="'+currentSystem+'"] .game[data-game="'+encodeURIComponent(gameDictEntry.game)+'"][data-parents="'+parentsArrayToString(gameDictEntry.parents)+'"]');
-                currentGame = decodeURIComponent(currentGameElement.getAttribute("data-game"));
-            }
-            else {
-                gameDictEntry = null;
-            }
-        }
-        var currentSave = "";
-        if( gameDictEntry ) {
-            currentSave = currentGameElement.querySelector(".current-save").innerText;
-        }
-        if( systemsDict[currentSystem]
-            && currentSave
-            && gameDictEntry
-            && gameDictEntry.saves
-            && gameDictEntry.saves[currentSave]
-            && gameDictEntry.saves[currentSave].screenshots
-            && gameDictEntry.saves[currentSave].screenshots.length ) {
-            var screenshots = gameDictEntry.saves[currentSave].screenshots;
+        
+        var screenshots = getAllScreenshots( currentSystem, decodeURIComponent(currentGameElement.getAttribute("data-game")), parentsStringToArray(currentGameElement.getAttribute("data-parents")) );
+
+        if( screenshots.length ) {
             var screenshot = screenshots[Math.floor(Math.random()*screenshots.length)];
             var img = document.createElement("img");
-            img.setAttribute("src", ["systems", encodeURIComponent(currentSystem), "games", encodeURIComponent(currentGame), "saves", encodeURIComponent(currentSave), "screenshots", encodeURIComponent(screenshot)].join("/"));
+            img.setAttribute("src", screenshot);
             img.classList.add("screenshot");
             img.style.left = (Math.floor(Math.random()*2) ? Math.random()*20 : 80-Math.random()*20) + "%";
             document.body.appendChild(img);
@@ -121,6 +96,69 @@ function bubbleScreenshots() {
             }, 5000 ); // make sure this time matches the css
         }
     }
+}
+
+/**
+ * Get all screenshots
+ * @param {string} currentSystem - the system the game is on
+ * @param {HTMLElement} currentGameElement - the HTML element for the game
+ */
+function getAllScreenshots(system, game, parents) {
+    if( !system || !game || !parents ) {
+        return [];
+    }
+
+    var gameDictEntry = getGamesInFolder( parents, system )[game];
+
+    var gameDictEntries = [];
+    // if it is a folder, get some sub items
+    if( gameDictEntry.isFolder ) {
+        if( folderContainsRealGames(gameDictEntry.games) ) {
+            var arr = [];
+            var folderParents = parents;
+            folderParents.push( gameDictEntry.game );
+            getRealGamesInFolderRecursive(gameDictEntry.games, arr, folderParents);
+            for( var i=0; i<arr.length; i++ ) {
+                gameDictEntries.push( arr[i] );
+            }
+        }
+    }
+    else {
+        gameDictEntry = JSON.parse(JSON.stringify(gameDictEntry));
+        gameDictEntry.parents = parents;
+        gameDictEntries.push(gameDictEntry);
+    }
+
+    var urls = [];
+    for( var i=0; i<gameDictEntries.length; i++ ) {
+        gameDictEntry = gameDictEntries[i];
+        var currentGameElement = document.querySelector( '.system[data-system="'+system+'"] .game[data-game="'+encodeURIComponent(gameDictEntry.game)+'"][data-parents="'+parentsArrayToString(gameDictEntry.parents)+'"]');
+        if( currentGameElement ) {
+            var currentGame = decodeURIComponent(currentGameElement.getAttribute("data-game"));
+            var currentSaveElement = currentGameElement.querySelector(".current-save");
+            if( currentSaveElement ) {
+                var currentSave = currentSaveElement.innerText;
+                
+                if( systemsDict[system]
+                    && currentSave
+                    && gameDictEntry
+                    && gameDictEntry.saves
+                    && gameDictEntry.saves[currentSave]
+                    && gameDictEntry.saves[currentSave].screenshots
+                    && gameDictEntry.saves[currentSave].screenshots.length ) {
+                    
+                    var currentParents = gameDictEntry.parents;
+                    var screenshots = gameDictEntry.saves[currentSave].screenshots;
+                    for( var j=0; j<screenshots.length; j++ ) {
+                        urls.push( ["systems", encodeURIComponent(system), "games"].concat(currentParents).concat([encodeURIComponent(currentGame), "saves", encodeURIComponent(currentSave), "screenshots", encodeURIComponent(screenshots[j])]).join("/") );
+                    }
+
+                }
+            }
+        }
+    }
+
+    return urls;
 }
 
 /**
@@ -862,6 +900,11 @@ function toggleButtons() {
         remoteMediaButton.onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#remote-media-form") ) displayRemoteMedia(); };
         remoteMediaButton.classList.remove("inactive");
     }
+    else if( nonSaveSystems.indexOf(selectedSystem.getAttribute("data-system")) == -1 && selectedGame 
+        && getAllScreenshots(selectedSystem.getAttribute("data-system"), decodeURIComponent(selectedGame.getAttribute("data-game")), parentsStringToArray(selectedGame.getAttribute("data-parents")) ).length > 0 ) {
+        remoteMediaButton.onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#remote-media-form-screenshots") ) displayRemoteMediaScreenshots(); };
+        remoteMediaButton.classList.remove("inactive");
+    }
     else {
         remoteMediaButton.onclick = null;
         remoteMediaButton.classList.add("inactive");
@@ -1292,6 +1335,51 @@ function getSelectedValues(systemSaveAllowedOnly, noFolders) {
 }
 
 /**
+ * Display remote media for a game - an album of screenshots
+ * This should not be shown if there are no screenshots
+ */
+function displayRemoteMediaScreenshots() {
+    var form = document.createElement("div");
+    form.setAttribute("id", "remote-media-form-screenshots");
+    var selected = getSelectedValues();
+    form.appendChild( createFormTitle(selected.game + " Screenshots") );
+
+    var screenshots = getAllScreenshots(selected.system, selected.game, selected.parents);
+    for( var i=0; i<screenshots.length; i++ ) {
+        var img = document.createElement("img");
+        img.setAttribute("src", screenshots[i]);
+        if( i>0 ) img.classList.add("hidden");
+        form.appendChild(img);
+    }
+
+    var nextScreenshot = function(offset) {
+        var imgElement = document.querySelector('.modal #remote-media-form-screenshots img:not(.hidden)');
+        var imgElements = document.querySelectorAll('.modal #remote-media-form-screenshots img');
+        var elementIndex = Array.prototype.indexOf.call( imgElements, imgElement );
+        var newIndex = getIndex( elementIndex, imgElements, offset );
+        var newElement = imgElements[newIndex];
+        imgElement.classList.add("hidden");
+        newElement.classList.remove("hidden");
+        document.querySelector("#remote-media-form-screenshots .current-position").innerText = newIndex+1;
+    };
+
+    var backButton = createButton( '<i class="fas fa-chevron-left"></i>', function() {
+        nextScreenshot(-1);
+    } );
+    backButton.setAttribute("id", "previous-screenshot");
+    var forwardButton = createButton( '<i class="fas fa-chevron-right"></i>', function() {
+        nextScreenshot(1);
+    } );
+    forwardButton.setAttribute("id", "next-screenshot");
+    form.appendChild( backButton );
+    form.appendChild( forwardButton );
+
+    form.appendChild(createPositionIndicator( 1, screenshots.length ));
+
+    launchModal(form);
+}
+
+/**
  * Display remote media controls.
  * @param {string} system - the system to look at instead of the selected system (optional)
  * @param {string} game - the game to look at instead of the selected game (optional)
@@ -1305,8 +1393,8 @@ function displayRemoteMedia(system, game, parents, serverLaunched) {
     if( system ) selected.system = system;
     if( game ) selected.game = game;
     if( parents ) selected.parents = parents;
-    var path = ["systems", encodeURIComponent(selected.system), "games"].concat(selected.parents).concat([encodeURIComponent(selected.game), encodeURIComponent(getGamesInFolder(selected.parents, selected.system)[selected.game].rom)]).join("/");
     
+    var path = ["systems", encodeURIComponent(selected.system), "games"].concat(selected.parents).concat([encodeURIComponent(selected.game), encodeURIComponent(getGamesInFolder(selected.parents, selected.system)[selected.game].rom)]).join("/");
     form.appendChild( createFormTitle(selected.game) );
     var videoElement = document.createElement("video");
     videoElement.setAttribute("controls", "true");
@@ -1319,11 +1407,11 @@ function displayRemoteMedia(system, game, parents, serverLaunched) {
     videoElement.setAttribute( "data-parents", parentsArrayToString( selected.parents ) );
     form.appendChild(videoElement);
 
-    var backButton = createButton( "◀", function() {
+    var backButton = createButton( '<i class="fas fa-chevron-left"></i>', function() {
         playNextMedia(-1);
     } );
     backButton.setAttribute("id", "previous-media");
-    var forwardButton = createButton( "▶", function() {
+    var forwardButton = createButton( '<i class="fas fa-chevron-right"></i>', function() {
         playNextMedia(1);
     } );
     forwardButton.setAttribute("id", "next-media");
@@ -1333,6 +1421,11 @@ function displayRemoteMedia(system, game, parents, serverLaunched) {
     if(serverLaunched) {
         form.setAttribute("data-is-server-launched", "true");
     }
+
+    var mediaElement = document.querySelector('.system[data-system="'+selected.system+'"] .game[data-game="'+encodeURIComponent(selected.game)+'"][data-parents="'+parentsArrayToString(selected.parents)+'"]');
+    var folderElements = document.querySelector('.system[data-system="'+selected.system+'"]').querySelectorAll('.game[data-parents="'+parentsArrayToString(selected.parents)+'"]');
+    var elementIndex = Array.prototype.indexOf.call( folderElements, mediaElement );
+    form.appendChild(createPositionIndicator( elementIndex+1, folderElements.length ));
     
     launchModal( form, function() { if(serverLaunched) { quitGame(); } }, serverLaunched ? true : false );
 }
@@ -1349,7 +1442,7 @@ function playNextMedia(offset) {
         var game = video.getAttribute("data-game");
         var parents = video.getAttribute("data-parents");
         var mediaElement = document.querySelector('.system[data-system="'+system+'"] .game[data-game="'+game+'"][data-parents="'+parents+'"]');
-        var folderElements = document.querySelectorAll('.system[data-system="'+system+'"] .game[data-parents="'+parents+'"]');
+        var folderElements = document.querySelector('.system[data-system="'+system+'"]').querySelectorAll('.game[data-parents="'+parents+'"]');
         var elementIndex = Array.prototype.indexOf.call( folderElements, mediaElement );
         var newIndex = getIndex( elementIndex, folderElements, offset );
         var newGame = folderElements[newIndex].getAttribute("data-game");
@@ -1426,6 +1519,9 @@ function displayBrowserControls() {
     form.setAttribute("id", "browser-controls-form");
     form.appendChild( createFormTitle("Browser Control") );
 
+    // clear out the value in current address so it can be updated
+    currentAddress = "";
+
     sendString = "";
     var forwardInputLabel = createInput( "", "forward-input", "Mobile Forward Input: " );
     form.appendChild( forwardInputLabel );
@@ -1465,24 +1561,24 @@ function displayBrowserControls() {
     };
     form.appendChild(canvas);
 
-    var upButton = createButton( "▲", function() {
+    var upButton = createButton( '<i class="fas fa-chevron-up"></i>', function() {
         makeRequest("POST", "/browser/scroll", { direction: "up"} );
     } );
     upButton.setAttribute("id", "scroll-up");
-    var downButton = createButton( "▼", function() {
+    var downButton = createButton( '<i class="fas fa-chevron-down"></i>', function() {
         makeRequest("POST", "/browser/scroll", { direction: "down"} );
     } );
     downButton.setAttribute("id", "scroll-down");
     form.appendChild( upButton );
     form.appendChild( downButton );
 
-    var backButton = createButton( "◀", function() {
+    var backButton = createButton( '<i class="fas fa-chevron-left"></i>', function() {
         navigating = true;
         currentAddress = ""; // Clear out the current address so a new one can show up
         makeRequest("GET", "/browser/back", {}, endNavigation, endNavigation );
     } );
     backButton.setAttribute("id", "go-back");
-    var forwardButton = createButton( "▶", function() {
+    var forwardButton = createButton( '<i class="fas fa-chevron-right"></i>', function() {
         navigating = true;
         currentAddress = ""; // Clear out the current address so a new one can show up
         makeRequest("GET", "/browser/forward", {}, endNavigation, endNavigation );
@@ -1548,9 +1644,8 @@ function displayBrowserControls() {
                                 // and then close the modal
                                 // the tabs/active tab will update in the heartbeat
                                 if( document.querySelectorAll( ".browser-tab").length <= 1 ) {
-                                    quitGame();
+                                    quitGame(true);
                                     activePageId = null;
-                                    closeModal();
                                 }
                                 e.stopPropagation();
                             }
@@ -2128,6 +2223,27 @@ function extractParentsFromFolderMenu(old, modal) {
 }
 
 /**
+ * Create position indicator
+ * @param {number} currentPosition - the current position
+ * @param {number} maxPosition - the max position
+ * @returns {HTMLElement} - the position indicator
+ */
+function createPositionIndicator(currentPosition, maxPosition) {
+    var positionDiv = document.createElement("div");
+    positionDiv.classList.add("position-indicator");
+    var currentPositionSpan = document.createElement("span");
+    currentPositionSpan.classList.add("current-position");
+    currentPositionSpan.innerText = currentPosition;
+    positionDiv.appendChild(currentPositionSpan);
+    positionDiv.innerHTML += "/";
+    var maxPositionSpan = document.createElement("span");
+    maxPositionSpan.classList.add("max-position");
+    maxPositionSpan.innerText = maxPosition;
+    positionDiv.appendChild(maxPositionSpan);
+    return positionDiv;
+}
+
+/**
  * Create a menu for folders.
  * @param {Array} parents - a list of the current parents (folders) - it is ok if there are "" items in the parents array, they will be removed
  * @param {string} system - the system the menu is for
@@ -2357,7 +2473,7 @@ function createMenu( selected, options, id, label, onchange, required ) {
  */
 function createButton( label, onclick, requiredInputFields ) {
     var button = document.createElement("button");
-    button.innerText = label;
+    button.innerHTML = label;
     
     if( requiredInputFields ) {
         button.classList.add("inactive");
@@ -2528,12 +2644,13 @@ function launchGame( system, game, parents ) {
 
 /**
  * Quit a game.
+ * @param {boolean} quitModalOnCallback - true if the modal should be quit after a successful request (used by the browser)
  */
-function quitGame() {
+function quitGame(quitModalOnCallback) {
     if( !makingRequest ) {
         startRequest(); // Most other functions do this prior since they need to do other things
         makeRequest( "POST", "/quit", {},
-        function( responseText ) { standardSuccess(responseText, "Game quit", null, null, null, null, null, null, true) },
+        function( responseText ) { standardSuccess(responseText, "Game quit", null, null, null, null, null, null, quitModalOnCallback ? false : true) },
         function( responseText ) { standardFailure( responseText ) } );
     }
 }

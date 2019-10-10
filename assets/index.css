@@ -5,6 +5,13 @@
     font-style: normal;
 }
 
+@font-face {
+    font-family: 'toy-train';
+    src: url('/assets/Toy-Train.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
 body {
     margin: 0;
     overflow: hidden;
@@ -24,7 +31,6 @@ body.modal-open {
 }
 
 h1 {
-    letter-spacing: 2px;
     position: absolute;
     top: 25%;
     transform: translateY( -100% );
@@ -33,6 +39,8 @@ h1 {
     text-align: center;
     font-size: 60px;
     user-select: none;
+    font-family: "toy-train";
+    font-weight: 100;
 }
 
 #systems {
@@ -113,21 +121,28 @@ h1 {
 }
 
 .game[data-is-folder] .game-title::before {
-    content: "\25be";
-    padding-right: 10px;
+    margin-right: 10px;
     display: inline-flex;
+    font-family: "Font Awesome 5 Free";
+    content: "\f054";
+    font-weight: 900;
+    font-size: 70%;
+    vertical-align: middle;
+    transition: transform 0.25s;
+    transform-origin: center;
 }
 
 .game[data-is-folder].children-showing .game-title::before {
-    transform: scale(-1, -1);
-    padding-left: 10px;
-    padding-right: 0;
-    padding-bottom: 5px;
+    transform: rotate(90deg);
 }
 
 .game.playing .game-title::before {
-    content: "\2022";
-    padding-right: 5px;
+    font-family: "Font Awesome 5 Free";
+    content: "\f11b";
+    font-weight: 900;
+    margin-right: 10px;
+    font-size: 70%;
+    vertical-align: middle;
 }
 
 .game, .game-folder, .current-save, .game-title {
@@ -266,7 +281,7 @@ h1 {
     vertical-align: bottom;
 }
 
-#game-functions, #save-functions {
+#game-functions, #save-functions, #more-functions {
     background-color: white;
     text-align: center;
     color: #191919;
@@ -290,7 +305,7 @@ h1 {
     display: inline-block;
 }
 
-#game-functions button, #save-functions button {
+#game-functions button, #save-functions button, #more-functions button {
     display: inline-block;
     width: 52px;
     margin-left: 0;
@@ -339,7 +354,7 @@ h1 {
     right: 0;
     text-align: center;
     transform: translateX(98%);
-    width: 1210px;
+    width: 702px;
     transition: transform 0.5s, width 0.5s;
     z-index: 998;
 }
@@ -354,7 +369,6 @@ h1 {
     bottom: 0;
     transform: translateY(100%);
     opacity: 1;
-    border-radius: 25px;
     animation: fade 5s;
     animation-timing-function: linear;
     pointer-events: none;
@@ -460,22 +474,28 @@ h1 {
     display: none;
 }
 
-#remote-media-form video {
+#remote-media-form video, #remote-media-form-screenshots img  {
     width: 100%;
+    min-width: 200px;
 }
 
-#remote-media-form #previous-media, #remote-media-form #next-media {
+#remote-media-form #previous-media, #remote-media-form #next-media, #remote-media-form-screenshots #previous-screenshot, #remote-media-form-screenshots #next-screenshot {
     width: 80px;
     height: 58px;
     margin: 10px 0 0 0;
 }
 
-#remote-media-form #previous-media {
+#remote-media-form #previous-media, #remote-media-form-screenshots #previous-screenshot {
     float: left;
 }
 
-#remote-media-form #next-media {
+#remote-media-form #next-media, #remote-media-form-screenshots #next-screenshot {
     float: right
+}
+
+.position-indicator {
+    text-align: center;
+    margin-top: 20px;
 }
 
 #folder-select-container label, #old-folder-select-container label {
@@ -504,12 +524,12 @@ h1 {
     100% { transform: translate(calc(-100% - 10px), 0); } /* End the animation after the element has traveled to the left its entire width and then 10 more px to put it past the padding */
 }
 
-@media only screen and (max-width: 1350px) {
+@media only screen and (max-width: 850px) {
     #functions {
         width: 240px;
         transform: translateX(90%);
     }
-    #game-functions, #save-functions {
+    #game-functions, #save-functions, #more-functions {
         padding: 8px 0;
         width: 220px;
     }
@@ -518,6 +538,7 @@ h1 {
 @media only screen and (max-width: 775px) {
     h1 {
         top: 20%;
+        font-size: 30px;
     }
     #systems {
         top: 35%;
@@ -567,6 +588,27 @@ readers do not read off random characters that represent icons */
 
 .fa-trash:before {
     content: "\f1f8"; }  
+
+.fa-gamepad:before {
+    content: "\f11b"; }
+
+.fa-globe:before {
+    content: "\f0ac"; }
+
+.fa-compact-disc:before {
+    content: "\f51f"; }
+
+.fa-chevron-down:before {
+    content: "\f078"; }
+
+.fa-chevron-left:before {
+    content: "\f053"; }
+
+.fa-chevron-right:before {
+    content: "\f054"; }
+
+.fa-chevron-up:before {
+    content: "\f077"; }
 
 .sr-only-focusable:active, .sr-only-focusable:focus {
   clip: auto;
