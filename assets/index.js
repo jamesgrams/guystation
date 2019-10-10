@@ -2891,7 +2891,7 @@ function manageGamepadInput() {
             buttonsUp.gamepad[joyMapping["Select"]] = false;
 
             if(document.fullscreenElement) {
-                document.closeFullscreen();
+                document.exitFullscreen();
             }
             else {
                 document.querySelector(".modal #remote-media-form video").requestFullscreen();
