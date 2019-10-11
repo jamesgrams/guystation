@@ -63,7 +63,8 @@ var joyMapping = {
 var buttonsUp = {
     "gamepad": {},
     "keyboard": {
-        "13": true // Enter
+        "13": true, // Enter
+        "8": true // Backspace
     }
 };
 buttonsUp.gamepad[joyMapping["A"]] = true;
@@ -229,8 +230,8 @@ function removeMarquee() {
  */
 function addMarquee(element, gameElement) {
     // calculate the animation delay
-    var gameElementPadding = parseInt(window.getComputedStyle(gameElement).getPropertyValue("padding").replace("px","")); // todo get this value somehow
-    var gameElementWidth = parseInt(window.getComputedStyle(gameElement).getPropertyValue("width").replace("px","")); // todo get this value somehow
+    var gameElementPadding = parseInt(window.getComputedStyle(gameElement).getPropertyValue("padding-left").replace("px",""));
+    var gameElementWidth = parseInt(window.getComputedStyle(gameElement).getPropertyValue("width").replace("px",""));
     var paddingWidth = gameElementWidth + gameElementPadding; // since we start at 0, we only need one padding 
     var textWidth = element.scrollWidth;
     var totalDistance = paddingWidth + textWidth + gameElementPadding; // the total distiance traveled will be textwidth, paddingwidth, and the 10px on the left side of the element
@@ -326,6 +327,8 @@ function load() {
         socket.on("canvas", function(data) {
             drawCanvas(data);
         });
+
+        document.querySelector("#search").blur();
     }, load );
 }
 
@@ -474,6 +477,12 @@ function enableControls() {
                         document.querySelector(".modal #go-button").click();
                     }
                     break;
+                // Backspace
+                case 8:
+                    if( buttonsUp.keyboard["8"] && document.querySelector( "#browser-controls-form" ) && (document.activeElement === document.body) ) {
+                        makeRequest( "POST", "/browser/button", { button: "Backspace" } );
+                    }
+                    buttonsUp.keyboard["8"] = false;
             }
         }
         // Prevent Ctrl + S
@@ -502,6 +511,10 @@ function enableControls() {
             // Enter
             case 13:
                 buttonsUp.keyboard["13"] = true;
+                break;
+            // Backspace
+            case 8:
+                buttonsUp.keyboard["8"] = true;
                 break;
             // Escape
             case 27:
@@ -1408,7 +1421,7 @@ function displayRemoteMedia(system, game, parents, serverLaunched) {
     form.appendChild(videoElement);
 
     var backButton = createButton( '<i class="fas fa-chevron-left"></i>', function() {
-        playNextMedia(-1);
+        previousMedia();
     } );
     backButton.setAttribute("id", "previous-media");
     var forwardButton = createButton( '<i class="fas fa-chevron-right"></i>', function() {
@@ -1428,6 +1441,22 @@ function displayRemoteMedia(system, game, parents, serverLaunched) {
     form.appendChild(createPositionIndicator( elementIndex+1, folderElements.length ));
     
     launchModal( form, function() { if(serverLaunched) { quitGame(); } }, serverLaunched ? true : false );
+}
+
+/**
+ * Go to the previous media with the option to restart the current
+ * media if time is past 5 seconds
+ */
+function previousMedia() {
+    var videoElement = document.querySelector(".modal #remote-media-form video");
+    if( videoElement ) {
+        if( videoElement.currentTime > 5 ) {
+            videoElement.currentTime = 0;
+        }
+        else {
+            playNextMedia(-1);
+        }
+    }
 }
 
 /**
@@ -3046,7 +3075,7 @@ function manageGamepadInput() {
         if( leftTriggerPressed && buttonsUp.gamepad[joyMapping["Left Trigger"]] ) {
             buttonsUp.gamepad[joyMapping["Left Trigger"]] = false;
 
-            playNextMedia(-1);
+            previousMedia();
         }
         else if(!leftTriggerPressed) {
             buttonsUp.gamepad[joyMapping["Left Trigger"]] = true;

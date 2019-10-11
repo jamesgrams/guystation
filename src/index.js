@@ -106,7 +106,8 @@ const ERROR_MESSAGES = {
     "folderHasGameBeingPlayed": "This folder has games in it that are being played",
     "folderCantBeUnderItself": "A folder can't be moved under itself",
     "invalidCharacterInName": "Invalid character in name",
-    "menuPageClosed": "The menu page is closed"
+    "menuPageClosed": "The menu page is closed",
+    "invalidButton": "Button does not exist"
 }
 
 // We will only allow for one request at a time for app
@@ -297,10 +298,17 @@ app.post("/browser/click", async function(request, response) {
     writeActionResponse( response, errorMessage );
 });
 
-// Get input for the a browser
+// Get input for the browser
 app.post("/browser/input", async function(request, response) {
     console.log("app serving /browser/input with body: " + JSON.stringify(request.body));
     let errorMessage = await performInput( request.body.input );
+    writeActionResponse( response, errorMessage );
+});
+
+// Get button for the browser
+app.post("/browser/button", async function(request, response) {
+    console.log("app serving /browser/button with body: " + JSON.stringify(request.body));
+    let errorMessage = await pressButton( request.body.button );
     writeActionResponse( response, errorMessage );
 });
 
@@ -534,6 +542,26 @@ async function performInput( input ) {
     }
     
     await browsePage.keyboard.type(input);
+
+    return Promise.resolve(false);
+}
+
+/**
+ * Press a button on the page.
+ * @param {String} button - the input to type
+ * @returns {Promise} - a promise that is false if the action was successful or contains an error message if not
+ */
+async function pressButton( button ) {
+    if( !browsePage || browsePage.isClosed() ) {
+        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
+    }
+    
+    try {
+        await browsePage.keyboard.press( button );
+    }
+    catch(err) {
+        return Promise.resolve( ERROR_MESSAGES.invalidButton );
+    }
 
     return Promise.resolve(false);
 }

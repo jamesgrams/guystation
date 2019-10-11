@@ -353,7 +353,7 @@ h1 {
     bottom: 0;
     right: 0;
     text-align: center;
-    transform: translateX(98%);
+    transform: translateX(97%); /* ~24px shown */
     width: 702px;
     transition: transform 0.5s, width 0.5s;
     z-index: 998;
@@ -526,7 +526,7 @@ h1 {
 
 @media only screen and (max-width: 850px) {
     #functions {
-        width: 240px;
+        width: 230px;
         transform: translateX(90%);
     }
     #game-functions, #save-functions, #more-functions {
