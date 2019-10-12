@@ -159,6 +159,12 @@ h1 {
     display: table;
 }
 
+.game-marquee-header {
+    animation: marquee-header linear infinite;
+    transform: translateY(-100%);
+    width: 0;
+}
+
 .game-folder { 
     font-size: 45%;
 }
@@ -522,6 +528,11 @@ h1 {
 @keyframes marquee {
     0% { transform: translate(0, 0); }
     100% { transform: translate(calc(-100% - 10px), 0); } /* End the animation after the element has traveled to the left its entire width and then 10 more px to put it past the padding */
+}
+
+@keyframes marquee-header {
+    0% { transform: translate(0, -100%); }
+    100% { transform: translate(calc(-100% - 10px), -100%); } /* End the animation after the element has traveled to the left its entire width and then 10 more px to put it past the padding */
 }
 
 @media only screen and (max-width: 850px) {

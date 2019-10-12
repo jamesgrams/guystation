@@ -15,7 +15,9 @@ var SEARCH_TIMEOUT_TIME = 350;
 var UUID = "7c0bb0113f6249f7b3ce3d550d1f3771"; // no non-url safe characters in here please
 var MARQUEE_TIMEOUT_TIME = 1000;
 var MARQUEE_PIXELS_PER_SECOND = 50;
+var HEADER_MARQUEE_PIXELS_PER_SECOND = 250;
 var TABINDEX_TIMEOUT = 10000;
+var HEADER_MARQUEE_TIMEOUT_TIME = 250;
 
 var expandCountLeft; // We always need to have a complete list of systems, repeated however many times we want, so the loop works properly
 var expandCountRight;
@@ -43,6 +45,7 @@ var currentSearch = "";
 var searchTimeout;
 var marqueeTimeoutTitle;
 var marqueeTimeoutFolder;
+var headerMarqueeTimeout;
 
 // Hold escape for 5 seconds to quit
 // Note this variable contains a function interval, not a boolean value
@@ -215,12 +218,27 @@ function setMarquee() {
 /**
  * Remove all marquees
  */
-function removeMarquee() {
-    clearTimeout(marqueeTimeoutTitle);
-    clearTimeout(marqueeTimeoutFolder);
-    var marquees = document.querySelectorAll(".game-marquee");
+function removeMarquee(header) {
+    console.log(headerMarqueeTimeout);
+    if( !header ) {
+        clearTimeout(marqueeTimeoutTitle);
+        clearTimeout(marqueeTimeoutFolder);
+    }
+    else {
+        clearTimeout(headerMarqueeTimeout);
+        console.log("test");
+    }
+    console.log(headerMarqueeTimeout);
+    var selector = header ? ".game-marquee-header" : ".game-marquee:not(.game-marquee-header)";
+    var marquees = document.querySelectorAll(selector);
     marquees.forEach( function(el) {
-        el.classList.remove("game-marquee");
+        if( header ) {
+            el.classList.remove("game-marquee-header");
+            el.classList.remove("game-marquee");
+        }
+        else {
+            el.classList.remove("game-marquee");
+        }
     });
 }
 
@@ -229,7 +247,7 @@ function removeMarquee() {
  * @param {HTMLElement} element - the element to add marquee too
  * @param {HTMLElement} gameElement - the game element containing the element
  */
-function addMarquee(element, gameElement) {
+function addMarquee(element, gameElement, header) {
     // calculate the animation delay
     var gameElementPadding = parseInt(window.getComputedStyle(gameElement).getPropertyValue("padding-left").replace("px",""));
     var gameElementWidth = parseInt(window.getComputedStyle(gameElement).getPropertyValue("width").replace("px",""));
@@ -238,14 +256,22 @@ function addMarquee(element, gameElement) {
     var totalDistance = paddingWidth + textWidth + gameElementPadding; // the total distiance traveled will be textwidth, paddingwidth, and the 10px on the left side of the element
 
     // we travel at 50px/s
-    var totalAnimationTime = totalDistance / MARQUEE_PIXELS_PER_SECOND; // todo get this value somehow
+    var pixelsPerSecond = header ? HEADER_MARQUEE_PIXELS_PER_SECOND : MARQUEE_PIXELS_PER_SECOND;
+    var totalAnimationTime = totalDistance / pixelsPerSecond; // todo get this value somehow
     // when have we traveled all the padding
     var textAtBeginningPercentage = paddingWidth / totalDistance;
     var textAtBeginningTime = textAtBeginningPercentage * totalAnimationTime * -1;
 
     element.style.animationDelay = textAtBeginningTime + "s";
     element.style.animationDuration = totalAnimationTime + "s";
-    element.classList.add("game-marquee");
+    
+    if( header ) {
+        clearTimeout(headerMarqueeTimeout);
+        headerMarqueeTimeout = setTimeout( function() {element.classList.add("game-marquee-header"); element.classList.add("game-marquee");}, HEADER_MARQUEE_TIMEOUT_TIME );
+    }
+    else {
+        element.classList.add("game-marquee");
+    }
 }
 
 /**
@@ -1497,7 +1523,7 @@ function playNextMedia(offset) {
  */
 function minimizeRemoteMedia() {
     var remoteMedia = document.querySelector("#remote-media-form");
-    if( remoteMedia ) {
+    if( remoteMedia && !document.querySelector("#remote-media-placeholder") ) {
         var remoteMediaPlaceholder = document.createElement("div");
         remoteMediaPlaceholder.setAttribute("id", "remote-media-placeholder");
         remoteMediaPlaceholder.appendChild(remoteMedia);
@@ -1525,9 +1551,11 @@ function maximizeRemoteMedia() {
  * Remove the remote media placeholder if it exists. (for server calls only)
  */
 function removeRemoteMediaPlaceholder() {
-    var remoteMediaPlaceholder = document.querySelector("#remote-media-placeholder");
-    if( remoteMediaPlaceholder ) {
-        remoteMediaPlaceholder.parentElement.removeChild(remoteMediaPlaceholder);
+    var remoteMediaPlaceholder = document.querySelectorAll("#remote-media-placeholder"); // just in case remove all
+    if( remoteMediaPlaceholder.length ) {
+        remoteMediaPlaceholder.forEach(function(placeholder) {
+            placeholder.parentElement.removeChild(placeholder);
+        } );
     }
 }
 
@@ -2811,6 +2839,7 @@ function standardFailure( responseText ) {
  */
 function startRequest() {
     makingRequest = true;
+    addMarquee(document.querySelector("h1"),document.querySelector("body"), true);
     var modal = document.querySelector(".modal");
     if( modal ) {
         var buttons = modal.querySelectorAll("button");
@@ -2825,6 +2854,7 @@ function startRequest() {
  */
 function endRequest() {
     makingRequest = false;
+    removeMarquee(true);
     var modal = document.querySelector(".modal");
     if( modal ) {
         var buttons = modal.querySelectorAll("button");
@@ -3051,7 +3081,7 @@ function manageGamepadInput() {
         if( selectPressed && buttonsUp.gamepad[joyMapping["Select"]] ) {
             buttonsUp.gamepad[joyMapping["Select"]] = false;
 
-            if(document.fullscreenElement) {
+            if(document.fullscreenElement && document.fullscreenElement == document.querySelector(".modal #remote-media-form video")) {
                 document.exitFullscreen();
             }
             else {
