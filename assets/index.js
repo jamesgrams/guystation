@@ -15,6 +15,7 @@ var SEARCH_TIMEOUT_TIME = 350;
 var UUID = "7c0bb0113f6249f7b3ce3d550d1f3771"; // no non-url safe characters in here please
 var MARQUEE_TIMEOUT_TIME = 1000;
 var MARQUEE_PIXELS_PER_SECOND = 50;
+var TABINDEX_TIMEOUT = 10000;
 
 var expandCountLeft; // We always need to have a complete list of systems, repeated however many times we want, so the loop works properly
 var expandCountRight;
@@ -328,7 +329,9 @@ function load() {
             drawCanvas(data);
         });
 
-        document.querySelector("#search").blur();
+        setTimeout( function() {
+       	    document.querySelector("#search").setAttribute("tabindex", "0");
+        }, TABINDEX_TIMEOUT );
     }, load );
 }
 
