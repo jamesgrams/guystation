@@ -107,7 +107,8 @@ const ERROR_MESSAGES = {
     "folderCantBeUnderItself": "A folder can't be moved under itself",
     "invalidCharacterInName": "Invalid character in name",
     "menuPageClosed": "The menu page is closed",
-    "invalidButton": "Button does not exist"
+    "invalidButton": "Button does not exist",
+    "noMediaPlaying": "No media is playing"
 }
 
 // We will only allow for one request at a time for app
@@ -192,6 +193,21 @@ app.post("/quit", async function(request, response) {
     if( ! requestLocked ) {
         requestLocked = true;
         let errorMessage = await quitGame();
+        getData(); // Reload data
+        requestLocked = false;
+        writeActionResponse( response, errorMessage );
+    }
+    else {
+        writeLockedResponse( response );
+    }
+});
+
+// Return to home for a game
+app.post("/home", async function(request, response) {
+    console.log("app serving /home (POST) with body: " + JSON.stringify(request.body));
+    if( ! requestLocked ) {
+        requestLocked = true;
+        let errorMessage = await goHome();
         getData(); // Reload data
         requestLocked = false;
         writeActionResponse( response, errorMessage );
@@ -1303,7 +1319,8 @@ async function quitGame() {
             ensureProperResolution();
         }
         else if( currentSystem == MEDIA ) {
-            await closeRemoteMedia();
+            let errorMessage = await closeRemoteMedia();
+            if( errorMessage ) return Promise.resolve(errorMessage);
         }
         else if( browsePage && !browsePage.isClosed() ) {
             await closeBrowseTabs();
@@ -2001,42 +2018,61 @@ function resumeGame() {
  * @param {string} system - the system the media is on (should be "media")
  * @param {string} game - the name of the media
  * @param {Array} parents - the parents of the media
+* @returns {*} - an error message if there was an error, false if there was not.
  */
 async function launchRemoteMedia( system, game, parents ) {
     // You are calling launch which is calling quit but async so before quit can remove the modal callback the “new game” has already launched which will trigger the modal (there can only be one modal at a time)
     // to close IFF the new game is media which will then call quit.
     await menuPage.evaluate( (system, game, parents) => { displayRemoteMedia(system, game, parents, true) }, system, game, parents);
     await checkRemoteMedia( system, game, parents );
+    return Promise.resolve(false);
 }
 
 /**
  * Pause remote media
+* @returns {*} - an error message if there was an error, false if there was not.
  */
 async function pauseRemoteMedia() {
     if(currentEmulator && currentSystem == MEDIA) {
         if( menuPage && !menuPage.isClosed() ) {
             await menuPage.evaluate( () => minimizeRemoteMedia() );
+            return Promise.resolve(false);
         }
+        return Promise.resolve(ERROR_MESSAGES.menuPageClosed);
+    }
+    else {
+        return Promise.resolve(ERROR_MESSAGES.noMediaPlaying);
     }
 }
 
 /**
  * Resume remote media
+ * @returns {*} - an error message if there was an error, false if there was not.
  */
 async function resumeRemoteMedia() {
     if(currentEmulator && currentSystem == MEDIA) {
         if( menuPage && !menuPage.isClosed() ) {
             await menuPage.evaluate( () => maximizeRemoteMedia() );
+            return Promise.resolve(false);
         }
+        return Promise.resolve(ERROR_MESSAGES.menuPageClosed);
+    }
+    else {
+        return Promise.resolve(ERROR_MESSAGES.noMediaPlaying);
     }
 }
 
 /**
  * Destroy remote media state
+ * @returns {*} - an error message if there was an error, false if there was not.
  */
 async function destroyRemoteMedia() {
     if( menuPage && !menuPage.isClosed() ) {
         await menuPage.evaluate( () => removeRemoteMediaPlaceholder() );
+        await Promise.resolve(false);
+    }
+    else {
+        Promise.resolve(ERROR_MESSAGES.menuPageClosed);
     }
 }
 
@@ -2044,15 +2080,24 @@ async function destroyRemoteMedia() {
  * Close remote media
  */
 async function closeRemoteMedia() {
-    await clearCheckRemoteMedia();
-    if( menuPage && !menuPage.isClosed() ) {
-        let remoteMediaForm = await menuPage.$("#remote-media-form", {timeout: CHECK_TIMEOUT});
-        if( remoteMediaForm ) {
-            // the closeModalCallback is to quit the game. But this is called when a game is quit. we do not want to call
-            // it again. remove the callback, and then quit the media.
-            await menuPage.evaluate( () => { closeModalCallback=null; closeModal(); } );
+    let errorMessage = await clearCheckRemoteMedia();
+    if( !errorMessage ) {
+        if( menuPage && !menuPage.isClosed() ) {
+            let remoteMediaForm = await menuPage.$("#remote-media-form", {timeout: CHECK_TIMEOUT});
+            if( remoteMediaForm ) {
+                // the closeModalCallback is to quit the game. But this is called when a game is quit. we do not want to call
+                // it again. remove the callback, and then quit the media.
+                await menuPage.evaluate( () => { closeModalCallback=null; closeModal(); } );
+            }
+            await destroyRemoteMedia(); // destory any instances of remote media placeholders
+            return Promise.resolve(false);
         }
-        await destroyRemoteMedia(); // destory any instances of remote media placeholders
+        else {
+            return Promise.resolve( ERROR_MESSAGES.menuPageClosed );
+        }
+    }
+    else {
+        return Promise.resolve(errorMessage);
     }
 }
 
@@ -2061,6 +2106,7 @@ async function closeRemoteMedia() {
  * @param {string} system 
  * @param {string} game 
  * @param {Array} parents 
+ * @returns {*} - an error message if there was an error, false if there was not.
  */
 async function checkRemoteMedia( system, game, parents ) {
     clearMediaPlayingInterval = setInterval( async function() {
@@ -2076,32 +2122,49 @@ async function checkRemoteMedia( system, game, parents ) {
             }
         }
     }, CHECK_MEDIA_PLAYING_INTERVAL );
+    return Promise.resolve(false);
 }
 
 /**
  * Stop checking for remote media status
+ * @returns {*} - an error message if there was an error, false if there was not.
  */
 async function clearCheckRemoteMedia() {
     clearInterval( clearMediaPlayingInterval );
+    return Promise.resolve(false);
+}
+
+/**
+ * Go to the home menu.
+ * @returns {*} - an error message if there was an error, false if there was not.
+ */
+async function goHome() {
+    if( !menuPage || menuPage.isClosed() ) {
+        return Promise.resolve(RROR_MESSAGES.menuPageClosed);
+    }
+
+    var needsPause = true;
+    if( proc.execSync(ACTIVE_WINDOW_COMMAND).toString().startsWith(PAGE_TITLE) ) {
+        needsPause = false;
+    }
+    proc.execSync(FOCUS_CHROMIUM_COMMAND);
+    try {
+        await menuPage.bringToFront();
+        // these functions will check if they are applicable
+        // so don't worry about returning their error messages, because some will inevitably have them
+        if( needsPause ) {
+            pauseGame();
+        }
+        pauseRemoteMedia();
+    }
+    catch(err) {/*ok*/}
+    return Promise.resolve(false);
 }
 
 // Listen for the "home" button to be pressed
 ioHook.on("keydown", event => {
     if( event.keycode == ESCAPE_KEY ) {
-        var needsPause = true;
-        if( proc.execSync(ACTIVE_WINDOW_COMMAND).toString().startsWith(PAGE_TITLE) ) {
-            needsPause = false;
-        }
-        proc.execSync(FOCUS_CHROMIUM_COMMAND);
-        try {
-            menuPage.bringToFront();
-            // these functions will check if they are applicable
-            if( needsPause ) {
-                pauseGame();
-            }
-            pauseRemoteMedia();
-        }
-        catch(err) {/*ok*/}
+        goHome();
     }
 });
 ioHook.start();

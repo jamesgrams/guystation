@@ -916,13 +916,18 @@ function toggleButtons() {
 
     // Only allow a game to be quit if one is not selected
     var quitGameButton = document.getElementById("quit-game");
-    if( !selectedGame || !isBeingPlayed(selectedSystem.getAttribute("data-system"), decodeURIComponent( selectedGame.getAttribute("data-game") ), parentsStringToArray(selectedGame.getAttribute("data-parents")) ) ) {
+    var goHomeButton = document.getElementById("go-home");
+    if( !document.querySelector(".game.playing") ) {
         quitGameButton.classList.add("inactive");
         quitGameButton.onclick = null;
+        goHomeButton.classList.add("inactive");
+        goHomeButton.onclick = null;
     }
     else {
         quitGameButton.classList.remove("inactive");
         quitGameButton.onclick = quitGame;
+        goHomeButton.classList.remove("inactive");
+        goHomeButton.onclick = goHome;
     }
 
     // Only allow browser if we are "playing" it
@@ -2716,6 +2721,18 @@ function quitGame(quitModalOnCallback) {
 }
 
 /**
+ * Go home (suspend a game).
+ */
+function goHome() {
+    if( !makingRequest ) {
+        startRequest(); // Most other functions do this prior since they need to do other things
+        makeRequest( "POST", "/home", {},
+        function( responseText ) { standardSuccess(responseText) },
+        function( responseText ) { standardFailure( responseText ) } );
+    }
+}
+
+/**
  * Add a game.
  * @param {string} system - the system the game is on
  * @param {string} game - the name of the game
@@ -2813,7 +2830,7 @@ function standardSuccess( responseText, message, oldSystemName, newSystemName, o
     var response = JSON.parse(responseText);
     systemsDict = response.systems;
     redraw(oldSystemName, newSystemName, oldGameName, newGameName, oldParents, newParents);
-    alertSuccess(message);
+    if(message) alertSuccess(message);
     endRequest();
     if( !preventModalClose) closeModal();
 }

@@ -360,7 +360,7 @@ h1 {
     right: 0;
     text-align: center;
     transform: translateX(97%); /* ~24px shown */
-    width: 702px;
+    width: 760px;
     transition: transform 0.5s, width 0.5s;
     z-index: 998;
 }
@@ -546,7 +546,7 @@ h1 {
     }
 }
 
-@media only screen and (max-width: 775px) {
+@media only screen and (max-width: 835px) {
     h1 {
         top: 20%;
         font-size: 30px;
@@ -620,6 +620,9 @@ readers do not read off random characters that represent icons */
 
 .fa-chevron-up:before {
     content: "\f077"; }
+
+.fa-home:before {
+    content: "\f015"; }
 
 .sr-only-focusable:active, .sr-only-focusable:focus {
   clip: auto;
