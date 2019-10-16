@@ -32,6 +32,7 @@ const GAMES_DIR = "games";
 const SAVES_DIR = "saves";
 const WORKING_DIR = process.cwd();
 const SEPARATOR = path.sep;
+const PLAYLIST_SEPERATOR = "2wt21ionvmae7ugc10bme9"; // make sure this is the same value as on the frontend - don't let this start with 0
 const METADATA_FILENAME = "metadata.json";
 const SYSTEMS_DIR_FULL = WORKING_DIR + SEPARATOR + SYSTEMS_DIR;
 const SUCCESS = "success";
@@ -103,12 +104,25 @@ const ERROR_MESSAGES = {
     "nonEmptyDirectory": "A folder with items inside it can't be deleted",
     "convertGameToFolder": "A game can't be converted to a folder",
     "convertFolderToGame": "A folder can't be converted to a game",
+    "convertPlaylistToFolder": "A playlist can't be converted to a game",
+    "convertFolderToPlaylist": "A folder can't be converted to a playlist",
+    "convertPlaylistToGame": "A playlist can't be converted to a game",
+    "convertGameToPlaylist": "A game can't be converted to a playlist",
     "folderHasGameBeingPlayed": "This folder has games in it that are being played",
     "folderCantBeUnderItself": "A folder can't be moved under itself",
     "invalidCharacterInName": "Invalid character in name",
     "menuPageClosed": "The menu page is closed",
     "invalidButton": "Button does not exist",
-    "noMediaPlaying": "No media is playing"
+    "noMediaPlaying": "No media is playing",
+    "playlistItemsRequired": "Playlist items are required",
+    "invalidSymlink": "The desired link does not exist",
+    "playlistsOnlyForMedia": "Playlists are only allowed for media",
+    "folderContainsPlaylistsOnlyForMedia": "This folder contains playlists which are only allowed for media",
+    "invalidPlaylistItem": "In invalid item was included in the playlist",
+    "addFolderToPlaylist": "A folder can't be added to a playlist",
+    "addPlaylistToPlaylist": "A playlist can't be added to a playlist",
+    "symlinkToItemBeingPlayed": "Please stop playing any references to this track",
+    "playlistHasGameBeingPlayed": "This playlist has tracks in it that are being played"
 }
 
 // We will only allow for one request at a time for app
@@ -267,7 +281,7 @@ app.post("/game", upload.single("file"), async function(request, response) {
     console.log("app serving /game (POST)");
     if( ! requestLocked ) {
         requestLocked = true;
-        let errorMessage = addGame( request.body.system, request.body.game, request.file, JSON.parse(request.body.parents), request.body.isFolder );
+        let errorMessage = addGame( request.body.system, request.body.game, request.file, JSON.parse(request.body.parents), request.body.isFolder, request.body.isPlaylist, JSON.parse(request.body.playlistItems) );
         getData(); // Reload data
         requestLocked = false;
         writeActionResponse( response, errorMessage );
@@ -282,7 +296,7 @@ app.put("/game", upload.single("file"), async function(request, response) {
     console.log("app serving /game (PUT)");
     if( ! requestLocked ) {
         requestLocked = true;
-        let errorMessage = updateGame( request.body.oldSystem, request.body.oldGame, JSON.parse(request.body.oldParents), request.body.system, request.body.game, request.file, JSON.parse(request.body.parents), request.body.isFolder );
+        let errorMessage = updateGame( request.body.oldSystem, request.body.oldGame, JSON.parse(request.body.oldParents), request.body.system, request.body.game, request.file, JSON.parse(request.body.parents), request.body.isFolder, request.body.isPlaylist, JSON.parse(request.body.playlistItems) );
         getData(); // Reload data
         requestLocked = false;
         writeActionResponse( response, errorMessage );
@@ -434,7 +448,7 @@ launchBrowser().then( () => app.listen(PORT) );
 
 /**
  * Determine if a game is not available.
- * Note: In this case, a folder is NOT a game.
+ * Note: In this case, a folder is NOT a game but a playlist is a game.
  * @param {string} system - the system the game is on
  * @param {string} game - the game to play
  * @param {Array} parents - an array of parent directories for the game
@@ -947,16 +961,26 @@ function generateGames(system, games, parents=[]) {
         let gameDirContents =  fs.readdirSync(generateGameDir(system, game, curParents));
         try {
             // This line will throw the error if there is no metadata file
-            gameData.rom = JSON.parse(fs.readFileSync(generateGameMetaDataLocation(system, game, curParents))).rom;
+            var metadataFileContents = JSON.parse(fs.readFileSync(generateGameMetaDataLocation(system, game, curParents)));
+            gameData.rom = metadataFileContents.rom;
+            gameData.isPlaylist = metadataFileContents.isPlaylist;
+            if( gameData.isPlaylist ) {
+                var tempCurParents = curParents.slice(0);
+                tempCurParents.push(game);
+                gameData.games = generateGames(system, gameDirContents.filter((name) => name != METADATA_FILENAME), tempCurParents);
+            }
         }
         catch(err) {
-            // This is a directory of games - there is no metadata file
-            curParents.push(game);
-            gameData.isFolder = true;
-            gameData.games = generateGames(system, gameDirContents, curParents);
+            if( !gameData.isPlaylist ) {
+                // This is a directory of games - there is no metadata file
+                var tempCurParents = curParents.slice(0);
+                tempCurParents.push(game);
+                gameData.isFolder = true;
+                gameData.games = generateGames(system, gameDirContents, tempCurParents);
+            }
         }
 
-        if( !gameData.isFolder ) {
+        if( !gameData.isFolder && !gameData.isPlaylist ) {
             if( system != BROWSER ) {
                 let savesInfo = generateSaves(system, game, curParents);
                 gameData.currentSave = savesInfo.currentSave;
@@ -966,6 +990,18 @@ function generateGames(system, games, parents=[]) {
             // If this game is being played, indicate as such
             if( isBeingPlayed( system, game, curParents ) ) {
                 gameData.playing = true;
+            }
+        }
+        else if( gameData.isPlaylist ) {
+            // similar to isBeingPlayedRecursive by gameDict isn't loaded yet
+            // so we can't use that
+            let tempParents = parents.slice(0);
+            tempParents.push(game);
+            for( let childGame of Object.keys(gameData.games) ) {
+                if( isBeingPlayed(system, childGame, tempParents) ) {
+                    gameData.playing = true; // we will have two items playing with a playlist
+                    break;
+                }
             }
         }
 
@@ -1152,7 +1188,12 @@ function getGameDictEntry(system, game, parents) {
     let games = systemsDict[system].games;
     let parentsCopy = parents.slice(0);
     while( parentsCopy && parentsCopy.length ) {
-        games = games[parentsCopy.shift()].games;
+        try {
+            games = games[parentsCopy.shift()].games;
+        }
+        catch(err) {
+            return null; // Used for adding sub symlinks
+        }
     }
     return games[game];
 }
@@ -1172,11 +1213,29 @@ async function launchGame(system, game, restart=false, parents=[]) {
     if( isInvalid ) {
         return Promise.resolve(isInvalid);
     }
-    else if( !fs.existsSync(generateRomLocation( system, game, getGameDictEntry(system, game, parents).rom, parents )) && system != BROWSER ) {
+    let gameDictEntry = getGameDictEntry(system, game, parents);
+    if( !fs.existsSync(generateRomLocation( system, game, gameDictEntry.rom, parents )) && system != BROWSER && !gameDictEntry.isPlaylist ) {
         return Promise.resolve(ERROR_MESSAGES.noRomFile);
     }
     else if( system == MEDIA && (!menuPage || menuPage.isClosed())) {
         return Promise.resolve(ERROR_MESSAGES.menuPageClosed);
+    }
+
+    // Call on the first child if this is a playlist
+    if( gameDictEntry.isPlaylist ) {
+        let tempParents = parents.slice(0);
+        tempParents.push( game );
+        // see if any of the tracks are currently being played and call launch on them if they are
+        let startIndex = 0;
+        let index = 0;
+        for( let game of Object.keys(gameDictEntry.games) ) {
+            if( isBeingPlayed(system, game, tempParents) ) {
+                startIndex = index;
+                break;
+            }
+            index ++;
+        }
+        return Promise.resolve( launchGame(system, Object.keys(gameDictEntry.games)[startIndex], false, tempParents ) );
     }
 
     // Restart unless restart is false, we have a current emulator, and we are playing the game we selected
@@ -1358,7 +1417,7 @@ function isBeingPlayed(system, game, parents) {
 }
 
 /**
- * Check if anything within a folder is being played
+ * Check if anything within a folder (not playlist) is being played
  */
 function isBeingPlayedRecursive(system, folder, parents) {
     let curGameDictEntry = getGameDictEntry(system, folder, parents);
@@ -1549,8 +1608,13 @@ function deleteSave(system, game, save, parents=[]) {
  * @param {object} file - the file object
  * @param {Array} parents - an array of parent folders for a game
  * @param {boolean} isFolder - true if we are actually making a folder
+ * @param {boolean} isPlaylist - true if the game is a playlist (will function similarly to a folder)
+ * @param {Array<Array>} playlistItems - the items in the playlist
+ * @param {boolean} isSymlink - true if the game is a symlink to another game
+ * @param {Object} symlink - information about the symlink
+ * @returns {*} - an error message if there was an error, false if there was not.
  */
-function addGame( system, game, file, parents, isFolder=[] ) {
+function addGame( system, game, file, parents=[], isFolder, isPlaylist, playlistItems, isSymlink, symlink, force ) {
 
     // Error check
     // Make sure the game is valid
@@ -1559,32 +1623,147 @@ function addGame( system, game, file, parents, isFolder=[] ) {
     if( !game ) return ERROR_MESSAGES.gameNameRequired;
     var invalidName = isInvalidName( game );
     if( invalidName ) return invalidName;
-    if( (!file || !file.path || !file.originalname) && !isFolder ) return ERROR_MESSAGES.romFileRequired;
+    if( (!file || !file.path || !file.originalname) && !isFolder && !isPlaylist && !isSymlink ) return ERROR_MESSAGES.romFileRequired;
+    if( isPlaylist && system != MEDIA ) return ERROR_MESSAGES.playlistsOnlyForMedia;
+    if( (!playlistItems || !playlistItems.length) && isPlaylist ) return ERROR_MESSAGES.playlistItemsRequired;
+    if( isPlaylist ) {
+        for( let playlistItem of playlistItems ) {
+            if( !playlistItem.length ) {
+                return ERROR_MESSAGES.invalidPlaylistItem;
+            }
+            let gameDictEntry = getGameDictEntry( system, playlistItem[playlistItem.length-1], playlistItem.slice(0, playlistItem.length-1));
+            if( !gameDictEntry ) {
+                return ERROR_MESSAGES.invalidPlaylistItem;
+            }
+            if( gameDictEntry.isFolder ) {
+                return ERROR_MESSAGES.addFolderToPlaylist;
+            }
+            if( gameDictEntry.isPlaylist ) {
+                return ERROR_MESSAGES.addPlaylistToPlaylist;
+            }
+        }
+    }
+    if( !force ) {
+        if( isSymlink && !getGameDictEntry(symlink.system, symlink.game, symlink.parents)) return ERROR_MESSAGES.invalidSymlink;
+    }
 
     // Make the directory for the game
-    let gameDir = generateGameDir( system, game, parents );
-    fs.mkdirSync( gameDir );
+    if( !isSymlink ) {
+        let gameDir = generateGameDir( system, game, parents );
+        fs.mkdirSync( gameDir );
 
-    if( !isFolder ) {
-        // Move the rom into the directory
-        let errorMessage = saveUploadedRom( file, system, game, parents );  
-        if( errorMessage ) {
-            // Delete the game directory
-            rimraf.sync( gameDir );
-            // Return the error message
-            return errorMessage;
+        // regular game
+        if( !isFolder && !isPlaylist ) {
+            // Move the rom into the directory
+            let errorMessage = saveUploadedRom( file, system, game, parents );  
+            if( errorMessage ) {
+                // Delete the game directory
+                rimraf.sync( gameDir );
+                // Return the error message
+                return errorMessage;
+            }
         }
+        else if( isPlaylist ) {
+            addSymlinksToPlaylist( system, game, parents, playlistItems );
+        }
+    }
+    else if( isSymlink ) {
+        // create the symlink
+        fs.symlinkSync( generateGameDir( symlink.system, symlink.game, symlink.parents ), generateGameDir( system, game, parents ), 'dir' );
     }
 
     // Update the data (this will take care of making all the necessary directories for the game as well as updating the data)
-    getData();
+    if( !force ) getData();
 
-    if( !isFolder ) {
+    if( !isFolder && !isPlaylist && !isSymlink ) {
         // Do this AFTER running get data, so we know we are all set with the save directories
         updateNandSymlinks(system, game, null, parents);
     }
 
     return false;
+}
+
+/**
+ * Add symlinks (tracks) to a playlist
+ * @param {string} system - the system for the playlist
+ * @param {string} game - the name of the playlist
+ * @param {Array} parents - the parents of the playlist
+ * @param {Array<Array>} playlistItems - the items in the playlist
+ */
+function addSymlinksToPlaylist( system, game, parents, playlistItems ) {
+    let parentsOfSymlinks = parents.slice(0);
+    parentsOfSymlinks.push(game); // there is no check for parents existence in the gameDict addGame
+    let indexPrefix = "0".repeat(playlistItems.length); // this will preserve order
+    for( let playlistItem of playlistItems ) {
+        // The name is the order, plus the seperator, plus the items path (parents + game) joined by the separator
+        let symlinkName =  indexPrefix + PLAYLIST_SEPERATOR + playlistItem.join(PLAYLIST_SEPERATOR);
+        addGame( system, symlinkName, null, parentsOfSymlinks, false, false, null, true, {
+            system: system,
+            game: playlistItem[playlistItem.length-1],
+            parents: playlistItem.slice(0, playlistItem.length-1)
+        });
+        indexPrefix = indexPrefix.slice(0, -1);
+    }
+    // Make note that it is a playlist
+    fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"isPlaylist": true}));
+}
+
+/**
+ * Delete playlist symlinks
+ * @param {string} system - the system for the playlist
+ * @param {string} game - the name of the playlist
+ * @param {Array} parents - the parents of the playlist
+ */
+function deletePlaylistSymlinks( system, game, parents ) {
+    let playlist = getGameDictEntry( system, game, parents );
+    let parentsOfSymlinks = parents.slice(0);
+    parentsOfSymlinks.push(game);
+    for( let game of Object.keys(playlist.games) ) {
+        deleteGame( system, game, parentsOfSymlinks );
+    }
+}
+
+/**
+ * Get all the symlinks to an item
+ * Calls itself recursively
+ * @param {string} system - the system the item is on (media)
+ * @param {string} game - the name of the item
+ * @param {Array} parents - the parents of the item
+ * @param {Array} curGames - the current list of games (e.g. systemsDict[system].games)
+ * @param {Array} curParents -  the current parents
+ * @param {Array} gameDictEntries - an array that will be populated with the gameDictEntries and ultimately returned
+ * @returns {Array} - an array of gameDictEntries that are the symlinks to the item - these are special and will have their own .parents defined
+ */
+function getAllSymlinksToItem( system, game, parents=[], curGames=[], curParents=[], gameDictEntries=[] ) {
+    for( let curGame of Object.keys(curGames) ) {
+        let curGameDictEntry = curGames[curGame];
+        if( curGameDictEntry.isFolder ) {
+            let tempCurParents = curParents.slice(0);
+            tempCurParents.push(curGame);
+            getAllSymlinksToItem( system, game, parents, curGameDictEntry.games, tempCurParents, gameDictEntries );
+        }
+        // found a playlist, check for matches
+        else if( curGameDictEntry.isPlaylist ) {
+            for( let curTrack of Object.keys(curGameDictEntry.games) ) {
+                let curTrackEntry = curGameDictEntry.games[curTrack];
+                // see if the track is a symlink to the item
+                let curTrackPath = curTrackEntry.game.split(PLAYLIST_SEPERATOR);
+                curTrackPath.shift();
+                let gamePath = parents.slice(0);
+                gamePath.push(game);
+                // We assume they are the same system
+                if( JSON.stringify(gamePath) == JSON.stringify(curTrackPath) ) {
+                    let curTrackEntryCopy = JSON.parse(JSON.stringify(curTrackEntry) );
+                    let tempCurParents = curParents.slice(0);
+                    tempCurParents.push(curGame);
+                    curTrackEntryCopy.parents = tempCurParents;
+                    gameDictEntries.push( curTrackEntryCopy );
+                }
+            }
+        }
+    }
+    
+    return gameDictEntries;
 }
 
 /**
@@ -1734,9 +1913,11 @@ function saveUploadedRom( file, system, game, parents ) {
  * @param {object} file - the new file object - null if the same
  * @param {Array} parents - an array of parent folders for a game
  * @param {boolean} isFolder - true if this game is really a folder of other games
+ * @param {boolean} isPlaylist - true if the game is a playlist (will function similarly to a folder)
+ * @param {Array<Array>} playlistItems - the items in the playlist
  * @returns {*} - an error message if there was an error, false if there was not.
  */
-function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, parents=[], isFolder ) {
+function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, parents=[], isFolder, isPlaylist, playlistItems ) {
 
     // Error check
     // Make sure the game and system are valid for old
@@ -1744,13 +1925,16 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
         var invalidName = isInvalidName( game );
         if( invalidName ) return invalidName;
     }
-    isInvalid = isInvalidGame( oldSystem, oldGame, oldParents );
+    isInvalid = isInvalidGame( oldSystem, oldGame, oldParents ); // A playlist and game are valid games (can be launched), but a folder is not
     if( isInvalid ) {
         // Check to see if it is a folder
         let gameDictEntry = getGameDictEntry(oldSystem, oldGame, oldParents);
         if( gameDictEntry ) {
-            if( !isFolder ) {
-                return ERROR_MESSAGES.convertFolderToGame;
+            if( isPlaylist ) {
+                return ERROR_MESSAGES.convertFolderToPlaylist;
+            }
+            else if( !isFolder ) {
+                return ERROR_MESSAGES.convertFolderToGame; // this could also be the case if trying to convert to playlist
             }
             // check to make sure we aren't moving the folder underneath itself
             else if( isFolder ) {
@@ -1774,7 +1958,18 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
     }
     // The old game is a game, but they are trying to convert to a folder
     else if( isFolder ) {
+        let gameDictEntry = getGameDictEntry(oldSystem, oldGame, oldParents);
+        if( gameDictEntry.isPlaylist ) return ERROR_MESSAGES.convertPlaylistToFolder;
         return ERROR_MESSAGES.convertGameToFolder;
+    }
+    else {
+        let gameDictEntry = getGameDictEntry(oldSystem, oldGame, oldParents);
+        if( gameDictEntry.isPlaylist && !isPlaylist ) {
+            return ERROR_MESSAGES.convertPlaylistToGame;
+        }
+        else if( !gameDictEntry.isPlaylist && isPlaylist ) {
+            return ERROR_MESSAGES.convertGameToPlaylist;
+        }
     }
     // Can't change the save of a playing game
     if( isBeingPlayed( oldSystem, oldGame, oldParents ) ) {
@@ -1787,14 +1982,58 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
     if( system && !systemsDict[system] ) return ERROR_MESSAGES.noSystem;
     if( game && getGameDictEntry(system ? system : oldSystem, game, parents ? parents : oldParents) ) return ERROR_MESSAGES.gameAlreadyExists;
     else if( !game && ((parents && JSON.stringify(parents) != JSON.stringify(oldParents)) || system && system != oldSystem) && getGameDictEntry(system ? system : oldSystem, oldGame, parents) ) return ERROR_MESSAGES.gameAlreadyExists;
-       
+    if( isPlaylist && system != MEDIA ) return ERROR_MESSAGES.playlistsOnlyForMedia;
+    if( isFolder && oldSystem == MEDIA && system != MEDIA ) {
+        let gameDictEntry = getGameDictEntry(oldSystem, oldGame, oldParents);
+        if( containsPlaylist(gameDictEntry) ) {
+            return ERROR_MESSAGES.folderContainsPlaylistsOnlyForMedia;
+        }
+    }
+    if( (!playlistItems || !playlistItems.length) && isPlaylist ) return ERROR_MESSAGES.playlistItemsRequired;
+    if( isPlaylist ) {
+        for( let playlistItem of playlistItems ) {
+            if( !playlistItem.length ) {
+                return ERROR_MESSAGES.invalidPlaylistItem;
+            }
+            let gameDictEntry = getGameDictEntry( system, playlistItem[playlistItem.length-1], playlistItem.slice(0, playlistItem.length-1));
+            if( !gameDictEntry ) {
+                return ERROR_MESSAGES.invalidPlaylistItem;
+            }
+            if( gameDictEntry.isFolder ) {
+                return ERROR_MESSAGES.addFolderToPlaylist;
+            }
+            if( gameDictEntry.isPlaylist ) {
+                return ERROR_MESSAGES.addPlaylistToPlaylist;
+            }
+        }
+    }
+    if( !isPlaylist && !isFolder && oldSystem == MEDIA && (system == MEDIA || system == null) ) {
+        let symlinks = getAllSymlinksToItem( oldSystem, oldGame, oldParents, systemsDict[MEDIA].games );
+        for( let symlink of Object.keys(symlinks) ) {
+            let symlinkEntry = symlinks[symlink];
+            if( isBeingPlayed(MEDIA, symlinkEntry.game, symlinkEntry.parents) ) {
+                return ERROR_MESSAGES.symlinkToItemBeingPlayed;
+            }
+        }
+    }
+    // isBeingPlayedRecursive will work here since playlists are only one level deep folders
+    if( isPlaylist && isBeingPlayedRecursive(oldSystem, oldGame, oldParents)) {
+        return ERROR_MESSAGES.playlistHasGameBeingPlayed;
+    }
+
     // Get the current game directory
     let oldGameDir = generateGameDir( oldSystem, oldGame, oldParents );
 
     let oldRomNandPath = "";
 
+    // Just clear out and reload symlinks for playlists
+    if( isPlaylist ) {
+        deletePlaylistSymlinks( oldSystem, oldGame, oldParents );
+        addSymlinksToPlaylist( oldSystem, oldGame, oldParents, playlistItems );
+    }
+
     // Update the rom file if necessary 
-    if( file && !isFolder ) {
+    if( file && !isFolder && !isPlaylist ) {
         // Get the current game file and its name. We will move it for now,
         // but we will ultimately either move it back or get rid of it.
         // upload into the old directory and that will change if necessary next
@@ -1828,7 +2067,7 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
         fsExtra.moveSync( oldGameDir, gameDir );
         // Update the symlink for the game
         // Force, since we've just updated the directory
-        if( !isFolder ) {
+        if( !isFolder && !isPlaylist ) {
             changeSave( system ? system : oldSystem, game ? game : oldGame, getGameDictEntry(oldSystem, oldGame, oldParents).currentSave, true, parents ? parents : oldParents );
         }
         else {
@@ -1836,18 +2075,56 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
         }
         // Otherwise, we have to update the symlinks of all the children directories
     }
+
+    // Delete from playlists if transitioning from media
+    if( oldSystem == MEDIA && system != MEDIA ) {
+        let symlinks = getAllSymlinksToItem( oldSystem, oldGame, oldParents, systemsDict[MEDIA].games );
+        for( let symlink of Object.keys(symlinks) ) {
+            let symlinkEntry = symlinks[symlink];
+            deleteGame( MEDIA, symlinkEntry.game, symlinkEntry.parents );
+            // check to see if the playlist is empty and delete it if it is
+            let playlistEntry = getGameDictEntry( MEDIA, symlinkEntry.parents[symlinkEntry.parents.length-1], symlinkEntry.parents.slice(0, symlinkEntry.parents.length -1) );
+            if( Object.keys(playlistEntry.games).length == 0 ) {
+                deleteGame( MEDIA, playlistEntry.game, symlinkEntry.parents.slice(0, symlinkEntry.parents.length - 1) );
+            }
+        }
+    }
+    if( !isFolder && !isPlaylist ) { // Playlists can't be symlinked to
+        updatePlaylistSymlinksToItem( game ? game : oldGame, parents ? parents : oldParents, oldGame, oldParents );
+    }
+    else if( isFolder ) { // Playlists don't have items that can be symlinked to
+        ensurePlaylistSymlinks(parents ? parents : oldParents, game ? game : oldGame, oldParents, oldGame, getGameDictEntry(oldSystem, oldGame, oldParents) );
+    }
     
     // Update the data (this will take care of making all the necessary directories for the game as well as updating the data)
     getData();
 
+    // Do this AFTER running get data, so we can pass the checked in addGame
     // Do this AFTER running get data, so we know we are all set with the save directories
-    if( !isFolder ) {
+    if( !isFolder && !isPlaylist ) {
         updateNandSymlinks(system ? system : oldSystem, game ? game : oldGame, oldRomNandPath, parents ? parents : oldParents);
     }
-    else {
+    else if( isFolder ) { // Media doesn't have nand links
         ensureNandSymlinks(system ? system : oldSystem, game ? game : oldGame, parents ? parents : oldParents, getGameDictEntry(system ? system : oldSystem, game ? game : oldGame, parents ? parents : oldParents) );
     }
 
+    return false;
+}
+
+/**
+ * Check if a folder contians a playlist
+ * @param {Object} gameDictEntry - the gmae dict entry for the folder
+ */
+function containsPlaylist(gameDictEntry) {
+    for( let game of Object.keys(gameDictEntry.games) ) {
+        let curGameDictEntry = gameDictEntry.games[game];
+        if( curGameDictEntry.isPlaylist ) {
+            return true;
+        }
+        else if( curGameDictEntry.isFolder ) {
+            if( containsPlaylist(curGameDictEntry) ) return true;
+        }
+    }
     return false;
 }
 
@@ -1864,11 +2141,11 @@ function ensureNandSymlinks( system, folder, parents, gameDictEntry ) {
         let curParents = parents.slice(0);
         curParents.push( folder );
         // This is a real game
-        if( !curGameDictEntry.isFolder ) {
+        if( !curGameDictEntry.isFolder && !curGameDictEntry.isPlaylist ) {
             // Note: there will be no oldRamPath, because we updated the folder, thus the rom never changes for these
             updateNandSymlinks( system, curGameDictEntry.game, null, curParents );
         }
-        else {
+        else if( curGameDictEntry.isFolder ) {
             ensureNandSymlinks( system, game, curParents, curGameDictEntry );
         }
     }
@@ -1879,10 +2156,10 @@ function ensureNandSymlinks( system, folder, parents, gameDictEntry ) {
  * @param {string} system - the name of the system the game is for
  * @param {string} folder - the name of the folder the system uses
  * @param {Array} parents - parent directories for the folder
+ * @param {string} gameDictEntry - the game dict entry for the old system / old game (since this is run prior to calling getData in updateGame)
  * @param {string} oldSystem - the old system - needed to get the game dict entry
  * @param {string} oldFolder - the old folder - needed to get the game dict entry
  * @param {Array} oldParents - the old parents - needed to get the game dict entry
- * @param {string} gameDictEntry - the game dict entry for the old system / old game (since this is run prior to calling getData in updateGame)
  */
 function ensureSaveSymlinks( system, folder, parents, gameDictEntry, oldSystem, oldFolder, oldParents ) {
     for( let game of Object.keys(gameDictEntry.games) ) {
@@ -1895,12 +2172,70 @@ function ensureSaveSymlinks( system, folder, parents, gameDictEntry, oldSystem, 
         // This is a real game
         // this is the problem - we are passing in the new parents but that means the entries dont exist
         // but we need the new parents to pass to changeSave forced since the directories have already moved
-        if( !curGameDictEntry.isFolder ) {
+        if( !curGameDictEntry.isFolder && !curGameDictEntry.isPlaylist ) {
             changeSave( system, curGameDictEntry.game, getGameDictEntry( oldSystem, curGameDictEntry.game, curOldParents ).currentSave, true, curParents );
         }
-        else {
+        else if( curGameDictEntry.isFolder ) {
             ensureSaveSymlinks( system, game, curParents, curGameDictEntry, oldSystem, game, curOldParents );
         }
+    }
+}
+
+ /**
+  * Ensure playlist symlinks are valid
+  * @param {Array} parents - the parents of the folder we are looking at
+  * @param {string} folder - the new name of the folder we are looking at
+  * @param {Array} oldParents - the old parents of the folder we are looking at
+  * @param {string} oldFolder - the old name of the folder we are looking at - as this function calls itself recursively, this will be the same as the new folder
+  * @param {Object} gameDictEntry - the gameDictEntry for the folder we are looking at
+  */
+function ensurePlaylistSymlinks( parents, folder, oldParents, oldFolder, gameDictEntry ) {
+    for( let game of Object.keys(gameDictEntry.games) ) {
+        let curGameDictEntry = gameDictEntry.games[game];
+        let curParents = parents.slice(0);
+        let curOldParents = oldParents.slice(0);
+        curParents.push( folder );
+        curOldParents.push( oldFolder );
+
+        if( !curGameDictEntry.isFolder && !curGameDictEntry.isPlaylist ) { // playlists can't be symlinked to
+            // names of sub items will not have changed
+            updatePlaylistSymlinksToItem( curGameDictEntry.game, curParents, curGameDictEntry.game, curOldParents );
+        }
+        // we don't want to look for the symlinks of symlinks so don't look in playlist
+        else if( curGameDictEntry.isFolder ) {
+            ensurePlaylistSymlinks( curParents, game, curOldParents, game, curGameDictEntry ); // the old and new folder names are the same now since we aren't at the level of the folder being edited
+        }
+    }
+}
+
+/**
+ * Update playlist symlinks to an item
+ * The assumed system is media
+ * @param {string} game - the new name of the game
+ * @param {Array} parents - the new parents of the game
+ * @param {string} oldGame - the old name of the game
+ * @param {Array} oldParents - the old parents of the game
+ */
+function updatePlaylistSymlinksToItem( game, parents, oldGame, oldParents ) {
+    // get all the symlinks to the old game
+    let symlinks = getAllSymlinksToItem( MEDIA, oldGame, oldParents, systemsDict[MEDIA].games );
+    for( let symlink of Object.keys(symlinks) ) {
+        let symlinkEntry = symlinks[symlink];
+        let symlinkPath = symlinkEntry.game.split(PLAYLIST_SEPERATOR);
+        symlinkPath.shift(); // removes random id
+        let newPath = parents.slice(0);
+        newPath.push(game);
+        // remember what this is! parents+game joined by seperator (because we can't store it in json because it is a symlink)
+        // prepended by the order and a separator
+        let newGameName = symlinkEntry.game.substring(0,symlinkEntry.game.lastIndexOf(symlinkPath.join(PLAYLIST_SEPERATOR))) + newPath.join(PLAYLIST_SEPERATOR);
+        
+        deleteGame( MEDIA, symlinkEntry.game, symlinkEntry.parents, true );
+        // we need to force since this will temporarily be an invalid symlink
+        addGame( MEDIA, newGameName, null, symlinkEntry.parents, false, false, null, true, {
+            system: MEDIA,
+            game: game,
+            parents: parents
+        }, true);
     }
 }
 
@@ -1911,12 +2246,14 @@ function ensureSaveSymlinks( system, folder, parents, gameDictEntry, oldSystem, 
  * @param {Array} parents - an array of parent folders for a game
  * @returns {*} - an error message if there was an error, false if there was not.
  */
-function deleteGame( system, game, parents=[] ) {
+function deleteGame( system, game, parents=[], force ) {
     let isFolder = false;
+    let isPlaylist = false;
 
     // Error check
     var invalidName = isInvalidName( game );
     if( invalidName ) return invalidName;
+
     // Make sure the game and system are valid
     isInvalid = isInvalidGame( system, game, parents );
     if( isInvalid ) {
@@ -1924,7 +2261,7 @@ function deleteGame( system, game, parents=[] ) {
         let gameDictEntry = getGameDictEntry(system, game, parents);
         if( gameDictEntry ) {
             if( Object.keys(gameDictEntry.games).length ) {
-                return ERROR_MESSAGES.nonEmptyDirectory;
+                if( !force ) return ERROR_MESSAGES.nonEmptyDirectory;
             }
             else {
                 isFolder = true;
@@ -1934,12 +2271,32 @@ function deleteGame( system, game, parents=[] ) {
             return isInvalid;
         }
     }
+    else {
+        let gameDictEntry = getGameDictEntry(system, game, parents);
+        if( gameDictEntry.isPlaylist ) {
+            isPlaylist = true;
+        }
+    }
     // Can't change the save of a playing game
     if( isBeingPlayed( system, game, parents ) ) {
         return ERROR_MESSAGES.gameBeingPlayed;
     }
+    if( !isPlaylist && !isFolder && system == MEDIA ) {
+        let symlinks = getAllSymlinksToItem( system, game, parents, systemsDict[MEDIA].games );
+        for( let symlink of Object.keys(symlinks) ) {
+            let symlinkEntry = symlinks[symlink];
+            if( isBeingPlayed(MEDIA, symlinkEntry.game, symlinkEntry.parents) ) {
+                return ERROR_MESSAGES.symlinkToItemBeingPlayed;
+            }
+        }
+    }
+    // isBeingPlayedRecursive will work here since playlists are only one level deep folders
+    // we don't have to check for this for folders since we can't delete empty folders
+    if( isPlaylist && isBeingPlayedRecursive(system, game, parents)) {
+        return ERROR_MESSAGES.playlistHasGameBeingPlayed;
+    }
 
-    if( !isFolder ) {
+    if( !isFolder && !isPlaylist ) {
         // If this is a NAND game, make sure we have a directory in place
         // in case they want to play the game outside of guystation
         let nandPath = getNandPath( system, game, parents );
@@ -1950,11 +2307,25 @@ function deleteGame( system, game, parents=[] ) {
             }
             catch(err) { /*It's already a directory for some reason*/ }
         }
+
+        // Recusively delete all the symlinks in the playlist
+        if( system == MEDIA ) {
+            let symlinks = getAllSymlinksToItem( system, game, parents, systemsDict[MEDIA].games );
+            for( let symlink of Object.keys(symlinks) ) {
+                let symlinkEntry = symlinks[symlink];
+                deleteGame( MEDIA, symlinkEntry.game, symlinkEntry.parents );
+                // check to see if the playlist is empty and delete it if it is
+                let playlistEntry = getGameDictEntry( MEDIA, symlinkEntry.parents[symlinkEntry.parents.length-1], symlinkEntry.parents.slice(0, symlinkEntry.parents.length -1) );
+                if( Object.keys(playlistEntry.games).length == 0 ) {
+                    deleteGame( MEDIA, playlistEntry.game, symlinkEntry.parents.slice(0, symlinkEntry.parents.length - 1) );
+                }
+            }
+        }
     }
     
     rimraf.sync( generateGameDir( system, game, parents ) );
     
-    getData();
+    if( !force ) getData();
 
     return false;
 }
@@ -2023,7 +2394,14 @@ function resumeGame() {
 async function launchRemoteMedia( system, game, parents ) {
     // You are calling launch which is calling quit but async so before quit can remove the modal callback the “new game” has already launched which will trigger the modal (there can only be one modal at a time)
     // to close IFF the new game is media which will then call quit.
-    await menuPage.evaluate( (system, game, parents) => { displayRemoteMedia(system, game, parents, true) }, system, game, parents);
+    await menuPage.evaluate( (system, game, parents, newDict) => {
+        // We need to make sure the menu page has the latest version of system dict in memory
+        if( JSON.stringify(newDict) != JSON.stringify(systemsDict) ) {
+            systemsDict = newDict;
+            redraw();
+        }
+        displayRemoteMedia(system, game, parents, true) 
+    }, system, game, parents, systemsDict);
     await checkRemoteMedia( system, game, parents );
     return Promise.resolve(false);
 }

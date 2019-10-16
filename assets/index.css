@@ -120,6 +120,15 @@ h1 {
     display: none !important;
 }
 
+.game[data-is-playlist] .game-title::after {
+    font-family: "Font Awesome 5 Free";
+    content: "\f001";
+    font-weight: 900;
+    margin-left: 10px;
+    font-size: 70%;
+    vertical-align: middle;
+}
+
 .game[data-is-folder] .game-title::before {
     margin-right: 10px;
     display: inline-flex;
@@ -249,7 +258,7 @@ h1 {
     padding: 5px;
 }
 
-.modal label > span, .dying-modal label > span {
+.modal > * > label > span, .dying-modal > * > label > span {
     width: 205px;
     display: inline-block;
 }
@@ -504,12 +513,16 @@ h1 {
     margin-top: 20px;
 }
 
-#folder-select-container label, #old-folder-select-container label {
+#folder-select-container label, #old-folder-select-container label, .playlist-select-container label {
     display: inline-block;
     padding: 0;
 }
 
-#folder-select-container label span, #old-folder-select-container label span {
+#folder-select-container label span, #old-folder-select-container label span, .playlist-select-container label span {
+    display: none;
+}
+
+#playlist-container label span:not(.playlist-select-container) {
     display: none;
 }
 
@@ -561,7 +574,7 @@ h1 {
         min-width: 280px;
         width: 100%;
     }
-    .modal label > span, .dying-modal label > span {
+    .modal > * > label > span, .dying-modal > * > label > span {
         display: block;
     }
     .system img {
@@ -623,6 +636,9 @@ readers do not read off random characters that represent icons */
 
 .fa-home:before {
     content: "\f015"; }
+
+.fa-bars:before {
+    content: "\f0c9"; }
 
 .sr-only-focusable:active, .sr-only-focusable:focus {
   clip: auto;

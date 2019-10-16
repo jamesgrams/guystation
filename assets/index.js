@@ -13,6 +13,7 @@ var BROWSER_ADDRESS_HEARTBEAT_TIME = 500;
 var TABS_HEARTBEAT_TIME = 500;
 var SEARCH_TIMEOUT_TIME = 350;
 var UUID = "7c0bb0113f6249f7b3ce3d550d1f3771"; // no non-url safe characters in here please
+var SERVER_PLAYLIST_SEPERATOR = "2wt21ionvmae7ugc10bme9";
 var MARQUEE_TIMEOUT_TIME = 1000;
 var MARQUEE_PIXELS_PER_SECOND = 50;
 var HEADER_MARQUEE_PIXELS_PER_SECOND = 250;
@@ -219,16 +220,13 @@ function setMarquee() {
  * Remove all marquees
  */
 function removeMarquee(header) {
-    console.log(headerMarqueeTimeout);
     if( !header ) {
         clearTimeout(marqueeTimeoutTitle);
         clearTimeout(marqueeTimeoutFolder);
     }
     else {
         clearTimeout(headerMarqueeTimeout);
-        console.log("test");
     }
-    console.log(headerMarqueeTimeout);
     var selector = header ? ".game-marquee-header" : ".game-marquee:not(.game-marquee-header)";
     var marquees = document.querySelectorAll(selector);
     marquees.forEach( function(el) {
@@ -803,6 +801,9 @@ function populateGames(system, games, startSystem, gamesElement, hidden, parents
         if( game.isFolder ) {
             gameElement.setAttribute("data-is-folder", "true");
         }
+        if( game.isPlaylist ) {
+            gameElement.setAttribute("data-is-playlist", "true");
+        }
         gamesElement.appendChild(gameElement);
 
         if( game.isFolder ) {
@@ -943,8 +944,23 @@ function toggleButtons() {
 
     // Only allow media if we are "on" a playable file
     var remoteMediaButton = document.getElementById("remote-media");
-    if( selectedSystem.getAttribute("data-system") == "media" && selectedGame ) {
+    if( selectedSystem.getAttribute("data-system") == "media" && selectedGame && !selectedGame.hasAttribute("data-is-folder") && !selectedGame.hasAttribute("data-is-playlist") ) {
         remoteMediaButton.onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#remote-media-form") ) displayRemoteMedia(); };
+        remoteMediaButton.classList.remove("inactive");
+    }
+    // playlist
+    else if( selectedSystem.getAttribute("data-system") == "media" && selectedGame && selectedGame.hasAttribute("data-is-playlist") ) {
+        remoteMediaButton.onclick = function(e) { 
+            e.stopPropagation(); 
+            if( !document.querySelector("#remote-media-form") ) {
+                var parents = selectedGame.getAttribute("data-parents");
+                var game = decodeURIComponent(selectedGame.getAttribute("data-game"));
+                parents = parentsStringToArray( parents );
+                var playlistEntry = getGamesInFolder( parents, selectedSystem.getAttribute("data-system"), true )[game];
+                parents.push( game );
+                displayRemoteMedia( selectedSystem.getAttribute("data-system"), playlistEntry.games[ Object.keys(playlistEntry.games)[0] ].game, parents ); 
+            }
+        };
         remoteMediaButton.classList.remove("inactive");
     }
     else if( nonSaveSystems.indexOf(selectedSystem.getAttribute("data-system")) == -1 && selectedGame 
@@ -1440,12 +1456,24 @@ function displayRemoteMedia(system, game, parents, serverLaunched) {
     if( system ) selected.system = system;
     if( game ) selected.game = game;
     if( parents ) selected.parents = parents;
-    
-    var path = ["systems", encodeURIComponent(selected.system), "games"].concat(selected.parents).concat([encodeURIComponent(selected.game), encodeURIComponent(getGamesInFolder(selected.parents, selected.system)[selected.game].rom)]).join("/");
-    form.appendChild( createFormTitle(selected.game) );
+
+    var isPlaylistMedia = JSON.stringify(getGamesInFolder(selected.parents, selected.system, false)) != JSON.stringify(getGamesInFolder(selected.parents, selected.system, true));
+    var title = selected.game;
+    if( isPlaylistMedia ) {
+        title = title.split(SERVER_PLAYLIST_SEPERATOR);
+        title = title[title.length-1];
+    }
+
+    var path = ["systems", encodeURIComponent(selected.system), "games"].concat(selected.parents).concat([encodeURIComponent(selected.game), encodeURIComponent(getGamesInFolder(selected.parents, selected.system, true)[selected.game].rom)]).join("/");
+    form.appendChild( createFormTitle(title) );
     var videoElement = document.createElement("video");
     videoElement.setAttribute("controls", "true");
     videoElement.setAttribute("autoplay", "true");
+    if( isPlaylistMedia ) {
+        videoElement.addEventListener( "ended", function() {
+            playNextMedia(1);
+        });
+    }
     var sourceElement = document.createElement("source");
     sourceElement.setAttribute("src", path);
     videoElement.appendChild(sourceElement);
@@ -1469,10 +1497,9 @@ function displayRemoteMedia(system, game, parents, serverLaunched) {
         form.setAttribute("data-is-server-launched", "true");
     }
 
-    var mediaElement = document.querySelector('.system[data-system="'+selected.system+'"] .game[data-game="'+encodeURIComponent(selected.game)+'"][data-parents="'+parentsArrayToString(selected.parents)+'"]');
-    var folderElements = document.querySelector('.system[data-system="'+selected.system+'"]').querySelectorAll('.game[data-parents="'+parentsArrayToString(selected.parents)+'"]');
-    var elementIndex = Array.prototype.indexOf.call( folderElements, mediaElement );
-    form.appendChild(createPositionIndicator( elementIndex+1, folderElements.length ));
+    var parentGameDictEntryGamesKeys = Object.keys(removePlaylists(filterGameTypes(getGamesInFolder(selected.parents, selected.system, true), false)));
+    var elementIndex = parentGameDictEntryGamesKeys.indexOf( selected.game );
+    form.appendChild(createPositionIndicator( elementIndex+1, parentGameDictEntryGamesKeys.length ));
     
     launchModal( form, function() { if(serverLaunched) { quitGame(); } }, serverLaunched ? true : false );
 }
@@ -1502,23 +1529,22 @@ function playNextMedia(offset) {
     var video = document.querySelector(".modal #remote-media-form video");
     if( video ) {
         var system = video.getAttribute("data-system");
-        var game = video.getAttribute("data-game");
-        var parents = video.getAttribute("data-parents");
-        var mediaElement = document.querySelector('.system[data-system="'+system+'"] .game[data-game="'+game+'"][data-parents="'+parents+'"]');
-        var folderElements = document.querySelector('.system[data-system="'+system+'"]').querySelectorAll('.game[data-parents="'+parents+'"]');
-        var elementIndex = Array.prototype.indexOf.call( folderElements, mediaElement );
-        var newIndex = getIndex( elementIndex, folderElements, offset );
-        var newGame = folderElements[newIndex].getAttribute("data-game");
+        var game = decodeURIComponent(video.getAttribute("data-game"));
+        var parents = parentsStringToArray(video.getAttribute("data-parents"));
+        var parentGameDictEntryGamesKeys = Object.keys(removePlaylists(filterGameTypes(getGamesInFolder(parents, system, true), false)));
+        var elementIndex = parentGameDictEntryGamesKeys.indexOf( game );
+        var newIndex = getIndex( elementIndex, parentGameDictEntryGamesKeys, offset );
+        var newGame = parentGameDictEntryGamesKeys[newIndex];
         var isServerLaunched = document.querySelector(".modal #remote-media-form").hasAttribute("data-is-server-launched");
         // If this is a server game using remote media, we want to launch a new game in the same fashion
         // the server will call diplayRemoteMedia after the server does what it needs too
         if( isServerLaunched ) {
-            launchGame( system, decodeURIComponent(newGame), parentsStringToArray(parents) );
+            launchGame( system, newGame, parents );
         }
         // Otherwise this is plain old remote media, so we just want to open a new modal with the new system
         else {
             closeModalCallback = null;
-            displayRemoteMedia( system, decodeURIComponent(newGame), parentsStringToArray(parents) );
+            displayRemoteMedia( system, newGame, parents );
         }
     }
 }
@@ -1933,8 +1959,9 @@ function displayUpdateGame() {
     form.appendChild( gameInput );
     var romFileInput = createRomFileInput();
     form.appendChild( romFileInput );
+    form.appendChild( createPlaylistMenu( translateSymlinks(getGamesInFolder(selected.parents, selected.system)[selected.game], selected.system) ) );
     // Do this here 
-    ensureRomInputIsDisplayedOrHidden( form, true );
+    ensureRomInputAndPlaylistSelectIsDisplayedOrHidden( form, true );
     form.appendChild( createButton( "Update Game", function() {
         if( !makingRequest ) {
             startRequest();
@@ -1946,11 +1973,39 @@ function displayUpdateGame() {
             var parents = extractParentsFromFolderMenu();
             var oldParents = extractParentsFromFolderMenu(true);
             var isFolder = getGamesInFolder(oldParents, oldSystemSelect.options[oldSystemSelect.selectedIndex].text)[oldGameSelect.options[oldGameSelect.selectedIndex].text].isFolder;
+            var isPlaylist = getGamesInFolder(oldParents, oldSystemSelect.options[oldSystemSelect.selectedIndex].text)[oldGameSelect.options[oldGameSelect.selectedIndex].text].isPlaylist;
+            var playlistItems = extractItemsfromPlaylistContainer();
 
-            updateGame( oldSystemSelect.options[oldSystemSelect.selectedIndex].text, oldGameSelect.options[oldGameSelect.selectedIndex].text, oldParents, systemSelect.options[systemSelect.selectedIndex].text, gameInput.value, romFileInput.files[0], parents, isFolder );
+            updateGame( oldSystemSelect.options[oldSystemSelect.selectedIndex].text, oldGameSelect.options[oldGameSelect.selectedIndex].text, oldParents, systemSelect.options[systemSelect.selectedIndex].text, gameInput.value, romFileInput.files[0], parents, isFolder, isPlaylist, playlistItems );
         }
     } ) );
     launchModal( form );
+}
+
+/**
+ * Translate symlinked entries into what they actually refernce
+ * All that is needed is the name which includes parents to dereference
+ * all symlinks are on the same system as what they reference.
+ * @param {HTMLElement} gameDictEntry - a playlist entry
+ * @param {string} system - the system the game is on
+ * @returns {Array} - an array of games that are what the playlists .games values point to
+ */
+function translateSymlinks(gameDictEntry, system) {
+    var gameDictEntries = [];
+    if( gameDictEntry.isPlaylist ) {
+        var gameDictEntryGameKeys = Object.keys(gameDictEntry.games);
+        for(var i=0; i<gameDictEntryGameKeys.length; i++) {
+            var pointerGameDictEntry = gameDictEntry.games[ gameDictEntryGameKeys[i] ];
+            var path = pointerGameDictEntry.game.split(SERVER_PLAYLIST_SEPERATOR);
+            path.shift(); // remove the random string
+            var curGameDictEntry = getGamesInFolder( path.slice(0, path.length-1), system)[ path[path.length-1] ];
+            curGameDictEntry = JSON.parse(JSON.stringify(curGameDictEntry));
+            curGameDictEntry.parents = path.slice(0, path.length-1);
+            gameDictEntries.push(curGameDictEntry);
+        }
+        return gameDictEntries;   
+    }
+    return [];
 }
 
 /**
@@ -1959,44 +2014,55 @@ function displayUpdateGame() {
 function displayAddGame() {
     var form = document.createElement("div");
     // We don't use selected because we don't need a game for addgame
-    // var selected = getSelectedValues();
+    //var selected = getSelectedValues();
     form.setAttribute("id", "add-game-form");
     form.appendChild( createFormTitle("Add Game") );
-    form.appendChild( createSystemMenu( document.querySelector(".system.selected").getAttribute("data-system"), false, true, false, false, false ) );
-    var selectedGameElement = document.querySelector(".system.selected .game.selected");
+    // the system may be invalid (e.g. browser)
+    var systemMenu = createSystemMenu( document.querySelector(".system.selected").getAttribute("data-system"), false, true, false, false, false );
+    form.appendChild( systemMenu );
+    var selectedSystemElement = systemMenu.querySelector("select");
+    var selectedSystem = selectedSystemElement.options[selectedSystemElement.selectedIndex].text;
+
+    var selectedGameElement = document.querySelector(".system[data-system='"+selectedSystem+"'] .game.selected");
     var selectedParents = selectedGameElement ? parentsStringToArray(selectedGameElement.getAttribute("data-parents")) : [];
-    form.appendChild( createFolderMenu( selectedParents, document.querySelector(".system.selected").getAttribute("data-system"), false, false, false, false) );
+    form.appendChild( createFolderMenu( selectedParents, selectedSystem, false, false, false, false) );
     var gameInput = createGameInput(null, true);
     form.appendChild( gameInput );
-    var isFolderCheckbox = createInput( "", "is-folder-checkbox", "Folder: ", "checkbox", false );
-    isFolderCheckbox.children[1].onchange = function() {
-        if( this.checked ) {
-            document.querySelector(".modal #rom-file-input").parentNode.classList.add("hidden");
-        }
-        else {
-            document.querySelector(".modal #rom-file-input").parentNode.classList.remove("hidden");
-        }
-    }
-    form.appendChild( isFolderCheckbox );
+    form.appendChild( createTypeMenu(null, getTypeOptions( selectedSystem ), true) );
     var romFileInput = createRomFileInput(true);
     form.appendChild( romFileInput );
+
+    var playlistMenu = createPlaylistMenu();
+    playlistMenu.classList.add("hidden");
+    form.appendChild( playlistMenu );
     form.appendChild( createButton( "Add Game", function() {
         if( !makingRequest ) {
             startRequest();
             var systemSelect = document.querySelector(".modal #add-game-form #system-select");
             var gameInput = document.querySelector(".modal #add-game-form #game-input");
             var romFileInput = document.querySelector(".modal #add-game-form #rom-file-input");
-            var isFolderCheckbox = document.querySelector(".modal #add-game-form #is-folder-checkbox"); 
+            var typeSelect = document.querySelector(".modal #add-game-form #type-select"); 
             var parents = extractParentsFromFolderMenu();
+            var playlistItems = extractItemsfromPlaylistContainer();
 
-            addGame( systemSelect.options[systemSelect.selectedIndex].text, gameInput.value, romFileInput.files[0], parents, isFolderCheckbox.checked ? true : "" );
+            addGame( systemSelect.options[systemSelect.selectedIndex].text, gameInput.value, romFileInput.files[0], parents, typeSelect.options[typeSelect.selectedIndex].text == "Folder", typeSelect.options[typeSelect.selectedIndex].text == "Playlist", playlistItems );
         }
     }, [ gameInput.firstElementChild.nextElementSibling ] ) );
     launchModal( form );
 }
 
 /**
+ * Get available type options
+ * @param {String} system - the system
+ */
+function getTypeOptions(system) {
+    if( system == "media" ) return ["Game", "Folder", "Playlist"];
+    return ["Game", "Folder"];
+}
+
+/**
  * Check if a folder contains real games.
+ * A playlist is not considered a real game in this instance.
  * @param {object} games - a standard games object
  * @returns {boolean} - whether or not the folder contains real games
  */
@@ -2008,7 +2074,7 @@ function folderContainsRealGames(games) {
                 return true;
             }
         }
-        else {
+        else if( !gameEntry.isPlaylist ) {
             return true;
         }
     }
@@ -2044,6 +2110,7 @@ function createSystemMenu( selected, old, required, onlyWithGames, onlySystemsSu
         var modal = document.querySelector(".modal");
         var folderSelect = modal.querySelector("#" + (old ? "old-" : "") + "folder-select-container");
         var gameSelect = modal.querySelector("#" + (old ? "old-" : "") + "game-select");
+        var typeSelect = modal.querySelector("#type-select");
         if( folderSelect && !gameSelect ) {
             // It's fine if this is a folder, since we are just using it to get parents
             var currentGameElement = document.querySelector(".system[data-system='"+system+"'] .game.selected");
@@ -2093,11 +2160,16 @@ function createSystemMenu( selected, old, required, onlyWithGames, onlySystemsSu
                 saveSelect.parentNode.replaceWith( createSaveMenu( currentSave, system, currentGame, saveSelect.hasAttribute("required"), selectedParents ) );
             }
         }
+        if( typeSelect ) {
+            var newTypeSelect = createTypeMenu( typeSelect.options[typeSelect.selectedIndex].text, getTypeOptions(system), typeSelect.getAttribute("required") );
+            typeSelect.parentNode.replaceWith(newTypeSelect);
+            newTypeSelect.querySelector("#type-select").onchange(); // ensure the proper items are shown
+        }
 
         // when we change an old menu - be it system, game or folder, we need to make sure that the new folder menu has all options available
         // to do this, just regenerate the new folder menu
         ensureNewFolderMenuHasCorrectOptions( modal, old );
-        ensureRomInputIsDisplayedOrHidden( modal, old );
+        ensureRomInputAndPlaylistSelectIsDisplayedOrHidden( modal, old );
     }, required );
 }
 
@@ -2172,7 +2244,7 @@ function createGameMenu( selected, system, old, required, parents, onlyWithRealG
         // when we change an old menu - be it system, game or folder, we need to make sure that the new folder menu has all options available
         // to do this, just regenerate the new folder menu
         ensureNewFolderMenuHasCorrectOptions( modal, old );
-        ensureRomInputIsDisplayedOrHidden( modal, old );
+        ensureRomInputAndPlaylistSelectIsDisplayedOrHidden( modal, old );
         
     }, required );
 }
@@ -2182,15 +2254,32 @@ function createGameMenu( selected, system, old, required, parents, onlyWithRealG
  * @param {HTMLElement} modal - the modal
  * @param {boolean} old - a check to make sure the old item is the one that changed
  */
-function ensureRomInputIsDisplayedOrHidden( modal, old ) {
+function ensureRomInputAndPlaylistSelectIsDisplayedOrHidden( modal, old ) {
     if( old && modal ) {
         var oldSystemSelect = modal.querySelector("#old-system-select");
         var oldGameSelect = modal.querySelector("#old-game-select");
         var romFileInput = modal.querySelector("#rom-file-input");
+        var playlistSelect = modal.querySelector("#playlist-container");
         var oldParents = extractParentsFromFolderMenu(true, modal);
-        var isFolder = getGamesInFolder(oldParents, oldSystemSelect.options[oldSystemSelect.selectedIndex].text)[oldGameSelect.options[oldGameSelect.selectedIndex].text].isFolder;
-        if( isFolder ) romFileInput.parentNode.classList.add("hidden");
-        else romFileInput.parentNode.classList.remove("hidden");
+        var oldSystem = oldSystemSelect.options[oldSystemSelect.selectedIndex].text;
+        var oldGame = oldGameSelect.options[oldGameSelect.selectedIndex].text;
+        var isFolder = getGamesInFolder(oldParents, oldSystem)[oldGame].isFolder;
+        var isPlaylist = getGamesInFolder(oldParents, oldSystem)[oldGame].isPlaylist;
+        if( isFolder ) {
+            romFileInput.parentNode.classList.add("hidden");
+            playlistSelect.parentNode.classList.add("hidden");
+        }
+        else if( isPlaylist ) {
+            romFileInput.parentNode.classList.add("hidden");
+            playlistSelect.parentNode.classList.remove("hidden");
+        }
+        else {
+            playlistSelect.parentNode.classList.add("hidden");
+            romFileInput.parentNode.classList.remove("hidden");
+        }
+        if( !playlistSelect.parentNode.classList.contains("hidden") ) {
+            playlistSelect.parentNode.replaceWith( createPlaylistMenu( translateSymlinks(getGamesInFolder(oldParents, oldSystem)[oldGame], oldSystem) ) );
+        }
     }
 }
 
@@ -2219,13 +2308,15 @@ function ensureNewFolderMenuHasCorrectOptions( modal, old ) {
  * This works well with filterGameTypes
  * @param {Array} parents - the parent folders
  * @param {string} system - the system the folders are for
+ * @param {boolean} allowPlaylist - allow playlists to count as folders
  * @returns {object} the games object for the specified parents
  */
-function getGamesInFolder( parents, system ) {
+function getGamesInFolder( parents, system, allowPlaylist ) {
     var parentsCopy = parents.slice(0);
     var games = systemsDict[system].games;
     while( parentsCopy && parentsCopy.length ) {
         var cur = parentsCopy.shift();
+        if( games[cur].isPlaylist && !allowPlaylist ) return null; // Playlists do not count as folders for now
         if( cur ) games = games[cur].games;
     }
     return games;
@@ -2242,7 +2333,7 @@ function getRealGamesInFolderRecursive(games, arr, parents) {
         var gameEntry = games[game];
         if( gameEntry.isFolder ) {
             curParents.push( gameEntry.game );
-            getRealGamesInFolderRecursive(gameEntry.games, arr, curParents);
+            getRealGamesInFolderRecursive(gameEntry.games, arr, curParents); // takes care of playlist
         }
         else {
             gameEntry = JSON.parse( JSON.stringify(gameEntry ));
@@ -2269,13 +2360,29 @@ function filterGameTypes( games, getFolders ) {
 }
 
 /**
+ * Remove playlists. (Filter out)
+ * @param {Object} games - a games object (e.g. systems[system].games)
+ */
+function removePlaylists( games ) {
+    var newObj = {};
+    for( var game of Object.keys(games) ) {
+        if( (!games[game].isPlaylist) ) {
+            newObj[game] = games[game];
+        }
+    }
+    return newObj;
+}
+
+/**
  * Extract a parents array from folder menus.
  * @param {boolen} old - true if this is an old list (changes looked for)
+ * @param {HTMLElement} modal - the modal containing the menus
+ * @param {Array<HTMLElement>} folderDropdowns - the dropdowns
  * @returns {Array} a list of the parents in order
  */
-function extractParentsFromFolderMenu(old, modal) {
+function extractParentsFromFolderMenu(old, modal, folderDropdowns) {
     if( !modal ) modal = document.querySelector(".modal");
-    var folderDropdowns = modal.querySelectorAll("#" + (old ? "old-" : "") + "folder-select-container select");
+    if( !folderDropdowns ) folderDropdowns = modal.querySelectorAll("#" + (old ? "old-" : "") + "folder-select-container select");
     var parents = [];
     for( var i=0; i<folderDropdowns.length; i++ ) {
         var currentDropdown = folderDropdowns[i];
@@ -2285,6 +2392,24 @@ function extractParentsFromFolderMenu(old, modal) {
         }
     }
     return parents;
+}
+
+/**
+ * Extract items from
+ * @param {HTMLElement} modal - the modal containing the playlists
+ * @returns {Array<Array<String>>} - An array of arrays of items
+ */
+function extractItemsfromPlaylistContainer(modal) {
+    if( !modal ) modal = document.querySelector(".modal");
+    var tracks = modal.querySelectorAll(".playlist-select-container");
+    var playlists = [];
+    for( var i=0; i<tracks.length; i++ ) {
+        var itemPath = extractParentsFromFolderMenu( false, modal, tracks[i].querySelectorAll("select") );
+        if( itemPath.length ) {
+            playlists.push( itemPath );
+        }
+    }
+    return playlists
 }
 
 /**
@@ -2309,6 +2434,31 @@ function createPositionIndicator(currentPosition, maxPosition) {
 }
 
 /**
+ * Create a playlist menu
+ * @param {Array<HTMLElement>} gameDictEntries - a list of game dict entries with parents included
+ */
+function createPlaylistMenu( gameDictEntries ) {
+    var playlistElement = document.createElement("div");
+    playlistElement.setAttribute("id", "playlist-container");
+
+    if( !gameDictEntries ) {
+        gameDictEntries = [];
+    }
+
+    // always have at least one element for adding
+    gameDictEntries.push( { game: "", parents: [] } );
+
+    for( var i=0; i<gameDictEntries.length; i++ ) {
+        var currentParents = gameDictEntries[i].parents.slice(0);
+        currentParents.push(gameDictEntries[i].game);
+        var folderMenu = createFolderMenu( currentParents, "media", false, false, true, true, null, true, true, i );
+        playlistElement.appendChild(folderMenu);
+    }
+    
+    return addLabel(playlistElement, "Playlist: ");
+}
+
+/**
  * Create a menu for folders.
  * @param {Array} parents - a list of the current parents (folders) - it is ok if there are "" items in the parents array, they will be removed
  * @param {string} system - the system the menu is for
@@ -2320,108 +2470,159 @@ function createPositionIndicator(currentPosition, maxPosition) {
  * @param {boolean} onlyWithLeafNodes - true if we only want to show "leaf nodes" (only impacts the game menu) - i.e. empty folders or games - if onlyWithGames is true (which it should be when this is), then we won't ever selected a leaf node as a folder, so that's why it is only needed for the game menu
  * @returns {HTMLElement} - a div element containing dynamic folder dropdowns
  */
-function createFolderMenu( parents, system, old, required, onlyWithGames, onlyWithRealGames, helperElement, onlyWithLeafNodes ) {
+function createFolderMenu( parents, system, old, required, onlyWithGames, onlyWithRealGames, helperElement, onlyWithLeafNodes, isForPlaylist, playlistId ) {
     // We will have a dropdown for each possible folder
     var count = 0;
     var currentParents = [];
     parents = parents.slice(0);
     parents.push(null); // this will be the value that can be selected as the next child
     var dropdownContainer = document.createElement("span");
-    dropdownContainer.setAttribute("id", (old ? "old-" : "") + "folder-select-container");
+    var playlistId;
+    if( !isForPlaylist ) {
+        dropdownContainer.setAttribute("id", (old ? "old-" : "") + "folder-select-container");
+    }
+    else {
+        if(playlistId == undefined) playlistId = document.querySelectorAll(".modal .playlist-select-container").length;
+        dropdownContainer.classList.add("playlist-select-container");
+        dropdownContainer.setAttribute("id", "playlist-select-container-" + playlistId);
+    }
     for( var parent of parents ) {
         if( parent !== "" ) {
-            // getGamesInFolder importantly filters out any non-folders like ""
-            var options = Object.keys(filterGameTypes(getGamesInFolder(currentParents, system), true));
+            var isFolder = getGamesInFolder(currentParents, system) ? true : false;
 
-            // current selected should always take into account if one or both of these parameters exist
-            if( onlyWithGames ) {
-                options = options.filter( function(option) {
-                    var currentParentsCopy = currentParents.slice(0);
-                    currentParentsCopy.push(option);
-                    return Object.keys(getGamesInFolder(currentParentsCopy, system)).length > 0;
-                } );
-            }
-            if( onlyWithRealGames ) {
-                options = options.filter( function(option) {
-                    var currentParentsCopy = currentParents.slice(0);
-                    currentParentsCopy.push(option);
-                    var realGamesInFolder = folderContainsRealGames(getGamesInFolder(currentParentsCopy, system));
-                    return realGamesInFolder;
-                } );
-            }
+            // If the selected item is a folder, we will have options, but otherwise we will not
+            var options = [];
+            if( isFolder ) {
 
-            if( !helperElement ) helperElement = document.querySelector(".modal");
-            // Don't allow a folder to be put inside itself basically
-            // if there is an old menu and the current item is a folder
-            // make sure we don't allow that folder to become the selected folder in the new menu - i.e. exclude it as an item
-            if( !old && helperElement && helperElement.querySelector("#old-game-select") && helperElement.querySelector("#old-folder-select-container") ) {
-                var oldParents = extractParentsFromFolderMenu(true, helperElement);
-                var oldGameSelect = helperElement.querySelector("#old-game-select");
-                oldParents.push( oldGameSelect.options[oldGameSelect.selectedIndex].text );
-                options = options.filter( function(option) {
-                    var currentParentsCopy = currentParents.slice(0);
-                    currentParentsCopy.push(option);
-                    return JSON.stringify(oldParents) != JSON.stringify(currentParentsCopy);
-                } );
+                // we can have a folder menu that actually allows leaf nodes to be selected which is what we are doing
+                // getGamesInFolder importantly filters out any non-folders like ""
+                if( !isForPlaylist ) {
+                    // folders only
+                    options = Object.keys(filterGameTypes(getGamesInFolder(currentParents, system), true));
+                }
+                else {
+                    options = Object.keys(removePlaylists(getGamesInFolder(currentParents, system)));
+                }
+
+                // current selected should always take into account if one or both of these parameters exist
+                if( options && onlyWithGames ) {
+                    options = options.filter( function(option) {
+                        var currentParentsCopy = currentParents.slice(0);
+                        currentParentsCopy.push(option);
+                        var currentOptionIsFolder = getGamesInFolder(currentParentsCopy, system) ? true : false;
+                        if( currentOptionIsFolder )
+                            return Object.keys(getGamesInFolder(currentParentsCopy, system)).length > 0;
+                        return true; // allow games - they'll be filtered out later
+                    } );
+                }
+                if( options && onlyWithRealGames ) {
+                    options = options.filter( function(option) {
+                        var currentParentsCopy = currentParents.slice(0);
+                        currentParentsCopy.push(option);
+                        var currentOptionIsFolder = getGamesInFolder(currentParentsCopy, system) ? true : false;
+                        if( currentOptionIsFolder )
+                            return folderContainsRealGames(getGamesInFolder(currentParentsCopy, system));
+                        return true; // allow games - they'll be filtered out later
+                    } );
+                }
+
+                if( !helperElement ) helperElement = document.querySelector(".modal");
+                // Don't allow a folder to be put inside itself basically
+                // if there is an old menu and the current item is a folder
+                // make sure we don't allow that folder to become the selected folder in the new menu - i.e. exclude it as an item
+                if( !isForPlaylist && !old && helperElement && helperElement.querySelector("#old-game-select") && helperElement.querySelector("#old-folder-select-container") ) {
+                    var oldParents = extractParentsFromFolderMenu(true, helperElement);
+                    var oldGameSelect = helperElement.querySelector("#old-game-select");
+                    oldParents.push( oldGameSelect.options[oldGameSelect.selectedIndex].text );
+                    options = options.filter( function(option) {
+                        var currentParentsCopy = currentParents.slice(0);
+                        currentParentsCopy.push(option);
+                        return JSON.stringify(oldParents) != JSON.stringify(currentParentsCopy);
+                    } );
+                }
+
             }
 
             if( options.length ) { // there are no subfolders so no dropdown
 
                 options.unshift("");
-                var dropdown = createMenu( parent, options, (old ? "old-" : "") + "folder-select-" + count, "Select Folder " + count, function() {
+                var dropdownId;
+                if( isForPlaylist ) {
+                    dropdownId = "playlist-select-" + playlistId + "-" + count;
+                }
+                else {
+                    dropdownId = (old ? "old-" : "") + "folder-select-" + count;
+                }
+                var dropdown = createMenu( parent, options, dropdownId, "Select Folder " + count, function() {
                     // get my index
                     // get all my parents including me
                     // redraw the dropdowns with the parents set as such
                     var myIndex = this.getAttribute("id");
                     var modal = document.querySelector(".modal");
-                    var digitRegex = /-(\d+)/;
+                    var digitRegex = /-(\d+)$/;
                     var match = digitRegex.exec(myIndex);
                     myIndex = match[1];
                     var newParents = [];
                     for( var i=0; i<=myIndex; i++ ) {
-                        var currentDropdown = modal.querySelector( "#" + (old ? "old-" : "") + "folder-select-" + i );
+                        var currentDropdownId = isForPlaylist ? "playlist-select-" + playlistId + "-" : (old ? "old-" : "") + "folder-select-";
+                        var currentDropdown = modal.querySelector( "#" + currentDropdownId + i );
                         newParents.push( currentDropdown.options[currentDropdown.selectedIndex].text );
                     }
-                    this.parentNode.parentNode.parentNode.replaceWith( createFolderMenu( newParents, system, old, required, onlyWithGames, onlyWithRealGames, null, onlyWithLeafNodes ) );
-                    // If there are any game menus below the folders, trigger them to change
-                    var gameSelect = modal.querySelector("#" + (old ? "old-" : "") + "game-select");
-                    if( gameSelect ) { // See important note : this means onlyWithGames should be true
-                        var parentsForGameMenu = extractParentsFromFolderMenu(old);
-                        // Get the game element that is selected - it must be available for this folder though
-                        var selectedGameElement = document.querySelector('.system[data-system="'+system+'"] .game.selected[data-parents="'+parentsArrayToString(parentsForGameMenu)+'"]');
-                        if( onlyWithRealGames && selectedGameElement && selectedGameElement.hasAttribute("data-is-folder") ) {
-                            selectedGameElement = null;
-                        }
-                        var selectedGame = null;
-                        if( selectedGameElement ) {
-                            selectedGame = decodeURIComponent(selectedGameElement.getAttribute("data-game"));
-                        }
-                        // there is no selected game element in our folder, just find any one
-                        // we KNOW there is at least one game (with the same parents) in there since we filtered earlier
-                        else {
-                            var not = onlyWithRealGames ? ":not([data-is-folder])" : ""; // if onlyWithGames - IMPORTANT NOTE: gameSelect shouldn't exist without either onlyWithGames or onlyWithRequiredGames - otherwise this might throw an error as we'd have an empty folder - you should not  allow a game select with the potentiality of there being nothing to have selected by default
-                            selectedGameElement = document.querySelector('.system[data-system="'+system+'"] .game[data-parents="'+parentsArrayToString(parentsForGameMenu)+'"]' + not);
-                            selectedGame = decodeURIComponent(selectedGameElement.getAttribute("data-game"));
-                        }
-                        
-                        // See if we can get a selected game within the folder
-                        gameSelect.parentNode.replaceWith( createGameMenu(selectedGame, system, old, gameSelect.hasAttribute("required"), parentsForGameMenu, onlyWithRealGames, onlyWithLeafNodes) );
-
-                        var saveSelect = modal.querySelector("#save-select");
-                        if( saveSelect && !old ) {
-                            var currentSave = null;
-                            if( selectedGameElement ) {
-                                var currentSaveElement = selectedGameElement.querySelector(".current-save");
-                                if( currentSaveElement ) currentSave = currentSaveElement.innerText;
-                            }
-                            saveSelect.parentNode.replaceWith( createSaveMenu( currentSave, system, selectedGame, saveSelect.hasAttribute("required"), parentsForGameMenu ) );
-                        }
+                    // for a playlist, add another playlist option when the last one gets a selected value
+                    var allPlaylistSelects = document.querySelectorAll(".modal .playlist-select-container");
+                    var lastPlaylistId = digitRegex.exec( allPlaylistSelects[allPlaylistSelects.length-1].getAttribute("id") )[1];
+                    if( isForPlaylist && (myIndex > 0 || newParents[0] != "") && playlistId == lastPlaylistId ) {
+                        document.querySelector(".modal #playlist-container").appendChild( createFolderMenu( [], "media", false, false, true, true, null, true, true, parseInt(lastPlaylistId) + 1 ) );
                     }
 
-                    // when we change an old menu - be it system, game or folder, we need to make sure that the new folder menu has all options available
-                    // to do this, just regenerate the new folder menu
-                    ensureNewFolderMenuHasCorrectOptions( modal, old );
-                    ensureRomInputIsDisplayedOrHidden( modal, old );
+                    // for a playlist, first element set to null, remove 
+                    if( isForPlaylist && newParents[0] == "" && allPlaylistSelects.length > 1 ) {
+                        this.parentNode.parentNode.parentNode.parentNode.removeChild( this.parentNode.parentNode.parentNode );
+                    }
+                    else
+                        this.parentNode.parentNode.parentNode.replaceWith( createFolderMenu( newParents, system, old, required, onlyWithGames, onlyWithRealGames, null, onlyWithLeafNodes, isForPlaylist, playlistId ) );
+                    
+                    if( !isForPlaylist ) {
+                        // If there are any game menus below the folders, trigger them to change
+                        var gameSelect = modal.querySelector("#" + (old ? "old-" : "") + "game-select");
+                        if( gameSelect ) { // See important note : this means onlyWithGames should be true
+                            var parentsForGameMenu = extractParentsFromFolderMenu(old);
+                            // Get the game element that is selected - it must be available for this folder though
+                            var selectedGameElement = document.querySelector('.system[data-system="'+system+'"] .game.selected[data-parents="'+parentsArrayToString(parentsForGameMenu)+'"]');
+                            if( onlyWithRealGames && selectedGameElement && selectedGameElement.hasAttribute("data-is-folder") ) {
+                                selectedGameElement = null;
+                            }
+                            var selectedGame = null;
+                            if( selectedGameElement ) {
+                                selectedGame = decodeURIComponent(selectedGameElement.getAttribute("data-game"));
+                            }
+                            // there is no selected game element in our folder, just find any one
+                            // we KNOW there is at least one game (with the same parents) in there since we filtered earlier
+                            else {
+                                var not = onlyWithRealGames ? ":not([data-is-folder])" : ""; // if onlyWithGames - IMPORTANT NOTE: gameSelect shouldn't exist without either onlyWithGames or onlyWithRequiredGames - otherwise this might throw an error as we'd have an empty folder - you should not  allow a game select with the potentiality of there being nothing to have selected by default
+                                selectedGameElement = document.querySelector('.system[data-system="'+system+'"] .game[data-parents="'+parentsArrayToString(parentsForGameMenu)+'"]' + not);
+                                selectedGame = decodeURIComponent(selectedGameElement.getAttribute("data-game"));
+                            }
+                            
+                            // See if we can get a selected game within the folder
+                            gameSelect.parentNode.replaceWith( createGameMenu(selectedGame, system, old, gameSelect.hasAttribute("required"), parentsForGameMenu, onlyWithRealGames, onlyWithLeafNodes) );
+
+                            var saveSelect = modal.querySelector("#save-select");
+                            if( saveSelect && !old ) {
+                                var currentSave = null;
+                                if( selectedGameElement ) {
+                                    var currentSaveElement = selectedGameElement.querySelector(".current-save");
+                                    if( currentSaveElement ) currentSave = currentSaveElement.innerText;
+                                }
+                                saveSelect.parentNode.replaceWith( createSaveMenu( currentSave, system, selectedGame, saveSelect.hasAttribute("required"), parentsForGameMenu ) );
+                            }
+                        }
+
+                        // when we change an old menu - be it system, game or folder, we need to make sure that the new folder menu has all options available
+                        // to do this, just regenerate the new folder menu
+                        ensureNewFolderMenuHasCorrectOptions( modal, old );
+                        ensureRomInputAndPlaylistSelectIsDisplayedOrHidden( modal, old );
+                    }
                 }, required );
                 currentParents.push(parent);
                 count++;
@@ -2461,6 +2662,29 @@ function createSaveInput( defaultValue, required ) {
  */
 function createSaveMenu( selected, system, game, required, parents ) {
     return createMenu( selected, Object.keys(getGamesInFolder( parents, system )[game].saves), "save-select", "Save: ", null, required );
+}
+
+/**
+ * Create a select element containing type
+ * @param {string} selected - the save selected by default
+ * @param {Array<string>} options - a list of options for the select (should contain one or more of "Game", "Folder", and "Playlist")
+ * @param {boolean} required - if the field is required
+ */
+function createTypeMenu( selected, options, required ) {
+    return createMenu( selected, options, "type-select", "Type: ", function() {
+        if( this.options[this.selectedIndex].text == "Game" ) {
+            document.querySelector(".modal #playlist-container").parentNode.classList.add("hidden");
+            document.querySelector(".modal #rom-file-input").parentNode.classList.remove("hidden");
+        }
+        else if ( this.options[this.selectedIndex].text == "Folder" ) {
+            document.querySelector(".modal #rom-file-input").parentNode.classList.add("hidden");
+            document.querySelector(".modal #playlist-container").parentNode.classList.add("hidden");
+        }
+        else { // Playlist
+            document.querySelector(".modal #rom-file-input").parentNode.classList.add("hidden");
+            document.querySelector(".modal #playlist-container").parentNode.classList.remove("hidden");
+        }
+    }, required );
 }
 
 /**
@@ -2739,9 +2963,11 @@ function goHome() {
  * @param {object} file - a file object
  * @param {Array} parents - the parents of a game
  * @param {boolean} isFolder - true if the "game" is a folder
+ * @param {boolean} isPlaylist - true if the "game" is a playlist
+ * @param {Array<Array>} playlistItems - the items in the playlist
  */
-function addGame( system, game, file, parents, isFolder ) {
-    makeRequest( "POST", "/game", { "system": system, "game": game, "file": file ? file : "", "parents": JSON.stringify(parents), "isFolder": isFolder ? isFolder : "" }, 
+function addGame( system, game, file, parents, isFolder, isPlaylist, playlistItems ) {
+    makeRequest( "POST", "/game", { "system": system, "game": game, "file": file ? file : "", "parents": JSON.stringify(parents), "isFolder": isFolder ? isFolder : "", "isPlaylist": isPlaylist ? isPlaylist : "", "playlistItems": JSON.stringify(playlistItems) }, 
     function( responseText ) { standardSuccess(responseText, "Game successfully added") },
     function( responseText ) { standardFailure( responseText ) }, true );
 }
@@ -2756,9 +2982,11 @@ function addGame( system, game, file, parents, isFolder ) {
  * @param {object} file - a file object
  * @param {Array} parents - the parents of a game
  * @param {boolean} isFolder - true if the "game" is a folder
+ * @param {boolean} isPlaylist - true if the "game" is a playlist
+ * @param {Array<Array>} playlistItems - the items in the playlist
  */
-function updateGame( oldSystem, oldGame, oldParents, system, game, file, parents, isFolder ) {
-    makeRequest( "PUT", "/game", { "oldSystem": oldSystem, "oldGame": oldGame, "oldParents": JSON.stringify(oldParents), "system": system, "game": game, "file": file ? file : "", "parents": JSON.stringify(parents), "isFolder": isFolder ? isFolder : "" }, 
+function updateGame( oldSystem, oldGame, oldParents, system, game, file, parents, isFolder, isPlaylist, playlistItems ) {
+    makeRequest( "PUT", "/game", { "oldSystem": oldSystem, "oldGame": oldGame, "oldParents": JSON.stringify(oldParents), "system": system, "game": game, "file": file ? file : "", "parents": JSON.stringify(parents), "isFolder": isFolder ? isFolder : "", "isPlaylist": isPlaylist ? isPlaylist : "", "playlistItems": JSON.stringify(playlistItems) }, 
     function( responseText ) { standardSuccess(responseText, "Game successfully updated", oldSystem, system ? system : oldSystem, oldGame, game ? game: oldGame, oldParents, parents) },
     function( responseText ) { standardFailure( responseText ) }, true );
 }
