@@ -79,6 +79,8 @@ const CHECK_TIMEOUT = 100;
 const ACTIVE_WINDOW_COMMAND = "xdotool getwindowfocus getwindowname";
 const PAGE_TITLE = "GuyStation - Google Chrome";
 const CHECK_MEDIA_PLAYING_INTERVAL = 100;
+const ENTIRE_SCREEN = "Entire screen";
+const IS_SERVER_PARAM = "is_server";
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -122,7 +124,11 @@ const ERROR_MESSAGES = {
     "addFolderToPlaylist": "A folder can't be added to a playlist",
     "addPlaylistToPlaylist": "A playlist can't be added to a playlist",
     "symlinkToItemBeingPlayed": "Please stop playing any references to this track",
-    "playlistHasGameBeingPlayed": "This playlist has tracks in it that are being played"
+    "playlistHasGameBeingPlayed": "This playlist has tracks in it that are being played",
+    "connectionAlreadyExists": "A connection already exists",
+    "screencastAlreadyStarted": "The screencast has already started",
+    "screencastNotStarted": "The screencast is not running yet",
+    "clientAndServerAreNotBothConnected": "The client and server are not both ready"
 }
 
 // We will only allow for one request at a time for app
@@ -439,6 +445,27 @@ app.post("/browser/tab", async function(request, response) {
     writeActionResponse( response, errorMessage );
 });
 
+// Connect the menu page to the signal server
+app.get("/screencast/connect", async function(request, response) {
+    console.log("app serving /screencast/connect");
+    let errorMessage = await connectScreencast();
+    writeActionResponse( response, errorMessage );
+});
+
+// Start screencast
+app.get("/screencast/start", async function(request, response) {
+    console.log("app serving /screencast/start");
+    let errorMessage = await startScreencast();
+    writeActionResponse( response, errorMessage );
+});
+
+// Stop screencast
+app.get("/screencast/stop", async function(request, response) {
+    console.log("app serving /screencast/stop");
+    let errorMessage = await stopScreencast();
+    writeActionResponse( response, errorMessage );
+});
+
 // START PROGRAM (Launch Browser and Listen)
 server.listen(SOCKETS_PORT); // This is the screencast server
 staticApp.listen(STATIC_PORT); // Launch the static assets first, so the browser can access them
@@ -526,7 +553,11 @@ async function launchBrowser() {
     let options = {
         headless: false,
         defaultViewport: null,
-        args: ['--start-fullscreen', '--no-sandbox']
+        args: [
+            '--start-fullscreen',
+            '--no-sandbox',
+            `--auto-select-desktop-capture-source=${ENTIRE_SCREEN}` // this has to be like this otherwise the launcher will not read the argument. It has to do with node.js processes and how they handle quotes with shell=true. 
+        ]
     };
     if(process.argv.indexOf("--chromium") == -1) {
         options.executablePath = LINUX_CHROME_PATH;
@@ -534,7 +565,7 @@ async function launchBrowser() {
     browser = await puppeteer.launch(options);
     let pages = await browser.pages();
     menuPage = await pages[0];
-    await menuPage.goto(LOCALHOST + ":" + STATIC_PORT);
+    await menuPage.goto(LOCALHOST + ":" + STATIC_PORT + "?" + IS_SERVER_PARAM);
     ks.sendKey('tab');
 }
 
@@ -2505,7 +2536,7 @@ async function checkRemoteMedia( system, game, parents ) {
 
 /**
  * Stop checking for remote media status
- * @returns {*} - an error message if there was an error, false if there was not.
+ * @returns {Promise<*>} - an error message if there was an error, false if there was not.
  */
 async function clearCheckRemoteMedia() {
     clearInterval( clearMediaPlayingInterval );
@@ -2514,11 +2545,11 @@ async function clearCheckRemoteMedia() {
 
 /**
  * Go to the home menu.
- * @returns {*} - an error message if there was an error, false if there was not.
+ * @returns {Promise<*>} - an error message if there was an error, false if there was not.
  */
 async function goHome() {
     if( !menuPage || menuPage.isClosed() ) {
-        return Promise.resolve(RROR_MESSAGES.menuPageClosed);
+        return Promise.resolve(ERROR_MESSAGES.menuPageClosed);
     }
 
     var needsPause = true;
@@ -2546,3 +2577,125 @@ ioHook.on("keydown", event => {
     }
 });
 ioHook.start();
+
+
+// Signal server section
+var streamerMediaReady = false;
+var clientJoined = false;
+var screencastStarted = false;
+var serverSocketId;
+var clientSocketId;
+io.on('connection', function(socket) {
+    socket.on("connect-screencast-streamer", function() {
+        if( !serverSocketId ) {
+            console.log("screencast streamer connected");
+            serverSocketId = socket.id;
+        }
+    } );
+    // we have to wait for the following two events until we are ready
+    // to start streaming
+    socket.on("streamer-media-ready", function() {
+        console.log("screencast media ready");
+        streamerMediaReady = true;
+        if( clientJoined && !screencastStarted ) {
+            startScreencast();
+            screencastStarted = true;
+        }
+    } );
+    socket.on("connect-screencast-client", function() {
+        if( !clientSocketId ) {
+            console.log("screencast client connected");
+            clientSocketId = socket.id;
+            // the client will only connect
+            // this will always happen after the server connect
+            // since client connect is the success function when we call to server connect
+            // as such, we can now tell the server to start the stream
+            clientJoined = true;
+            if( streamerMediaReady && !screencastStarted ) {
+                startScreencast();
+                screencastStarted = true;
+            }
+        }
+    } );
+    socket.on("sdp", function(message) {
+        if( socket.id == serverSocketId ) {
+            io.to(clientSocketId).emit("sdp", message);
+        }
+        else if( socket.id == clientSocketId ) {
+            io.to(serverSocketId).emit("sdp", message);
+        }
+    } );
+    socket.on("ice", function(message) {
+        if( socket.id == serverSocketId ) {
+            io.to(clientSocketId).emit("ice", message);
+        }
+        else if( socket.id == clientSocketId ) {
+            io.to(serverSocketId).emit("ice", message);
+        }
+    } );
+} );
+
+
+/**
+ * Connect the menuPage to the signal server
+ */
+async function connectScreencast() {
+    if( !menuPage || menuPage.isClosed() ) {
+        return Promise.resolve(ERROR_MESSAGES.menuPageClosed);
+    }
+    // the client will not try to connect if we reject it here
+    // so that will save it from trying to connect (it'll be rejected anyway)
+    if( serverSocketId || clientSocketId ) {
+        return Promise.resolve(ERROR_MESSAGES.connectionAlreadyExists);
+    }
+    // starting a screencast will activate the home tab
+    // it is best to predict that and to it anyway
+    if( currentEmulator && currentSystem != MEDIA ) await goHome();
+    // focus on guy station
+    await menuPage.evaluate( () => connectToSignalServer(true) );
+    if( currentEmulator && currentSystem != MEDIA ) await launchGame();
+
+    // focus on 
+    return Promise.resolve(false);
+}
+
+/**
+ * Start the menuPage's screencast
+ */
+async function startScreencast() {
+    if( !menuPage || menuPage.isClosed() ) {
+        return Promise.resolve(ERROR_MESSAGES.menuPageClosed);
+    }
+    if( !serverSocketId || !clientSocketId ) {
+        return Promise.resolve(ERROR_MESSAGES.clientAndServerAreNotBothConnected );
+    }
+    if( screencastStarted ) {
+        return Promise.resolve(ERROR_MESSAGES.screencastAlreadyStarted);
+    }
+    await menuPage.evaluate( () => startConnectionToPeer(true) );
+    return Promise.resolve(false);
+}
+
+/**
+ * Stop the menuPage's screencast
+ */
+async function stopScreencast() {
+    if( !menuPage || menuPage.isClosed() ) {
+        return Promise.resolve(ERROR_MESSAGES.menuPageClosed);
+    }
+    if( !serverSocketId || !clientSocketId ) {
+        return Promise.resolve(ERROR_MESSAGES.clientAndServerAreNotBothConnected );
+    }
+    if( !screencastStarted ) {
+        return Promise.resolve(ERROR_MESSAGES.screencastNotStarted);
+    }
+    await menuPage.evaluate( () => stopConnectionToPeer(true) );
+    screencastStarted = false;
+    streamerMediaReady = false;
+    clientJoined = false;
+    serverSocketId = null;
+    clientSocketId = null;
+    return Promise.resolve(false);
+}
+
+// End signal server section

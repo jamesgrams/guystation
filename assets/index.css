@@ -369,7 +369,7 @@ h1 {
     right: 0;
     text-align: center;
     transform: translateX(97%); /* ~24px shown */
-    width: 760px;
+    width: 818px;
     transition: transform 0.5s, width 0.5s;
     z-index: 998;
 }
@@ -526,6 +526,10 @@ h1 {
     display: none;
 }
 
+#remote-screencast-form video {
+    width: 550px;
+}
+
 @keyframes fade {
     0% {transform: translateY(100%); opacity: 1;}
     75% {transform: translateY(0%); opacity: 0.7;}
@@ -548,7 +552,7 @@ h1 {
     100% { transform: translate(calc(-100% - 10px), -100%); } /* End the animation after the element has traveled to the left its entire width and then 10 more px to put it past the padding */
 }
 
-@media only screen and (max-width: 850px) {
+@media only screen and (max-width: 910px) {
     #functions {
         width: 230px;
         transform: translateX(90%);
@@ -639,6 +643,9 @@ readers do not read off random characters that represent icons */
 
 .fa-bars:before {
     content: "\f0c9"; }
+
+.fa-desktop:before {
+    content: "\f108"; }
 
 .sr-only-focusable:active, .sr-only-focusable:focus {
   clip: auto;

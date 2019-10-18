@@ -1,5 +1,5 @@
 # GuyStation
-An Emulator Hub for Ubuntu. This is a small frontend for emulators designed to be easily installable and accessible on Ubuntu. Its major highlights include the ability to create seperate save files for the same game and to access the GUI from any web-capable device to easily make changes to your library.
+An Emulator Hub for Ubuntu. This is a small frontend for emulators designed to be easily installable and accessible on Ubuntu. Its major highlights include the ability to create seperate save files for the same game and to access the GUI from any web-capable device to easily make changes to your library or stream your games.
 
 ## Run
 GuyStation is designed to run on Ubuntu (and to basically be the sole purpose of the machine). The steps to get it running are as follows:
@@ -34,7 +34,10 @@ Note: You can press F11 to get GuyStation out of full screen mode at any time.
     * Note: if you accidently move a game under media, your save files are save! Just move the game to the correct console, and your save files will be there.
     * You add a media file just like a game. Upload the audio/video file as the ROM file.
     * You can access media remotely by opening the menu and clicking the CD icon under "More".
+    * You can also create playlists by selecting the playlist type when adding a game to media, and selecting tracks that you want to include.
 * Screenshots - you can view the screenshots for a game (or folder) by opening the menu and clicking the CD icon under "More".
+* Streaming - you can stream the screen to any web capable device.
+    * Simply open Guystation in a web browser by going to the Guystation IP address on another device. click the "computer" icon in the menu on the device you want to stream to.
 
 ## Recommendations
 Here are some recommendedations to make your experience better on Ubuntu.
@@ -95,7 +98,7 @@ No keys are mapped by default, so it is recommended that you map "Take Screensho
 Some emulators have Backwards compability. From what I understand, VisualBoyAdvance-M supports Game Boy Color and Game Boy Games (like the Game Boy Advance), and PCSX2 supports PS1 games (like the Playstation 2). Dolphin could be thought of as a Wii emulator with backwards compability for the GameCube (like the Wii), however they are two seperate menu options since the Wii requires some extra commands due to the structure it uses for save games. Citra does not support DS games.
 
 ## Controls
-You can use the arrow keys to control the menu, and enter to start a game/toggle a folder's children visibility. Escape will return to the menu from a game, and holding escape for 2.5 seconds will quit a game (once you're already on the menu). Escape will also snap you to the game you are currently playing if there is one. Adding games and performing similar functions are best done with a mouse (The UI is in a web browser though, so you can access the buttons however you normally would). You can also use a game controller. The D-Pad and left analog stick will move the menu, A or Start will start a game/toggle a folder's children visibility, and the left and right triggers will cycle through saves. If you are playing media, A or Start will toggle play/paused, and Select will toggle fullscreen. You can configure the Joypad controls by opening the menu, clicking the gamepad icon under "More", and then selecting the field for the input you want (e.g. "Start", "Left Trigger", etc.) and pressing the button on the Joypad that you want to use. To restore to default, you should clear local storage in Chrome.
+You can use the arrow keys to control the menu, and enter to start a game/toggle a folder's children visibility. Escape will return to the menu from a game, and holding escape for 2.5 seconds will quit a game (once you're already on the menu). Escape will also snap you to the game you are currently playing if there is one. Adding games and performing similar functions are best done with a mouse (The UI is in a web browser though, so you can access the buttons however you normally would). You can also use a game controller. The D-Pad and left analog stick will move the menu, A or Start will start a game/toggle a folder's children visibility, and the left and right triggers will cycle through saves. If you are playing media, A or Start will toggle play/paused, Select will toggle fullscreen, and the left and right triggers will cycle through songs in the current folder/playlist. You can configure the Joypad controls by opening the menu, clicking the gamepad icon under "More", and then selecting the field for the input you want (e.g. "Start", "Left Trigger", etc.) and pressing the button on the Joypad that you want to use. To restore to default, you should clear local storage in Chrome.
 
 If you are using a mouse, clicking a game or system will take you to that system. If the game is already selected, clicking it will launch the game/toggle the folder's children visibility. On mobile, swiping can be used to move the menu.
 
@@ -118,6 +121,8 @@ GuyStation launches a Node.js server along with a Chromium browser (via Puppetee
                                 * `<screenshot>`
                         * `current` (d) - symlink to the current save directory
                     * `metadata.json`
+                * `<playlist>` (d) (only for media)
+                    * `<symlink to game directory> (this symlink's name will be - n 0s depending on its position in the playlist + seperator + parents.join(seperator) + seperator + game name - where the parents and the game are the parents and name of the game this symlink is to)
         * `metadata.json`
 
 ## Credits and Special Thanks

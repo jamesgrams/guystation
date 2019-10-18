@@ -47,6 +47,8 @@ var searchTimeout;
 var marqueeTimeoutTitle;
 var marqueeTimeoutFolder;
 var headerMarqueeTimeout;
+var socket;
+var isServer = false;
 
 // Hold escape for 5 seconds to quit
 // Note this variable contains a function interval, not a boolean value
@@ -306,6 +308,13 @@ window.addEventListener('load', load );
  * Load.
  */
 function load() {
+
+    // determine what we are - only used for button highlighting
+    var urlParams = new URLSearchParams(window.location.search);
+    if( urlParams.has("is_server") ) {
+        isServer = true;
+    }
+
     startRequest();
     makeRequest( "GET", "/data", {}, function(responseText) {
         var response = JSON.parse(responseText);
@@ -347,7 +356,7 @@ function load() {
             }
         }, REDRAW_INTERVAL );
 
-        var socket = io.connect("http://"+window.location.hostname+":3000");
+        socket = io.connect("http://"+window.location.hostname+":3000");
         socket.on("connect", function() {console.log("socket connected")});
         socket.on("canvas", function(data) {
             drawCanvas(data);
@@ -971,6 +980,16 @@ function toggleButtons() {
     else {
         remoteMediaButton.onclick = null;
         remoteMediaButton.classList.add("inactive");
+    }
+
+    var screencastButton = document.getElementById("screencast");
+    if( !isServer ) {
+        screencastButton.onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#remote-screencast-form") ) displayScreencast(); };
+        screencastButton.classList.remove("inactive");
+    }
+    else {
+        screencastButton.onclick = null;
+        screencastButton.classList.add("inactive");
     }
 
     // Only allow save configuration menus and update/delete game menus if there is at least one game
@@ -1804,6 +1823,26 @@ function displayJoypadConfig() {
         closeModal();
     } ) );
     launchModal( form );
+}
+
+/**
+ * Display the screencast.
+ */
+function displayScreencast() {
+    if( isServer ) {
+        return;
+    }
+    var form = document.createElement("div");
+    form.appendChild( createFormTitle("Screencast") );
+    var video = document.createElement("video");
+    video.setAttribute("autoplay", "true");
+    video.setAttribute("controls", "true");
+    form.setAttribute("id", "remote-screencast-form");
+    form.appendChild(video);
+    makeRequest( "GET", "/screencast/connect", [], function() {
+        launchModal( form, function() { stopConnectionToPeer(false); } );
+        connectToSignalServer(false);
+    }, function(responseText) { standardFailure(responseText, true) } );
 }
 
 /**
@@ -2859,6 +2898,8 @@ function closeModal(force) {
             modal.classList.add("dying-modal"); // Dummy modal class for css
             modal.classList.remove("modal-shown");
             document.body.classList.remove("modal-open");
+            // sometimes a modal callback will check for an active modal, so it is important this comes after
+            // we remove the modal class and add dying-modal
             if( closeModalCallback ) {
                 closeModalCallback();
                 closeModalCallback = null;
@@ -3066,9 +3107,9 @@ function standardSuccess( responseText, message, oldSystemName, newSystemName, o
 /**
  * Standard failure function for a request
  * @param {string} responseText - the response from the server
- * @param {string} message - the message to display
+ * @param {boolean} async - true if we don't have to update makingRequest
  */
-function standardFailure( responseText ) {
+function standardFailure( responseText, async ) {
     // No redraw since still in modal
     var message = "";
     try {
@@ -3076,7 +3117,7 @@ function standardFailure( responseText ) {
     }
     catch(err) {}
     alertError(message); 
-    endRequest();
+    if( !async ) endRequest();
 }
 
 /**
@@ -3450,3 +3491,180 @@ function handleTouchMove(evt) {
     xDown = null;
     yDown = null;                                             
 };
+
+
+// Screencast section
+
+// WebRTC protocol
+// Offer - Answer (exchanging descriptions - includes information about each peer)
+// Exchange ICE Candidates (ways to connect)
+// Connection is made and remote streams handled with ontrack
+
+var localStream = null;
+var peerConnection = null;
+
+/**
+ * Connect to the signal server
+ * @param {boolean} isStreamer - true if this is being called from the menuPage of guystation > we stream from guystation
+ */
+function connectToSignalServer( isStreamer ) {
+
+    var event = "connect-screencast-" + (isStreamer ? "streamer" : "client");
+    socket.emit( event, true );
+    socket.off()
+    socket.on( 'sdp', handleRemoteSdp );
+    socket.on( 'ice', handleRemoteIce );
+
+    if( isStreamer ) {
+        navigator.mediaDevices.getDisplayMedia({"video": true}).then(getDisplayMediaSuccess).catch(errorHandler);
+    }
+
+}
+
+/**
+ * Set the value of the localStream variable once it is successfully fetched
+ * This should only ever be called from guystation, since we don't stream the page on the client
+ * @param {Object} stream - the screencast
+ */
+function getDisplayMediaSuccess(stream) {
+    localStream = stream;
+    socket.emit("streamer-media-ready");
+}
+
+/**
+ * Start a connection to the peer
+ * Peer connection should already be defined.
+ * This should be initially called by the menuPage (using puppeteer evaluate) after it detects a client connect to it.
+ * Once the server is connected to the client, the client will connect to the server automaitcally as seen in the handle functions
+ * @param {boolean} isStreamer - true if this is the streamer, false if this is the client
+ */
+function startConnectionToPeer( isStreamer ) {
+    peerConnection = new RTCPeerConnection(null);
+    // https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/onicecandidate
+    // onicecandidate is not called when you do addIceCandidate. It is called whenever
+    // it is deemed necessary that you send your ice candidates to the signal server
+    // (usually after you have sent an offer or an answer).
+    peerConnection.onicecandidate = gotIceCandidate;
+    peerConnection.oniceconnectionstatechange = handlePotentialDisconnect;
+    // Only the receiver will need to worry about what happens when it gets a remote stream
+    if( !isStreamer ) {
+        peerConnection.ontrack = gotRemoteStream;
+    }
+    // Only the streamer needs to add its own local sctream
+    if( isStreamer ) {
+        peerConnection.addStream(localStream);
+        // the streamer will create an offer once it creates its peer connection
+        peerConnection.createOffer({offerToReceiveVideo: true}).then(createdDescription).catch(errorHandler);
+    }
+}
+
+/**
+ * Handle a potential disconnect
+ */
+function handlePotentialDisconnect() {
+    if( peerConnection && peerConnection.iceConnectionState == "disconnected" ) {
+        stopConnectionToPeer(false); // note we pretend we are not the streamer even if we are here.
+        // this will close the connection, but then it will call all the server functions we need to allow for
+        // another connection to take place. Then, the server will try to stop the connection on the menuPage, but
+        // it will not pass any of the checks, since peerConnection will already be null as will localStream
+    }
+}
+
+/**
+ * Stop the peer connection.
+ * Since the connection will always be closed from the client, if this is the client
+ * this will tell the server to stop too once it has closed.
+ * @param {boolean} isStreamer - true if this is the streamer, or we want to pretend that we are
+ */
+function stopConnectionToPeer( isStreamer ) {
+    if( peerConnection ) {
+        peerConnection.close();
+        peerConnection = null;
+    }
+    if( !isStreamer ) {
+        makeRequest("GET", "/screencast/stop", []);
+
+        // this should only be called on the client
+        // if this is because the server disconnects, we'll close the modal here
+        // if they have manually quit the modal, this check will fail and we will
+        // not call it again
+        if( document.querySelector(".modal #remote-screencast-form") ) {
+            closeModal();
+        }
+    }
+    else if(localStream) {
+        localStream.getTracks().forEach( function(tr) {tr.stop();} ); // should be idempotent, tracks aren't started again, localStream is just overwritten
+        localStream = null;
+    }
+}
+ 
+/**
+ * Handle an offer/answer in WebRTC protocl
+ * @param {Object} data - the data associated with the offer/answer
+ */
+function handleRemoteSdp(data) {
+    // this is to create the peer connection on the client (an offer has been received from guystation)
+    if(!peerConnection) startConnectionToPeer(false);
+
+    // Set the information about the remote peer set in the offer/answer
+    peerConnection.setRemoteDescription(new RTCSessionDescription(data)).then(function() {
+        // If this was an offer sent from guystation, respond to the client
+        if( data.type == "offer" ) {
+            // Send an answer
+            peerConnection.createAnswer().then(createdDescription).catch(errorHandler);
+        }
+    });
+}
+
+/**
+ * Handle receiving information about and ICE candidate in the WebRTC protocol
+ * Note: this can happen simulatneously with the offer/call although theoretically happens after 
+ * @param {Object} data - the data associated with the offer/answer
+ */
+function handleRemoteIce(data) {
+    // this is to create the peer connection on the client (an offer has been received from guystation)
+    if(!peerConnection) startConnectionToPeer(false);
+
+    // Set the information about the remote peer set in the offer/answer
+    peerConnection.addIceCandidate(new RTCIceCandidate(data)).catch(errorHandler);
+}
+
+/**
+ * Handle when we have successfully determined one of our OWN ice candidates
+ * @param {Event} event - the event that triggers this handler
+ */
+function gotIceCandidate(event) {
+    if(event.candidate != null) {
+        // alert the signal server about this ice candidate
+        socket.emit("ice", event.candidate);
+    }
+}
+
+/**
+ * Handle when the local description has been successfully determined
+ * @param {Object} description - A generated local description necessary to include in an offer/answer
+ */
+function createdDescription(description) {
+    peerConnection.setLocalDescription(description).then(function() {
+        socket.emit("sdp", peerConnection.localDescription);
+    }).catch(errorHandler);
+}
+
+/**
+ * Handler for when a remote stream has been found
+ * @param {Event} event - The event that triggered the stream
+ */
+function gotRemoteStream(event) {
+    document.querySelector(".modal #remote-screencast-form video").srcObject = event.streams[0];
+}
+
+/**
+ * The error handler for Screencast
+ * @param {Error} error - the error
+ */
+function errorHandler(error) {
+    console.log(error);
+}
+
+
+// End screencast section
