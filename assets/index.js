@@ -1152,6 +1152,7 @@ function generateStartSystem( oldSystemName, newSystemName, oldGameName, newGame
             // newGameName being null means the game was deleted, we have to try to get a close by index
             // also if we are changing systems we want to do a delete
             // TODO should we look first in the same folder rather than siblings?
+            // TODO deleting an item might also delete a playlist(s) if it was the last item in the list(s) which might result in the previous/next sibling being removed. In this case, we restart at the top but should we?
             if( systems[i].getAttribute("data-system") == oldSystemName && selectedGame == oldGameName && (newGameName === null || oldSystemName != newSystemName) ) {
                 if( selectedGameElement.previousElementSibling ) {
                     selectedGameElement = selectedGameElement.previousElementSibling;
@@ -2384,6 +2385,7 @@ function getRealGamesInFolderRecursive(games, arr, parents) {
 
 /**
  * Filter a game object to only include folders/games
+ * In this case a playlist is considered a game
  * @param {Object} games - a games object (e.g. systems[system].games)
  * @param {boolean} getFolders - true if we are getting folders, false if we are getting games
  * @returns {object} the filtered games object

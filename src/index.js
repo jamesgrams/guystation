@@ -128,7 +128,8 @@ const ERROR_MESSAGES = {
     "connectionAlreadyExists": "A connection already exists",
     "screencastAlreadyStarted": "The screencast has already started",
     "screencastNotStarted": "The screencast is not running yet",
-    "clientAndServerAreNotBothConnected": "The client and server are not both ready"
+    "clientAndServerAreNotBothConnected": "The client and server are not both ready",
+    "invalidParents": "Invalid parents"
 }
 
 // We will only allow for one request at a time for app
@@ -1651,6 +1652,7 @@ function addGame( system, game, file, parents=[], isFolder, isPlaylist, playlist
     // Make sure the game is valid
     if( !systemsDict[system] ) return ERROR_MESSAGES.noSystem;
     if( getGameDictEntry(system, game, parents) ) return ERROR_MESSAGES.gameAlreadyExists;
+    if( !isSymlink && parents.length && !getGameDictEntry(system, parents[parents.length-1], parents.slice(parents.length-1) ) ) return ERROR_MESSAGES.invalidParents;
     if( !game ) return ERROR_MESSAGES.gameNameRequired;
     var invalidName = isInvalidName( game );
     if( invalidName ) return invalidName;
@@ -1658,21 +1660,8 @@ function addGame( system, game, file, parents=[], isFolder, isPlaylist, playlist
     if( isPlaylist && system != MEDIA ) return ERROR_MESSAGES.playlistsOnlyForMedia;
     if( (!playlistItems || !playlistItems.length) && isPlaylist ) return ERROR_MESSAGES.playlistItemsRequired;
     if( isPlaylist ) {
-        for( let playlistItem of playlistItems ) {
-            if( !playlistItem.length ) {
-                return ERROR_MESSAGES.invalidPlaylistItem;
-            }
-            let gameDictEntry = getGameDictEntry( system, playlistItem[playlistItem.length-1], playlistItem.slice(0, playlistItem.length-1));
-            if( !gameDictEntry ) {
-                return ERROR_MESSAGES.invalidPlaylistItem;
-            }
-            if( gameDictEntry.isFolder ) {
-                return ERROR_MESSAGES.addFolderToPlaylist;
-            }
-            if( gameDictEntry.isPlaylist ) {
-                return ERROR_MESSAGES.addPlaylistToPlaylist;
-            }
-        }
+        let playlistItemsError = errorCheckValidPlaylistItems( playlistItems );
+        if( playlistItemsError ) return playlistItemsError;
     }
     if( !force ) {
         if( isSymlink && !getGameDictEntry(symlink.system, symlink.game, symlink.parents)) return ERROR_MESSAGES.invalidSymlink;
@@ -1711,6 +1700,30 @@ function addGame( system, game, file, parents=[], isFolder, isPlaylist, playlist
         updateNandSymlinks(system, game, null, parents);
     }
 
+    return false;
+}
+
+/**
+ * Check if playlist items are valid
+ * @param {Array<Array>} playlistItems - the items in the playlist
+ * @returns {*} - an error message if there was an error, otherwise false
+ */
+function errorCheckValidPlaylistItems( playlistItems ) {
+    for( let playlistItem of playlistItems ) {
+        if( !playlistItem.length ) {
+            return ERROR_MESSAGES.invalidPlaylistItem;
+        }
+        let gameDictEntry = getGameDictEntry( MEDIA, playlistItem[playlistItem.length-1], playlistItem.slice(0, playlistItem.length-1));
+        if( !gameDictEntry ) {
+            return ERROR_MESSAGES.invalidPlaylistItem;
+        }
+        if( gameDictEntry.isFolder ) {
+            return ERROR_MESSAGES.addFolderToPlaylist;
+        }
+        if( gameDictEntry.isPlaylist ) {
+            return ERROR_MESSAGES.addPlaylistToPlaylist;
+        }
+    }
     return false;
 }
 
@@ -1935,6 +1948,24 @@ function saveUploadedRom( file, system, game, parents ) {
 }
 
 /**
+ * Check if a track has any items to it being played
+ * @param {string} system - the system for the track
+ * @param {string} game - the track name
+ * @param {Array} parents - the parents of the track
+ * @returns {boolean} - true if a track is being played, otherwise false
+ */
+function hasSymlinksBeingPlayed( system, game, parents ) {
+    let symlinks = getAllSymlinksToItem( system, game, parents, systemsDict[MEDIA].games );
+    for( let symlink of Object.keys(symlinks) ) {
+        let symlinkEntry = symlinks[symlink];
+        if( isBeingPlayed(MEDIA, symlinkEntry.game, symlinkEntry.parents) ) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
  * Update a game.
  * @param {string} oldSystem - the old system for the game - needed so we know what we're updating
  * @param {string} oldGame - the old name for the game - needed so we know what we're updating
@@ -2022,29 +2053,12 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
     }
     if( (!playlistItems || !playlistItems.length) && isPlaylist ) return ERROR_MESSAGES.playlistItemsRequired;
     if( isPlaylist ) {
-        for( let playlistItem of playlistItems ) {
-            if( !playlistItem.length ) {
-                return ERROR_MESSAGES.invalidPlaylistItem;
-            }
-            let gameDictEntry = getGameDictEntry( system, playlistItem[playlistItem.length-1], playlistItem.slice(0, playlistItem.length-1));
-            if( !gameDictEntry ) {
-                return ERROR_MESSAGES.invalidPlaylistItem;
-            }
-            if( gameDictEntry.isFolder ) {
-                return ERROR_MESSAGES.addFolderToPlaylist;
-            }
-            if( gameDictEntry.isPlaylist ) {
-                return ERROR_MESSAGES.addPlaylistToPlaylist;
-            }
-        }
+        let playlistItemsError = errorCheckValidPlaylistItems( playlistItems );
+        if( playlistItemsError ) return playlistItemsError;
     }
     if( !isPlaylist && !isFolder && oldSystem == MEDIA && (system == MEDIA || system == null) ) {
-        let symlinks = getAllSymlinksToItem( oldSystem, oldGame, oldParents, systemsDict[MEDIA].games );
-        for( let symlink of Object.keys(symlinks) ) {
-            let symlinkEntry = symlinks[symlink];
-            if( isBeingPlayed(MEDIA, symlinkEntry.game, symlinkEntry.parents) ) {
-                return ERROR_MESSAGES.symlinkToItemBeingPlayed;
-            }
+        if( hasSymlinksBeingPlayed( oldSystem, oldGame, oldParents ) ) {
+            return ERROR_MESSAGES.symlinkToItemBeingPlayed;
         }
     }
     // isBeingPlayedRecursive will work here since playlists are only one level deep folders
@@ -2313,12 +2327,8 @@ function deleteGame( system, game, parents=[], force ) {
         return ERROR_MESSAGES.gameBeingPlayed;
     }
     if( !isPlaylist && !isFolder && system == MEDIA ) {
-        let symlinks = getAllSymlinksToItem( system, game, parents, systemsDict[MEDIA].games );
-        for( let symlink of Object.keys(symlinks) ) {
-            let symlinkEntry = symlinks[symlink];
-            if( isBeingPlayed(MEDIA, symlinkEntry.game, symlinkEntry.parents) ) {
-                return ERROR_MESSAGES.symlinkToItemBeingPlayed;
-            }
+        if( hasSymlinksBeingPlayed( system, game, parents ) ) {
+            return ERROR_MESSAGES.symlinkToItemBeingPlayed;
         }
     }
     // isBeingPlayedRecursive will work here since playlists are only one level deep folders
