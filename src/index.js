@@ -2663,7 +2663,6 @@ async function connectScreencast() {
     if( currentEmulator && currentSystem != MEDIA ) await goHome();
     // focus on guy station
     await menuPage.evaluate( () => connectToSignalServer(true) );
-    if( currentEmulator && currentSystem != MEDIA ) await launchGame();
 
     // focus on 
     return Promise.resolve(false);
@@ -2683,6 +2682,9 @@ async function startScreencast() {
         return Promise.resolve(ERROR_MESSAGES.screencastAlreadyStarted);
     }
     await menuPage.evaluate( () => startConnectionToPeer(true) );
+    // we can return to the game now
+    if( currentEmulator && currentSystem != MEDIA ) await launchGame( currentSystem, currentGame, false, currentParentsString.split(SEPARATOR).filter(el => el != '') );
+    else await goHome(); // focus on chrome from any screen share info popups
     return Promise.resolve(false);
 }
 
