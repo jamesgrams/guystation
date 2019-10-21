@@ -19,6 +19,7 @@ const upload = multer({ dest: '/tmp/' });
 // IO Sockets server for screen
 const server = require('http').createServer();
 const io = require('socket.io')(server);
+const axios = require('axios');
 
 const PORT = 8080;
 const SOCKETS_PORT = 3000;
@@ -81,6 +82,7 @@ const PAGE_TITLE = "GuyStation - Google Chrome";
 const CHECK_MEDIA_PLAYING_INTERVAL = 100;
 const ENTIRE_SCREEN = "Entire screen";
 const IS_SERVER_PARAM = "is_server";
+const STREAMING_HEARTBEAT_TIME = 10000; // after 10 seconds of no response from the client, we will force close the stream
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -129,7 +131,8 @@ const ERROR_MESSAGES = {
     "screencastAlreadyStarted": "The screencast has already started",
     "screencastNotStarted": "The screencast is not running yet",
     "clientAndServerAreNotBothConnected": "The client and server are not both ready",
-    "invalidParents": "Invalid parents"
+    "invalidParents": "Invalid parents",
+    "noGamesForMediaOrBrowser": "Media and Browser have no games"
 }
 
 // We will only allow for one request at a time for app
@@ -149,6 +152,7 @@ let lastOutputTime = 0;
 let outputTimeout = null;
 let properResolution = null;
 let clearMediaPlayingInterval = null;
+let needToRefocusGame = false;
 
 // Load the data on startup
 getData();
@@ -464,6 +468,13 @@ app.get("/screencast/start", async function(request, response) {
 app.get("/screencast/stop", async function(request, response) {
     console.log("app serving /screencast/stop");
     let errorMessage = await stopScreencast();
+    writeActionResponse( response, errorMessage );
+});
+
+// Reset screencast cancel timeout
+app.get("/screencast/reset-cancel", async function(request, response) {
+    console.log("app serving /screencast/reset-cancel");
+    let errorMessage = resetScreencastTimeout();
     writeActionResponse( response, errorMessage );
 });
 
@@ -2554,6 +2565,14 @@ async function clearCheckRemoteMedia() {
 }
 
 /**
+ * Determine if the menu page is active.
+ * @returns {boolean} true is the menu page is active
+ */
+function menuPageIsActive() {
+    return proc.execSync(ACTIVE_WINDOW_COMMAND).toString().startsWith(PAGE_TITLE);
+}
+
+/**
  * Go to the home menu.
  * @returns {Promise<*>} - an error message if there was an error, false if there was not.
  */
@@ -2563,7 +2582,7 @@ async function goHome() {
     }
 
     var needsPause = true;
-    if( proc.execSync(ACTIVE_WINDOW_COMMAND).toString().startsWith(PAGE_TITLE) ) {
+    if( menuPageIsActive() ) {
         needsPause = false;
     }
     proc.execSync(FOCUS_CHROMIUM_COMMAND);
@@ -2580,6 +2599,51 @@ async function goHome() {
     return Promise.resolve(false);
 }
 
+// these are the platform ids of systems in the igdb api
+// by defining them, we prevent a lookup
+const PLATFORM_LOOKUP = {
+    "nds": [20],
+    "n64": [4],
+    "wii": [5],
+    "ps2": [7, 8], // ps1 & ps2
+    "nes": [18],
+    "snes": [19],
+    "nds": [20],
+    "ngc": [21],
+    "gba": [33, 22, 24], // gb, gbc, & gba
+    "psp": [38],
+    "3ds": [37, 137] // 3ds & new 3ds
+}
+const API_KEY = ""; // TODO make this an environment variables
+const IGBD_API_URL = "https://api-v3.igdb.com/";
+const GAMES_ENDPOINT = IGBD_API_URL + "games";
+const GAMES_FIELDS = "fields cover, name, first_release_date, summary;";
+const COVERS_ENDPOINT = IGBD_API_URL + "covers";
+const IGDB_HEADERS = { 
+    'Content-Type': 'text/plain',
+    'user-key': '47c912e9d3c166e69738f3af9b15306c'
+}
+
+async function fetchGameData( system, game, parents ) {
+    let isInvalid = isInvalidGame( system, game, parents );
+    if( isInvalid ) return isInvalid;
+    if( system == MEDIA || system == BROWSER ) {
+        return ERROR_MESSAGES.noGamesForMediaOrBrowser;
+    }
+
+    let gameDictEntry = getGameDictEntry( system, game, parents );
+
+    let payload = GAMES_FIELDS + 'search "' + game + '";' + 'where platforms=(' + PLATFORM_LOOKUP[system].join() + ");";
+    let gameInfo = await axios.post( GAMES_ENDPOINT, payload, { "headers": IGDB_HEADERS } );
+    if( gameInfo.length ) {
+        // TODO save the info to the metadata.json and load it in the generateGames
+        // fetch the cover
+    }
+    else {
+        // TODO return an error message that no games were found
+    }
+}
+
 // Listen for the "home" button to be pressed
 ioHook.on("keydown", event => {
     if( event.keycode == ESCAPE_KEY ) {
@@ -2590,11 +2654,12 @@ ioHook.start();
 
 
 // Signal server section
-var streamerMediaReady = false;
-var clientJoined = false;
-var screencastStarted = false;
-var serverSocketId;
-var clientSocketId;
+let streamerMediaReady = false;
+let clientJoined = false;
+let screencastStarted = false;
+let serverSocketId;
+let clientSocketId;
+let cancelStreamingTimeout;
 io.on('connection', function(socket) {
     socket.on("connect-screencast-streamer", function() {
         if( !serverSocketId ) {
@@ -2645,6 +2710,15 @@ io.on('connection', function(socket) {
     } );
 } );
 
+/**
+ * Reset the streaming timeout heartbeat time
+ * @returns {boolean} - false
+ */
+function resetScreencastTimeout() {
+    clearTimeout(cancelStreamingTimeout);
+    cancelStreamingTimeout = setTimeout( function() { if( serverSocketId ) { stopScreencast(true); } }, STREAMING_HEARTBEAT_TIME );
+    return false;
+}
 
 /**
  * Connect the menuPage to the signal server
@@ -2660,9 +2734,15 @@ async function connectScreencast() {
     }
     // starting a screencast will activate the home tab
     // it is best to predict that and to it anyway
-    if( currentEmulator && currentSystem != MEDIA ) await goHome();
+    if( currentEmulator && currentSystem != MEDIA && menuPageIsActive() ) { 
+        await goHome(); 
+        needToRefocusGame = true; 
+    }
     // focus on guy station
     await menuPage.evaluate( () => connectToSignalServer(true) );
+    resetScreencastTimeout(); // if we don't hear from the client, we'll end the stream
+    // this is extra security beyond oniceconnectionstatechange in case the connection never happens
+    // so it never disconnects
 
     // focus on 
     return Promise.resolve(false);
@@ -2683,7 +2763,10 @@ async function startScreencast() {
     }
     await menuPage.evaluate( () => startConnectionToPeer(true) );
     // we can return to the game now
-    if( currentEmulator && currentSystem != MEDIA ) await launchGame( currentSystem, currentGame, false, currentParentsString.split(SEPARATOR).filter(el => el != '') );
+    if( currentEmulator && currentSystem != MEDIA && needToRefocusGame ) { 
+        await launchGame( currentSystem, currentGame, false, currentParentsString.split(SEPARATOR).filter(el => el != '') ); 
+        needToRefocusGame = false;
+    }
     else await goHome(); // focus on chrome from any screen share info popups
     return Promise.resolve(false);
 }
@@ -2691,22 +2774,28 @@ async function startScreencast() {
 /**
  * Stop the menuPage's screencast
  */
-async function stopScreencast() {
-    if( !menuPage || menuPage.isClosed() ) {
-        return Promise.resolve(ERROR_MESSAGES.menuPageClosed);
+async function stopScreencast(force) {
+    if( !force ) {
+        if( !menuPage || menuPage.isClosed() ) {
+            return Promise.resolve(ERROR_MESSAGES.menuPageClosed);
+        }
+        if( !serverSocketId || !clientSocketId ) {
+            return Promise.resolve(ERROR_MESSAGES.clientAndServerAreNotBothConnected );
+        }
+        if( !screencastStarted ) {
+            return Promise.resolve(ERROR_MESSAGES.screencastNotStarted);
+        }
     }
-    if( !serverSocketId || !clientSocketId ) {
-        return Promise.resolve(ERROR_MESSAGES.clientAndServerAreNotBothConnected );
+    try {
+        await menuPage.evaluate( () => stopConnectionToPeer(true) );
     }
-    if( !screencastStarted ) {
-        return Promise.resolve(ERROR_MESSAGES.screencastNotStarted);
-    }
-    await menuPage.evaluate( () => stopConnectionToPeer(true) );
+    catch(err) {/*ok*/}
     screencastStarted = false;
     streamerMediaReady = false;
     clientJoined = false;
     serverSocketId = null;
     clientSocketId = null;
+    clearTimeout(cancelStreamingTimeout); // clear the timeout waiting to cancel
     return Promise.resolve(false);
 }
 

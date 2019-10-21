@@ -19,6 +19,7 @@ var MARQUEE_PIXELS_PER_SECOND = 50;
 var HEADER_MARQUEE_PIXELS_PER_SECOND = 250;
 var TABINDEX_TIMEOUT = 10000;
 var HEADER_MARQUEE_TIMEOUT_TIME = 250;
+var RESET_CANCEL_STREAMING_INTERVAL = 1000; // reset the cancellation of streaming every second
 
 var expandCountLeft; // We always need to have a complete list of systems, repeated however many times we want, so the loop works properly
 var expandCountRight;
@@ -49,6 +50,7 @@ var marqueeTimeoutFolder;
 var headerMarqueeTimeout;
 var socket;
 var isServer = false;
+var resetCancelStreamingInterval;
 
 // Hold escape for 5 seconds to quit
 // Note this variable contains a function interval, not a boolean value
@@ -1841,6 +1843,11 @@ function displayScreencast() {
     form.setAttribute("id", "remote-screencast-form");
     form.appendChild(video);
     makeRequest( "GET", "/screencast/connect", [], function() {
+        // start letting the server know we exist after it is now looking for us i.e. won't accept another connection
+        // (serverSocketId is set)
+        resetCancelStreamingInterval = setInterval( function() {
+            makeRequest( "GET", "/screencast/reset-cancel", [] );
+        }, RESET_CANCEL_STREAMING_INTERVAL );
         launchModal( form, function() { stopConnectionToPeer(false); } );
         connectToSignalServer(false);
     }, function(responseText) { standardFailure(responseText, true) } );
@@ -3584,13 +3591,16 @@ function stopConnectionToPeer( isStreamer ) {
         peerConnection = null;
     }
     if( !isStreamer ) {
-        makeRequest("GET", "/screencast/stop", []);
+        var stopLettingServerKnowWeExist = function() { clearInterval(resetCancelStreamingInterval); };
+        // stop letting the server know we exist once it stops expecting us
+        makeRequest("GET", "/screencast/stop", [], stopLettingServerKnowWeExist, stopLettingServerKnowWeExist);
 
         // this should only be called on the client
         // if this is because the server disconnects, we'll close the modal here
         // if they have manually quit the modal, this check will fail and we will
         // not call it again
         if( document.querySelector(".modal #remote-screencast-form") ) {
+            closeModalCallback = null; // we don't need to call stop connection again
             closeModal();
         }
     }
