@@ -20,6 +20,8 @@ var HEADER_MARQUEE_PIXELS_PER_SECOND = 250;
 var TABINDEX_TIMEOUT = 10000;
 var HEADER_MARQUEE_TIMEOUT_TIME = 250;
 var RESET_CANCEL_STREAMING_INTERVAL = 1000; // reset the cancellation of streaming every second
+var SHOW_PREVIEW_TIMEOUT = 1000;
+var PREVIEW_ANIMATION_TIME = 1000;
 
 var expandCountLeft; // We always need to have a complete list of systems, repeated however many times we want, so the loop works properly
 var expandCountRight;
@@ -51,6 +53,7 @@ var headerMarqueeTimeout;
 var socket;
 var isServer = false;
 var resetCancelStreamingInterval;
+var showPreviewTimeout;
 
 // Hold escape for 5 seconds to quit
 // Note this variable contains a function interval, not a boolean value
@@ -104,6 +107,70 @@ function bubbleScreenshots() {
             setTimeout( function() {
                 img.parentElement.removeChild(img);
             }, 5000 ); // make sure this time matches the css
+        }
+    }
+}
+
+/**
+ * Display a preview of the game
+ */
+function displayGamePreview() {
+    var currentPreview = document.querySelector(".game-preview:not(.game-preview-dying)");
+    if( currentPreview ) {
+        clearTimeout( showPreviewTimeout );
+        currentPreview.classList.remove("game-preview-shown");
+        currentPreview.classList.add("game-preview-dying");
+        setTimeout( function() {
+            currentPreview.parentElement.removeChild(currentPreview)
+        }, PREVIEW_ANIMATION_TIME ); // make sure this matches the css
+    }
+
+    var currentSystemElement = document.querySelector(".system.selected");
+    var currentGameElement = currentSystemElement.querySelector(".game.selected");
+    if( currentGameElement ) {
+        var currentSystem = currentSystemElement.getAttribute("data-system");
+        var currentGame = decodeURIComponent( currentGameElement.getAttribute("data-game") );
+        var currentParents = parentsStringToArray( currentGameElement.getAttribute("data-parents") );
+        var gameDictEntry = getGamesInFolder( currentParents, currentSystem )[currentGame];
+        if( gameDictEntry.cover && gameDictEntry.name ) {
+            var previewElement = document.createElement("div");
+            previewElement.classList.add("game-preview");
+            var previewImg = document.createElement("img");
+            previewImg.setAttribute("src", gameDictEntry.cover.url);
+            //previewImg.setAttribute("width", gameDictEntry.cover.width);
+            //previewImg.setAttribute("height", gameDictEntry.cover.height);
+            previewElement.appendChild(previewImg);
+
+            var previewInfo = document.createElement("div");
+            previewInfo.classList.add("game-preview-info");
+
+            var previewTitle = document.createElement("div");
+            previewTitle.classList.add("game-preview-title");
+            previewTitle.innerText = gameDictEntry.name;
+            previewInfo.appendChild(previewTitle);
+
+            if( gameDictEntry.releaseDate ) {
+                var previewReleaseDate = document.createElement("div");
+                previewReleaseDate.classList.add("game-preview-release-date");
+                var releaseDate = new Date(1970, 0, 1);
+                releaseDate.setSeconds( gameDictEntry.releaseDate );
+                previewReleaseDate.innerText = releaseDate.toLocaleDateString();
+                previewInfo.appendChild(previewReleaseDate);
+            }
+
+            if( gameDictEntry.summary ) {
+                var previewSummary = document.createElement("div");
+                previewSummary.classList.add("game-preview-summary");
+                previewSummary.innerText = gameDictEntry.summary;
+                previewInfo.appendChild(previewSummary);
+            }
+            previewElement.appendChild(previewInfo);
+            document.body.appendChild(previewElement);
+
+            // set timeout to force draw prior
+            showPreviewTimeout = setTimeout( function() { 
+                previewElement.classList.add("game-preview-shown");
+            }, SHOW_PREVIEW_TIMEOUT );
         }
     }
 }
@@ -715,6 +782,7 @@ function draw( startSystem ) {
     toggleButtons();
     saveMenuPosition();
     setMarquee();
+    displayGamePreview();
 }
 
 /**
@@ -1037,6 +1105,9 @@ function toggleButtons() {
  
     // Always allow joypad config
     joypadConfigButton.onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#joypad-config-form") ) displayJoypadConfig(); };
+
+    // Always allow power controls
+    document.getElementById("power-options").onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#power-options-form") ) displayPowerOptions(); }
 }
 
 /**
@@ -1259,6 +1330,7 @@ function moveMenu( spaces ) {
     toggleButtons();
     saveMenuPosition();
     setMarquee();
+    displayGamePreview();
 }
 
 /**
@@ -1341,6 +1413,7 @@ function moveSubMenu( spaces ) {
     toggleButtons();
     saveMenuPosition();
     setMarquee();
+    displayGamePreview();
 }
 
 /**
@@ -1851,6 +1924,62 @@ function displayScreencast() {
         launchModal( form, function() { stopConnectionToPeer(false); } );
         connectToSignalServer(false);
     }, function(responseText) { standardFailure(responseText, true) } );
+}
+
+/**
+ * Display power options.
+ */
+function displayPowerOptions() {
+    var form = document.createElement("div");
+    form.appendChild( createFormTitle("Power Options") );
+    form.setAttribute("id", "power-options-form");
+    var updateButton = createButton("Update GuyStation", function() {
+        if( !makingRequest && !this.classList.contains("inactive") ) {
+            displayConfirm( "Are you sure you want to update GuyStation?", function() { 
+                startRequest(); 
+                makeRequest( "GET", "/system/update", [], function() {
+                    createToast("Please restart GuyStation to apply updates");
+                    endRequest();
+                    closeModal();
+                }, function() {
+                    createToast("An error occurred while trying to update");
+                    endRequest();
+                } );
+            }, closeModal);
+        }
+    });
+    updateButton.classList.add("inactive");
+    form.appendChild(updateButton);
+    // See if there are updates
+    makeRequest( "GET", "/system/has-updates", function(responseText) {
+        var response = JSON.parse(responseText);
+        if( response.hasUpdates ) {
+            updateButton.classList.remove("inactive");
+        }
+    });
+    form.appendChild( createButton("Restart GuyStation", function() {
+        if( !makingRequest ) {
+            displayConfirm( "Are you sure you want to restart GuyStation?", function() { 
+                startRequest(); 
+                makeRequest( "GET", "/system/restart", [], null, function() {
+                    createToast("An error occurred while trying to restart");
+                    endRequest();
+                } );
+            }, closeModal);
+        }
+    }) );
+    form.appendChild( createButton("Reboot Machine"), function() {
+        if( !makingRequest ) {
+            displayConfirm( "Are you sure you want to reboot GuyStation?", function() { 
+                startRequest(); 
+                makeRequest( "GET", "/system/reboot", [], null, function() {
+                    createToast("An error occurred while trying to reboot");
+                    endRequest();
+                } );
+            }, closeModal);
+        }
+    } );
+    launchModal( form );
 }
 
 /**

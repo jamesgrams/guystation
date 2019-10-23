@@ -83,6 +83,41 @@ const CHECK_MEDIA_PLAYING_INTERVAL = 100;
 const ENTIRE_SCREEN = "Entire screen";
 const IS_SERVER_PARAM = "is_server";
 const STREAMING_HEARTBEAT_TIME = 10000; // after 10 seconds of no response from the client, we will force close the stream
+const GIT_FETCH_COMMAND = "git -C ~/guystation fetch";
+const GIT_UPDATES_AVAILABLE_COMMAND = 'if [ $(git -C ~/guystation rev-parse HEAD) != $(git -C ~/guystation rev-parse @{u}) ]; then echo "1"; else echo "0"; fi;';
+const GIT_PULL_COMMAND = "git -C ~/guystation pull";
+const KILL_GUYSTATION_COMMAND = "ps -aux | grep '[n]ode' | awk '{print $2}' | xargs sudo kill -9";
+const START_GUYSTATION_COMMAND = "sudo npm --prefix=~/guystation start";
+const REBOOT_GUYSTATION_COMMAND = "reboot";
+const ONE_WEEK_MILLISECONDS = 604800000;
+// these are the platform ids of systems in the igdb api
+// by defining them, we prevent a lookup
+const PLATFORM_LOOKUP = {
+    "nds": [20],
+    "n64": [4],
+    "wii": [5],
+    "ps2": [7, 8], // ps1 & ps2
+    "nes": [18],
+    "snes": [19],
+    "nds": [20],
+    "ngc": [21],
+    "gba": [33, 22, 24], // gb, gbc, & gba
+    "psp": [38],
+    "3ds": [37, 137] // 3ds & new 3ds
+}
+const IGDB_API_KEY = process.env.GUYSTATION_IGDB_API_KEY; // TODO make this an environment variables
+const IGBD_API_URL = "https://api-v3.igdb.com/";
+const GAMES_ENDPOINT = IGBD_API_URL + "games";
+const GAMES_FIELDS = "fields cover, name, first_release_date, summary;";
+const COVERS_ENDPOINT = IGBD_API_URL + "covers";
+const COVERS_FIELDS = "fields url, width, height;";
+const IGDB_HEADERS = { 
+    'Content-Type': 'text/plain',
+    'user-key': IGDB_API_KEY
+}
+const THUMB_IMAGE_SIZE = "thumb";
+const COVER_IMAGE_SIZE = "cover_big";
+const COVER_FILENAME = "cover.jpg";
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -132,7 +167,10 @@ const ERROR_MESSAGES = {
     "screencastNotStarted": "The screencast is not running yet",
     "clientAndServerAreNotBothConnected": "The client and server are not both ready",
     "invalidParents": "Invalid parents",
-    "noGamesForMediaOrBrowser": "Media and Browser have no games"
+    "noGamesForMediaOrBrowser": "Media and Browser have no games",
+    "alreadyFetchedWithinWeek": "Info has already been fetched this week",
+    "noGameInfo": "No game info available",
+    "noApiKey": "No IGDB API key"
 }
 
 // We will only allow for one request at a time for app
@@ -476,6 +514,49 @@ app.get("/screencast/reset-cancel", async function(request, response) {
     console.log("app serving /screencast/reset-cancel");
     let errorMessage = resetScreencastTimeout();
     writeActionResponse( response, errorMessage );
+});
+
+// Update the system
+app.get("/system/update", async function(request, response) {
+    if( ! requestLocked ) {
+        console.log("app serving /system/update");
+        let errorMessage = updateGuystation();
+        writeActionResponse( response, errorMessage );
+    }
+    else {
+        writeLockedResponse( response );
+    }
+});
+
+// Check if the system has updates available
+app.get("/system/has-updates", async function(request, response) {
+    console.log("app serving /system/update");
+    let hasUpdates = guystationHasUpdates();
+    writeResponse( response, SUCCESS, {hasUpdates: hasUpdates} );
+});
+
+// Restart the system
+app.get("/system/restart", async function(request, response) {
+    if( ! requestLocked ) {
+        console.log("app serving /system/update");
+        let errorMessage = restartGuystation();
+        writeActionResponse( response, errorMessage );
+    }
+    else {
+        writeLockedResponse( response );
+    }
+});
+
+// Reboot the system
+app.get("/system/reboot", async function(request, response) {
+    if( ! requestLocked ) {
+        console.log("app serving /system/update");
+        let errorMessage = rebootGuystation();
+        writeActionResponse( response, errorMessage );
+    }
+    else {
+        writeLockedResponse( response );
+    }
 });
 
 // START PROGRAM (Launch Browser and Listen)
@@ -1001,7 +1082,7 @@ function generateGames(system, games, parents=[]) {
         gameData.game = game;
         
         // Get the contents of the games directory
-        let gameDirContents =  fs.readdirSync(generateGameDir(system, game, curParents));
+        let gameDirContents = fs.readdirSync(generateGameDir(system, game, curParents));
         try {
             // This line will throw the error if there is no metadata file
             var metadataFileContents = JSON.parse(fs.readFileSync(generateGameMetaDataLocation(system, game, curParents)));
@@ -1011,6 +1092,16 @@ function generateGames(system, games, parents=[]) {
                 var tempCurParents = curParents.slice(0);
                 tempCurParents.push(game);
                 gameData.games = generateGames(system, gameDirContents.filter((name) => name != METADATA_FILENAME), tempCurParents);
+            }
+            else {
+                try {
+                    fetchGameData( system, game, curParents, metadataFileContents );
+                    if( metadataFileContents.cover ) gameData.cover = metadataFileContents.cover;
+                    if( metadataFileContents.releaseDate ) gameData.releaseDate = metadataFileContents.releaseDate;
+                    if( metadataFileContents.name ) gameData.name = metadataFileContents.name;
+                    if( metadataFileContents.summary ) gameData.summary = metadataFileContents.summary;
+                }
+                catch(err) { /*ok*/ }
             }
         }
         catch(err) {
@@ -2130,6 +2221,11 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
             ensureSaveSymlinks( system ? system : oldSystem, game ? game : oldGame, parents ? parents : oldParents, getGameDictEntry(oldSystem, oldGame, oldParents), oldSystem, oldGame, oldParents );
         }
         // Otherwise, we have to update the symlinks of all the children directories
+
+        try {
+            fetchGameData( system ? system : oldSystem, game ? game : oldGame, parents ? parents : oldParents, null, true );
+        }
+        catch(err) {/* ok */}
     }
 
     // Delete from playlists if transitioning from media
@@ -2599,49 +2695,124 @@ async function goHome() {
     return Promise.resolve(false);
 }
 
-// these are the platform ids of systems in the igdb api
-// by defining them, we prevent a lookup
-const PLATFORM_LOOKUP = {
-    "nds": [20],
-    "n64": [4],
-    "wii": [5],
-    "ps2": [7, 8], // ps1 & ps2
-    "nes": [18],
-    "snes": [19],
-    "nds": [20],
-    "ngc": [21],
-    "gba": [33, 22, 24], // gb, gbc, & gba
-    "psp": [38],
-    "3ds": [37, 137] // 3ds & new 3ds
-}
-const API_KEY = ""; // TODO make this an environment variables
-const IGBD_API_URL = "https://api-v3.igdb.com/";
-const GAMES_ENDPOINT = IGBD_API_URL + "games";
-const GAMES_FIELDS = "fields cover, name, first_release_date, summary;";
-const COVERS_ENDPOINT = IGBD_API_URL + "covers";
-const IGDB_HEADERS = { 
-    'Content-Type': 'text/plain',
-    'user-key': '47c912e9d3c166e69738f3af9b15306c'
-}
-
-async function fetchGameData( system, game, parents ) {
-    let isInvalid = isInvalidGame( system, game, parents );
-    if( isInvalid ) return isInvalid;
+/**
+ * Fetch game data from IGDB.
+ * This function will update the metadata.json files for the game
+ * It will do nothing if data has already been fetched within one week.
+ * @param {string} system - the system the game is on
+ * @param {string} game - the game to fetch data for
+ * @param {Array} parents - the parents of the game
+ * @param {Object} currentMetadataContents - the current contents of the metadata file to avoid having to fetch it again
+ * @param {boolean} force - fetch even if fetched in the past week
+ * @returns {*} - an error message if there is one, or false if not
+ */
+async function fetchGameData( system, game, parents, currentMetadataContents, force ) {
+    //let isInvalid = isInvalidGame( system, game, parents );
+    //if( isInvalid ) return isInvalid;
+    if( !IGDB_API_KEY ) {
+        return ERROR_MESSAGES.noApiKey;
+    }
     if( system == MEDIA || system == BROWSER ) {
         return ERROR_MESSAGES.noGamesForMediaOrBrowser;
     }
 
-    let gameDictEntry = getGameDictEntry( system, game, parents );
+    let metaDataLocation = generateGameMetaDataLocation(system, game, parents);
+    if( !currentMetadataContents ) currentMetadataContents = JSON.parse(fs.readFileSync(metaDataLocation));
+    let currentTime = new Date().getTime();
+    
+    if( !force && currentMetadataContents.lastFetched && parseInt(currentMetadataContents.lastFetched) > currentTime - ONE_WEEK_MILLISECONDS ) {
+        return ERROR_MESSAGES.alreadyFetchedWithinWeek;
+    }
 
     let payload = GAMES_FIELDS + 'search "' + game + '";' + 'where platforms=(' + PLATFORM_LOOKUP[system].join() + ");";
     let gameInfo = await axios.post( GAMES_ENDPOINT, payload, { "headers": IGDB_HEADERS } );
-    if( gameInfo.length ) {
-        // TODO save the info to the metadata.json and load it in the generateGames
-        // fetch the cover
+    if( gameInfo.data.length ) {
+        gameInfo = gameInfo.data[0];
+        if( gameInfo.summary ) currentMetadataContents.summary = gameInfo.summary;
+        if( gameInfo.first_release_date ) currentMetadataContents.releaseDate = gameInfo.first_release_date;
+        if( gameInfo.name ) currentMetadataContents.name = gameInfo.name;
+        if( gameInfo.summary ) currentMetadataContents.summary = gameInfo.summary;
+        if( gameInfo.cover ) {
+            let coverPayload = "where id=" + gameInfo.cover + ";" + COVERS_FIELDS;
+            let coverInfo = await axios.post( COVERS_ENDPOINT, coverPayload, { "headers": IGDB_HEADERS } );
+            if( coverInfo.data.length ) {
+                coverInfo = coverInfo.data[0];
+                if( coverInfo.width && coverInfo.height && coverInfo.url ) {
+                    delete coverInfo.id;
+                    let url = "https:" + coverInfo.url.replace(THUMB_IMAGE_SIZE, COVER_IMAGE_SIZE);
+                    let saveLocation = generateGameDir( system, game, parents ) + SEPARATOR + COVER_FILENAME;
+                    // async is probably ok here
+                    axios( { method: "GET", url: url, responseType: "stream" } ).then(function (response) {
+                        response.data.pipe(fs.createWriteStream(saveLocation));
+                    });
+                    coverInfo.url = saveLocation.replace( WORKING_DIR, '' ); //remove the working dir
+                    currentMetadataContents.cover = coverInfo;
+                }
+            }
+            currentMetadataContents.lastFetched = currentTime; // update the time fetched
+            fs.writeFileSync(metaDataLocation, JSON.stringify(currentMetadataContents));
+            return false;
+        }
+        else {
+            currentMetadataContents.lastFetched = currentTime; // update the time fetched
+            fs.writeFileSync(metaDataLocation, JSON.stringify(currentMetadataContents));
+            return false;
+        }
     }
     else {
-        // TODO return an error message that no games were found
+        currentMetadataContents.lastFetched = currentTime; // update the time fetched
+        fs.writeFileSync(metaDataLocation, JSON.stringify(currentMetadataContents));
+        return ERROR_MESSAGES.noGameInfo;
     }
+}
+
+/**
+ * Check if updates are available
+ * @returns {boolean} - true if updates are available
+ */
+function guystationHasUpdates() {
+    try {
+        proc.execSync( GIT_FETCH_COMMAND );
+        let updatesAvailable = parseInt(proc.execSync( GIT_UPDATES_AVAILABLE_COMMAND ).toString());
+        if( updatesAvailable ) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+    catch(err) {
+        return false;
+    }
+}
+
+/**
+ * Update guystation to the latest version
+ * @returns {boolean} - true if updates are available
+ */
+function updateGuystation() {
+    proc.execSync( GIT_PULL_COMMAND );
+    return false;
+}
+
+/**
+ * Restart guystation
+ */
+function restartGuystation() {
+    if( currentEmulator ) {
+        return ERROR_MESSAGES.gameBeingPlayed;
+    }
+    proc.execSync( KILL_GUYSTATION_COMMAND );
+    proc.execSync( START_GUYSTATION_COMMAND );
+    return false;
+}
+
+/**
+ * Reboot the computer guystation is running on
+ */
+function rebootGuystation() {
+    proc.execSync( REBOOT_GUYSTATION_COMMAND );
+    return false;
 }
 
 // Listen for the "home" button to be pressed
@@ -2651,7 +2822,6 @@ ioHook.on("keydown", event => {
     }
 });
 ioHook.start();
-
 
 // Signal server section
 let streamerMediaReady = false;

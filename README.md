@@ -38,6 +38,8 @@ Note: You can press F11 to get GuyStation out of full screen mode at any time.
 * Screenshots - you can view the screenshots for a game (or folder) by opening the menu and clicking the CD icon under "More".
 * Streaming - you can stream the screen to any web capable device.
     * Simply open Guystation in a web browser by going to the Guystation IP address on another device. click the "computer" icon in the menu on the device you want to stream to.
+* You can update, restart, or reboot the system through the Power button under "More" in the menu.
+* GuyStation has IGDB integration to display information about games. To display information, you must first generate an API key by creating an account [here](https://api.igdb.com/). Then you must set the environment variable GUYSTATION_IGDB_API_KEY to this value. The easiest way to do this is to add the line `GUYSTATION_IGDB_API_KEY=<api key>` to `/etc/environment`. After a system reboot, GuyStation should start fetching game metadata.
 
 ## Recommendations
 Here are some recommendedations to make your experience better on Ubuntu.
