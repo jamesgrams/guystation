@@ -71,7 +71,6 @@ const UP = "up";
 const DOWN = "down";
 const SCROLL_AMOUNT_MULTIPLIER = 0.8;
 const LINUX_CHROME_PATH = "/usr/bin/google-chrome";
-const STREAM_LIMIT_TIME = 750;
 const HOMEPAGE = "https://game103.net";
 const INVALID_CHARACTERS = ["/"];
 const GET_RESOLUTION_COMMAND = "xdpyinfo | grep dimensions | tr -s ' ' | cut -d' ' -f3"; // e.g. "1920x1080"
@@ -840,7 +839,10 @@ async function goBack() {
  */
 async function launchBrowseTab() {
     browsePage = await browser.newPage();
-    await browsePage.goto(HOMEPAGE);
+    try {
+        await browsePage.goto(HOMEPAGE);
+    }
+    catch(err) {};
     browsePage.on("close", async function() {
         // If there are no more browse tabs, the browser has been quit
         let pages = await browser.pages();
