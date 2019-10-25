@@ -88,6 +88,7 @@ const GIT_UPDATES_AVAILABLE_COMMAND = 'if [ $(git -C ~/guystation rev-parse HEAD
 const GIT_PULL_COMMAND = "git -C ~/guystation pull";
 const KILL_GUYSTATION_COMMAND = "ps -aux | grep '[n]ode' | awk '{print $2}' | xargs sudo kill -9";
 const START_GUYSTATION_COMMAND = "sudo npm --prefix=~/guystation start";
+const NPM_INSTALL_COMMAND = "sudo npm --prefix=~/guystation install";
 const REBOOT_GUYSTATION_COMMAND = "reboot";
 const ONE_WEEK_MILLISECONDS = 604800000;
 // these are the platform ids of systems in the igdb api
@@ -170,7 +171,8 @@ const ERROR_MESSAGES = {
     "noGamesForMediaOrBrowser": "Media and Browser have no games",
     "alreadyFetchedWithinWeek": "Info has already been fetched this week",
     "noGameInfo": "No game info available",
-    "noApiKey": "No IGDB API key"
+    "noApiKey": "No IGDB API key",
+    "invalidFileName": "Invalid file name"
 }
 
 // We will only allow for one request at a time for app
@@ -273,7 +275,13 @@ app.post("/home", async function(request, response) {
         let errorMessage = await goHome();
         getData(); // Reload data
         requestLocked = false;
-        writeActionResponse( response, errorMessage );
+
+        if( errorMessage.didPause ) {
+            writeResponse( response, SUCCESS, errorMessage );
+        }
+        else {
+            writeActionResponse( response, errorMessage );
+        }
     }
     else {
         writeLockedResponse( response );
@@ -388,22 +396,6 @@ app.post("/browser/input", async function(request, response) {
 app.post("/browser/button", async function(request, response) {
     console.log("app serving /browser/button with body: " + JSON.stringify(request.body));
     let errorMessage = await pressButton( request.body.button );
-    writeActionResponse( response, errorMessage );
-});
-
-// Get input for the a browser
-app.get("/browser/start-streaming", async function(request, response) {
-    console.log("app serving /browser/start-streaming");
-    // Don't worry about locking for these
-    let errorMessage = await startStreaming();
-    writeActionResponse( response, errorMessage );
-});
-
-// Get input for the a browser
-app.get("/browser/stop-streaming", async function(request, response) {
-    console.log("app serving /browser/stop-streaming");
-    // Don't worry about locking for these
-    let errorMessage = await stopStreaming();
     writeActionResponse( response, errorMessage );
 });
 
@@ -588,13 +580,25 @@ function isInvalidGame( system, game, parents ) {
 /**
  * Determine if a name is invalid
  * @param {string} name - the name to check for validity
- * @returns false if the name is ok, or an error message if it is not
+ * @returns {boolean} - false if the name is ok, or an error message if it is not
  */
 function isInvalidName( name ) {
     for( let invalidCharacter of INVALID_CHARACTERS ) {
         if( name.includes(invalidCharacter) ) {
             return ERROR_MESSAGES.invalidCharacterInName;
         }
+    }
+    return false;
+}
+
+/**
+ * Determine is a file name is valid for a ROM
+ * @param {string} file - the name of the file
+ * @returns {boolean} - false if the name is ok, or an error message if it is not
+ */
+function isInvalidFileName( file ) {
+    if( file == METADATA_FILENAME || file == COVER_FILENAME ) {
+        return ERROR_MESSAGES.invalidFileName;
     }
     return false;
 }
@@ -721,49 +725,6 @@ async function pressButton( button ) {
 }
 
 /**
- * Start streaming the browse page.
- * @returns {Promise} - a promise that is false if the action was successful or contains an error message if not
- */
-async function startStreaming() {
-    if( !browsePage || browsePage.isClosed() ) {
-        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
-    }
-
-    await browsePage._client.send("Page.startScreencast");
-    browsePage._client.on("Page.screencastFrame", event => {
-        let curOutputTime = Date.now();
-        let timeToWait = STREAM_LIMIT_TIME - (curOutputTime - lastOutputTime);
-        if (timeToWait < 0) {
-            timeToWait = 0;
-        }
-        // Clear any current image waiting to send
-        if( outputTimeout ) {
-            clearTimeout(outputTimeout);
-        }
-        // Set the timeout to emit
-        outputTimeout = setTimeout( function() {
-            io.sockets.emit("canvas", event.data);
-            lastOutputTime = Date.now();
-            outputTimeout = null;
-        }, timeToWait );
-    } );
-    return Promise.resolve(false);
-}
-
-/**
- * Stop streaming the browse page.
- * @returns {Promise} - a promise that is false if the action was successful or contains an error message if not
- */
-async function stopStreaming() {
-    if( !browsePage || browsePage.isClosed() ) {
-        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
-    }
-
-    await browsePage._client.send("Page.stopScreencast");
-    return Promise.resolve(false);
-}
-
-/**
  * Get the current address of the browse page.
  * @returns {Promise} - a promise containing the current page or an error message
  */
@@ -884,7 +845,6 @@ async function launchBrowseTab() {
         // If there are no more browse tabs, the browser has been quit
         let pages = await browser.pages();
         if( pages.length == 1 ) { // only the menu page is open
-            await stopStreaming();
             browsePage = null; // There is no browse page
             if( currentSystem === BROWSER ) { 
                 blankCurrentGame(); 
@@ -1005,17 +965,14 @@ async function switchBrowseTab(id) {
         return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
     }
 
-    await stopStreaming();
     let pages = await browser.pages();
     for( let page of pages ) {
         if( page.mainFrame()._id === id && page.mainFrame()._id !== menuPage.mainFrame()._id ) {
             await page.bringToFront();
             browsePage = page;
-            await startStreaming();
             return Promise.resolve(false);
         }
     }
-    await startStreaming();
 
     return Promise.resolve( ERROR_MESSAGES.browsePageNotFound );
 }
@@ -2041,6 +1998,8 @@ function saveUploadedRom( file, system, game, parents ) {
     if( !file.originalname || !file.path ) {
         return ERROR_MESSAGES.noFileInUpload;
     }
+    let invalidFileName = isInvalidFileName(file.originalname);
+    if( invalidFileName ) return invalidFileName;
     if( !fs.existsSync(generateGameDir(system, game, parents)) ) {
         return ERROR_MESSAGES.locationDoesNotExist;
     }
@@ -2670,7 +2629,7 @@ function menuPageIsActive() {
 
 /**
  * Go to the home menu.
- * @returns {Promise<*>} - an error message if there was an error, false if there was not.
+ * @returns {Promise<*>} - an error message if there was an error, or an object indicating if we paused if not
  */
 async function goHome() {
     if( !menuPage || menuPage.isClosed() ) {
@@ -2692,7 +2651,7 @@ async function goHome() {
         pauseRemoteMedia();
     }
     catch(err) {/*ok*/}
-    return Promise.resolve(false);
+    return Promise.resolve( { "didPause": needsPause } );
 }
 
 /**
@@ -2791,6 +2750,7 @@ function guystationHasUpdates() {
  * @returns {boolean} - true if updates are available
  */
 function updateGuystation() {
+    proc.execSync( NPM_INSTALL_COMMAND );
     proc.execSync( GIT_PULL_COMMAND );
     return false;
 }

@@ -6,9 +6,10 @@ GuyStation is designed to run on Ubuntu (and to basically be the sole purpose of
 1. Clone this repository into your home directory
 2. `cd` into this repository
 3. Run `./scripts/setup.sh`
-4. Restart your computer, and GuyStation should boot automatically.
-5. Connect and setup any controllers or other devices that you want to use to control the emulators.
-6. Add games and have fun! You should be able to access the GuyStation frontend on any device within the same network by going to the IP that GuyStation displays in your browser.
+4. Optionally get and IGDB API key and set the `GUYSTATION_IGDB_API_KEY` environment variable. See the Extras section for more info.
+5. Restart your computer, and GuyStation should boot automatically.
+6. Connect and setup any controllers or other devices that you want to use to control the emulators.
+7. Add games and have fun! You should be able to access the GuyStation frontend on any device within the same network by going to the IP that GuyStation displays in your browser.
 
 Note: You can press F11 to get GuyStation out of full screen mode at any time. 
 

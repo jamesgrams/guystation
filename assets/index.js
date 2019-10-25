@@ -32,7 +32,6 @@ var enableModalControls;
 var makingRequest = false;
 var bubbleScreenshotsSet;
 var focusInterval = null;
-var canvasImageInfo;
 var closeModalCallback;
 var sendInputTimeout;
 var currentAddress;
@@ -135,6 +134,15 @@ function displayGamePreview() {
         if( gameDictEntry.cover && gameDictEntry.name ) {
             var previewElement = document.createElement("div");
             previewElement.classList.add("game-preview");
+            previewElement.onclick = function() { 
+                if( this.classList.contains("game-preview-clicked") ) {
+                    this.classList.remove("game-preview-clicked");
+                }
+                else {
+                    this.classList.add("game-preview-clicked"); 
+                }
+            }
+
             var previewImg = document.createElement("img");
             previewImg.setAttribute("src", gameDictEntry.cover.url);
             //previewImg.setAttribute("width", gameDictEntry.cover.width);
@@ -149,8 +157,9 @@ function displayGamePreview() {
             previewTitle.innerText = gameDictEntry.name;
             previewInfo.appendChild(previewTitle);
 
+            var previewReleaseDate;
             if( gameDictEntry.releaseDate ) {
-                var previewReleaseDate = document.createElement("div");
+                previewReleaseDate = document.createElement("div");
                 previewReleaseDate.classList.add("game-preview-release-date");
                 var releaseDate = new Date(1970, 0, 1);
                 releaseDate.setSeconds( gameDictEntry.releaseDate );
@@ -158,14 +167,18 @@ function displayGamePreview() {
                 previewInfo.appendChild(previewReleaseDate);
             }
 
+            previewElement.appendChild(previewInfo);
+            document.body.appendChild(previewElement);
+
             if( gameDictEntry.summary ) {
                 var previewSummary = document.createElement("div");
                 previewSummary.classList.add("game-preview-summary");
                 previewSummary.innerText = gameDictEntry.summary;
+                let imageWidth = 200; //make sure this matches the css
+                let imageHeight = gameDictEntry.cover.height/gameDictEntry.cover.width * imageWidth;
+                previewSummary.style.maxHeight = imageHeight - previewTitle.offsetHeight - (previewReleaseDate ? previewReleaseDate.offsetHeight : 0);
                 previewInfo.appendChild(previewSummary);
             }
-            previewElement.appendChild(previewInfo);
-            document.body.appendChild(previewElement);
 
             // set timeout to force draw prior
             showPreviewTimeout = setTimeout( function() { 
@@ -427,9 +440,6 @@ function load() {
 
         socket = io.connect("http://"+window.location.hostname+":3000");
         socket.on("connect", function() {console.log("socket connected")});
-        socket.on("canvas", function(data) {
-            drawCanvas(data);
-        });
 
         setTimeout( function() {
        	    document.querySelector("#search").setAttribute("tabindex", "0");
@@ -470,53 +480,6 @@ function closeMenu() {
 }
 
 /**
- * Draw image data about the browser on the canvas.
- * @param data {string} base64 jpeg image data
- */
-function drawCanvas(data) {
-    var canvas = document.getElementById("stream");
-    if( canvas ) {
-        var context = canvas.getContext('2d');
-        var img = new Image();
-        img.src = "data:image/jpeg;base64," + data;
-        var canvasWidth = canvas.getAttribute("width");
-        var canvasHeight = canvas.getAttribute("height");
-        context.width = canvasWidth;
-        context.height = canvasHeight;
-        var borderWidth = 2;
-        img.onload = function() {
-            var clearImage = context.createImageData(canvasWidth, canvasWidth);
-            for (var i = clearImage.data.length; --i >= 0; ) {
-                clearImage.data[i] = 0;
-            }
-            context.putImageData(clearImage, 0, 0);
-            var imgWidth;
-            var imgHeight;
-            var xOffset = borderWidth/2;
-            var yOffset = borderWidth/2;
-            if( img.width >= img.height ) {
-                var ratio = img.height / img.width;
-                imgWidth = context.width-borderWidth;
-                imgHeight = imgWidth * ratio;
-                yOffset = (context.height - imgHeight)/2;
-            }
-            else {
-                var ratio = img.width / img.height;
-                imgHeight = context.height-borderWidth;
-                imgWidth = imgHeight * ratio;
-                xOffset = (context.width - imgWidth)/2;
-            }
-            context.drawImage( img, xOffset, yOffset, imgWidth, imgHeight);
-            context.strokeRect( xOffset-borderWidth/2, yOffset-borderWidth/2, imgWidth+borderWidth, imgHeight+borderWidth );
-            canvasImageInfo = { x: xOffset, y: yOffset, width: imgWidth, height: imgHeight };
-        };
-    }
-    else {
-        canvasImageInfo = null;
-    }
-}
-
-/**
  * Enable controls.
  */
 function enableControls() {
@@ -553,19 +516,7 @@ function enableControls() {
                 // Escape
                 case 27:
                     // Go to the currently playing game if there is one
-                    var currentPlayingGameElement = document.querySelector(".system .game.playing");
-                    if( currentPlayingGameElement ) {
-                        var startSystem = generateStartSystem();
-                        var currentPlayingGame = decodeURIComponent(currentPlayingGameElement.getAttribute("data-game"));
-                        var currentPlayingParentsString = currentPlayingGameElement.getAttribute("data-parents");
-                        var currentPlayingSystem = currentPlayingGameElement.closest(".system").getAttribute("data-system");
-                        if( !(startSystem.system == currentPlayingSystem && startSystem.games[currentPlayingSystem].game == currentPlayingGame && startSystem.games[currentPlayingSystem].parents == currentPlayingParentsString ) ) {
-                            startSystem.games[currentPlayingSystem].game = currentPlayingGame;
-                            startSystem.games[currentPlayingSystem].parents = currentPlayingParentsString;
-                            startSystem.system = currentPlayingSystem;
-                            draw( startSystem );
-                        }
-                    }
+                    goToPlayingGame();
                     if( !escapeDown ) {
                         escapeDown = setTimeout(function() {
                             document.querySelector("#quit-game").click();
@@ -649,6 +600,25 @@ function enableControls() {
             }
             
             event.preventDefault();
+        }
+    }
+}
+
+/**
+ * Go to the game currently being played
+ */
+function goToPlayingGame() {
+    var currentPlayingGameElement = document.querySelector(".system .game.playing");
+    if( currentPlayingGameElement ) {
+        var startSystem = generateStartSystem();
+        var currentPlayingGame = decodeURIComponent(currentPlayingGameElement.getAttribute("data-game"));
+        var currentPlayingParentsString = currentPlayingGameElement.getAttribute("data-parents");
+        var currentPlayingSystem = currentPlayingGameElement.closest(".system").getAttribute("data-system");
+        if( !(startSystem.system == currentPlayingSystem && startSystem.games[currentPlayingSystem].game == currentPlayingGame && startSystem.games[currentPlayingSystem].parents == currentPlayingParentsString ) ) {
+            startSystem.games[currentPlayingSystem].game = currentPlayingGame;
+            startSystem.games[currentPlayingSystem].parents = currentPlayingParentsString;
+            startSystem.system = currentPlayingSystem;
+            draw( startSystem );
         }
     }
 }
@@ -1731,22 +1701,6 @@ function displayBrowserControls() {
     tabsDiv.setAttribute("id", "browser-tabs");
     form.appendChild( tabsDiv );
 
-    var canvas = document.createElement("canvas");
-    canvas.setAttribute("id", "stream");
-    canvas.setAttribute("width", 700);
-    canvas.setAttribute("height", 420);
-    canvas.onclick = function(e) {
-        var rect = canvas.getBoundingClientRect();
-        var x = event.clientX - rect.left;
-        var y = event.clientY - rect.top;
-        var xPercent = (x - canvasImageInfo.x)/canvasImageInfo.width;
-        var yPercent = (y - canvasImageInfo.y)/canvasImageInfo.height;
-        if( xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
-            makeRequest( "POST", "/browser/click", {"xPercent": xPercent, "yPercent": yPercent} );
-        }
-    };
-    form.appendChild(canvas);
-
     var upButton = createButton( '<i class="fas fa-chevron-up"></i>', function() {
         makeRequest("POST", "/browser/scroll", { direction: "up"} );
     } );
@@ -1773,8 +1727,49 @@ function displayBrowserControls() {
     form.appendChild( backButton );
     form.appendChild( forwardButton );
 
-    launchModal( form, function() { makeRequest( "GET", "/browser/stop-streaming", {} ); clearInterval(browserAddressHeartbeat); clearInterval(tabsHeartbeat); } );
+    launchModal( form, function() { stopConnectionToPeer(false); clearInterval(browserAddressHeartbeat); clearInterval(tabsHeartbeat); } );
     
+    //video
+    var video = document.createElement("video");
+    video.setAttribute("autoplay", "true");
+    video.onclick = function(e) {
+        var nativeWidth = video.videoWidth;
+        var nativeHeight = video.videoHeight;
+        var areaWidth = video.offsetWidth;
+        var areaHeight = video.offsetHeight;
+        var actualWidth;
+        var actualHeight;
+        var offsetLeft = 0;
+        var offsetTop = 0;
+        if( nativeWidth/nativeHeight > areaWidth/areaHeight ) {
+            actualWidth = areaWidth;
+            actualHeight = actualWidth * (nativeHeight/nativeWidth);
+            offsetTop = (areaHeight - actualHeight) / 2;
+        }
+        else {
+            actualHeight = areaHeight;
+            actualWidth = actualHeight * (nativeWidth/nativeHeight);
+            offsetLeft = (areaWidth - actualWidth) / 2;
+        }
+        var rect = video.getBoundingClientRect();
+        var x = event.clientX - rect.left;
+        var y = event.clientY - rect.top;
+        var xPercent = (x - offsetLeft)/actualWidth;
+        var yPercent = (y - offsetTop)/actualHeight;
+        if( xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
+            makeRequest( "POST", "/browser/click", {"xPercent": xPercent, "yPercent": yPercent} );
+        }
+    };
+    makeRequest( "GET", "/screencast/connect", [], function() {
+        // start letting the server know we exist after it is now looking for us i.e. won't accept another connection
+        // (serverSocketId is set)
+        resetCancelStreamingInterval = setInterval( function() {
+            makeRequest( "GET", "/screencast/reset-cancel", [] );
+        }, RESET_CANCEL_STREAMING_INTERVAL );
+        connectToSignalServer(false);
+    }, function(responseText) { standardFailure(responseText, true) } );
+    form.appendChild(video);
+
     if( browserAddressHeartbeat ) {
         clearInterval(browserAddressHeartbeat);
     }
@@ -1872,7 +1867,7 @@ function displayBrowserControls() {
         }
     }, TABS_HEARTBEAT_TIME);
     // Start streaming now for memory conservation
-    makeRequest( "GET", "/browser/start-streaming", {} );
+    //makeRequest( "GET", "/browser/start-streaming", {} );
 }
 
 /**
@@ -3130,7 +3125,17 @@ function goHome() {
     if( !makingRequest ) {
         startRequest(); // Most other functions do this prior since they need to do other things
         makeRequest( "POST", "/home", {},
-        function( responseText ) { standardSuccess(responseText) },
+        function( responseText ) { 
+            try {
+                let message = JSON.parse(responseText);
+                systemsDict = response.systems;
+                if( message && message.didPause === false ) {
+                    goToPlayingGame(); // this won't redraw if we are already on the item. But why would we need it to?
+                }
+            }
+            catch(err) {}
+            endRequest();
+        },
         function( responseText ) { standardFailure( responseText ) } );
     }
 }
@@ -3796,7 +3801,7 @@ function createdDescription(description) {
  * @param {Event} event - The event that triggered the stream
  */
 function gotRemoteStream(event) {
-    document.querySelector(".modal #remote-screencast-form video").srcObject = event.streams[0];
+    document.querySelector(".modal #remote-screencast-form video, .modal #browser-controls-form video").srcObject = event.streams[0];
 }
 
 /**
