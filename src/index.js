@@ -2649,6 +2649,7 @@ async function goHome() {
         // so don't worry about returning their error messages, because some will inevitably have them
         if( needsPause ) {
             pauseGame();
+            if( currentEmulator && currentGame == BROWSER && browsePage && !browsePage.isClosed() ) await browsePage.evaluate( () => document.exitFullscreen() );
         }
         pauseRemoteMedia();
     }
