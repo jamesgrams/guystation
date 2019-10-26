@@ -1951,7 +1951,7 @@ function displayPowerOptions() {
     updateButton.classList.add("inactive");
     form.appendChild(updateButton);
     // See if there are updates
-    makeRequest( "GET", "/system/has-updates", function(responseText) {
+    makeRequest( "GET", "/system/has-updates", [], function(responseText) {
         var response = JSON.parse(responseText);
         if( response.hasUpdates ) {
             updateButton.classList.remove("inactive");

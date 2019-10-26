@@ -275,7 +275,7 @@ app.post("/home", async function(request, response) {
         getData(); // Reload data
         requestLocked = false;
 
-        if( errorMessage.didPause === false || errorMessage.didPause === true ) {
+        if( errorMessage.didPause ) {
             writeResponse( response, SUCCESS, errorMessage );
         }
         else {
@@ -2752,8 +2752,8 @@ function guystationHasUpdates() {
  * @returns {boolean} - true if updates are available
  */
 function updateGuystation() {
-    proc.execSync( NPM_INSTALL_COMMAND );
     proc.execSync( GIT_PULL_COMMAND );
+    proc.execSync( NPM_INSTALL_COMMAND );
     return false;
 }
 
