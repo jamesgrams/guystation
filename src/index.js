@@ -2866,7 +2866,7 @@ async function connectScreencast() {
     }
     // starting a screencast will activate the home tab
     // it is best to predict that and to it anyway
-    if( currentEmulator && currentSystem != MEDIA && menuPageIsActive() ) { 
+    if( currentEmulator && currentSystem != MEDIA && !menuPageIsActive() ) { 
         await goHome(); 
         needToRefocusGame = true; 
     }
