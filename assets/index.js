@@ -170,19 +170,18 @@ function displayGamePreview() {
             previewElement.appendChild(previewInfo);
             document.body.appendChild(previewElement);
 
-            if( gameDictEntry.summary ) {
-                var previewSummary = document.createElement("div");
-                previewSummary.classList.add("game-preview-summary");
-                previewSummary.innerText = gameDictEntry.summary;
-                let imageWidth = 200; //make sure this matches the css
-                let imageHeight = gameDictEntry.cover.height/gameDictEntry.cover.width * imageWidth;
-                previewSummary.style.maxHeight = imageHeight - previewTitle.offsetHeight - (previewReleaseDate ? previewReleaseDate.offsetHeight : 0);
-                previewInfo.appendChild(previewSummary);
-            }
-
             // set timeout to force draw prior
             showPreviewTimeout = setTimeout( function() { 
                 previewElement.classList.add("game-preview-shown");
+                if( gameDictEntry.summary ) {
+                    var previewSummary = document.createElement("div");
+                    previewSummary.classList.add("game-preview-summary");
+                    previewSummary.innerText = gameDictEntry.summary;
+                    var imageWidth = 200; //make sure this matches the css
+                    var imageHeight = gameDictEntry.cover.height/gameDictEntry.cover.width * imageWidth;
+                    previewSummary.style.maxHeight = imageHeight - previewTitle.offsetHeight - (previewReleaseDate ? previewReleaseDate.offsetHeight : 0);
+                    previewInfo.appendChild(previewSummary);
+                }
             }, SHOW_PREVIEW_TIMEOUT );
         }
     }
@@ -1936,8 +1935,14 @@ function displayPowerOptions() {
                     createToast("Please restart GuyStation to apply updates");
                     endRequest();
                     closeModal();
-                }, function() {
-                    createToast("An error occurred while trying to update");
+                }, function(responseText) {
+                    try {
+                        var message = JSON.parse(responseText).message;
+			createToast(message);
+		    }
+		    catch(err) {
+                        createToast("An error occurred while trying to update");
+		    }
                     endRequest();
                 } );
             }, closeModal);
@@ -1956,24 +1961,37 @@ function displayPowerOptions() {
         if( !makingRequest ) {
             displayConfirm( "Are you sure you want to restart GuyStation?", function() { 
                 startRequest(); 
-                makeRequest( "GET", "/system/restart", [], null, function() {
-                    createToast("An error occurred while trying to restart");
+                makeRequest( "GET", "/system/restart", [], null, function(responseText) {
+                    try {
+                        var message = JSON.parse(responseText).message;
+			createToast(message);
+		    }
+		    catch(err) {
+                        createToast("An error occurred while trying to restart");
+		    }
                     endRequest();
                 } );
             }, closeModal);
         }
     }) );
-    form.appendChild( createButton("Reboot Machine"), function() {
+    form.appendChild( createButton("Reboot Machine", function() {
         if( !makingRequest ) {
             displayConfirm( "Are you sure you want to reboot GuyStation?", function() { 
                 startRequest(); 
-                makeRequest( "GET", "/system/reboot", [], null, function() {
+                makeRequest( "GET", "/system/reboot", [], null, function(responseText) {
+                    try {
+                        var message = JSON.parse(responseText).message;
+			createToast(message);
+		    }
+		    catch(err) {
+                        createToast("An error occurred while trying to update");
+		    }
                     createToast("An error occurred while trying to reboot");
                     endRequest();
                 } );
             }, closeModal);
         }
-    } );
+    }) );
     launchModal( form );
 }
 
@@ -3128,7 +3146,7 @@ function goHome() {
         function( responseText ) { 
             try {
                 let message = JSON.parse(responseText);
-                systemsDict = response.systems;
+                systemsDict = message.systems;
                 if( message && message.didPause === false ) {
                     goToPlayingGame(); // this won't redraw if we are already on the item. But why would we need it to?
                 }
