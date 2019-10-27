@@ -2450,8 +2450,8 @@ function ensureRomInputAndPlaylistSelectIsDisplayedOrHidden( modal, old ) {
         var romFileInput = modal.querySelector("#rom-file-input");
         var playlistSelect = modal.querySelector("#playlist-container");
         var oldParents = extractParentsFromFolderMenu(true, modal);
-        var oldSystem = oldSystemSelect.options[oldSystemSelect.selectedIndex].text;
-        var oldGame = oldGameSelect.options[oldGameSelect.selectedIndex].text;
+        var oldSystem = oldSystemSelect.options[oldSystemSelect.selectedIndex].value;
+        var oldGame = oldGameSelect.options[oldGameSelect.selectedIndex].value;
         var isFolder = getGamesInFolder(oldParents, oldSystem)[oldGame].isFolder;
         var isPlaylist = getGamesInFolder(oldParents, oldSystem)[oldGame].isPlaylist;
         if( isFolder ) {
