@@ -481,9 +481,15 @@ app.post("/browser/tab", async function(request, response) {
 
 // Connect the menu page to the signal server
 app.get("/screencast/connect", async function(request, response) {
-    console.log("app serving /screencast/connect");
-    let errorMessage = await connectScreencast();
-    writeActionResponse( response, errorMessage );
+    // don't allow screencast to start while we're trying to do something else
+    if( ! requestLocked ) {
+        console.log("app serving /screencast/connect");
+        let errorMessage = await connectScreencast();
+        writeActionResponse( response, errorMessage );
+    }
+    else {
+        writeLockedResponse( response );
+    }
 });
 
 // Start screencast
