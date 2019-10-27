@@ -2012,9 +2012,9 @@ function displayDeleteSave() {
             var systemSelect = document.querySelector(".modal #delete-save-form #system-select");
             var gameSelect = document.querySelector(".modal #delete-save-form #game-select");
             var saveSelect = document.querySelector(".modal #delete-save-form #save-select");
-            var system = systemSelect.options[systemSelect.selectedIndex].text;
-            var game = gameSelect.options[gameSelect.selectedIndex].text;
-            var save = saveSelect.options[saveSelect.selectedIndex].text;
+            var system = systemSelect.options[systemSelect.selectedIndex].value;
+            var game = gameSelect.options[gameSelect.selectedIndex].value;
+            var save = saveSelect.options[saveSelect.selectedIndex].value;
             var parents = extractParentsFromFolderMenu();
             displayConfirm( "Are you sure you want to delete the save \""+save+"\" for " + game + " for " + system + "?", function() { startRequest(); deleteSave(system, game, save, parents); }, closeModal);
         }
@@ -2041,7 +2041,7 @@ function displaySelectSave() {
             var gameSelect = document.querySelector(".modal #change-save-form #game-select");
             var saveSelect = document.querySelector(".modal #change-save-form #save-select");
             var parents = extractParentsFromFolderMenu();
-            changeSave( systemSelect.options[systemSelect.selectedIndex].text, gameSelect.options[gameSelect.selectedIndex].text, saveSelect.options[saveSelect.selectedIndex].text, parents );
+            changeSave( systemSelect.options[systemSelect.selectedIndex].value, gameSelect.options[gameSelect.selectedIndex].value, saveSelect.options[saveSelect.selectedIndex].value, parents );
         }
     } ) );
     launchModal( form );
@@ -2084,7 +2084,7 @@ function displayAddSave() {
             var gameSelect = document.querySelector(".modal #add-save-form #game-select");
             var saveInput = document.querySelector(".modal #add-save-form #save-input");
             var parents = extractParentsFromFolderMenu();
-            addSave( systemSelect.options[systemSelect.selectedIndex].text, gameSelect.options[gameSelect.selectedIndex].text, saveInput.value, parents );
+            addSave( systemSelect.options[systemSelect.selectedIndex].value, gameSelect.options[gameSelect.selectedIndex].value, saveInput.value, parents );
         }
     }, [saveInput.firstElementChild.nextElementSibling] ) );
     launchModal( form );
@@ -2105,8 +2105,8 @@ function displayDeleteGame() {
         if( !makingRequest ) {
             var systemSelect = document.querySelector(".modal #delete-game-form #system-select");
             var gameSelect = document.querySelector(".modal #delete-game-form #game-select");
-            var system = systemSelect.options[systemSelect.selectedIndex].text;
-            var game = gameSelect.options[gameSelect.selectedIndex].text;
+            var system = systemSelect.options[systemSelect.selectedIndex].value;
+            var game = gameSelect.options[gameSelect.selectedIndex].value;
             var parents = extractParentsFromFolderMenu();
             displayConfirm( "Are you sure you want to delete " + game + " for " + system + "?", function() { startRequest(); deleteGame(system, game, parents); }, closeModal )
         }
@@ -2161,11 +2161,11 @@ function displayUpdateGame() {
             var romFileInput = document.querySelector(".modal #update-game-form #rom-file-input");
             var parents = extractParentsFromFolderMenu();
             var oldParents = extractParentsFromFolderMenu(true);
-            var isFolder = getGamesInFolder(oldParents, oldSystemSelect.options[oldSystemSelect.selectedIndex].text)[oldGameSelect.options[oldGameSelect.selectedIndex].text].isFolder;
-            var isPlaylist = getGamesInFolder(oldParents, oldSystemSelect.options[oldSystemSelect.selectedIndex].text)[oldGameSelect.options[oldGameSelect.selectedIndex].text].isPlaylist;
+            var isFolder = getGamesInFolder(oldParents, oldSystemSelect.options[oldSystemSelect.selectedIndex].value)[oldGameSelect.options[oldGameSelect.selectedIndex].value].isFolder;
+            var isPlaylist = getGamesInFolder(oldParents, oldSystemSelect.options[oldSystemSelect.selectedIndex].value)[oldGameSelect.options[oldGameSelect.selectedIndex].value].isPlaylist;
             var playlistItems = extractItemsfromPlaylistContainer();
 
-            updateGame( oldSystemSelect.options[oldSystemSelect.selectedIndex].text, oldGameSelect.options[oldGameSelect.selectedIndex].text, oldParents, systemSelect.options[systemSelect.selectedIndex].text, gameInput.value, romFileInput.files[0], parents, isFolder, isPlaylist, playlistItems );
+            updateGame( oldSystemSelect.options[oldSystemSelect.selectedIndex].value, oldGameSelect.options[oldGameSelect.selectedIndex].value, oldParents, systemSelect.options[systemSelect.selectedIndex].value, gameInput.value, romFileInput.files[0], parents, isFolder, isPlaylist, playlistItems );
         }
     } ) );
     launchModal( form );
@@ -2210,7 +2210,7 @@ function displayAddGame() {
     var systemMenu = createSystemMenu( document.querySelector(".system.selected").getAttribute("data-system"), false, true, false, false, false );
     form.appendChild( systemMenu );
     var selectedSystemElement = systemMenu.querySelector("select");
-    var selectedSystem = selectedSystemElement.options[selectedSystemElement.selectedIndex].text;
+    var selectedSystem = selectedSystemElement.options[selectedSystemElement.selectedIndex].value;
 
     var selectedGameElement = document.querySelector(".system[data-system='"+selectedSystem+"'] .game.selected");
     var selectedParents = selectedGameElement ? parentsStringToArray(selectedGameElement.getAttribute("data-parents")) : [];
@@ -2234,7 +2234,7 @@ function displayAddGame() {
             var parents = extractParentsFromFolderMenu();
             var playlistItems = extractItemsfromPlaylistContainer();
 
-            addGame( systemSelect.options[systemSelect.selectedIndex].text, gameInput.value, romFileInput.files[0], parents, typeSelect.options[typeSelect.selectedIndex].text == "Folder", typeSelect.options[typeSelect.selectedIndex].text == "Playlist", playlistItems );
+            addGame( systemSelect.options[systemSelect.selectedIndex].value, gameInput.value, romFileInput.files[0], parents, typeSelect.options[typeSelect.selectedIndex].value == "Folder", typeSelect.options[typeSelect.selectedIndex].value == "Playlist", playlistItems );
         }
     }, [ gameInput.firstElementChild.nextElementSibling ] ) );
     launchModal( form );
@@ -2295,7 +2295,7 @@ function createSystemMenu( selected, old, required, onlyWithGames, onlySystemsSu
         systemsKeys = systemsKeys.filter( (element) => folderContainsRealGames(systemsDict[element].games) );
     }
     return createMenu( selected, systemsKeys, (old ? "old-" : "") + "system-select", (old ? "Current " : "") + "System: ", function() {
-        var system = this.options[this.selectedIndex].text;
+        var system = this.options[this.selectedIndex].value;
         var modal = document.querySelector(".modal");
         var folderSelect = modal.querySelector("#" + (old ? "old-" : "") + "folder-select-container");
         var gameSelect = modal.querySelector("#" + (old ? "old-" : "") + "game-select");
@@ -2350,7 +2350,7 @@ function createSystemMenu( selected, old, required, onlyWithGames, onlySystemsSu
             }
         }
         if( typeSelect ) {
-            var newTypeSelect = createTypeMenu( typeSelect.options[typeSelect.selectedIndex].text, getTypeOptions(system), typeSelect.getAttribute("required") );
+            var newTypeSelect = createTypeMenu( typeSelect.options[typeSelect.selectedIndex].value, getTypeOptions(system), typeSelect.getAttribute("required") );
             typeSelect.parentNode.replaceWith(newTypeSelect);
             newTypeSelect.querySelector("#type-select").onchange(); // ensure the proper items are shown
         }
@@ -2415,10 +2415,10 @@ function createGameMenu( selected, system, old, required, parents, onlyWithRealG
         games = newObj;
     }
     return createMenu( selected, Object.keys(games), (old ? "old-" : "") + "game-select", (old ? "Current " : "") + "Game: ", function() {
-        var game = this.options[this.selectedIndex].text;
+        var game = this.options[this.selectedIndex].value;
         var modal = document.querySelector(".modal");
         var system = modal.querySelector("#system-select");
-        var currentSystem = system.options[system.selectedIndex].text;
+        var currentSystem = system.options[system.selectedIndex].value;
         var saveSelect = modal.querySelector("#save-select");
         if( saveSelect ) {
             var currentSaveElement = document.querySelector('.system[data-system="'+currentSystem+'"] .game[data-game="'+encodeURIComponent(game)+'"] .current-save');
@@ -2484,7 +2484,7 @@ function ensureNewFolderMenuHasCorrectOptions( modal, old ) {
         var newParents = extractParentsFromFolderMenu(false, modal);
         var newSystem = modal.querySelector("#system-select");
         // this is like the second options in createFolder in displayUpdateGame
-        modal.querySelector("#folder-select-container").parentNode.replaceWith( createFolderMenu(newParents, newSystem.options[newSystem.selectedIndex].text, false, false, false, false, modal ) );
+        modal.querySelector("#folder-select-container").parentNode.replaceWith( createFolderMenu(newParents, newSystem.options[newSystem.selectedIndex].value, false, false, false, false, modal ) );
     }
 }
 
@@ -2576,7 +2576,7 @@ function extractParentsFromFolderMenu(old, modal, folderDropdowns) {
     var parents = [];
     for( var i=0; i<folderDropdowns.length; i++ ) {
         var currentDropdown = folderDropdowns[i];
-        var value = currentDropdown.options[currentDropdown.selectedIndex].text;
+        var value = currentDropdown.options[currentDropdown.selectedIndex].value;
         if(value) {
             parents.push( value );
         }
@@ -2723,7 +2723,7 @@ function createFolderMenu( parents, system, old, required, onlyWithGames, onlyWi
                 if( !isForPlaylist && !old && helperElement && helperElement.querySelector("#old-game-select") && helperElement.querySelector("#old-folder-select-container") ) {
                     var oldParents = extractParentsFromFolderMenu(true, helperElement);
                     var oldGameSelect = helperElement.querySelector("#old-game-select");
-                    oldParents.push( oldGameSelect.options[oldGameSelect.selectedIndex].text );
+                    oldParents.push( oldGameSelect.options[oldGameSelect.selectedIndex].value );
                     options = options.filter( function(option) {
                         var currentParentsCopy = currentParents.slice(0);
                         currentParentsCopy.push(option);
@@ -2756,7 +2756,7 @@ function createFolderMenu( parents, system, old, required, onlyWithGames, onlyWi
                     for( var i=0; i<=myIndex; i++ ) {
                         var currentDropdownId = isForPlaylist ? "playlist-select-" + playlistId + "-" : (old ? "old-" : "") + "folder-select-";
                         var currentDropdown = modal.querySelector( "#" + currentDropdownId + i );
-                        newParents.push( currentDropdown.options[currentDropdown.selectedIndex].text );
+                        newParents.push( currentDropdown.options[currentDropdown.selectedIndex].value );
                     }
                     // for a playlist, add another playlist option when the last one gets a selected value
                     var allPlaylistSelects = document.querySelectorAll(".modal .playlist-select-container");
@@ -2862,11 +2862,11 @@ function createSaveMenu( selected, system, game, required, parents ) {
  */
 function createTypeMenu( selected, options, required ) {
     return createMenu( selected, options, "type-select", "Type: ", function() {
-        if( this.options[this.selectedIndex].text == "Game" ) {
+        if( this.options[this.selectedIndex].value == "Game" ) {
             document.querySelector(".modal #playlist-container").parentNode.classList.add("hidden");
             document.querySelector(".modal #rom-file-input").parentNode.classList.remove("hidden");
         }
-        else if ( this.options[this.selectedIndex].text == "Folder" ) {
+        else if ( this.options[this.selectedIndex].value == "Folder" ) {
             document.querySelector(".modal #rom-file-input").parentNode.classList.add("hidden");
             document.querySelector(".modal #playlist-container").parentNode.classList.add("hidden");
         }
