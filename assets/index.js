@@ -111,7 +111,7 @@ function bubbleScreenshots() {
 }
 
 /**
- * Display a preview of the game
+ * Display a preview of the game.
  */
 function displayGamePreview() {
     var currentPreview = document.querySelector(".game-preview:not(.game-preview-dying)");
@@ -261,7 +261,7 @@ function resetBubbleScreenshots() {
 }
 
 /**
- * Set the marquee for the selected element
+ * Set the marquee for the selected element.
  */
 function setMarquee() {
     // Just to be safe
@@ -300,7 +300,8 @@ function setMarquee() {
 }
 
 /**
- * Remove all marquees
+ * Remove all marquees.
+ * @param {boolean} header - True if this is for the header marquee.
  */
 function removeMarquee(header) {
     if( !header ) {
@@ -325,8 +326,9 @@ function removeMarquee(header) {
 
 /**
  * Add marquee to an element within a game element
- * @param {HTMLElement} element - the element to add marquee too
- * @param {HTMLElement} gameElement - the game element containing the element
+ * @param {HTMLElement} element - The element to add marquee too
+ * @param {HTMLElement} gameElement - The game element containing the element
+ * @param {string} boolean - True if this marquee is for the header.
  */
 function addMarquee(element, gameElement, header) {
     // calculate the animation delay
@@ -470,7 +472,7 @@ function clearSearch() {
 }
 
 /**
- * Close the menu by clicking Cocoa
+ * Close the menu by clicking Cocoa.
  */
 function closeMenu() {
     if( document.querySelector("#functions.open") ) {
@@ -604,7 +606,7 @@ function enableControls() {
 }
 
 /**
- * Go to the game currently being played
+ * Go to the game currently being played.
  */
 function goToPlayingGame() {
     var currentPlayingGameElement = document.querySelector(".system .game.playing");
@@ -624,7 +626,10 @@ function goToPlayingGame() {
 
 /**
  * Draw the page.
- * @param {object} startSystem - an object with a system key for the system to start on and an array of objects with system keys and games for games to start on.
+ * @param {Object} startSystem - An object with a system key for the system to start on and an array of objects with system keys and games for games to start on.
+ * @param {string} startSystem.system - The system to start on.
+ * @param {Object} startSystem.games - An object containing a key for each system, and an object with a key for "game" and "parents" and respective values as a value.
+ * @param {Object} startSystem.openFolders - An object containing a key for each system, and an array of gameDictEntries as values that are folders that should be opened.
  */
 function draw( startSystem ) {
     var systemKeys = Object.keys(systemsDict);
@@ -755,13 +760,16 @@ function draw( startSystem ) {
 }
 
 /**
- * Populate the games portion of the menu
- * @param {string} system - the system the games are for
- * @param {Object} games - the object of games as returned from the server
- * @param {object} startSystem - an object with a system key for the system to start on and an array of objects with system keys and games for games to start on.
- * @param {HTMLElement} gamesElement - the element to append the games to
- * @param {boolean} hidden - true if the element should be hidden
- * @param {Array} parents - an array of parent folders for the game
+ * Populate the games portion of the menu.
+ * @param {string} system - The system the games are for.
+ * @param {Object} games - The object of games as returned from the server.
+ * @param {Object} startSystem - An object with a system key for the system to start on and an array of objects with system keys and games for games to start on.
+ * @param {string} startSystem.system - The system to start on.
+ * @param {Object} startSystem.games - An object containing a key for each system, and an object with a key for "game" and "parents" and respective values as a value.
+ * @param {Object} startSystem.openFolders - An object containing a key for each system, and an array of gameDictEntries as values that are folders that should be opened. 
+ * @param {HTMLElement} gamesElement - The element to append the games to.
+ * @param {boolean} [hidden] - True if the element should be hidden.
+ * @param {Array<string>} [parents] - An array of parent folders for the game.
  */
 function populateGames(system, games, startSystem, gamesElement, hidden, parents) {
     if( !parents ) parents = [];
@@ -875,9 +883,10 @@ function populateGames(system, games, startSystem, gamesElement, hidden, parents
 }
 
 /**
- * Determine if two terms match for searching
- * @param {string} searchTerm - the first term
- * @param {string} matchTerm - the second term
+ * Determine if two terms match for searching.
+ * @param {string} searchTerm - The first term.
+ * @param {string} matchTerm - The second term.
+ * @returns {boolean} True if the terms are a match.
  */
 function termsMatch(searchTerm, matchTerm) {
     searchTerm = searchTerm.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()\s]/g,"");
@@ -889,7 +898,7 @@ function termsMatch(searchTerm, matchTerm) {
 }
 
 /**
- * Save the current menu position
+ * Save the current menu position.
  */
 function saveMenuPosition() {
     window.localStorage.guystationStartSystem = JSON.stringify(generateStartSystem());
@@ -1080,11 +1089,11 @@ function toggleButtons() {
 }
 
 /**
- * Determine if a game is being played
- * @param {string} system - the system to check
- * @param {string} game - the game to check
- * @param {Array} parents - the parents of the game
- * @returns {boolean} - whether the game is being played or not
+ * Determine if a game is being played.
+ * @param {string} system - The system to check.
+ * @param {string} game - The game to check.
+ * @param {Array<string>} parents - The parents of the game.
+ * @returns {boolean} - Whether the game is being played or not.
  */
 function isBeingPlayed( system, game, parents ) {
     var gameInFolder = getGamesInFolder(parents, system)[game];
@@ -1094,13 +1103,13 @@ function isBeingPlayed( system, game, parents ) {
 
 /**
  * Do a redraw maintaining the current position.
- * @param {string} oldSystemName - the old name of the system if it changed
- * @param {string} newSystemName - the new name of the system if it changed (null if it was deleted)
- * @param {string} oldGameName - the old name of the game if it changed
- * @param {string} newGameName - the new name of the game if it changed (null if it was deleted)
- * @param {Array} oldParents - the old parents if it changed
- * @param {Array} newParents - the new parents if it changed
- * @param {boolean} keepCurrentSearch - keep the current search (only in place on a search to not blank out search, other than that we don't want redraw to keep a search)
+ * @param {string} [oldSystemName] - The old name of the system if it changed.
+ * @param {string} [newSystemName] - The new name of the system if it changed (null if it was deleted).
+ * @param {string} [oldGameName] - The old name of the game if it changed.
+ * @param {string} [newGameName] - The new name of the game if it changed (null if it was deleted).
+ * @param {Array<string>} [oldParents] - The old parents if it changed.
+ * @param {Array<string>} [newParents] - The new parents if it changed.
+ * @param {boolean} [keepCurrentSearch] - Keep the current search (only in place on a search to not blank out search, other than that we don't want redraw to keep a search).
  */
 function redraw( oldSystemName, newSystemName, oldGameName, newGameName, oldParents, newParents, keepCurrentSearch ) {
     if( !keepCurrentSearch ) {
@@ -1111,16 +1120,16 @@ function redraw( oldSystemName, newSystemName, oldGameName, newGameName, oldPare
 
 /**
  * Get all the open folders.
- * @param {Object} games - a games object (e.g. systems[system].games)
- * @param {Array} arr - an array that will be populated by the function
- * @param {Array} parents - the parents of the current games object
- * @param {string} system - the system the folders are for
- * @param {string} oldSystemName - the old name of the system if it changed
- * @param {string} newSystemName - the new name of the system if it changed (null if it was deleted)
- * @param {string} oldGameName - the old name of the game if it changed
- * @param {string} newGameName - the new name of the game if it changed (null if it was deleted)
- * @param {Array} oldParents - the old parents if it changed
- * @param {Array} newParents - the new parents if it changed
+ * @param {Object} games - A games object (e.g. systems[system].games).
+ * @param {Array} arr - An array that will be populated by the function.
+ * @param {Array<string>} parents - The parents of the current games object.
+ * @param {string} system - The system the folders are for.
+ * @param {string} [oldSystemName] - The old name of the system if it changed.
+ * @param {string} [newSystemName] - The new name of the system if it changed (null if it was deleted).
+ * @param {string} [oldGameName] - The old name of the game if it changed.
+ * @param {string} [newGameName] - The new name of the game if it changed (null if it was deleted).
+ * @param {Array<string>} [oldParents] - The old parents if it changed.
+ * @param {Array<string>} [newParents] - The new parents if it changed.
  */
 function getOpenFolders(games, arr, parents, system, oldSystemName, newSystemName, oldGameName, newGameName, oldParents, newParents) {
     for( var game of Object.keys(games) ) {
@@ -1170,13 +1179,13 @@ function getOpenFolders(games, arr, parents, system, oldSystemName, newSystemNam
 
 /**
  * Generate a startSystem object that can be passed to the draw function to start at the current position in the menu.
- * @param {string} oldSystemName - the old name of the system if it changed
- * @param {string} newSystemName - the new name of the system if it changed (null if it was deleted)
- * @param {string} oldGameName - the old name of the game if it changed
- * @param {string} newGameName - the new name of the game if it changed (null if it was deleted)
- * @param {Array} oldParents - the old parents if it changed
- * @param {Array} newParents - the new parents if it changed
- * @returns {object} - an object that can be passed to the draw function to start - include the parents string and game
+ * @param {string} [oldSystemName] - The old name of the system if it changed.
+ * @param {string} [newSystemName] - The new name of the system if it changed (null if it was deleted).
+ * @param {string} [oldGameName] - The old name of the game if it changed.
+ * @param {string} [newGameName] - The new name of the game if it changed (null if it was deleted).
+ * @param {Array<string>} [oldParents] - The old parents if it changed.
+ * @param {Array<string>} [newParents] - The new parents if it changed.
+ * @returns {Object} An object that can be passed to the draw function to start - include the parents string and game.
  */
 function generateStartSystem( oldSystemName, newSystemName, oldGameName, newGameName, oldParents, newParents ) {
     var currentSystem = document.querySelector(".system.selected").getAttribute("data-system");
@@ -1233,11 +1242,11 @@ function generateStartSystem( oldSystemName, newSystemName, oldGameName, newGame
 }
 
 /**
- * Get the index of an array given a starting position and offset if treating the array like a circle
- * @param {number} index - the starting index
- * @param {Array} arr - the array to find the index of
- * @param {number} offset - the offset amount
- * @returns {number} the index
+ * Get the index of an array given a starting position and offset if treating the array like a circle.
+ * @param {number} index - The starting index.
+ * @param {Array} arr - The array to find the index of.
+ * @param {number} offset - The offset amount.
+ * @returns {number} The index.
  */
 function getIndex( index, arr, offset ) {
     if( index + offset >= arr.length ) {
@@ -1254,8 +1263,8 @@ function getIndex( index, arr, offset ) {
 }
 
 /**
- * Move the menu a given number of spaces
- * @param {number} spaces - the number of spaces to move the menu
+ * Move the menu a given number of spaces.
+ * @param {number} spaces - The number of spaces to move the menu.
  */
 function moveMenu( spaces ) {
     resetBubbleScreenshots();
@@ -1303,8 +1312,8 @@ function moveMenu( spaces ) {
 }
 
 /**
- * Move the sub menu a given spaces
- * @param {number} spaces - the number of spaces to move the submenu
+ * Move the sub menu a given spaces.
+ * @param {number} spaces - The number of spaces to move the submenu.
  */
 function moveSubMenu( spaces ) {
     resetBubbleScreenshots();
@@ -1390,9 +1399,9 @@ function moveSubMenu( spaces ) {
  * so first it will look at the selected item, then it will look for items in the same folder, then it will look for any item, then any system
  * of course changeSystem will not look at any selected system, since we are assured the one we are on is valid before switching
  * of course changeFolders will not look at system nor any item, since we are assured there is one in the same folder before switching
- * @param {boolean} systemSaveAllowedOnly - true if we should only consider systems that allow for saves - the current save will not be returned without it.
- * @param {boolean} noFolders - true if we should exclude all folders from consideration - the current save will not be returned without it.
- * @returns {Object} an object with selected values
+ * @param {boolean} systemSaveAllowedOnly - True if we should only consider systems that allow for saves - the current save will not be returned without it.
+ * @param {boolean} noFolders - True if we should exclude all folders from consideration - the current save will not be returned without it.
+ * @returns {Object} an object with selected values.
  */
 function getSelectedValues(systemSaveAllowedOnly, noFolders) {
     var currentSystemElement = document.querySelector(".system.selected");
@@ -1462,8 +1471,8 @@ function getSelectedValues(systemSaveAllowedOnly, noFolders) {
 }
 
 /**
- * Display remote media for a game - an album of screenshots
- * This should not be shown if there are no screenshots
+ * Display remote media for a game - an album of screenshots.
+ * This should not be shown if there are no screenshots.
  */
 function displayRemoteMediaScreenshots() {
     var form = document.createElement("div");
@@ -1508,10 +1517,10 @@ function displayRemoteMediaScreenshots() {
 
 /**
  * Display remote media controls.
- * @param {string} system - the system to look at instead of the selected system (optional)
- * @param {string} game - the game to look at instead of the selected game (optional)
- * @param {Array} parents - the parents to look at instead of the selected parents (optional)
- * @param {boolean} serverLaunched - true if the modal was launched by the server (will call quitGame when modal closed)
+ * @param {string} [system] - The system to look at instead of the selected system.
+ * @param {string} [game] - The game to look at instead of the selected game.
+ * @param {Array<string>} [parents] - The parents to look at instead of the selected parents.
+ * @param {boolean} [serverLaunched] - True if the modal was launched by the server (will call quitGame when modal closed).
  */
 function displayRemoteMedia(system, game, parents, serverLaunched) {
     var form = document.createElement("div");
@@ -1570,7 +1579,7 @@ function displayRemoteMedia(system, game, parents, serverLaunched) {
 
 /**
  * Go to the previous media with the option to restart the current
- * media if time is past 5 seconds
+ * media if time is past 5 seconds.
  */
 function previousMedia() {
     var videoElement = document.querySelector(".modal #remote-media-form video");
@@ -1585,8 +1594,8 @@ function previousMedia() {
 }
 
 /**
- * Play the next piece of media in a folder
- * @param {Number} offset - the offset of media to play 
+ * Play the next piece of media in a folder.
+ * @param {number} offset - The offset of media to play.
  */
 function playNextMedia(offset) {
     if( !offset ) offset = 1;
@@ -1614,7 +1623,7 @@ function playNextMedia(offset) {
 }
 
 /**
- * Minimize the remote media (for server calls only)
+ * Minimize the remote media (for server calls only).
  */
 function minimizeRemoteMedia() {
     var remoteMedia = document.querySelector("#remote-media-form");
@@ -1630,7 +1639,7 @@ function minimizeRemoteMedia() {
 }
 
 /**
- * Maximize the remote media (for server calls only)
+ * Maximize the remote media (for server calls only).
  * This is a no-op is there is no remote media already minimized.
  */
 function maximizeRemoteMedia() {
@@ -1643,7 +1652,7 @@ function maximizeRemoteMedia() {
 }
 
 /**
- * Remove the remote media placeholder if it exists. (for server calls only)
+ * Remove the remote media placeholder if it exists. (for server calls only).
  */
 function removeRemoteMediaPlaceholder() {
     var remoteMediaPlaceholder = document.querySelectorAll("#remote-media-placeholder"); // just in case remove all
@@ -1655,10 +1664,10 @@ function removeRemoteMediaPlaceholder() {
 }
 
 /**
- * Determine if remote media is being played (for server calls only)
- * @param {string} system - the system to determine if being played 
- * @param {string} game - the game to determine if being played
- * @param {Array} parents - the parents of the game being determined if it is being played
+ * Determine if remote media is being played (for server calls only).
+ * @param {string} system - The system to determine if being played.
+ * @param {string} game - The game to determine if being played.
+ * @param {Array<string>} parents - The parents of the game being determined if it is being played.
  */
 function isRemoteMediaPlaying( system, game, parents ) {
     return document.querySelector('#remote-media-form[data-is-server-launched] video[data-system="'+system+'"][data-game="'+encodeURIComponent(game)+'"][data-parents="'+parentsArrayToString(parents)+'"]') ? true : false;
@@ -2049,7 +2058,7 @@ function displaySelectSave() {
 
 /**
  * Cycle to the next save.
- * @param {Number} offset - the number of positions to cycle
+ * @param {Number} offset - The number of positions to cycle.
  */
 function cycleSave(offset) {
     if( !makingRequest ) { 
@@ -2116,9 +2125,9 @@ function displayDeleteGame() {
 
 /**
  * Display a confirm modal.
- * @param {string} message - the message to display in the confirm box
- * @param {Function} yesCallback - the function to execute if yes is selected
- * @param {Function} noCallback - the function to execute if no is selected
+ * @param {string} message - The message to display in the confirm box.
+ * @param {Function} yesCallback - The function to execute if yes is selected.
+ * @param {Function} noCallback - The function to execute if no is selected.
  */
 function displayConfirm( message, yesCallback, noCallback ) {
     var form = document.createElement("div");
@@ -2175,9 +2184,9 @@ function displayUpdateGame() {
  * Translate symlinked entries into what they actually refernce
  * All that is needed is the name which includes parents to dereference
  * all symlinks are on the same system as what they reference.
- * @param {HTMLElement} gameDictEntry - a playlist entry
- * @param {string} system - the system the game is on
- * @returns {Array} - an array of games that are what the playlists .games values point to
+ * @param {HTMLElement} gameDictEntry - A playlist entry.
+ * @param {string} system - The system the game is on.
+ * @returns {Array<Object>} An array of games that are what the playlists .games values point to.
  */
 function translateSymlinks(gameDictEntry, system) {
     var gameDictEntries = [];
@@ -2241,8 +2250,8 @@ function displayAddGame() {
 }
 
 /**
- * Get available type options
- * @param {String} system - the system
+ * Get available type options.
+ * @param {string} system - The system.
  */
 function getTypeOptions(system) {
     if( system == "media" ) return ["Game", "Folder", "Playlist"];
@@ -2252,8 +2261,8 @@ function getTypeOptions(system) {
 /**
  * Check if a folder contains real games.
  * A playlist is not considered a real game in this instance.
- * @param {object} games - a standard games object
- * @returns {boolean} - whether or not the folder contains real games
+ * @param {Object} games - A standard games object (.games attribute of systems or folder).
+ * @returns {boolean} Whether or not the folder contains real games.
  */
 function folderContainsRealGames(games) {
     for( var game of Object.keys(games) ) {
@@ -2274,14 +2283,14 @@ function folderContainsRealGames(games) {
  * Create a select element containing systems.
  * Note: for onlyWithGames and onlyWithRealGames, they also exist on functions "below" systems such as Folders and Games
  * These values should always be the same from the top (systems) down.
- * @param {string} selected - the system selected by default
- * @param {boolean} old - true if the old system for chanding (changes the id)
- * @param {boolean} required - if the field is required
- * @param {boolean} onlyWithGames - true if we should only show systems with games in the menu - this will get passed to sub menus
- * @param {boolean} onlySystemsSupportingSaves - true if we should only allow systems supporting saves
- * @param {boolean} onlyWithRealGames - true if we should only show systems with real games in the menu - this will get passed to sub menus
- * @param {boolean} onlyWithLeafNodes - true if we only want to show "leaf nodes" (only impacts the game menu) - i.e. empty folders or games - if onlyWithGames is true (which it should be when this is), then we won't ever selected a leaf node as a folder, so that's why it is only needed for the game menu
- * @returns {Element} - a select element containing the necessary keys
+ * @param {string} [selected] - The system selected by default.
+ * @param {boolean} [old] - True if the old system for chanding (changes the id).
+ * @param {boolean} [required] - If the field is required.
+ * @param {boolean} [onlyWithGames] - True if we should only show systems with games in the menu - this will get passed to sub menus.
+ * @param {boolean} [onlySystemsSupportingSaves] - True if we should only allow systems supporting saves.
+ * @param {boolean} [onlyWithRealGames] - True if we should only show systems with real games in the menu - this will get passed to sub menus.
+ * @param {boolean} [onlyWithLeafNodes] - True if we only want to show "leaf nodes" (only impacts the game menu) - i.e. empty folders or games - if onlyWithGames is true (which it should be when this is), then we won't ever selected a leaf node as a folder, so that's why it is only needed for the game menu.
+ * @returns {HTMLElement} A select element containing the necessary keys wrapped by a label.
  */
 function createSystemMenu( selected, old, required, onlyWithGames, onlySystemsSupportingSaves, onlyWithRealGames, onlyWithLeafNodes ) {
     var systemsKeys = Object.keys(systemsDict).filter( (element) => !nonGameSystems.includes(element) );
@@ -2363,18 +2372,18 @@ function createSystemMenu( selected, old, required, onlyWithGames, onlySystemsSu
 }
 
 /**
- * Convert an array of parents to a string
- * @param {Array} parents - the array of parents
- * @returns {string} the parents string
+ * Convert an array of parents to a string.
+ * @param {Array<string>} parents - The array of parents.
+ * @returns {string} The parents string.
  */
 function parentsArrayToString(parents) {
     return encodeURIComponent(parents.join(UUID));
 }
 
 /**
- * Convert a string of parents to an array
- * @param {string} parents - the string of parents
- * @returns {Array} the parents array
+ * Convert a string of parents to an array.
+ * @param {string} parents - The string of parents.
+ * @returns {Array<string>} The parents array.
  */
 function parentsStringToArray(parents) {
     return parents.split(UUID).map( (el) => decodeURIComponent(el) ).filter( (el) => el !== "" );
@@ -2382,9 +2391,9 @@ function parentsStringToArray(parents) {
 
 /**
  * Create an input element for a game.
- * @param {string} defaultValue - the default value of the element
- * @param {boolean} required - if the field is required
- * @returns {Element} - an input element
+ * @param {string} [defaultValue] - The default value of the element.
+ * @param {boolean} [required] - If the field is required.
+ * @returns {HTMLElement} An input element wrapped by a label.
  */
 function createGameInput( defaultValue, required ) {
     return createInput( defaultValue, "game-input", "Game: ", null, required );
@@ -2392,14 +2401,14 @@ function createGameInput( defaultValue, required ) {
 
 /**
  * Create a select element containing games.
- * @param {string} selected - the game selected by default
- * @param {string} system - the system the game is on
- * @param {boolean} old - true if the old game for chanding (changes the id)
- * @param {boolean} required - if the field is required
- * @param {Array} parents - a list of parent folders for games - options are limited to their contents
- * @param {boolean} onlyWithRealGames - true if we should only show systems with real games in the menu - this will get passed to sub menus
- * @param {boolean} onlyWithLeafNodes - true if we only want to show "leaf nodes" (only impacts the game menu) - i.e. empty folders or games
- * @returns {Element} - a select element containing the necessary keys
+ * @param {string} [selected] - The game selected by default.
+ * @param {string} [system] - The system the game is on.
+ * @param {boolean} [old] - True if the old game for chanding (changes the id).
+ * @param {boolean} [required] - If the field is required.
+ * @param {Array<string>} parents - A list of parent folders for games - options are limited to their contents.
+ * @param {boolean} [onlyWithRealGames] - True if we should only show systems with real games in the menu - this will get passed to sub menus.
+ * @param {boolean} [onlyWithLeafNodes] - True if we only want to show "leaf nodes" (only impacts the game menu) - i.e. empty folders or games.
+ * @returns {HTMLElement} A select element containing the necessary keys wrapped by a label.
  */
 function createGameMenu( selected, system, old, required, parents, onlyWithRealGames, onlyWithLeafNodes ) {
     // Note how we will never include folders in a game select
@@ -2439,9 +2448,9 @@ function createGameMenu( selected, system, old, required, parents, onlyWithRealG
 }
 
 /**
- * Ensure the rom input is displayed or hidden properly
- * @param {HTMLElement} modal - the modal
- * @param {boolean} old - a check to make sure the old item is the one that changed
+ * Ensure the rom input is displayed or hidden properly.
+ * @param {HTMLElement} [modal] - The modal.
+ * @param {boolean} [old] - A check to make sure the old item is the one that changed.
  */
 function ensureRomInputAndPlaylistSelectIsDisplayedOrHidden( modal, old ) {
     if( old && modal ) {
@@ -2474,10 +2483,10 @@ function ensureRomInputAndPlaylistSelectIsDisplayedOrHidden( modal, old ) {
 
 /**
  * Ensure that the new folder menu has correct options - some can be taken out based on the value
- * of the currently selection item in createFolderMenu for old to prevent a folder from being placed inside itself
+ * of the currently selection item in createFolderMenu for old to prevent a folder from being placed inside itself.
  * However, if we then switch the old game by changing system, game or folder, we want to make sure the new menu updates.
- * @param {HTMLElement} modal - the modal
- * @param {boolean} old - a check to make sure the old item is the one that changed
+ * @param {HTMLElement} [modal] - The modal.
+ * @param {boolean} [old] - A check to make sure the old item is the one that changed.
  */
 function ensureNewFolderMenuHasCorrectOptions( modal, old ) {
     if( old && modal && modal.querySelector("#folder-select-container") ) {
@@ -2489,16 +2498,16 @@ function ensureNewFolderMenuHasCorrectOptions( modal, old ) {
 }
 
 /**
- * Get all the games in a folder
- * This will return folders too
+ * Get all the games in a folder.
+ * This will return folders too.
  * Note how on the server the method we often use, getGameDictEntry will get a game object (of which games is a key),
  * but this will get a the games object. They are similar, and you can get a game object he simply by using the game's
  * parents and then looking up the game by key in the object this function returns.
  * This works well with filterGameTypes
- * @param {Array} parents - the parent folders
- * @param {string} system - the system the folders are for
- * @param {boolean} allowPlaylist - allow playlists to count as folders
- * @returns {object} the games object for the specified parents
+ * @param {Array<string>} parents - The parent folders.
+ * @param {string} system - The system the folders are for.
+ * @param {boolean} [allowPlaylist] - Allow playlists to count as folders.
+ * @returns {Object} The games object for the specified parents.
  */
 function getGamesInFolder( parents, system, allowPlaylist ) {
     var parentsCopy = parents.slice(0);
@@ -2513,8 +2522,10 @@ function getGamesInFolder( parents, system, allowPlaylist ) {
 
 /**
  * Get the games in a folder recursively.
- * @param {Object} games - a games object (e.g. systems[system].games)
- * @param {Array} arr - an array that will be populated by the function
+ * This function will set the parents on each gameDictEntry.
+ * @param {Object} games - A games object (e.g. systems[system].games).
+ * @param {Array<Object>} arr - An array that will be populated by the function.
+ * @param {Array<string>} parents - The current parents.
  */
 function getRealGamesInFolderRecursive(games, arr, parents) {
     for( var game of Object.keys(games) ) {
@@ -2533,11 +2544,11 @@ function getRealGamesInFolderRecursive(games, arr, parents) {
 }
 
 /**
- * Filter a game object to only include folders/games
- * In this case a playlist is considered a game
- * @param {Object} games - a games object (e.g. systems[system].games)
- * @param {boolean} getFolders - true if we are getting folders, false if we are getting games
- * @returns {object} the filtered games object
+ * Filter a game object to only include folders/games.
+ * In this case a playlist is considered a game.
+ * @param {Object} games - A games object (e.g. systems[system].games).
+ * @param {boolean} [getFolders] - True if we are getting folders, false if we are getting games.
+ * @returns {Object} The filtered games object.
  */
 function filterGameTypes( games, getFolders ) {
     var newObj = {};
@@ -2550,8 +2561,9 @@ function filterGameTypes( games, getFolders ) {
 }
 
 /**
- * Remove playlists. (Filter out)
- * @param {Object} games - a games object (e.g. systems[system].games)
+ * Remove playlists (Filter out).
+ * @param {Object} games - A games object (e.g. systems[system].games).
+ * @returns {Object} The filtered games object.
  */
 function removePlaylists( games ) {
     var newObj = {};
@@ -2565,10 +2577,10 @@ function removePlaylists( games ) {
 
 /**
  * Extract a parents array from folder menus.
- * @param {boolen} old - true if this is an old list (changes looked for)
- * @param {HTMLElement} modal - the modal containing the menus
- * @param {Array<HTMLElement>} folderDropdowns - the dropdowns
- * @returns {Array} a list of the parents in order
+ * @param {boolen} [old] - True if this is an old list (changes looked for).
+ * @param {HTMLElement} [modal] - The modal containing the menus.
+ * @param {Array<HTMLElement>} [folderDropdowns] - The dropdowns.
+ * @returns {Array<string>} A list of the parents in order.
  */
 function extractParentsFromFolderMenu(old, modal, folderDropdowns) {
     if( !modal ) modal = document.querySelector(".modal");
@@ -2585,9 +2597,9 @@ function extractParentsFromFolderMenu(old, modal, folderDropdowns) {
 }
 
 /**
- * Extract items from
- * @param {HTMLElement} modal - the modal containing the playlists
- * @returns {Array<Array<String>>} - An array of arrays of items
+ * Extract items from a playlist container.
+ * @param {HTMLElement} [modal] - The modal containing the playlists.
+ * @returns {Array<Array<String>>} An array of arrays of items.
  */
 function extractItemsfromPlaylistContainer(modal) {
     if( !modal ) modal = document.querySelector(".modal");
@@ -2603,10 +2615,10 @@ function extractItemsfromPlaylistContainer(modal) {
 }
 
 /**
- * Create position indicator
- * @param {number} currentPosition - the current position
- * @param {number} maxPosition - the max position
- * @returns {HTMLElement} - the position indicator
+ * Create position indicator.
+ * @param {number} currentPosition - The current position.
+ * @param {number} maxPosition - The max position.
+ * @returns {HTMLElement} The position indicator.
  */
 function createPositionIndicator(currentPosition, maxPosition) {
     var positionDiv = document.createElement("div");
@@ -2624,8 +2636,9 @@ function createPositionIndicator(currentPosition, maxPosition) {
 }
 
 /**
- * Create a playlist menu
- * @param {Array<HTMLElement>} gameDictEntries - a list of game dict entries with parents included
+ * Create a playlist menu.
+ * @param {Array<HTMLElement>} gameDictEntries - A list of game dict entries with parents included.
+ * @returns {HTMLElement} A playlist element (several folder dropdowns) wrapped by a Label.
  */
 function createPlaylistMenu( gameDictEntries ) {
     var playlistElement = document.createElement("div");
@@ -2650,15 +2663,17 @@ function createPlaylistMenu( gameDictEntries ) {
 
 /**
  * Create a menu for folders.
- * @param {Array} parents - a list of the current parents (folders) - it is ok if there are "" items in the parents array, they will be removed
- * @param {string} system - the system the menu is for
- * @param {boolen} old - true if this is an old list (changes id)
- * @param {boolean} required - true if the dropdowns are required
- * @param {boolean} onlyWithGames - true if we should only show systems with games in the menu
- * @param {boolean} onlyWithRealGames - true if we should only show systems with real games in the menu
- * @param {HTMLElement} helperElement - an element that contains other dropdowns (like the old dropdown) that we may need to change
- * @param {boolean} onlyWithLeafNodes - true if we only want to show "leaf nodes" (only impacts the game menu) - i.e. empty folders or games - if onlyWithGames is true (which it should be when this is), then we won't ever selected a leaf node as a folder, so that's why it is only needed for the game menu
- * @returns {HTMLElement} - a div element containing dynamic folder dropdowns
+ * @param {Array} parents - A list of the current parents (folders) - it is ok if there are "" items in the parents array, they will be removed.
+ * @param {string} system - The system the menu is for.
+ * @param {boolen} [old] - True if this is an old list (changes id).
+ * @param {boolean} [required] - True if the dropdowns are required.
+ * @param {boolean} [onlyWithGames] - True if we should only show systems with games in the menu.
+ * @param {boolean} [onlyWithRealGames] - True if we should only show systems with real games in the menu.
+ * @param {HTMLElement} [helperElement] - An element that contains other dropdowns (like the old dropdown) that we may need to change.
+ * @param {boolean} [onlyWithLeafNodes] - True if we only want to show "leaf nodes" (only impacts the game menu) - i.e. empty folders or games - if onlyWithGames is true (which it should be when this is), then we won't ever selected a leaf node as a folder, so that's why it is only needed for the game menu.
+ * @param {boolean} [isForPlaylist] - True if this is a folder menu for a playlist container.
+ * @param {number} [playlistId] - The index of the playlist.
+ * @returns {HTMLElement} An element containing dynamic folder dropdowns wrapped by a label.
  */
 function createFolderMenu( parents, system, old, required, onlyWithGames, onlyWithRealGames, helperElement, onlyWithLeafNodes, isForPlaylist, playlistId ) {
     // We will have a dropdown for each possible folder
@@ -2825,9 +2840,8 @@ function createFolderMenu( parents, system, old, required, onlyWithGames, onlyWi
 
 /**
  * Create an input element for a ROM file.
- * @param {string} defaultValue - the default value of the element
- * @param {boolean} required - if the field is required
- * @returns {Element} - an input element
+ * @param {boolean} [required] - If the field is required.
+ * @returns {HTMLElement} An input element wrapped by a label.
  */
 function createRomFileInput(required) {
     return createInput( null, "rom-file-input", "Rom File: ", "file", required );
@@ -2835,9 +2849,9 @@ function createRomFileInput(required) {
 
 /**
  * Create an input element for a save file.
- * @param {string} defaultValue - the default value of the element
-* @param {boolean} required - if the field is required
- * @returns {Element} - a select element containing the necessary keys
+ * @param {string} [defaultValue] - The default value of the element.
+ * @param {boolean} [required] - If the field is required.
+ * @returns {HTMLElement} An input element wrapped by a label.
  */
 function createSaveInput( defaultValue, required ) {
     return createInput( defaultValue, "save-input", "Save: ", null, required );
@@ -2845,20 +2859,23 @@ function createSaveInput( defaultValue, required ) {
 
 /**
  * Create a select element containing saves.
- * @param {string} selected - the save selected by default
- * @param {boolean} old - true if the old game for chanding (changes the id)
- * @param {boolean} required - if the field is required
- * @returns {Element} - a select element containing the necessary keys
+ * @param {string} [selected] - The save selected by default.
+ * @param {string} system - The system the saves are for.
+ * @param {string} game - The game the saves are for.
+ * @param {boolean} [old] - True if the old game for chanding (changes the id).
+ * @param {boolean} [required] - If the field is required.
+ * @param {Array<string>} parents - The games the saves are for.
+ * @returns {HTMLElement} - A select element containing the necessary keys wrapped by a label.
  */
 function createSaveMenu( selected, system, game, required, parents ) {
     return createMenu( selected, Object.keys(getGamesInFolder( parents, system )[game].saves), "save-select", "Save: ", null, required );
 }
 
 /**
- * Create a select element containing type
- * @param {string} selected - the save selected by default
- * @param {Array<string>} options - a list of options for the select (should contain one or more of "Game", "Folder", and "Playlist")
- * @param {boolean} required - if the field is required
+ * Create a select element containing type.
+ * @param {string} [selected] - The type selected by default (will be playlist if not specified).
+ * @param {Array<string>} options - A list of options for the select (should contain one or more of "Game", "Folder", and "Playlist")
+ * @param {boolean} [required] - If the field is required.
  */
 function createTypeMenu( selected, options, required ) {
     return createMenu( selected, options, "type-select", "Type: ", function() {
@@ -2878,10 +2895,10 @@ function createTypeMenu( selected, options, required ) {
 }
 
 /**
- * Add a label to an element
- * @param {Element} element - the element to attach a label to
- * @param {string} text - the label text
- * @returns {Element} - a label element wrapping the input element
+ * Add a label to an element.
+ * @param {HTMLElement} element - The element to attach a label to.
+ * @param {string} text - The label text.
+ * @returns {HTMLElement} A label element wrapping the input element.
  */
 function addLabel( element, text ) {
     var label = document.createElement("label");
@@ -2896,18 +2913,18 @@ function addLabel( element, text ) {
 
 /**
  * Create an input element.
- * @param {string} defaultValue - the default value of the element
- * @param {string} id - the id of the element
- * @param {string} label - the label text for the element
- * @param {string} type - the type attribute of the element
- * @param {boolean} required - if the field is required
- * @returns {Element} - an input element
+ * @param {string} [defaultValue] - The default value of the element.
+ * @param {string} [id] - The id of the element.
+ * @param {string} [label] - The label text for the element.
+ * @param {string} type - The type attribute of the element.
+ * @param {boolean} required - If the field is required.
+ * @returns {HTMLElement} An input element wrapped by a label.
  */
 function createInput( defaultValue, id, label, type, required ) {
     var input = document.createElement("input");
     input.type = type ? type : "text";
     if( defaultValue ) input.value = defaultValue;
-    input.setAttribute("id", id);
+    if(id) input.setAttribute("id", id);
     if( required ) {
         input.setAttribute("required", "required");
     }
@@ -2916,17 +2933,17 @@ function createInput( defaultValue, id, label, type, required ) {
 
 /**
  * Create a select element. 
- * @param {string} selected - which element should be selected by default
- * @param {Array<string>} options - a list of options for the select
- * @param {string} id - the id of the element
- * @param {string} label - the label text of the menu
- * @param {Function} onchange - the onchange function for the menu
- * @param {boolean} required - if the field is required
- * @returns {Element} - a select element
+ * @param {string} [selected] - Which element should be selected by default.
+ * @param {Array<string>} options - A list of options for the select.
+ * @param {string} [id] - The id of the element.
+ * @param {string} [label] - The label text of the menu.
+ * @param {Function} [onchange] - The onchange function for the menu.
+ * @param {boolean} [required] - If the field is required.
+ * @returns {HTMLElement} - A select element wrapped by a label.
  */
 function createMenu( selected, options, id, label, onchange, required ) {
     var select = document.createElement("select");
-    select.setAttribute("id", id);
+    if(id) select.setAttribute("id", id);
     if( onchange ) {
         select.onchange = onchange;
     }
@@ -2947,8 +2964,10 @@ function createMenu( selected, options, id, label, onchange, required ) {
 
 /**
  * Create a button element.
- * @param {string} label - the label text of the button 
- * @param {function} onclick - the callback function to run on click - it won't be available until all the required fields have a value
+ * @param {string} label - The label text of the button 
+ * @param {function} [onclick] - The callback function to run on click - it won't be available until all the required fields have a value
+ * @param {Array<HTMLElement>} [requiredInputFields] - An array of input fields that are required to have values before this button can be used.
+ * @returns {HTMLElement} A button element.
  */
 function createButton( label, onclick, requiredInputFields ) {
     var button = document.createElement("button");
@@ -2988,8 +3007,8 @@ function createButton( label, onclick, requiredInputFields ) {
 
 /**
  * Create a warning.
- * @param {string} text - the text for the warning
- * @returns {Element} - a div element containing the warning
+ * @param {string} text - The text for the warning.
+ * @returns {HTMLElement} A div element containing the warning.
  */
 function createWarning( text ) {
     var warning = document.createElement("div");
@@ -3000,8 +3019,8 @@ function createWarning( text ) {
 
 /**
  * Create a form title.
- * @param {string} title - the title of the form
- * @returns {Element} - a h2 element containing the title
+ * @param {string} title - The title of the form.
+ * @returns {HTMLElement} A h2 element containing the title.
  */
 function createFormTitle( title ) {
     var element = document.createElement("h2");
@@ -3011,9 +3030,9 @@ function createFormTitle( title ) {
 
 /**
  * Launch a modal.
- * @param {Element} element - the element within the modal.
- * @param {Function} closeModalCallbackFunction - a function to set the global closeModalCallback to after any current modal has closed
- * @param {boolean} force - allow launch during a request - should only happen from a server side request
+ * @param {HTMLElement} element - The element within the modal.
+ * @param {Function} [closeModalCallbackFunction] - A function to set the global closeModalCallback to after any current modal has closed.
+ * @param {boolean} [force] - Allow launch during a request - should only happen from a server side request.
  */
 function launchModal( element, closeModalCallbackFunction, force ) {
     if( !makingRequest || force ) {
@@ -3039,7 +3058,7 @@ function launchModal( element, closeModalCallbackFunction, force ) {
 
 /**
  * Close the modal on the page.
- * @param {boolean} force - allow launch during a request - should only happen from a server side request
+ * @param {boolean} [force] - Allow close during a request - should only happen from a server side request.
  */
 function closeModal(force) {
     if( !makingRequest || force ) {
@@ -3072,7 +3091,7 @@ function closeModal(force) {
 
 /**
  * Alert that an error took place.
- * @param {string} message - the message to display
+ * @param {string} message - The message to display.
  */
 function alertError(message) {
     if( ! message ) message = "An error has ocurred.";
@@ -3081,16 +3100,16 @@ function alertError(message) {
 
 /**
  * Alert that a success took place.
- * @param {string} message - the message to display
+ * @param {string} message - The message to display.
  */
 function alertSuccess(message) {
     createToast(message, "success");
 }
 
 /**
- * Create a toast
- * @param {string} message - the message to display in the toast
- * @param {string} type - the type of toast (success or failure)
+ * Create a toast.
+ * @param {string} message - The message to display in the toast.
+ * @param {string} [type] - The type of toast (success or failure).
  */
 function createToast(message, type) {
     var toast = document.createElement("div");
@@ -3109,10 +3128,10 @@ function createToast(message, type) {
 }
 
 /**
- * Launch a game
- * @param {string} system - the system to launch the game on
- * @param {string} game - the game to launch
- * @param {Array} parents - the parents of the game to launch
+ * Launch a game.
+ * @param {string} system - The system to launch the game on.
+ * @param {string} game - The game to launch.
+ * @param {Array<string>} parents - The parents of the game to launch.
  */
 function launchGame( system, game, parents ) {
     if( !makingRequest ) {
@@ -3125,7 +3144,7 @@ function launchGame( system, game, parents ) {
 
 /**
  * Quit a game.
- * @param {boolean} quitModalOnCallback - true if the modal should be quit after a successful request (used by the browser)
+ * @param {boolean} [quitModalOnCallback] - True if the modal should be quit after a successful request (used by the browser modal).
  */
 function quitGame(quitModalOnCallback) {
     if( !makingRequest ) {
@@ -3160,13 +3179,13 @@ function goHome() {
 
 /**
  * Add a game.
- * @param {string} system - the system the game is on
- * @param {string} game - the name of the game
- * @param {object} file - a file object
- * @param {Array} parents - the parents of a game
- * @param {boolean} isFolder - true if the "game" is a folder
- * @param {boolean} isPlaylist - true if the "game" is a playlist
- * @param {Array<Array>} playlistItems - the items in the playlist
+ * @param {string} system - The system the game is on.
+ * @param {string} game - The name of the game.
+ * @param {object} [file] - A file object.
+ * @param {Array<string>} parents - The parents of a game.
+ * @param {boolean} [isFolder] - True if the "game" is a folder.
+ * @param {boolean} [isPlaylist] - True if the "game" is a playlist.
+ * @param {Array<Array<string>>} playlistItems - The items in the playlist.
  */
 function addGame( system, game, file, parents, isFolder, isPlaylist, playlistItems ) {
     makeRequest( "POST", "/game", { "system": system, "game": game, "file": file ? file : "", "parents": JSON.stringify(parents), "isFolder": isFolder ? isFolder : "", "isPlaylist": isPlaylist ? isPlaylist : "", "playlistItems": JSON.stringify(playlistItems) }, 
@@ -3176,16 +3195,16 @@ function addGame( system, game, file, parents, isFolder, isPlaylist, playlistIte
 
 /**
  * Update a game.
- * @param {string} oldSystem - the current system
- * @param {string} oldGame - the current game name
- * @param {Array} oldParents - the current parents of a game
- * @param {string} system - the system the game is on
- * @param {string} game - the name of the game
- * @param {object} file - a file object
- * @param {Array} parents - the parents of a game
- * @param {boolean} isFolder - true if the "game" is a folder
- * @param {boolean} isPlaylist - true if the "game" is a playlist
- * @param {Array<Array>} playlistItems - the items in the playlist
+ * @param {string} oldSystem - The current system.
+ * @param {string} oldGame - The current game name.
+ * @param {Array<string>} oldParents - The current parents of a game.
+ * @param {string} [system] - The system the game is on.
+ * @param {string} [game] - The name of the game.
+ * @param {object} [file] - A file object.
+ * @param {Array<string>} parents - The parents of a game.
+ * @param {boolean} [isFolder] - True if the "game" is a folder.
+ * @param {boolean} [isPlaylist] - True if the "game" is a playlist.
+ * @param {Array<Array<string>>} playlistItems - The items in the playlist.
  */
 function updateGame( oldSystem, oldGame, oldParents, system, game, file, parents, isFolder, isPlaylist, playlistItems ) {
     makeRequest( "PUT", "/game", { "oldSystem": oldSystem, "oldGame": oldGame, "oldParents": JSON.stringify(oldParents), "system": system, "game": game, "file": file ? file : "", "parents": JSON.stringify(parents), "isFolder": isFolder ? isFolder : "", "isPlaylist": isPlaylist ? isPlaylist : "", "playlistItems": JSON.stringify(playlistItems) }, 
@@ -3195,9 +3214,9 @@ function updateGame( oldSystem, oldGame, oldParents, system, game, file, parents
 
 /**
  * Delete a game.
- * @param {string} system - the system the game is on
- * @param {string} game - the name of the game
- * @param {Array} parents - the parents of a game
+ * @param {string} system - The system the game is on.
+ * @param {string} game - The name of the game.
+ * @param {Array<string>} parents - The parents of the game.
  */
 function deleteGame( system, game, parents ) {
     makeRequest( "DELETE", "/game", { "system": system, "game": game, "parents": parents }, 
@@ -3207,10 +3226,10 @@ function deleteGame( system, game, parents ) {
 
 /**
  * Add a save.
- * @param {string} system - the system the game is on
- * @param {string} game - the name of the game
- * @param {string} save - the name of the save to add
- * @param {Array} parents - the parents of a game
+ * @param {string} system - The system the game is on.
+ * @param {string} game - The name of the game.
+ * @param {string} save - The name of the save to add.
+ * @param {Array<string>} parents - The parents of a game.
  */
 function addSave( system, game, save, parents ) {
     makeRequest( "POST", "/save", { "system": system, "game": game, "save": save, "parents": parents }, 
@@ -3220,10 +3239,10 @@ function addSave( system, game, save, parents ) {
 
 /**
  * Change the current save.
- * @param {string} system - the system the game is on
- * @param {string} game - the name of the game
- * @param {string} save - the name of the save to switch to
- * @param {Array} parents - the parents of a game
+ * @param {string} system - The system the game is on.
+ * @param {string} game - The name of the game.
+ * @param {string} save - The name of the save to switch to.
+ * @param {Array<string>} parents - The parents of a game.
  */
 function changeSave( system, game, save, parents ) {
     makeRequest( "PUT", "/save", { "system": system, "game": game, "save": save, "parents": parents }, 
@@ -3233,10 +3252,10 @@ function changeSave( system, game, save, parents ) {
 
 /**
  * Delete a save.
- * @param {string} system - the system the game is on
- * @param {string} game - the name of the game
- * @param {string} save - the name of the save to delete
- * @param {Array} parents - the parents of a game
+ * @param {string} system - The system the game is on.
+ * @param {string} game - The name of the game.
+ * @param {string} save - The name of the save to delete.
+ * @param {Array<string>} parents - The parents of a game.
  */
 function deleteSave( system, game, save, parents ) {
     makeRequest( "DELETE", "/save", { "system": system, "game": game, "save": save, "parents": parents }, 
@@ -3245,16 +3264,16 @@ function deleteSave( system, game, save, parents ) {
 }
 
 /**
- * Standard success function for a request
- * @param {string} responseText - the response from the server
- * @param {string} message - the message to display
- * @param {string} oldSystemName - the old name of the system if it changed
- * @param {string} newSystemName - the new name of the system if it changed (null if it was deleted)
- * @param {string} oldGameName - the old name of the game if it changed
- * @param {string} newGameName - the new name of the game if it changed (null if it was deleted)
- * @param {Array} oldParents - the old parents if it changed
- * @param {Array} newParents - the new parents if it changed
- * @param {boolean} preventModalClose - true if the modal should not close
+ * Standard success function for a request.
+ * @param {string} responseText - the response from the server - should include the systemsDict from the server.
+ * @param {string} [message] - the message to display.
+ * @param {string} [oldSystemName] - the old name of the system if it changed.
+ * @param {string} [newSystemName] - the new name of the system if it changed (null if it was deleted).
+ * @param {string} [oldGameName] - the old name of the game if it changed.
+ * @param {string} [newGameName] - the new name of the game if it changed (null if it was deleted).
+ * @param {Array} [oldParents] - the old parents if it changed.
+ * @param {Array} [newParents] - the new parents if it changed.
+ * @param {boolean} [preventModalClose] - true if the modal should not close.
  */
 function standardSuccess( responseText, message, oldSystemName, newSystemName, oldGameName, newGameName, oldParents, newParents, preventModalClose ) {
     var response = JSON.parse(responseText);
@@ -3266,9 +3285,9 @@ function standardSuccess( responseText, message, oldSystemName, newSystemName, o
 }
 
 /**
- * Standard failure function for a request
- * @param {string} responseText - the response from the server
- * @param {boolean} async - true if we don't have to update makingRequest
+ * Standard failure function for a request.
+ * @param {string} responseText - The response from the server.
+ * @param {boolean} async - True if we don't have to update makingRequest.
  */
 function standardFailure( responseText, async ) {
     // No redraw since still in modal
@@ -3312,12 +3331,12 @@ function endRequest() {
 }
 
 /**
- * Make a request
- * @param {string} type - "GET" or "POST"
- * @param {string} url - the url to make the request ro
- * @param {object} parameters - an object with keys being parameter keys and values being parameter values to send with the request
- * @param {function} callback - callback function to run upon request completion
- * @param {boolean} useFormData - true if we should use form data instead of json
+ * Make a request.
+ * @param {string} type - "GET" or "POST".
+ * @param {string} url - The url to make the request to.
+ * @param {object} parameters - An object with keys being parameter keys and values being parameter values to send with the request.
+ * @param {function} callback - Callback function to run upon request completion.
+ * @param {boolean} useFormData - True if we should use form data instead of json.
  */
 function makeRequest(type, url, parameters, callback, errorCallback, useFormData) {
     var parameterKeys = Object.keys(parameters);
@@ -3584,6 +3603,7 @@ function menuChangeDelay(direction) {
 
 /**
  * Determine if a button is pressed.
+ * @param {*} b - An object to test.
  */
 function buttonPressed(b) {
     if (typeof(b) == "object") {
@@ -3603,7 +3623,8 @@ var yDown = null;
 
 /**
  * Get the touches that occurred.
- * @param {Event} evt - the touch event
+ * @param {Event} evt - The touch event.
+ * @returns {Array} The touches from the event.
  */
 function getTouches(evt) {
   return evt.touches ||             // browser API
@@ -3612,7 +3633,7 @@ function getTouches(evt) {
 
 /**
  * Handle the touch start event.
- * @param {Event} evt - the touch event
+ * @param {Event} evt - the touch event.
  */
 function handleTouchStart(evt) {
     const firstTouch = getTouches(evt)[0];                                      
@@ -3621,8 +3642,8 @@ function handleTouchStart(evt) {
 };                                                
 
 /**
- * Handle the touch move event.
- * @param {Event} evt - the touch event
+ * Handle the touch move event (moves the menu/submenus).
+ * @param {Event} evt - The touch event.
  */
 function handleTouchMove(evt) {
     if ( ! xDown || ! yDown || disableMenuControls ) {
@@ -3665,8 +3686,8 @@ var localStream = null;
 var peerConnection = null;
 
 /**
- * Connect to the signal server
- * @param {boolean} isStreamer - true if this is being called from the menuPage of guystation > we stream from guystation
+ * Connect to the signal server.
+ * @param {boolean} isStreamer - True if this is being called from the menuPage of guystation > we stream from guystation.
  */
 function connectToSignalServer( isStreamer ) {
 
@@ -3683,9 +3704,9 @@ function connectToSignalServer( isStreamer ) {
 }
 
 /**
- * Set the value of the localStream variable once it is successfully fetched
- * This should only ever be called from guystation, since we don't stream the page on the client
- * @param {Object} stream - the screencast
+ * Set the value of the localStream variable once it is successfully fetched.
+ * This should only ever be called from guystation, since we don't stream the page on the client.
+ * @param {Object} stream - The screencast.
  */
 function getDisplayMediaSuccess(stream) {
     localStream = stream;
@@ -3693,11 +3714,11 @@ function getDisplayMediaSuccess(stream) {
 }
 
 /**
- * Start a connection to the peer
+ * Start a connection to the peer.
  * Peer connection should already be defined.
  * This should be initially called by the menuPage (using puppeteer evaluate) after it detects a client connect to it.
  * Once the server is connected to the client, the client will connect to the server automaitcally as seen in the handle functions
- * @param {boolean} isStreamer - true if this is the streamer, false if this is the client
+ * @param {boolean} isStreamer - True if this is the streamer, false if this is the client.
  */
 function startConnectionToPeer( isStreamer ) {
     peerConnection = new RTCPeerConnection(null);
@@ -3720,7 +3741,7 @@ function startConnectionToPeer( isStreamer ) {
 }
 
 /**
- * Handle a potential disconnect
+ * Handle a potential disconnect.
  */
 function handlePotentialDisconnect() {
     if( peerConnection && peerConnection.iceConnectionState == "disconnected" ) {
@@ -3735,7 +3756,7 @@ function handlePotentialDisconnect() {
  * Stop the peer connection.
  * Since the connection will always be closed from the client, if this is the client
  * this will tell the server to stop too once it has closed.
- * @param {boolean} isStreamer - true if this is the streamer, or we want to pretend that we are
+ * @param {boolean} isStreamer - True if this is the streamer, or we want to pretend that we are
  */
 function stopConnectionToPeer( isStreamer ) {
     if( peerConnection ) {
@@ -3763,8 +3784,8 @@ function stopConnectionToPeer( isStreamer ) {
 }
  
 /**
- * Handle an offer/answer in WebRTC protocl
- * @param {Object} data - the data associated with the offer/answer
+ * Handle an offer/answer in WebRTC protocol.
+ * @param {Object} data - The data associated with the offer/answer.
  */
 function handleRemoteSdp(data) {
     // this is to create the peer connection on the client (an offer has been received from guystation)
@@ -3781,9 +3802,9 @@ function handleRemoteSdp(data) {
 }
 
 /**
- * Handle receiving information about and ICE candidate in the WebRTC protocol
- * Note: this can happen simulatneously with the offer/call although theoretically happens after 
- * @param {Object} data - the data associated with the offer/answer
+ * Handle receiving information about and ICE candidate in the WebRTC protocol.
+ * Note: this can happen simulatneously with the offer/call although theoretically happens after.
+ * @param {Object} data - The data associated with the offer/answer.
  */
 function handleRemoteIce(data) {
     // this is to create the peer connection on the client (an offer has been received from guystation)
@@ -3794,8 +3815,8 @@ function handleRemoteIce(data) {
 }
 
 /**
- * Handle when we have successfully determined one of our OWN ice candidates
- * @param {Event} event - the event that triggers this handler
+ * Handle when we have successfully determined one of our OWN ice candidates.
+ * @param {Event} event - The event that triggers this handler.
  */
 function gotIceCandidate(event) {
     if(event.candidate != null) {
@@ -3805,8 +3826,8 @@ function gotIceCandidate(event) {
 }
 
 /**
- * Handle when the local description has been successfully determined
- * @param {Object} description - A generated local description necessary to include in an offer/answer
+ * Handle when the local description has been successfully determined.
+ * @param {Object} description - A generated local description necessary to include in an offer/answer.
  */
 function createdDescription(description) {
     peerConnection.setLocalDescription(description).then(function() {
@@ -3815,16 +3836,16 @@ function createdDescription(description) {
 }
 
 /**
- * Handler for when a remote stream has been found
- * @param {Event} event - The event that triggered the stream
+ * Handler for when a remote stream has been found.
+ * @param {Event} event - The event that triggered the stream.
  */
 function gotRemoteStream(event) {
     document.querySelector(".modal #remote-screencast-form video, .modal #browser-controls-form video").srcObject = event.streams[0];
 }
 
 /**
- * The error handler for Screencast
- * @param {Error} error - the error
+ * The error handler for Screencast.
+ * @param {Error} error - The error.
  */
 function errorHandler(error) {
     console.log(error);

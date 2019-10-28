@@ -566,10 +566,10 @@ launchBrowser().then( () => app.listen(PORT) );
 /**
  * Determine if a game is not available.
  * Note: In this case, a folder is NOT a game but a playlist is a game.
- * @param {string} system - the system the game is on
- * @param {string} game - the game to play
- * @param {Array} parents - an array of parent directories for the game
- * @returns false if the game is available, or an error message if it is not
+ * @param {string} system - The system the game is on.
+ * @param {string} game - The game to play.
+ * @param {Array<string>} parents - An array of parent directories for the game.
+ * @returns {(boolean|string)} False if the game is available, or an error message if it is not.
  */
 function isInvalidGame( system, game, parents ) {
     if( !system || !systemsDict[system] ) {
@@ -583,9 +583,9 @@ function isInvalidGame( system, game, parents ) {
 }
 
 /**
- * Determine if a name is invalid
- * @param {string} name - the name to check for validity
- * @returns {boolean} - false if the name is ok, or an error message if it is not
+ * Determine if a name is invalid.
+ * @param {string} name - The name to check for validity.
+ * @returns {(boolean|string)} False if the name is ok, or an error message if it is not.
  */
 function isInvalidName( name ) {
     for( let invalidCharacter of INVALID_CHARACTERS ) {
@@ -597,9 +597,9 @@ function isInvalidName( name ) {
 }
 
 /**
- * Determine is a file name is valid for a ROM
- * @param {string} file - the name of the file
- * @returns {boolean} - false if the name is ok, or an error message if it is not
+ * Determine is a file name is valid for a ROM.
+ * @param {string} file - The name of the file.
+ * @returns {(boolean|string)} False if the name is ok, or an error message if it is not.
  */
 function isInvalidFileName( file ) {
     if( file == METADATA_FILENAME || file == COVER_FILENAME ) {
@@ -609,9 +609,9 @@ function isInvalidFileName( file ) {
 }
 
 /**
- * Write a standard response for when an action is taken
- * @param {Response} response - the response object
- * @param {string} errorMessage - the error message from running the code
+ * Write a standard response for when an action is taken.
+ * @param {Response} response - The response object.
+ * @param {string} errorMessage - The error message from running the code.
  */
 function writeActionResponse( response, errorMessage ) {
     if( errorMessage ) {
@@ -623,20 +623,20 @@ function writeActionResponse( response, errorMessage ) {
 }
 
 /**
- * Write a response indicating that the request is locked
- * @param {Response} response - the response object
+ * Write a response indicating that the request is locked.
+ * @param {Response} response - The response object.
  */
 function writeLockedResponse( response ) {
     writeResponse( response, FAILURE, { "message": ERROR_MESSAGES.anotherRequestIsBeingProcessed}, HTTP_TEMPORARILY_UNAVAILABLE );
 }
 
 /**
- * Send a response to the user
- * @param {Response} response - the response object
- * @param {String} status - the status of the request
- * @param {Object} object - an object containing values to include in the response
- * @param {Number} code - the HTTP response code (defaults to 200)
- * @param {String} contentType - the content type of the response (defaults to application/json)
+ * Send a response to the user.
+ * @param {Response} response - The response object.
+ * @param {string} status - The status of the request.
+ * @param {Object} object - An object containing values to include in the response.
+ * @param {number} code - The HTTP response code (defaults to 200).
+ * @param {string} contentType - The content type of the response (defaults to application/json).
  */
 function writeResponse( response, status, object, code, contentType ) {
     if( !code ) { code = HTTP_OK; }
@@ -649,7 +649,7 @@ function writeResponse( response, status, object, code, contentType ) {
 }
 
 /**
- * Launch a puppeteer browser
+ * Launch a puppeteer browser.
  */
 async function launchBrowser() {
     let options = {
@@ -673,9 +673,9 @@ async function launchBrowser() {
 
 /**
  * Perform a click on the page.
- * @param {Number} xPercent - the percentage x offset on which to perform the click
- * @param {Number} yPercent - the percentage y offset on which to perform the click
- * @returns {Promise} - a promise that is false if the action was successful or contains an error message if not
+ * @param {number} xPercent - The percentage x offset on which to perform the click.
+ * @param {number} yPercent - The percentage y offset on which to perform the click.
+ * @returns {Promise<(boolean|string)>} A promise that is false if the action was successful or contains an error message if not.
  */
 async function performClick( xPercent, yPercent ) {
     if( !browsePage || browsePage.isClosed() ) {
@@ -696,8 +696,8 @@ async function performClick( xPercent, yPercent ) {
 
 /**
  * Perform input on the page.
- * @param {String} input - the input to type
- * @returns {Promise} - a promise that is false if the action was successful or contains an error message if not
+ * @param {String} input - The input to type.
+ * @returns {Promise<(boolean|string)>} - A promise that is false if the action was successful or contains an error message if not.
  */
 async function performInput( input ) {
     if( !browsePage || browsePage.isClosed() ) {
@@ -711,8 +711,8 @@ async function performInput( input ) {
 
 /**
  * Press a button on the page.
- * @param {String} button - the input to type
- * @returns {Promise} - a promise that is false if the action was successful or contains an error message if not
+ * @param {String} button - The input to type.
+ * @returns {Promise<(boolean|string)>} A promise that is false if the action was successful or contains an error message if not.
  */
 async function pressButton( button ) {
     if( !browsePage || browsePage.isClosed() ) {
@@ -731,7 +731,7 @@ async function pressButton( button ) {
 
 /**
  * Get the current address of the browse page.
- * @returns {Promise} - a promise containing the current page or an error message
+ * @returns {Promise<string>} A promise containing the current page or an error message.
  */
 async function getUrl() {
     if( !browsePage || browsePage.isClosed() ) {
@@ -743,8 +743,8 @@ async function getUrl() {
 
 /**
  * Navigate to a url.
- * @param {String} url - the url to navigate to
- * @returns {Promise} - a promise containing the current page or an error message
+ * @param {string} url - The url to navigate to.
+ * @returns {Promise<(boolean|string)>} A promise that is false if the action was successful or contains an error message if not.
  */
 async function navigate( url ) {
     if( !browsePage || browsePage.isClosed() ) {
@@ -767,7 +767,7 @@ async function navigate( url ) {
 
 /**
  * Refresh a url.
- * @returns {Promise} - a promise containing the current page or an error message
+ * @returns {Promise<(boolean|string)>} A promise that is false if the action was successful or contains an error message if not.
  */
 async function refresh() {
     if( !browsePage || browsePage.isClosed() ) {
@@ -782,8 +782,9 @@ async function refresh() {
 }
 
 /**
- * Scroll.
- * @returns {Promise} - a promise containing the current page or an error message
+ * Scroll the browser page up or down.
+ * @param {string} direction - The direction to scroll.
+ * @returns {Promise<(boolean|string)>} A promise that is false if the action was successful or contains an error message if not.
  */
 async function scroll(direction) {
     if( !browsePage || browsePage.isClosed() ) {
@@ -806,9 +807,9 @@ async function scroll(direction) {
 }
 
 /**
- * Go forward.
+ * Go forward in the browser.
  * This function will be a no-op if the browser cannot go forward.
- * @returns {Promise} - a promise containing the current page or an error message
+ * @returns {Promise<(boolean|string)>} A promise that is false if the action was successful or contains an error message if not.
  */
 async function goForward() {
     if( !browsePage || browsePage.isClosed() ) {
@@ -823,9 +824,9 @@ async function goForward() {
 }
 
 /**
- * Go back.
+ * Go back in the browser.
  * This function will be a no-op if the browser cannot go back.
- * @returns {Promise} - a promise containing the current page or an error message
+ * @returns {Promise<(boolean|string)>} A promise that is false if the action was successful or contains an error message if not.
  */
 async function goBack() {
     if( !browsePage || browsePage.isClosed() ) {
@@ -841,7 +842,7 @@ async function goBack() {
 
 /**
  * Launch a browse tab.
- * @returns {Promise} - a promise that is false if the action was successful or contains an error message if not
+ * @returns {Promise<boolean>} A promise containing false when completed.
  */
 async function launchBrowseTab() {
     browsePage = await browser.newPage();
@@ -886,7 +887,8 @@ async function launchBrowseTab() {
 
 /**
  * Check if a page is active.
- * @param {Page} page - the puppeteer page to check is active
+ * @param {Page} page - The puppeteer page to check is active.
+ * @returns {Promise<boolean>} A promise containing true if the page is visible or false if it is not.
  */
 async function isActivePage(page) {
     return Promise.resolve(await page.evaluate(() => {return document.visibilityState == 'visible'} ));
@@ -894,7 +896,7 @@ async function isActivePage(page) {
 
 /**
  * Get the currently open browse tabs.
- * @returns {Promise} - a promise that contains an array of object with titles and ids or an error message if there is an error
+ * @returns {Promise<(Array<Object>|string)>} A promise that contains an array of object with titles and ids or an error message if there is an error.
  */
 async function getBrowseTabs() {
     if( !browsePage || browsePage.isClosed() ) {
@@ -922,8 +924,8 @@ async function getBrowseTabs() {
 
 /**
  * Close a browse tab.
- * @param {string} id - the id of the tab to close
- * @returns {Promise} - a promise that is false if the action was successful or contains an error message if not
+ * @param {string} id - The id of the tab to close.
+ * @returns {Promise<(boolean|string)>} A promise that is false if the action was successful or contains an error message if not.
  */
 async function closeBrowseTab(id) {
     if( !browsePage || browsePage.isClosed() ) {
@@ -946,7 +948,7 @@ async function closeBrowseTab(id) {
 
 /**
  * Close all tabs for browsing.
- * @returns {Promise} - a promise that is false if the action was successful or contains an error message if not
+ * @returns {Promise<(boolean|string)>} A promise that is false if the action was successful or contains an error message if not.
  */
 async function closeBrowseTabs() {
     if( !browsePage || browsePage.isClosed() ) {
@@ -966,7 +968,8 @@ async function closeBrowseTabs() {
 
 /**
  * Switch the current browse tab.
- * @param {String} id - the id of the tab to switch to
+ * @param {string} id - The id of the tab to switch to.
+ * @returns {Promise<(boolean|string)>} A promise that is false if the action was successful or contains an error message if not.
  */
 async function switchBrowseTab(id) {
     if( menuPage.isClosed() ) {
@@ -989,9 +992,9 @@ async function switchBrowseTab(id) {
 /**************** Data Functions ****************/
 
 /**
- * Generate data about available options to the user
- * The result is cached
- * This should be called again if the file structure is edited
+ * Generate data about available options to the user.
+ * The result is cached.
+ * This should be called again if the file structure is edited.
  */
 function getData() {
     // Reset the data
@@ -1024,17 +1027,15 @@ function getData() {
         // Add this system to the dictionary of systems
         systemsDict[system] = systemData;
     }
-
-    // Make a log of the data
-    //console.log(JSON.stringify(systemsDict));
 }
 
 /**
  * Generate the information about games for a system.
  * This function calls itself recusively to find subdirectories.
- * @param {string} system - the system the games are on
- * @param {string} games - the games we want to look at
- * @param {Array} parents - an array of parent folders
+ * @param {string} system - The system the games are on.
+ * @param {Array<string>} games - The games we want to look at (likely just everything in the games folder).
+ * @param {Array<string>} [parents] - An array of parent folders.
+ * @returns {Object} An object containing games for a system or for a a specific set of parents within a system.
  */
 function generateGames(system, games, parents=[]) {
     let gamesDict = {};
@@ -1111,12 +1112,12 @@ function generateGames(system, games, parents=[]) {
 }
 
 /**
- * Generate the information about saves for a game
- * This function will create data (and files) if necessary
- * @param {string} system - the system the game is on
- * @param {string} game - the game we want to get saves information for
- * @param {Array} parents - an array of parent folders for a game
- * @returns {object} an object with a currentSave key containing the current save and a savesDict key containing the saves information
+ * Generate the information about saves for a game.
+ * This function will create data (and files) if necessary.
+ * @param {string} system - The system the game is on.
+ * @param {string} game - The game we want to get saves information for.
+ * @param {Array<string>} parents - An array of parent folders for a game.
+ * @returns {Object} An object with a currentSave key containing the current save and a savesDict key containing the saves information.
  */
 function generateSaves( system, game, parents ) {
     let savesDir = generateSavesDir(system, game, parents);
@@ -1175,8 +1176,8 @@ function generateSaves( system, game, parents ) {
 
 /**
  * Generate the full directory for a system.
- * @param {string} system - the system to get the directory of
- * @returns the directory of the system (e.g. /home/user/guystation/systems/gba)
+ * @param {string} system - The system to get the directory of.
+ * @returns {string} The directory of the system (e.g. /home/user/guystation/systems/gba).
  */
 function generateSystemDir(system) {
     return SYSTEMS_DIR_FULL + SEPARATOR + system;
@@ -1184,8 +1185,8 @@ function generateSystemDir(system) {
 
 /**
  * Generate the metadata location for a system.
- * @param {string} system - the system to get metadata for
- * @returns the metadata (e.g. /home/user/guystation/systems/gba/metadata.json)
+ * @param {string} system - the system to get metadata for.
+ * @returns {string} The metadata file location for a system (e.g. /home/user/guystation/systems/gba/metadata.json).
  */
 function generateMetaDataLocation(system) {
     return generateSystemDir(system) + SEPARATOR + METADATA_FILENAME;
@@ -1193,8 +1194,8 @@ function generateMetaDataLocation(system) {
 
 /**
  * Generate the full directory for games of a system.
- * @param {string} system - the system the game is on
- * @returns the directory of the system games (e.g. /home/user/guystation/systems/gba/games)
+ * @param {string} system - The system the game is on.
+ * @returns {string} The directory of the system games (e.g. /home/user/guystation/systems/gba/games).
  */
 function generateGamesDir(system) {
     return generateSystemDir(system) + SEPARATOR + GAMES_DIR;
@@ -1202,10 +1203,10 @@ function generateGamesDir(system) {
 
 /**
  * Generate the full directory for a game.
- * @param {string} system - the system the game is on
- * @param {string} game - the game to get the directory of
- * @param {Array} parents - parent directories for the game
- * @returns the directory of the game (e.g. /home/user/guystation/systems/gba/games/super-mario-world)
+ * @param {string} system - The system the game is on.
+ * @param {string} game - The game to get the directory of.
+ * @param {Array<string>} [parents] - Parent directories for the game.
+ * @returns {string} The directory of the game (e.g. /home/user/guystation/systems/gba/games/super-mario-world).
  */
 function generateGameDir(system, game, parents) {
     let parentsPart = "";
@@ -1217,11 +1218,11 @@ function generateGameDir(system, game, parents) {
 
 /**
  * Generate the full path for a ROM.
- * @param {string} system - the system the game is on
- * @param {string} game - the game to get the ROM for
- * @param {string} rom - the ROM's filename
- * @param {Array} parents - parent directories for the game
- * @returns the ROM filepath for the game (e.g. /home/user/guystation/systems/gba/games/super-mario-world/mario-world.gba)
+ * @param {string} system - The system the game is on.
+ * @param {string} game - The game to get the ROM for.
+ * @param {string} rom - The ROM's filename.
+ * @param {Array<string>} [parents] - Parent directories for the game.
+ * @returns {string} The ROM filepath for the game (e.g. /home/user/guystation/systems/gba/games/super-mario-world/mario-world.gba).
  */
 function generateRomLocation(system, game, rom, parents) {
     return generateGameDir(system, game, parents) + SEPARATOR + rom;
@@ -1229,10 +1230,10 @@ function generateRomLocation(system, game, rom, parents) {
 
 /**
  * Generate the full path for the metadata of a game.
- * @param {string} system - the system the game is on
- * @param {string} game - the game
- * @param {Array} parents - parent directories for the game
- * @returns the metadata filepath for the game (e.g. /home/user/guystation/systems/gba/games/super-mario-world/metadata.json)
+ * @param {string} system - The system the game is on.
+ * @param {string} game - The game.
+ * @param {Array<string>} [parents] - Parent directories for the game.
+ * @returns {string} The metadata filepath for the game (e.g. /home/user/guystation/systems/gba/games/super-mario-world/metadata.json).
  */
 function generateGameMetaDataLocation(system, game, parents) {
     return generateGameDir(system, game, parents) + SEPARATOR + METADATA_FILENAME;
@@ -1240,10 +1241,10 @@ function generateGameMetaDataLocation(system, game, parents) {
 
 /**
  * Generate the full directory for game saves.
- * @param {string} system - the system the game is on
- * @param {string} game - the game to get the directory of
- * @param {Array} parents - parent directories for the game
- * @returns the directory of the game saves (e.g. /home/user/guystation/systems/gba/games/super-mario-world/saves)
+ * @param {string} system - The system the game is on.
+ * @param {string} game - The game to get the directory of.
+ * @param {Array<string>} [parents] - Parent directories for the game.
+ * @returns {string} The directory of the game saves (e.g. /home/user/guystation/systems/gba/games/super-mario-world/saves).
  */
 function generateSavesDir(system, game, parents) {
     return generateGameDir(system, game, parents) + SEPARATOR + SAVES_DIR;
@@ -1251,11 +1252,11 @@ function generateSavesDir(system, game, parents) {
 
 /**
  * Generate the full directory for a game save.
- * @param {string} system - the system the game is on
- * @param {string} system - the game the save if for
- * @param {string} save - the save directory to get
- * @param {Array} parents - parent directories for the game
- * @returns the directory of the save (e.g. /home/user/guystation/systems/gba/games/super-mario-world/saves/default)
+ * @param {string} system - The system the game is on.
+ * @param {string} system - The game the save if for.
+ * @param {string} save - The save directory to get.
+ * @param {Array<string>} [parents] - Parent directories for the game.
+ * @returns {string} The directory of the save (e.g. /home/user/guystation/systems/gba/games/super-mario-world/saves/default).
  */
 function generateSaveDir(system, game, save, parents) {
     return generateSavesDir(system, game, parents) + SEPARATOR + save;
@@ -1263,12 +1264,11 @@ function generateSaveDir(system, game, save, parents) {
 
 /**
  * Generate the full directory for the screenshots for a save.
- * 
- * @param {string} system - the system the game is on
- * @param {string} system - the game the screenshots are for
- * @param {string} save - the save directory
- * @param {Array} parents - parent directories for the game
- * @returns the directory of the screenshots (e.g. /home/user/guystation/systems/gba/games/super-mario-world/saves/default/screenshots)
+ * @param {string} system - The system the game is on.
+ * @param {string} system - The game the screenshots are for.
+ * @param {string} save - The save directory.
+ * @param {Array<string>} [parents] - Parent directories for the game.
+ * @returns {string} The directory of the screenshots (e.g. /home/user/guystation/systems/gba/games/super-mario-world/saves/default/screenshots).
  */
 function generateScreenshotsDir(system, game, save, parents) {
     return generateSaveDir(system, game, save, parents) + SEPARATOR + SCREENSHOTS_DIR;
@@ -1276,9 +1276,10 @@ function generateScreenshotsDir(system, game, save, parents) {
 
 /**
  * Get the entry of systems dict for a game.
- * @param {string} system - the system the game is on
- * @param {string} system - the game the entry we want are for
- * @param {Array} parents - parent directories for the game
+ * @param {string} system - The system the game is on.
+ * @param {string} game - The game the entry we want are for.
+ * @param {Array<string>} parents - Parent directories for the game.
+ * @returns {(null|Object)} An object representing the game or null if one is not found.
  */
 function getGameDictEntry(system, game, parents) {
     if( !system || !game ) {
@@ -1299,11 +1300,11 @@ function getGameDictEntry(system, game, parents) {
 
 /**
  * Launch a game.
- * @param {string} system - the system to run the game on.
- * @param {string} game - the game to run.
- * @param {boolean} restart - if true, the game will be reloaded no matter what. If false, and the game is currently being played, it will just be brought to focus.
- * @param {Array} parents - an array of parent folders for a game
- * @returns {Promise} a promise containing an error message if there was an error, or false if there was not
+ * @param {string} system - The system to run the game on.
+ * @param {string} game - The game to run.
+ * @param {boolean} [restart] - If true, the game will be reloaded no matter what. If false, and the game is currently being played, it will just be brought to focus.
+ * @param {Array<string>} [parents] - An array of parent folders for a game.
+ * @returns {Promise<(boolean|string)>} A promise containing an error message if there was an error, or false if there was not.
  */
 async function launchGame(system, game, restart=false, parents=[]) {
 
@@ -1467,7 +1468,7 @@ async function launchGame(system, game, restart=false, parents=[]) {
 
 /**
  * Quit the game currently being played.
- * @returns {Promise} a promise containing an error message if there was an error or false if there was not
+ * @returns {Promise<(boolean|string)>} A promise containing an error message if there was an error or false if there was not.
  */
 async function quitGame() {
     if(currentEmulator) {
@@ -1506,17 +1507,21 @@ function blankCurrentGame() {
 
 /**
  * Check if a game is currently being played.
- * @param {string} system - the system of the game to see if it's being played
- * @param {string} game - the game to check if it's being played
- * @param {Array} parents - an array of parent folders for a game
- * @returns true if the game is being played; false if it is not
+ * @param {string} system - The system of the game to see if it's being played.
+ * @param {string} game - The game to check if it's being played.
+ * @param {Array<string>} parents - An array of parent folders for a game.
+ * @returns {boolean} True if the game is being played; false if it is not.
  */
 function isBeingPlayed(system, game, parents) {
     return (currentSystem == system && currentGame == game && parents.join(SEPARATOR) == currentParentsString && currentEmulator);
 }
 
 /**
- * Check if anything within a folder (not playlist) is being played
+ * Check if anything within a folder (not playlist) is being played.
+ * @param {string} system - The system of the game to see if it's being played.
+ * @param {string} game - The game to check if it's being played.
+ * @param {Array<string>} parents - An array of parent folders for a game.
+ * @returns {boolean} True if the game is being played; false if it is not.
  */
 function isBeingPlayedRecursive(system, folder, parents) {
     let curGameDictEntry = getGameDictEntry(system, folder, parents);
@@ -1535,11 +1540,11 @@ function isBeingPlayedRecursive(system, folder, parents) {
 }
 
 /**
- * Get the current save for a game
- * @param {string} system - the system the game is for
- * @param {string} game - the game to get the current save for
- * @param {Array} parents - an array of parent folders for a game
- * @returns the name of the current save or false if the save couldn't be fetched
+ * Get the current save for a game.
+ * @param {string} system - The system the game is for.
+ * @param {string} game - The game to get the current save for.
+ * @param {Array<string>} parents - An array of parent folders for a game.
+ * @returns {(boolean|string)} The name of the current save or false if the save couldn't be fetched.
  */
 function getCurrentSave(system, game, parents) {
 
@@ -1560,12 +1565,12 @@ function getCurrentSave(system, game, parents) {
 
 /**
  * Create a new save.
- * @param {string} system - the system the game is on
- * @param {string} game - the game to create a save for
- * @param {string} save - the name of the new save
- * @param {boolean} force - skip error check
- * @param {Array} parents - an array of parent folders for a game
- * @returns {*} - an error message if there was an error, otherwise false
+ * @param {string} system - The system the game is on.
+ * @param {string} game - The game to create a save for.
+ * @param {string} save - The name of the new save.
+ * @param {boolean} force - Skip error check.
+ * @param {Array<string>} [parents] - An array of parent folders for a game.
+ * @returns {(boolean|string)} An error message if there was an error, otherwise false.
  */
 function newSave(system, game, save, force, parents=[]) {
 
@@ -1599,12 +1604,12 @@ function newSave(system, game, save, force, parents=[]) {
 
 /**
  * Switch the current save.
- * @param {string} system - the system the game is on
- * @param {string} game - the game to change saves for
- * @param {string} save - the name of the save
- * @param {boolean} force - skip error check
- * @param {Array} parents - an array of parent folders for a game
- * @returns {*} - an error message if there was an error, otherwise false
+ * @param {string} system - The system the game is on.
+ * @param {string} game - The game to change saves for.
+ * @param {string} save - The name of the save.
+ * @param {boolean} force - Skip error check.
+ * @param {Array<string>} [parents] - An array of parent folders for a game.
+ * @returns {(boolean|string)} An error message if there was an error, otherwise false.
  */
 function changeSave(system, game, save, force, parents=[]) {
 
@@ -1643,11 +1648,11 @@ function changeSave(system, game, save, force, parents=[]) {
 
 /**
  * Delete a save.
- * @param {string} system - the name of the system.
- * @param {string} game - the name of the game.
- * @param {string} save - the name of the save.
- * @param {Array} parents - an array of parent folders for a game
- * @returns {*} - an error message if there was an error, otherwise false
+ * @param {string} system - The name of the system.
+ * @param {string} game - The name of the game.
+ * @param {string} save - The name of the save.
+ * @param {Array<string>} [parents] - An array of parent folders for a game.
+ * @returns {(boolean|string)} - An error message if there was an error, otherwise false.
  */
 function deleteSave(system, game, save, parents=[]) {
 
@@ -1702,16 +1707,20 @@ function deleteSave(system, game, save, parents=[]) {
 
 /**
  * Add a game.
- * @param {string} system - the system to add the game on
- * @param {string} game - the game name to add
- * @param {object} file - the file object
- * @param {Array} parents - an array of parent folders for a game
- * @param {boolean} isFolder - true if we are actually making a folder
- * @param {boolean} isPlaylist - true if the game is a playlist (will function similarly to a folder)
- * @param {Array<Array>} playlistItems - the items in the playlist
- * @param {boolean} isSymlink - true if the game is a symlink to another game
- * @param {Object} symlink - information about the symlink
- * @returns {*} - an error message if there was an error, false if there was not.
+ * @param {string} system - The system to add the game on.
+ * @param {string} game - The game name to add.
+ * @param {object} [file] - The file object (from upload).
+ * @param {Array<string>} [parents] - An array of parent folders for a game.
+ * @param {boolean} [isFolder] - True if we are actually making a folder.
+ * @param {boolean} [isPlaylist] - True if the game is a playlist (will function similarly to a folder).
+ * @param {Array<Array<string>>} [playlistItems] - The items in the playlist.
+ * @param {boolean} [isSymlink] - True if the game is a symlink to another game.
+ * @param {Object} [symlink] - Information about the symlink.
+ * @param {string} [symlink.system] - The system the game this will symlink to is on.
+ * @param {string} [symlink.game] - The game this will symlink to.
+ * @param {Array<string>} [symlink.parents] - The parents of the game this will symlink to.
+ * @param {boolean} [force] - True if the symlink validity check should be skipped.
+ * @returns {(boolean|string)} An error message if there was an error, false if there was not.
  */
 function addGame( system, game, file, parents=[], isFolder, isPlaylist, playlistItems, isSymlink, symlink, force ) {
 
@@ -1771,9 +1780,9 @@ function addGame( system, game, file, parents=[], isFolder, isPlaylist, playlist
 }
 
 /**
- * Check if playlist items are valid
- * @param {Array<Array>} playlistItems - the items in the playlist
- * @returns {*} - an error message if there was an error, otherwise false
+ * Check if playlist items are valid.
+ * @param {Array<Array<string>>} playlistItems - The items in the playlist.
+ * @returns {(boolean|string)} An error message if there was an error, otherwise false.
  */
 function errorCheckValidPlaylistItems( playlistItems ) {
     for( let playlistItem of playlistItems ) {
@@ -1795,11 +1804,11 @@ function errorCheckValidPlaylistItems( playlistItems ) {
 }
 
 /**
- * Add symlinks (tracks) to a playlist
- * @param {string} system - the system for the playlist
- * @param {string} game - the name of the playlist
- * @param {Array} parents - the parents of the playlist
- * @param {Array<Array>} playlistItems - the items in the playlist
+ * Add symlinks (tracks) to a playlist.
+ * @param {string} system - The system for the playlist.
+ * @param {string} game - The name of the playlist.
+ * @param {Array<string>} parents - The parents of the playlist.
+ * @param {Array<Array<string>} playlistItems - The items in the playlist.
  */
 function addSymlinksToPlaylist( system, game, parents, playlistItems ) {
     let parentsOfSymlinks = parents.slice(0);
@@ -1820,10 +1829,10 @@ function addSymlinksToPlaylist( system, game, parents, playlistItems ) {
 }
 
 /**
- * Delete playlist symlinks
- * @param {string} system - the system for the playlist
- * @param {string} game - the name of the playlist
- * @param {Array} parents - the parents of the playlist
+ * Delete playlist symlinks.
+ * @param {string} system - The system for the playlist.
+ * @param {string} game - The name of the playlist.
+ * @param {Array<string>} parents - The parents of the playlist.
  */
 function deletePlaylistSymlinks( system, game, parents ) {
     let playlist = getGameDictEntry( system, game, parents );
@@ -1835,15 +1844,15 @@ function deletePlaylistSymlinks( system, game, parents ) {
 }
 
 /**
- * Get all the symlinks to an item
- * Calls itself recursively
- * @param {string} system - the system the item is on (media)
- * @param {string} game - the name of the item
- * @param {Array} parents - the parents of the item
- * @param {Array} curGames - the current list of games (e.g. systemsDict[system].games)
- * @param {Array} curParents -  the current parents
- * @param {Array} gameDictEntries - an array that will be populated with the gameDictEntries and ultimately returned
- * @returns {Array} - an array of gameDictEntries that are the symlinks to the item - these are special and will have their own .parents defined
+ * Get all the symlinks to an item.
+ * Calls itself recursively.
+ * @param {string} system - The system the item is on (media).
+ * @param {string} game - The name of the item.
+ * @param {Array<string>} [parents] - The parents of the item.
+ * @param {Array<string>} curGames - The current list of games (e.g. systemsDict[system].games) in the search.
+ * @param {Array<string>} [curParents] - The current parents in the search.
+ * @param {Array<Object>} [gameDictEntries] - An array that will be populated with the gameDictEntries and ultimately returned.
+ * @returns {Array<Object>} An array of gameDictEntries that are the symlinks to the item - these are special and will have their own .parents defined.
  */
 function getAllSymlinksToItem( system, game, parents=[], curGames=[], curParents=[], gameDictEntries=[] ) {
     for( let curGame of Object.keys(curGames) ) {
@@ -1879,9 +1888,10 @@ function getAllSymlinksToItem( system, game, parents=[], curGames=[], curParents
 
 /**
  * Get the NAND save path for a game on a system that requires a specific structure.
- * @param {String} system - the system the game is on
- * @param {String} game - the name of the game
- * @param {Array} parents - an array of parent folders for a game
+ * @param {string} system - The system the game is on.
+ * @param {string} game - The name of the game.
+ * @param {Array<string>} [parents] - An array of parent folders for a game.
+ * @returns {string} The path or an empty string if there is none.
  */
 function getNandPath( system, game, parents ) {
     if( systemsDict[system].nandPathCommand ) {
@@ -1900,9 +1910,9 @@ function getNandPath( system, game, parents ) {
  * When we update a game, if the name is changed, the current symlink will break and will have to be updated
  * When we update a game, if the rom is changed, the save path is changed, and we'll want to do what we do on create
  *      except we'll want to place what we have currently in the directory of the old rom and remove any symlink
- * @param {String} system - the system the game is on
- * @param {String} game - the name of the game
- * @param {Array} parents - an array of parent folders for a game
+ * @param {string} system - The system the game is on
+ * @param {string} game - The name of the game
+ * @param {Array<string>} parents - an array of parent folders for a game
  */
 function updateNandSymlinks( system, game, oldRomNandPath, parents ) {
     // Make sure this is a system with the special file structure needed
@@ -1996,11 +2006,11 @@ function updateNandSymlinks( system, game, oldRomNandPath, parents ) {
 
 /**
  * Save an uploaded file.
- * @param {object} file - a file object
- * @param {string} system - the system the game is on
- * @param {string} game - the game the ROM is for
- * @param {Array} parents - an array of parent folders for a game
- * @returns {*} - an error message if there was an error, false if there was not.
+ * @param {Object} file - A file object from the upload.
+ * @param {string} system - The system the game is on.
+ * @param {string} game - The game the ROM is for.
+ * @param {Array<string>} parents - An array of parent folders for a game.
+ * @returns {(boolean|string)} An error message if there was an error, false if there was not.
  */
 function saveUploadedRom( file, system, game, parents ) {
     if( !file.originalname || !file.path ) {
@@ -2017,11 +2027,11 @@ function saveUploadedRom( file, system, game, parents ) {
 }
 
 /**
- * Check if a track has any items to it being played
- * @param {string} system - the system for the track
- * @param {string} game - the track name
- * @param {Array} parents - the parents of the track
- * @returns {boolean} - true if a track is being played, otherwise false
+ * Check if a track has any items to it being played.
+ * @param {string} system - The system for the track.
+ * @param {string} game - The track name.
+ * @param {Array<string>} parents - The parents of the track.
+ * @returns {boolean} True if a track has symlinks being played, otherwise false.
  */
 function hasSymlinksBeingPlayed( system, game, parents ) {
     let symlinks = getAllSymlinksToItem( system, game, parents, systemsDict[MEDIA].games );
@@ -2036,17 +2046,17 @@ function hasSymlinksBeingPlayed( system, game, parents ) {
 
 /**
  * Update a game.
- * @param {string} oldSystem - the old system for the game - needed so we know what we're updating
- * @param {string} oldGame - the old name for the game - needed so we know what we're updating
- * @param {Array} oldParents - the old array of parent folders for a game
- * @param {string} system - the new system for the game - null if the same
- * @param {string} game - the new name for the game - null if the same
- * @param {object} file - the new file object - null if the same
- * @param {Array} parents - an array of parent folders for a game
- * @param {boolean} isFolder - true if this game is really a folder of other games
- * @param {boolean} isPlaylist - true if the game is a playlist (will function similarly to a folder)
- * @param {Array<Array>} playlistItems - the items in the playlist
- * @returns {*} - an error message if there was an error, false if there was not.
+ * @param {string} oldSystem - The old system for the game - needed so we know what we're updating.
+ * @param {string} oldGame - The old name for the game - needed so we know what we're updating.
+ * @param {Array<string>} [oldParents] - The old array of parent folders for a game.
+ * @param {string} [system] - The new system for the game - null if the same.
+ * @param {string} [game] - The new name for the game - null if the same.
+ * @param {Object} [file] - The new file object - null if the same.
+ * @param {Array<string>} [parents] - An array of parent folders for a game.
+ * @param {boolean} [isFolder] - True if this game is really a folder of other games.
+ * @param {boolean} [isPlaylist] - True if the game is a playlist (will function similarly to a folder).
+ * @param {Array<Array<string>>} [playlistItems] - The items in the playlist.
+ * @returns {(boolean|string)} An error message if there was an error, false if there was not.
  */
 function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, parents=[], isFolder, isPlaylist, playlistItems ) {
 
@@ -2231,8 +2241,9 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
 }
 
 /**
- * Check if a folder contians a playlist
- * @param {Object} gameDictEntry - the gmae dict entry for the folder
+ * Check if a folder contains a playlist.
+ * @param {Object} gameDictEntry - The game dict entry for the folder.
+ * @returns {boolean} True if the folder contains a playlist, false if not.
  */
 function containsPlaylist(gameDictEntry) {
     for( let game of Object.keys(gameDictEntry.games) ) {
@@ -2248,11 +2259,11 @@ function containsPlaylist(gameDictEntry) {
 }
 
 /**
- * Ensure the nand symlinks are all valid for a folder
- * @param {string} system - the name of the system the game is for
- * @param {string} folder - the name of the folder the system uses
- * @param {Array} parents - parent directories for the folder
- * @param {string} gameDictEntry - the game dict entry for the old system / old game (since this is run prior to calling getData in updateGame)
+ * Ensure the nand symlinks are all valid for a folder.
+ * @param {string} system - The name of the system the game is for.
+ * @param {string} folder - The name of the folder the system uses.
+ * @param {Array<string>} parents - Parent directories for the folder.
+ * @param {Object} gameDictEntry The game dict entry for the old system / old game (since this is run prior to calling getData in updateGame).
  */
 function ensureNandSymlinks( system, folder, parents, gameDictEntry ) {
     for( let game of Object.keys(gameDictEntry.games) ) {
@@ -2271,14 +2282,14 @@ function ensureNandSymlinks( system, folder, parents, gameDictEntry ) {
 }
 
 /**
- * Ensure the save symlinks are all valid for a folder
- * @param {string} system - the name of the system the game is for
- * @param {string} folder - the name of the folder the system uses
- * @param {Array} parents - parent directories for the folder
- * @param {string} gameDictEntry - the game dict entry for the old system / old game (since this is run prior to calling getData in updateGame)
- * @param {string} oldSystem - the old system - needed to get the game dict entry
- * @param {string} oldFolder - the old folder - needed to get the game dict entry
- * @param {Array} oldParents - the old parents - needed to get the game dict entry
+ * Ensure the save symlinks are all valid for a folder.
+ * @param {string} system - The name of the system the game is for.
+ * @param {string} folder - The name of the folder the system uses.
+ * @param {Array<string>} parents - Parent directories for the folder.
+ * @param {Object} gameDictEntry - The game dict entry for the old system / old game (since this is run prior to calling getData in updateGame).
+ * @param {string} oldSystem - The old system - needed to get the game dict entry.
+ * @param {string} oldFolder - The old folder - needed to get the game dict entry.
+ * @param {Array<string>} oldParents - The old parents - needed to get the game dict entry.
  */
 function ensureSaveSymlinks( system, folder, parents, gameDictEntry, oldSystem, oldFolder, oldParents ) {
     for( let game of Object.keys(gameDictEntry.games) ) {
@@ -2301,12 +2312,12 @@ function ensureSaveSymlinks( system, folder, parents, gameDictEntry, oldSystem, 
 }
 
  /**
-  * Ensure playlist symlinks are valid
-  * @param {Array} parents - the parents of the folder we are looking at
-  * @param {string} folder - the new name of the folder we are looking at
-  * @param {Array} oldParents - the old parents of the folder we are looking at
-  * @param {string} oldFolder - the old name of the folder we are looking at - as this function calls itself recursively, this will be the same as the new folder
-  * @param {Object} gameDictEntry - the gameDictEntry for the folder we are looking at
+  * Ensure playlist symlinks are valid.
+  * @param {Array<string>} parents - The parents of the folder we are looking at.
+  * @param {string} folder - The new name of the folder we are looking at.
+  * @param {Array<string>} oldParents - The old parents of the folder we are looking at.
+  * @param {string} oldFolder - The old name of the folder we are looking at - as this function calls itself recursively, this will be the same as the new folder.
+  * @param {Object} gameDictEntry - The gameDictEntry for the folder we are looking at.
   */
 function ensurePlaylistSymlinks( parents, folder, oldParents, oldFolder, gameDictEntry ) {
     for( let game of Object.keys(gameDictEntry.games) ) {
@@ -2328,12 +2339,12 @@ function ensurePlaylistSymlinks( parents, folder, oldParents, oldFolder, gameDic
 }
 
 /**
- * Update playlist symlinks to an item
- * The assumed system is media
- * @param {string} game - the new name of the game
- * @param {Array} parents - the new parents of the game
- * @param {string} oldGame - the old name of the game
- * @param {Array} oldParents - the old parents of the game
+ * Update playlist symlinks to an item.
+ * The assumed system is media.
+ * @param {string} game - The new name of the game.
+ * @param {Array<string>} parents - The new parents of the game.
+ * @param {string} oldGame - The old name of the game.
+ * @param {Array<string>} oldParents - The old parents of the game.
  */
 function updatePlaylistSymlinksToItem( game, parents, oldGame, oldParents ) {
     // get all the symlinks to the old game
@@ -2360,10 +2371,11 @@ function updatePlaylistSymlinksToItem( game, parents, oldGame, oldParents ) {
 
 /**
  * Delete a game.
- * @param {string} system - the game the system is on
- * @param {string} game - the game to delete
- * @param {Array} parents - an array of parent folders for a game
- * @returns {*} - an error message if there was an error, false if there was not.
+ * @param {string} system - The game the system is on.
+ * @param {string} game - The game to delete.
+ * @param {Array<string>} parents - An array of parent folders for a game.
+ * @param {boolean} force - true if the game validity check should be skipped.
+ * @returns {boolean|string} An error message if there was an error, false if there was not.
  */
 function deleteGame( system, game, parents=[], force ) {
     let isFolder = false;
@@ -2446,7 +2458,7 @@ function deleteGame( system, game, parents=[], force ) {
 }
 
 /**
- * Save the current screen resolution
+ * Save the current screen resolution.
  */
 function saveCurrentResolution() {
     properResolution = proc.execSync(GET_RESOLUTION_COMMAND).toString();
@@ -2478,7 +2490,6 @@ function pauseGame() {
         ensureProperResolution(); // Instantly get the right resolution
         proc.execSync( SLEEP_HALF_COMMAND ); // give time to go back to the menu
         proc.execSync( PAUSE_COMMAND + currentEmulator.pid );
-        return false;
     }
 }
 
@@ -2490,7 +2501,6 @@ function resumeGame() {
     if(currentEmulator && currentSystem != BROWSER && currentSystem != MEDIA) {
         proc.execSync( SLEEP_HALF_COMMAND ); // give time to load to avoid button press issues
         proc.execSync( RESUME_COMMAND + currentEmulator.pid );
-        return false;
     }
 }
 
@@ -2501,10 +2511,10 @@ function resumeGame() {
 
 /**
  * Launch remote media like a game
- * @param {string} system - the system the media is on (should be "media")
- * @param {string} game - the name of the media
- * @param {Array} parents - the parents of the media
-* @returns {*} - an error message if there was an error, false if there was not.
+ * @param {string} system - The system the media is on (should be "media").
+ * @param {string} game - The name of the media.
+ * @param {Array<string>} parents - The parents of the media.
+ * @returns {(boolean|string)} An error message if there was an error, false if there was not.
  */
 async function launchRemoteMedia( system, game, parents ) {
     // You are calling launch which is calling quit but async so before quit can remove the modal callback the “new game” has already launched which will trigger the modal (there can only be one modal at a time)
@@ -2522,8 +2532,8 @@ async function launchRemoteMedia( system, game, parents ) {
 }
 
 /**
- * Pause remote media
-* @returns {*} - an error message if there was an error, false if there was not.
+ * Pause remote media.
+* @returns {(boolean|string)} An error message if there was an error, false if there was not.
  */
 async function pauseRemoteMedia() {
     if(currentEmulator && currentSystem == MEDIA) {
@@ -2539,8 +2549,8 @@ async function pauseRemoteMedia() {
 }
 
 /**
- * Resume remote media
- * @returns {*} - an error message if there was an error, false if there was not.
+ * Resume remote media.
+ * @returns {(boolean|string)} An error message if there was an error, false if there was not.
  */
 async function resumeRemoteMedia() {
     if(currentEmulator && currentSystem == MEDIA) {
@@ -2556,8 +2566,8 @@ async function resumeRemoteMedia() {
 }
 
 /**
- * Destroy remote media state
- * @returns {*} - an error message if there was an error, false if there was not.
+ * Destroy remote media state.
+ * @returns {(boolean|string)} An error message if there was an error, false if there was not.
  */
 async function destroyRemoteMedia() {
     if( menuPage && !menuPage.isClosed() ) {
@@ -2570,7 +2580,8 @@ async function destroyRemoteMedia() {
 }
 
 /**
- * Close remote media
+ * Close remote media.
+ * @returns {(boolean|string)} An error message if there was an error, false if there was not.
  */
 async function closeRemoteMedia() {
     let errorMessage = await clearCheckRemoteMedia();
@@ -2595,11 +2606,11 @@ async function closeRemoteMedia() {
 }
 
 /**
- * Begin checking for remote media status
- * @param {string} system 
- * @param {string} game 
- * @param {Array} parents 
- * @returns {*} - an error message if there was an error, false if there was not.
+ * Begin checking for remote media status.
+ * @param {string} system - The system the media is on.
+ * @param {string} game - The media name.
+ * @param {Array<string>} parents - the parents of the media.
+ * @returns {(boolean|string)} An error message if there was an error, false if there was not.
  */
 async function checkRemoteMedia( system, game, parents ) {
     clearMediaPlayingInterval = setInterval( async function() {
@@ -2619,8 +2630,8 @@ async function checkRemoteMedia( system, game, parents ) {
 }
 
 /**
- * Stop checking for remote media status
- * @returns {Promise<*>} - an error message if there was an error, false if there was not.
+ * Stop checking for remote media status.
+ * @returns {Promise<(boolean|string)>} An error message if there was an error, false if there was not.
  */
 async function clearCheckRemoteMedia() {
     clearInterval( clearMediaPlayingInterval );
@@ -2629,7 +2640,7 @@ async function clearCheckRemoteMedia() {
 
 /**
  * Determine if the menu page is active.
- * @returns {boolean} true is the menu page is active
+ * @returns {boolean} True if the menu page is active.
  */
 function menuPageIsActive() {
     return proc.execSync(ACTIVE_WINDOW_COMMAND).toString().startsWith(PAGE_TITLE);
@@ -2637,7 +2648,7 @@ function menuPageIsActive() {
 
 /**
  * Go to the home menu.
- * @returns {Promise<*>} - an error message if there was an error, or an object indicating if we paused if not
+ * @returns {Promise<(boolean|string)>} An error message if there was an error, or an object indicating if we paused if not.
  */
 async function goHome() {
     if( !menuPage || menuPage.isClosed() ) {
@@ -2665,14 +2676,14 @@ async function goHome() {
 
 /**
  * Fetch game data from IGDB.
- * This function will update the metadata.json files for the game
+ * This function will update the metadata.json files for the game.
  * It will do nothing if data has already been fetched within one week.
- * @param {string} system - the system the game is on
- * @param {string} game - the game to fetch data for
- * @param {Array} parents - the parents of the game
- * @param {Object} currentMetadataContents - the current contents of the metadata file to avoid having to fetch it again
- * @param {boolean} force - fetch even if fetched in the past week
- * @returns {*} - an error message if there is one, or false if not
+ * @param {string} system - The system the game is on.
+ * @param {string} game - The game to fetch data for.
+ * @param {Array<string>} parents - The parents of the game.
+ * @param {Object} currentMetadataContents - The current contents of the metadata file to avoid having to fetch it again.
+ * @param {boolean} force - Fetch even if fetched in the past week.
+ * @returns {(boolean|string)} An error message if there is one, or false if not.
  */
 async function fetchGameData( system, game, parents, currentMetadataContents, force ) {
     //let isInvalid = isInvalidGame( system, game, parents );
@@ -2735,8 +2746,8 @@ async function fetchGameData( system, game, parents, currentMetadataContents, fo
 }
 
 /**
- * Check if updates are available
- * @returns {boolean} - true if updates are available
+ * Check if updates are available.
+ * @returns {boolean} True if updates are available.
  */
 function guystationHasUpdates() {
     try {
@@ -2755,8 +2766,8 @@ function guystationHasUpdates() {
 }
 
 /**
- * Update guystation to the latest version
- * @returns {boolean} - true if updates are available
+ * Update guystation to the latest version.
+ * @returns {boolean} Returns false.
  */
 function updateGuystation() {
     proc.execSync( GIT_PULL_COMMAND );
@@ -2766,6 +2777,7 @@ function updateGuystation() {
 
 /**
  * Restart guystation
+ * @returns {boolean|string} An error message if there is an error, false if not.
  */
 function restartGuystation() {
     if( currentEmulator ) {
@@ -2778,6 +2790,7 @@ function restartGuystation() {
 
 /**
  * Reboot the computer guystation is running on
+ * @returns {boolean} false.
  */
 function rebootGuystation() {
     proc.execSync( REBOOT_GUYSTATION_COMMAND );
@@ -2850,8 +2863,8 @@ io.on('connection', function(socket) {
 } );
 
 /**
- * Reset the streaming timeout heartbeat time
- * @returns {boolean} - false
+ * Reset the streaming timeout heartbeat time.
+ * @returns {boolean} - Returns false.
  */
 function resetScreencastTimeout() {
     clearTimeout(cancelStreamingTimeout);
@@ -2860,7 +2873,8 @@ function resetScreencastTimeout() {
 }
 
 /**
- * Connect the menuPage to the signal server
+ * Connect the menuPage to the signal server.
+ * @returns {Promise<(boolean|string)>} An error message if there is one or false if there is not.
  */
 async function connectScreencast() {
     if( !menuPage || menuPage.isClosed() ) {
@@ -2888,7 +2902,8 @@ async function connectScreencast() {
 }
 
 /**
- * Start the menuPage's screencast
+ * Start the menuPage's screencast.
+ * @returns {Promise<(boolean|string)>} An error message if there is one or false if there is not.
  */
 async function startScreencast() {
     if( !menuPage || menuPage.isClosed() ) {
@@ -2911,7 +2926,9 @@ async function startScreencast() {
 }
 
 /**
- * Stop the menuPage's screencast
+ * Stop the menuPage's screencast.
+ * @param {boolean} force - Force the connection to end.
+ * @returns {Promise<(boolean|string)>} An error message if there is one or false if there is not.
  */
 async function stopScreencast(force) {
     if( !force ) {
