@@ -171,7 +171,8 @@ const ERROR_MESSAGES = {
     "alreadyFetchedWithinWeek": "Info has already been fetched this week",
     "noGameInfo": "No game info available",
     "noApiKey": "No IGDB API key",
-    "invalidFileName": "Invalid file name"
+    "invalidFileName": "Invalid file name",
+    "genericError": "An uncaught error ocurred"
 }
 
 // We will only allow for one request at a time for app
@@ -241,10 +242,17 @@ app.post("/launch", async function(request, response) {
     console.log("app serving /launch (POST) with body: " + JSON.stringify(request.body));
     if( ! requestLocked ) {
         requestLocked = true;
-        let errorMessage = await launchGame( request.body.system, request.body.game, null, request.body.parents );
-        getData();
-        requestLocked = false;
-        writeActionResponse( response, errorMessage );
+        try {
+            let errorMessage = await launchGame( request.body.system, request.body.game, null, request.body.parents );
+            getData();
+            requestLocked = false;
+            writeActionResponse( response, errorMessage );
+        }
+        catch(err) {
+            console.log(err);
+            requestLocked = false;
+            writeActionResponse( response, ERROR_MESSAGES.genericError );
+        }
     }
     else {
         writeLockedResponse( response );
@@ -256,10 +264,17 @@ app.post("/quit", async function(request, response) {
     console.log("app serving /quit (POST) with body: " + JSON.stringify(request.body));
     if( ! requestLocked ) {
         requestLocked = true;
-        let errorMessage = await quitGame();
-        getData(); // Reload data
-        requestLocked = false;
-        writeActionResponse( response, errorMessage );
+        try {
+            let errorMessage = await quitGame();
+            getData(); // Reload data
+            requestLocked = false;
+            writeActionResponse( response, errorMessage );
+        }
+        catch(err) {
+            console.log(err);
+            requestLocked = false;
+            writeActionResponse( response, ERROR_MESSAGES.genericError );
+        }
     }
     else {
         writeLockedResponse( response );
@@ -271,15 +286,22 @@ app.post("/home", async function(request, response) {
     console.log("app serving /home (POST) with body: " + JSON.stringify(request.body));
     if( ! requestLocked ) {
         requestLocked = true;
-        let errorMessage = await goHome();
-        getData(); // Reload data
-        requestLocked = false;
+        try {
+            let errorMessage = await goHome();
+            getData(); // Reload data
+            requestLocked = false;
 
-        if( errorMessage.didPause ) {
-            writeResponse( response, SUCCESS, errorMessage );
+            if( errorMessage.didPause ) {
+                writeResponse( response, SUCCESS, errorMessage );
+            }
+            else {
+                writeActionResponse( response, errorMessage );
+            }
         }
-        else {
-            writeActionResponse( response, errorMessage );
+        catch(err) {
+            console.log(err);
+            requestLocked = false;
+            writeActionResponse( response, ERROR_MESSAGES.genericError );
         }
     }
     else {
@@ -292,10 +314,17 @@ app.post("/save", async function(request, response) {
     console.log("app serving /save (POST) with body: " + JSON.stringify(request.body));
     if( ! requestLocked ) {
         requestLocked = true;
-        let errorMessage = newSave( request.body.system, request.body.game, request.body.save, null, request.body.parents );
-        getData(); // Reload data
-        requestLocked = false;
-        writeActionResponse( response, errorMessage );
+        try {
+            let errorMessage = newSave( request.body.system, request.body.game, request.body.save, null, request.body.parents );
+            getData(); // Reload data
+            requestLocked = false;
+            writeActionResponse( response, errorMessage );
+        }
+        catch(err) {
+            console.log(err);
+            requestLocked = false;
+            writeActionResponse( response, ERROR_MESSAGES.genericError );
+        }
     }
     else {
         writeLockedResponse( response );
@@ -307,10 +336,17 @@ app.put("/save", async function(request, response) {
     console.log("app serving /save/ (PUT) with body: " + JSON.stringify(request.body));
     if( ! requestLocked ) {
         requestLocked = true;
-        let errorMessage = changeSave( request.body.system, request.body.game, request.body.save, null, request.body.parents );
-        getData(); // Reload data
-        requestLocked = false;
-        writeActionResponse( response, errorMessage );
+        try {
+            let errorMessage = changeSave( request.body.system, request.body.game, request.body.save, null, request.body.parents );
+            getData(); // Reload data
+            requestLocked = false;
+            writeActionResponse( response, errorMessage );
+        }
+        catch(err) {
+            console.log(err);
+            requestLocked = false;
+            writeActionResponse( response, ERROR_MESSAGES.genericError );
+        }
     }
     else {
         writeLockedResponse( response );
@@ -322,10 +358,17 @@ app.delete("/save", async function(request, response) {
     console.log("app serving /save (DELETE) with body: " + JSON.stringify(request.body));
     if( ! requestLocked ) {
         requestLocked = true;
-        let errorMessage = deleteSave( request.body.system, request.body.game, request.body.save, request.body.parents );
-        getData(); // Reload data
-        requestLocked = false;
-        writeActionResponse( response, errorMessage );
+        try {
+            let errorMessage = deleteSave( request.body.system, request.body.game, request.body.save, request.body.parents );
+            getData(); // Reload data
+            requestLocked = false;
+            writeActionResponse( response, errorMessage );
+        }
+        catch(err) {
+            console.log(err);
+            requestLocked = false;
+            writeActionResponse( response, ERROR_MESSAGES.genericError );
+        }
     }
     else {
         writeLockedResponse( response );
@@ -337,10 +380,17 @@ app.post("/game", upload.single("file"), async function(request, response) {
     console.log("app serving /game (POST)");
     if( ! requestLocked ) {
         requestLocked = true;
-        let errorMessage = addGame( request.body.system, request.body.game, request.file, JSON.parse(request.body.parents), request.body.isFolder, request.body.isPlaylist, JSON.parse(request.body.playlistItems) );
-        getData(); // Reload data
-        requestLocked = false;
-        writeActionResponse( response, errorMessage );
+        try {
+            let errorMessage = addGame( request.body.system, request.body.game, request.file, JSON.parse(request.body.parents), request.body.isFolder, request.body.isPlaylist, JSON.parse(request.body.playlistItems) );
+            getData(); // Reload data
+            requestLocked = false;
+            writeActionResponse( response, errorMessage );
+        }
+        catch(err) {
+            console.log(err);
+            requestLocked = false;
+            writeActionResponse( response, ERROR_MESSAGES.genericError );
+        }
     }
     else {
         writeLockedResponse( response );
@@ -352,10 +402,17 @@ app.put("/game", upload.single("file"), async function(request, response) {
     console.log("app serving /game (PUT)");
     if( ! requestLocked ) {
         requestLocked = true;
-        let errorMessage = updateGame( request.body.oldSystem, request.body.oldGame, JSON.parse(request.body.oldParents), request.body.system, request.body.game, request.file, JSON.parse(request.body.parents), request.body.isFolder, request.body.isPlaylist, JSON.parse(request.body.playlistItems) );
-        getData(); // Reload data
-        requestLocked = false;
-        writeActionResponse( response, errorMessage );
+        try {
+            let errorMessage = updateGame( request.body.oldSystem, request.body.oldGame, JSON.parse(request.body.oldParents), request.body.system, request.body.game, request.file, JSON.parse(request.body.parents), request.body.isFolder, request.body.isPlaylist, JSON.parse(request.body.playlistItems) );
+            getData(); // Reload data
+            requestLocked = false;
+            writeActionResponse( response, errorMessage );
+        }
+        catch(err) {
+            console.log(err);
+            requestLocked = false;
+            writeActionResponse( response, ERROR_MESSAGES.genericError );
+        }
     }
     else {
         writeLockedResponse( response );
@@ -367,10 +424,17 @@ app.delete("/game", async function(request, response) {
     console.log("app serving /game (DELETE) with body: " + JSON.stringify(request.body));
     if( ! requestLocked ) {
         requestLocked = true;
-        let errorMessage = deleteGame( request.body.system, request.body.game, request.body.parents );
-        getData(); // Reload data
-        requestLocked = false;
-        writeActionResponse( response, errorMessage );
+        try {
+            let errorMessage = deleteGame( request.body.system, request.body.game, request.body.parents );
+            getData(); // Reload data
+            requestLocked = false;
+            writeActionResponse( response, errorMessage );
+        }
+        catch(err) {
+            console.log(err);
+            requestLocked = false;
+            writeActionResponse( response, ERROR_MESSAGES.genericError );
+        }
     }
     else {
         writeLockedResponse( response );
@@ -481,11 +545,20 @@ app.post("/browser/tab", async function(request, response) {
 
 // Connect the menu page to the signal server
 app.get("/screencast/connect", async function(request, response) {
+    console.log("app serving /screencast/connect");
     // don't allow screencast to start while we're trying to do something else
     if( ! requestLocked ) {
-        console.log("app serving /screencast/connect");
-        let errorMessage = await connectScreencast();
-        writeActionResponse( response, errorMessage );
+        requestLocked = true;
+        try {
+            let errorMessage = await connectScreencast();
+            requestLocked = false;
+            writeActionResponse( response, errorMessage );
+        }
+        catch(err) {
+            console.log(err);
+            requestLocked = false;
+            writeActionResponse( response, ERROR_MESSAGES.genericError );
+        }
     }
     else {
         writeLockedResponse( response );
@@ -515,10 +588,19 @@ app.get("/screencast/reset-cancel", async function(request, response) {
 
 // Update the system
 app.get("/system/update", async function(request, response) {
+    console.log("app serving /system/update");
     if( ! requestLocked ) {
-        console.log("app serving /system/update");
-        let errorMessage = updateGuystation();
-        writeActionResponse( response, errorMessage );
+        requestLocked = true;
+        try {
+            let errorMessage = updateGuystation();
+            requestLocked = false;
+            writeActionResponse( response, errorMessage );
+        }
+        catch(err) {
+            console.log(err);
+            requestLocked = false;
+            writeActionResponse( response, ERROR_MESSAGES.genericError );
+        }
     }
     else {
         writeLockedResponse( response );
@@ -534,10 +616,19 @@ app.get("/system/has-updates", async function(request, response) {
 
 // Restart the system
 app.get("/system/restart", async function(request, response) {
+    console.log("app serving /system/update");
     if( ! requestLocked ) {
-        console.log("app serving /system/update");
-        let errorMessage = restartGuystation();
-        writeActionResponse( response, errorMessage );
+        requestLocked = true;
+        try {
+            let errorMessage = restartGuystation();
+            requestLocked = false;
+            writeActionResponse( response, errorMessage );
+        }
+        catch(err) {
+            console.log(err);
+            requestLocked = false;
+            writeActionResponse( response, ERROR_MESSAGES.genericError );
+        }
     }
     else {
         writeLockedResponse( response );
@@ -546,10 +637,19 @@ app.get("/system/restart", async function(request, response) {
 
 // Reboot the system
 app.get("/system/reboot", async function(request, response) {
+    console.log("app serving /system/update");
     if( ! requestLocked ) {
-        console.log("app serving /system/update");
-        let errorMessage = rebootGuystation();
-        writeActionResponse( response, errorMessage );
+        requestLocked = true;
+        try {
+            let errorMessage = rebootGuystation();
+            requestLocked = false;
+            writeActionResponse( response, errorMessage );
+        }
+        catch(err) {
+            console.log(err);
+            requestLocked = false;
+            writeActionResponse( response, ERROR_MESSAGES.genericError );
+        }
     }
     else {
         writeLockedResponse( response );

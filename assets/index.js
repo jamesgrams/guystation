@@ -114,7 +114,13 @@ function bubbleScreenshots() {
  * Display a preview of the game.
  */
 function displayGamePreview() {
+    var currentSystemElement = document.querySelector(".system.selected");
+    var currentGameElement = currentSystemElement.querySelector(".game.selected");
+
     var currentPreview = document.querySelector(".game-preview:not(.game-preview-dying)");
+    if( currentGameElement && currentPreview && currentGameElement.getAttribute("data-game") == currentPreview.getAttribute("data-game") && currentGameElement.getAttribute("data-parents") == currentPreview.getAttribute("data-parents") && currentSystemElement.getAttribute("data-system") == currentSystemElement.getAttribute("data-system") ) {
+        return;
+    }
     if( currentPreview ) {
         clearTimeout( showPreviewTimeout );
         currentPreview.classList.remove("game-preview-shown");
@@ -124,8 +130,6 @@ function displayGamePreview() {
         }, PREVIEW_ANIMATION_TIME ); // make sure this matches the css
     }
 
-    var currentSystemElement = document.querySelector(".system.selected");
-    var currentGameElement = currentSystemElement.querySelector(".game.selected");
     if( currentGameElement ) {
         var currentSystem = currentSystemElement.getAttribute("data-system");
         var currentGame = decodeURIComponent( currentGameElement.getAttribute("data-game") );
@@ -134,6 +138,9 @@ function displayGamePreview() {
         if( gameDictEntry.cover && gameDictEntry.name ) {
             var previewElement = document.createElement("div");
             previewElement.classList.add("game-preview");
+            previewElement.setAttribute("data-game", currentGameElement.getAttribute("data-game"));
+            previewElement.setAttribute("data-system", currentSystemElement.getAttribute("data-system"));
+            previewElement.setAttribute("data-parents", currentGameElement.getAttribute("data-parents"));
             previewElement.onclick = function() { 
                 if( this.classList.contains("game-preview-clicked") ) {
                     this.classList.remove("game-preview-clicked");
@@ -1947,11 +1954,11 @@ function displayPowerOptions() {
                 }, function(responseText) {
                     try {
                         var message = JSON.parse(responseText).message;
-			createToast(message);
-		    }
-		    catch(err) {
-                        createToast("An error occurred while trying to update");
-		    }
+			            createToast(message);
+                    }
+                    catch(err) {
+                                createToast("An error occurred while trying to update");
+                    }
                     endRequest();
                 } );
             }, closeModal);
@@ -1973,11 +1980,11 @@ function displayPowerOptions() {
                 makeRequest( "GET", "/system/restart", [], null, function(responseText) {
                     try {
                         var message = JSON.parse(responseText).message;
-			createToast(message);
-		    }
-		    catch(err) {
-                        createToast("An error occurred while trying to restart");
-		    }
+			            createToast(message);
+                    }
+                    catch(err) {
+                        createToast("Lost connection probably due to a successful restart.");
+                    }
                     endRequest();
                 } );
             }, closeModal);
@@ -1990,12 +1997,11 @@ function displayPowerOptions() {
                 makeRequest( "GET", "/system/reboot", [], null, function(responseText) {
                     try {
                         var message = JSON.parse(responseText).message;
-			createToast(message);
-		    }
-		    catch(err) {
-                        createToast("An error occurred while trying to update");
-		    }
-                    createToast("An error occurred while trying to reboot");
+                        createToast(message);
+                    }
+                    catch(err) {
+                        createToast("Lost connection probably due to a successful reboot.");
+                    }
                     endRequest();
                 } );
             }, closeModal);

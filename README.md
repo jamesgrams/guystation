@@ -128,6 +128,9 @@ GuyStation launches a Node.js server along with a Chromium browser (via Puppetee
                     * `<symlink to game directory> (this symlink's name will be - n 0s depending on its position in the playlist + seperator + parents.join(seperator) + seperator + game name - where the parents and the game are the parents and name of the game this symlink is to)
         * `metadata.json`
 
+## Additional Information
+Multiple monitors are not supported. Using multiple monitors will cause issues with ensuring the screen resolution is correct and streaming the screen.
+
 ## Credits and Special Thanks
 * Game Boy Advance and DS Lite icons: [David Pérez](https://thenounproject.com/david730/)
 * Nintendo 64 icon: [Guilherme Simoes](https://thenounproject.com/uberux/)

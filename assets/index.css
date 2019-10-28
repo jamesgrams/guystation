@@ -422,11 +422,11 @@ h1 {
 }
 
 #browser-controls-form #scroll-up {
-    bottom: 366px;
+    bottom: 372px;
 }
 
 #browser-controls-form #scroll-down {
-    bottom: 37px;
+    bottom: 29px;
 }
 
 #browser-controls-form #go-back, #browser-controls-form #go-forward {
@@ -435,11 +435,11 @@ h1 {
 }
 
 #browser-controls-form #go-back {
-    bottom: 366px;
+    bottom: 372px;
 }
 
 #browser-controls-form #go-forward {
-    bottom: 295px;
+    bottom: 301px;
 }
 
 #browser-controls-form #address-bar {
