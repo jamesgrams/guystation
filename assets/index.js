@@ -347,7 +347,7 @@ function addMarquee(element, gameElement, header) {
 
     // we travel at 50px/s
     var pixelsPerSecond = header ? HEADER_MARQUEE_PIXELS_PER_SECOND : MARQUEE_PIXELS_PER_SECOND;
-    var totalAnimationTime = totalDistance / pixelsPerSecond; // todo get this value somehow
+    var totalAnimationTime = totalDistance / pixelsPerSecond;
     // when have we traveled all the padding
     var textAtBeginningPercentage = paddingWidth / totalDistance;
     var textAtBeginningTime = textAtBeginningPercentage * totalAnimationTime * -1;
@@ -1209,8 +1209,9 @@ function generateStartSystem( oldSystemName, newSystemName, oldGameName, newGame
             selectedGame = decodeURIComponent(selectedGameElement.getAttribute("data-game"));
             // newGameName being null means the game was deleted, we have to try to get a close by index
             // also if we are changing systems we want to do a delete
-            // TODO should we look first in the same folder rather than siblings?
-            // TODO deleting an item might also delete a playlist(s) if it was the last item in the list(s) which might result in the previous/next sibling being removed. In this case, we restart at the top but should we?
+            // it's ok if we leave the folder - there will always be a previous sibling and that will the folder in some cases
+            // which is fine
+            // deleting an item might also delete a playlist(s) if it was the last item in the list(s) which might result in the previous/next sibling being removed. In this case, we restart at the top but should we?
             if( systems[i].getAttribute("data-system") == oldSystemName && selectedGame == oldGameName && (newGameName === null || oldSystemName != newSystemName) ) {
                 if( selectedGameElement.previousElementSibling ) {
                     selectedGameElement = selectedGameElement.previousElementSibling;
@@ -1402,15 +1403,29 @@ function moveSubMenu( spaces ) {
 }
 
 /**
+ * Determine if an element is a leaf element.
+ * @param {HTMLElement} element - The game element to consider.
+ * @param {string} system - The system the game is on.
+ * @returns {boolean} - True if the element is a leaf node, false if it is not.
+ */
+function isLeafElement(element, system) {
+    var parents = parentsStringToArray(element.getAttribute("data-parents"));
+    parents.push( decodeURIComponent(element.getAttribute("data-game")) );
+    var parentsString = parentsArrayToString(parents);
+    return document.querySelector('.system[data-system="'+system+'"] .game[data-parents="'+parentsString+'"]') ? false : true;
+}
+
+/**
  * Get the selected values to display in menus.
  * so first it will look at the selected item, then it will look for items in the same folder, then it will look for any item, then any system
  * of course changeSystem will not look at any selected system, since we are assured the one we are on is valid before switching
  * of course changeFolders will not look at system nor any item, since we are assured there is one in the same folder before switching
  * @param {boolean} systemSaveAllowedOnly - True if we should only consider systems that allow for saves - the current save will not be returned without it.
  * @param {boolean} noFolders - True if we should exclude all folders from consideration - the current save will not be returned without it.
+ * @param {boolean} onlyWithLeafNodes - True if we should only allow leaf nodes (empty folders or games).
  * @returns {Object} an object with selected values.
  */
-function getSelectedValues(systemSaveAllowedOnly, noFolders) {
+function getSelectedValues(systemSaveAllowedOnly, noFolders, onlyWithLeafNodes) {
     var currentSystemElement = document.querySelector(".system.selected");
     var currentSystem = currentSystemElement.getAttribute("data-system");
     var currentGame = "";
@@ -1422,7 +1437,9 @@ function getSelectedValues(systemSaveAllowedOnly, noFolders) {
     var gameElementParentsString;
     if( currentGameElement ) gameElementParentsString = currentGameElement.getAttribute("data-parents");
     var excludeArray = systemSaveAllowedOnly ? nonSaveSystems : nonGameSystems;
-    if( currentGameElement && !excludeArray.includes(currentSystem) && (!noFolders || !currentGameElement.hasAttribute("data-is-folder")) ) {
+    if( currentGameElement && !excludeArray.includes(currentSystem) 
+        && (!noFolders || !currentGameElement.hasAttribute("data-is-folder")) 
+        && (!onlyWithLeafNodes || isLeafElement(currentGameElement, currentSystem) ) ) {
         // We have a currently selected game we can use
         currentGame = decodeURIComponent(currentGameElement.getAttribute("data-game"));
         currentParents = parentsStringToArray(gameElementParentsString);
@@ -1432,9 +1449,9 @@ function getSelectedValues(systemSaveAllowedOnly, noFolders) {
         highlighted = true; // The system is selected to the user
     }
     // We have an item, but its a folder, and we aren't allowing folders
-    // Try to find another item in the same system that is not a folder
+    // Try to find another item in the same system and folder that is not a folder
     // note how we know know we don't want a folder
-    else if( currentGameElement && !excludeArray.includes(currentSystem) && document.querySelector('.system.selected .game[data-parents="'+gameElementParentsString+'"]:not([data-is-folder])') ) {
+    else if( noFolders && currentGameElement && !excludeArray.includes(currentSystem) && document.querySelector('.system.selected .game[data-parents="'+gameElementParentsString+'"]:not([data-is-folder])') ) {
         currentGameElement = document.querySelector('.system.selected .game[data-parents="'+gameElementParentsString+'"]:not([data-is-folder])');
         currentGame = decodeURIComponent(currentGameElement.getAttribute("data-game"));
         currentParents = parentsStringToArray(currentGameElement.getAttribute("data-parents"));
@@ -1442,15 +1459,29 @@ function getSelectedValues(systemSaveAllowedOnly, noFolders) {
             currentSave = currentGameElement.querySelector(".current-save").innerText;
         }
     }
+    // We have an item, but its a non-leaf node, and we aren't allowing those
+    // DO the same as above
+    else if( onlyWithLeafNodes && currentGameElement && !excludeArray.includes(currentSystem) && Array.prototype.slice.call(document.querySelectorAll('.system.selected .game[data-parents="'+gameElementParentsString+'"]')).filter( (el) => isLeafElement(el, currentSystem) ).length ) {
+        currentGameElement = Array.prototype.slice.call(document.querySelectorAll('.system.selected .game[data-parents="'+gameElementParentsString+'"]')).filter( (el) => isLeafElement(el, currentSystem) )[0];
+        currentGame = decodeURIComponent(currentGameElement.getAttribute("data-game"));
+        currentParents = parentsStringToArray(currentGameElement.getAttribute("data-parents"));
+    }
     // We've failed at finding an item in the same folder, so try to find any item that is not a folder in the system
-    // TODO - should we try to find highest level first in this and in createSystemMenu?
-    else if( currentGameElement && !excludeArray.includes(currentSystem) && document.querySelector(".system.selected .game:not([data-is-folder])") ) {
+    // we don't bother to try to find highest level first in this and in createSystemMenu?
+    else if( noFolders && currentGameElement && !excludeArray.includes(currentSystem) && document.querySelector(".system.selected .game:not([data-is-folder])") ) {
         currentGameElement = document.querySelector(".system.selected .game:not([data-is-folder])");
         currentGame = decodeURIComponent(currentGameElement.getAttribute("data-game"));
         currentParents = parentsStringToArray(currentGameElement.getAttribute("data-parents"));
         if( systemSaveAllowedOnly && noFolders ) {
             currentSave = currentGameElement.querySelector(".current-save").innerText;
         }
+    }
+    // We have an item, but its a non-leaf node, and we aren't allowing those
+    // DO the same as above
+    else if( onlyWithLeafNodes && currentGameElement && !excludeArray.includes(currentSystem) && Array.prototype.slice.call(document.querySelectorAll('.system.selected .game')).filter( (el) => isLeafElement(el, currentSystem) ).length ) {
+        currentGameElement = Array.prototype.slice.call(document.querySelectorAll('.system.selected .game')).filter( (el) => isLeafElement(el, currentSystem) )[0];
+        currentGame = decodeURIComponent(currentGameElement.getAttribute("data-game"));
+        currentParents = parentsStringToArray(currentGameElement.getAttribute("data-parents"));
     }
     else {
         // We'll have to use a different system
@@ -1459,7 +1490,11 @@ function getSelectedValues(systemSaveAllowedOnly, noFolders) {
         if( noFolders ) {
             selector += ":not([data-is-folder])";
         }
-        var anySelectedGameElement = document.querySelector(selector);
+        var anySelectedGameElements = Array.prototype.slice.call(document.querySelectorAll(selector));
+        if( onlyWithLeafNodes ) {
+            anySelectedGameElements = anySelectedGameElements.filter( (el) => isLeafElement(el, currentSystem) );
+        }
+        var anySelectedGameElement = anySelectedGameElements[0];
         if( anySelectedGameElement ) {
             currentSystem = anySelectedGameElement.closest(".system").getAttribute("data-system");
             currentGame = decodeURIComponent(anySelectedGameElement.getAttribute("data-game"));
@@ -2110,7 +2145,7 @@ function displayAddSave() {
  */
 function displayDeleteGame() {
     var form = document.createElement("div");
-    var selected = getSelectedValues();
+    var selected = getSelectedValues(null, null, true);
     form.setAttribute("id", "delete-game-form");
     form.appendChild( createFormTitle("Delete Game") );
     form.appendChild( createSystemMenu( selected.system, false, true, true, false, false, true ) );
@@ -2328,22 +2363,36 @@ function createSystemMenu( selected, old, required, onlyWithGames, onlySystemsSu
             var currentGameElement = document.querySelector(".system[data-system='"+system+"'] .game.selected")
             var currentGame = null;
             var selectedParents = null;
-            if( currentGameElement && (!onlyWithRealGames || !currentGameElement.hasAttribute("data-is-folder")) ) {
+            if( currentGameElement 
+                && (!onlyWithRealGames || !currentGameElement.hasAttribute("data-is-folder"))
+                && (!onlyWithLeafNodes || isLeafElement(currentGameElement, system) ) ) {
                 currentGame = decodeURIComponent(currentGameElement.getAttribute("data-game"));
             }
             // next try to look for a folder in the same level as the selected game like we do in getSelected
             else if( currentGameElement ) {
                 var folderParents = currentGameElement.getAttribute("data-parents");
-                currentGameElement = document.querySelector('.system[data-system="'+system+'"] .game[data-parents="'+folderParents+'"]:not([data-is-folder])');
-                if( currentGameElement ) {
-                    currentGame = decodeURIComponent(currentGameElement.getAttribute("data-game"));
+                if( onlyWithRealGames ) {
+                    currentGameElement = document.querySelector('.system[data-system="'+system+'"] .game[data-parents="'+folderParents+'"]:not([data-is-folder])');
+                    if( currentGameElement ) {
+                        currentGame = decodeURIComponent(currentGameElement.getAttribute("data-game"));
+                    }
+                }
+                else if(onlyWithLeafNodes) {
+                    currentGameElement = Array.prototype.slice.call(document.querySelectorAll('.system[data-system="'+system+'"] .game[data-parents="'+folderParents+'"]')).filter( (el) => isLeafElement(el, system) )[0];
+                    if( currentGameElement ) {
+                        currentGame = decodeURIComponent(currentGameElement.getAttribute("data-game"));
+                    }
                 }
             }
             // there is no selected game element in our folder, just find any one
             // we KNOW there is at least one game in there since we filtered earlier - we wouldn't select a system with a game select that has no games/no real games
             if( !currentGame ) { // This could change the value needed for folder select
                 var not = onlyWithRealGames ? ":not([data-is-folder])" : ""; // see IMPORTANT NOTE -  you should not  allow a game select with the potentiality of there being nothing to have selected by default
-                currentGameElement = document.querySelector(".system[data-system='"+system+"'] .game" + not);
+                var currentGameElements = document.querySelectorAll(".system[data-system='"+system+"'] .game" + not);
+                if( onlyWithLeafNodes ) {
+                    currentGameElements = Array.prototype.slice.call(currentGameElements).filter( el => isLeafElement(el, system) );
+                }
+                currentGameElement = currentGameElements[0];
                 currentGame = decodeURIComponent(currentGameElement.getAttribute("data-game"));
             }
             if( folderSelect ) {
@@ -2779,11 +2828,14 @@ function createFolderMenu( parents, system, old, required, onlyWithGames, onlyWi
                         var currentDropdown = modal.querySelector( "#" + currentDropdownId + i );
                         newParents.push( currentDropdown.options[currentDropdown.selectedIndex].value );
                     }
+
                     // for a playlist, add another playlist option when the last one gets a selected value
                     var allPlaylistSelects = document.querySelectorAll(".modal .playlist-select-container");
-                    var lastPlaylistId = digitRegex.exec( allPlaylistSelects[allPlaylistSelects.length-1].getAttribute("id") )[1];
-                    if( isForPlaylist && (myIndex > 0 || newParents[0] != "") && playlistId == lastPlaylistId ) {
-                        document.querySelector(".modal #playlist-container").appendChild( createFolderMenu( [], "media", false, false, true, true, null, true, true, parseInt(lastPlaylistId) + 1 ) );
+                    if( isForPlaylist ) { 
+                        var lastPlaylistId = digitRegex.exec( allPlaylistSelects[allPlaylistSelects.length-1].getAttribute("id") )[1];
+                        if( isForPlaylist && (myIndex > 0 || newParents[0] != "") && playlistId == lastPlaylistId ) {
+                            document.querySelector(".modal #playlist-container").appendChild( createFolderMenu( [], "media", false, false, true, true, null, true, true, parseInt(lastPlaylistId) + 1 ) );
+                        }
                     }
 
                     // for a playlist, first element set to null, remove 
@@ -2800,23 +2852,19 @@ function createFolderMenu( parents, system, old, required, onlyWithGames, onlyWi
                             var parentsForGameMenu = extractParentsFromFolderMenu(old);
                             // Get the game element that is selected - it must be available for this folder though
                             var selectedGameElement = document.querySelector('.system[data-system="'+system+'"] .game.selected[data-parents="'+parentsArrayToString(parentsForGameMenu)+'"]');
-                            if( onlyWithRealGames && selectedGameElement && selectedGameElement.hasAttribute("data-is-folder") ) {
-                                selectedGameElement = null;
-                            }
+
                             var selectedGame = null;
                             if( selectedGameElement ) {
                                 selectedGame = decodeURIComponent(selectedGameElement.getAttribute("data-game"));
                             }
-                            // there is no selected game element in our folder, just find any one
-                            // we KNOW there is at least one game (with the same parents) in there since we filtered earlier
-                            else {
-                                var not = onlyWithRealGames ? ":not([data-is-folder])" : ""; // if onlyWithGames - IMPORTANT NOTE: gameSelect shouldn't exist without either onlyWithGames or onlyWithRequiredGames - otherwise this might throw an error as we'd have an empty folder - you should not  allow a game select with the potentiality of there being nothing to have selected by default
-                                selectedGameElement = document.querySelector('.system[data-system="'+system+'"] .game[data-parents="'+parentsArrayToString(parentsForGameMenu)+'"]' + not);
-                                selectedGame = decodeURIComponent(selectedGameElement.getAttribute("data-game"));
-                            }
+                            // If onlyWithRealGames or onlyWithLeafNodes is true, and the selected element doesn't mater that criteria, we would next
+                            // look for any game in the folder. But that's the same as letting the select menu just not have a valid selected value by default.
                             
                             // See if we can get a selected game within the folder
-                            gameSelect.parentNode.replaceWith( createGameMenu(selectedGame, system, old, gameSelect.hasAttribute("required"), parentsForGameMenu, onlyWithRealGames, onlyWithLeafNodes) );
+                            var newGameSelect = createGameMenu(selectedGame, system, old, gameSelect.hasAttribute("required"), parentsForGameMenu, onlyWithRealGames, onlyWithLeafNodes);
+                            gameSelect.parentNode.replaceWith( newGameSelect );
+                            var newGameSelectMenu = newGameSelect.querySelector("select");
+                            selectedGame = newGameSelectMenu.options[newGameSelectMenu.selectedIndex].value;
 
                             var saveSelect = modal.querySelector("#save-select");
                             if( saveSelect && !old ) {

@@ -1828,7 +1828,7 @@ function addGame( system, game, file, parents=[], isFolder, isPlaylist, playlist
     // Make sure the game is valid
     if( !systemsDict[system] ) return ERROR_MESSAGES.noSystem;
     if( getGameDictEntry(system, game, parents) ) return ERROR_MESSAGES.gameAlreadyExists;
-    if( !isSymlink && parents.length && !getGameDictEntry(system, parents[parents.length-1], parents.slice(parents.length-1) ) ) return ERROR_MESSAGES.invalidParents;
+    if( !isSymlink && parents.length && !getGameDictEntry(system, parents[parents.length-1], parents.slice(parents.length-1 > 0 ? parents.length-1 : 1) ) ) return ERROR_MESSAGES.invalidParents;
     if( !game ) return ERROR_MESSAGES.gameNameRequired;
     var invalidName = isInvalidName( game );
     if( invalidName ) return invalidName;
@@ -2310,11 +2310,11 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
         let symlinks = getAllSymlinksToItem( oldSystem, oldGame, oldParents, systemsDict[MEDIA].games );
         for( let symlink of Object.keys(symlinks) ) {
             let symlinkEntry = symlinks[symlink];
-            deleteGame( MEDIA, symlinkEntry.game, symlinkEntry.parents );
+            deleteGame( MEDIA, symlinkEntry.game, symlinkEntry.parents, true );
             // check to see if the playlist is empty and delete it if it is
             let playlistEntry = getGameDictEntry( MEDIA, symlinkEntry.parents[symlinkEntry.parents.length-1], symlinkEntry.parents.slice(0, symlinkEntry.parents.length -1) );
             if( Object.keys(playlistEntry.games).length == 0 ) {
-                deleteGame( MEDIA, playlistEntry.game, symlinkEntry.parents.slice(0, symlinkEntry.parents.length - 1) );
+                deleteGame( MEDIA, playlistEntry.game, symlinkEntry.parents.slice(0, symlinkEntry.parents.length - 1), true );
             }
         }
     }
@@ -2540,11 +2540,11 @@ function deleteGame( system, game, parents=[], force ) {
             let symlinks = getAllSymlinksToItem( system, game, parents, systemsDict[MEDIA].games );
             for( let symlink of Object.keys(symlinks) ) {
                 let symlinkEntry = symlinks[symlink];
-                deleteGame( MEDIA, symlinkEntry.game, symlinkEntry.parents );
+                deleteGame( MEDIA, symlinkEntry.game, symlinkEntry.parents, true );
                 // check to see if the playlist is empty and delete it if it is
                 let playlistEntry = getGameDictEntry( MEDIA, symlinkEntry.parents[symlinkEntry.parents.length-1], symlinkEntry.parents.slice(0, symlinkEntry.parents.length -1) );
                 if( Object.keys(playlistEntry.games).length == 0 ) {
-                    deleteGame( MEDIA, playlistEntry.game, symlinkEntry.parents.slice(0, symlinkEntry.parents.length - 1) );
+                    deleteGame( MEDIA, playlistEntry.game, symlinkEntry.parents.slice(0, symlinkEntry.parents.length - 1), true );
                 }
             }
         }
