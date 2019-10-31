@@ -2932,7 +2932,6 @@ io.on('connection', function(socket) {
         streamerMediaReady = true;
         if( clientJoined ) {
             for( let clientSocketId of clientSocketIds.filter( el => !startedClientIds.includes(el) ) ) {
-                startedClientIds.push( clientSocketId );
                 startScreencast(clientSocketId);
             }
         }
@@ -2948,7 +2947,6 @@ io.on('connection', function(socket) {
             clientJoined = true;
             if( streamerMediaReady ) {
                 for( let clientSocketId of clientSocketIds.filter( el => !startedClientIds.includes(el) ) ) {
-                    startedClientIds.push( clientSocketIds );
                     startScreencast(clientSocketId);
                 }
             }
@@ -3008,17 +3006,7 @@ async function connectScreencast( id ) {
     // starting a screencast will activate the home tab
     // it is best to predict that and to it anyway
     if( currentEmulator && currentSystem != MEDIA && !startedClientIds.length && !menuPageIsActive() ) { 
-        // Get the current resolution of the emulator
-        let emulatorResolution = proc.execSync(GET_RESOLUTION_COMMAND).toString();
         await goHome();
-        if( !properResolution ) {
-            saveCurrentResolution();
-        }
-        // Update the home resolution before we start the stream, so when we start the start it gets the right resolution for the emulator
-        let homeResolution = proc.execSync(GET_RESOLUTION_COMMAND).toString();
-        if( homeResolution != emulatorResolution ) {
-            proc.execSync(SET_RESOLUTION_COMMAND + emulatorResolution);
-        }
         needToRefocusGame = true; 
     }
     // focus on guy station
@@ -3039,15 +3027,18 @@ async function startScreencast( id ) {
     if( !serverSocketId || !clientSocketIds.length ) {
         return Promise.resolve(ERROR_MESSAGES.clientAndServerAreNotBothConnected );
     }
+    if( startedClientIds.includes( id ) ) {
+        return Promise.resolve(ERROR_MESSAGES.screencastAlreadyStarted);
+    }
+    let currentStartedClientIdsLength = startedClientIds.length;
+    startedClientIds.push(id);
     await menuPage.evaluate( (id) => startConnectionToPeer(true, id), id );
     // we can return to the game now
-    if( currentEmulator && currentSystem != MEDIA && !startedClientIds.length && needToRefocusGame ) {
-        var trueProperResolution = properResolution; // we don't watch launch game to save our perhaps incorrect resolution
+    if( currentEmulator && currentSystem != MEDIA && !currentStartedClientIdsLength && needToRefocusGame ) {
         await launchGame( currentSystem, currentGame, false, currentParentsString.split(SEPARATOR).filter(el => el != '') ); 
-        properResolution = trueProperResolution;
         needToRefocusGame = false;
     }
-    else await goHome(); // focus on chrome from any screen share info popups
+    else if( !currentStartedClientIdsLength ) await goHome(); // focus on chrome from any screen share info popups
     return Promise.resolve(false);
 }
 
@@ -3085,7 +3076,6 @@ async function stopScreencast(id) {
     clientSocketIds = [];
     startedClientIds = [];
     cancelStreamingTimeouts = [];
-    if( menuPageIsActive() ) ensureProperResolution(); // we might have gone home and changed to resolution in preparation to go back to the emulator. If there was an error, we might not have gone back to the emulator. In this case, once the reset timeout fails, we should make sure we have the correct resolution.
     return Promise.resolve(false);
 }
 
@@ -3099,7 +3089,7 @@ async function stopScreencast(id) {
  * @returns {Promise<(boolean|string)>} A promise that is false if the action was successful or contains an error message if not.
  */
 async function performScreencastMouse( xPercent, yPercent, button, down ) {
-    if( xPercent > xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
+    if( xPercent < 0 || yPercent < 0 || xPercent > 1 || yPercent > 1 ) {
         return Promise.resolve( ERROR_MESSAGES.browsePageInvalidCoordinates );
     }
 

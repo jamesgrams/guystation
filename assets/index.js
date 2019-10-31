@@ -1964,10 +1964,8 @@ function createInteractiveScreencast() {
         var mousePercentLocation = getMousePercentLocation(event);
         var xPercent = mousePercentLocation.xPercent;
         var yPercent = mousePercentLocation.yPercent;
-        console.log(xPercent);
-        console.log(yPercent);
         if( xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
-            //makeRequest( "POST", "/screencast/mouse", { "down": true, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 2 ? "right" : middle } );
+            makeRequest( "POST", "/screencast/mouse", { "down": true, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 2 ? "right" : middle } );
         }
     };
     video.onmouseup = function(event) {
@@ -1975,7 +1973,7 @@ function createInteractiveScreencast() {
         var xPercent = mousePercentLocation.xPercent;
         var yPercent = mousePercentLocation.yPercent;
         if( xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
-            //makeRequest( "POST", "/screencast/mouse", { "down": false, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 2 ? "right" : middle } );
+            makeRequest( "POST", "/screencast/mouse", { "down": false, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 2 ? "right" : middle } );
         }
     };
     return video;
