@@ -20,6 +20,8 @@ const upload = multer({ dest: '/tmp/' });
 const server = require('http').createServer();
 const io = require('socket.io')(server);
 const axios = require('axios');
+const robot = require("robotjs");
+const keycode = require("keycode");
 
 const PORT = 8080;
 const SOCKETS_PORT = 3000;
@@ -461,27 +463,6 @@ app.delete("/game", async function(request, response) {
     }
 });
 
-// Respond to a click event from a browser
-app.post("/browser/click", async function(request, response) {
-    console.log("app serving /browser/click with body: " + JSON.stringify(request.body));
-    let errorMessage = await performClick( request.body.xPercent, request.body.yPercent );
-    writeActionResponse( response, errorMessage );
-});
-
-// Get input for the browser
-app.post("/browser/input", async function(request, response) {
-    console.log("app serving /browser/input with body: " + JSON.stringify(request.body));
-    let errorMessage = await performInput( request.body.input );
-    writeActionResponse( response, errorMessage );
-});
-
-// Get button for the browser
-app.post("/browser/button", async function(request, response) {
-    console.log("app serving /browser/button with body: " + JSON.stringify(request.body));
-    let errorMessage = await pressButton( request.body.button );
-    writeActionResponse( response, errorMessage );
-});
-
 // Get input for the a browser
 app.get("/browser/url", async function(request, response) {
     console.log("app serving /browser/url");
@@ -596,6 +577,20 @@ app.get("/screencast/stop", async function(request, response) {
 app.get("/screencast/reset-cancel", async function(request, response) {
     console.log("app serving /screencast/reset-cancel");
     let errorMessage = resetScreencastTimeout( request.query.id );
+    writeActionResponse( response, errorMessage );
+});
+
+// Send a click event in a screencast
+app.post("/screencast/mouse", async function(request, response) {
+    console.log("app serving /screencast/mouse with body: " + JSON.stringify(request.body));
+    let errorMessage = await performScreencastMouse( request.body.xPercent, request.body.yPercent, request.body.button, request.body.down );
+    writeActionResponse( response, errorMessage );
+});
+
+// Press some buttons on a screencast
+app.post("/screencast/buttons", async function(request, response) {
+    console.log("app serving /screencast/buttons with body: " + JSON.stringify(request.body));
+    let errorMessage = await performScreencastButtons( request.body.buttons, request.body.down );
     writeActionResponse( response, errorMessage );
 });
 
@@ -782,64 +777,6 @@ async function launchBrowser() {
     menuPage = await pages[0];
     await menuPage.goto(LOCALHOST + ":" + STATIC_PORT + "?" + IS_SERVER_PARAM);
     ks.sendKey('tab');
-}
-
-/**
- * Perform a click on the page.
- * @param {number} xPercent - The percentage x offset on which to perform the click.
- * @param {number} yPercent - The percentage y offset on which to perform the click.
- * @returns {Promise<(boolean|string)>} A promise that is false if the action was successful or contains an error message if not.
- */
-async function performClick( xPercent, yPercent ) {
-    if( !browsePage || browsePage.isClosed() ) {
-        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
-    }
-    else if( xPercent > xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
-        return Promise.resolve( ERROR_MESSAGES.browsePageInvalidCoordinates );
-    }
-    
-    let width = await browsePage.evaluate( () => { return document.documentElement.clientWidth; } );
-    let height = await browsePage.evaluate( () => { return document.documentElement.clientHeight; } );
-    let x = width * xPercent;
-    let y = height * yPercent;
-    await browsePage.mouse.click(x, y);
-
-    return Promise.resolve(false);
-}
-
-/**
- * Perform input on the page.
- * @param {String} input - The input to type.
- * @returns {Promise<(boolean|string)>} - A promise that is false if the action was successful or contains an error message if not.
- */
-async function performInput( input ) {
-    if( !browsePage || browsePage.isClosed() ) {
-        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
-    }
-    
-    await browsePage.keyboard.type(input);
-
-    return Promise.resolve(false);
-}
-
-/**
- * Press a button on the page.
- * @param {String} button - The input to type.
- * @returns {Promise<(boolean|string)>} A promise that is false if the action was successful or contains an error message if not.
- */
-async function pressButton( button ) {
-    if( !browsePage || browsePage.isClosed() ) {
-        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
-    }
-    
-    try {
-        await browsePage.keyboard.press( button );
-    }
-    catch(err) {
-        return Promise.resolve( ERROR_MESSAGES.invalidButton );
-    }
-
-    return Promise.resolve(false);
 }
 
 /**
@@ -3071,13 +3008,22 @@ async function connectScreencast( id ) {
     // starting a screencast will activate the home tab
     // it is best to predict that and to it anyway
     if( currentEmulator && currentSystem != MEDIA && !startedClientIds.length && !menuPageIsActive() ) { 
-        await goHome(); 
+        // Get the current resolution of the emulator
+        let emulatorResolution = proc.execSync(GET_RESOLUTION_COMMAND).toString();
+        await goHome();
+        if( !properResolution ) {
+            saveCurrentResolution();
+        }
+        // Update the home resolution before we start the stream, so when we start the start it gets the right resolution for the emulator
+        let homeResolution = proc.execSync(GET_RESOLUTION_COMMAND).toString();
+        if( homeResolution != emulatorResolution ) {
+            proc.execSync(SET_RESOLUTION_COMMAND + emulatorResolution);
+        }
         needToRefocusGame = true; 
     }
     // focus on guy station
     await menuPage.evaluate( () => connectToSignalServer(true) );    
 
-    // focus on 
     return Promise.resolve(false);
 }
 
@@ -3095,8 +3041,10 @@ async function startScreencast( id ) {
     }
     await menuPage.evaluate( (id) => startConnectionToPeer(true, id), id );
     // we can return to the game now
-    if( currentEmulator && currentSystem != MEDIA && !startedClientIds.length && needToRefocusGame ) { 
+    if( currentEmulator && currentSystem != MEDIA && !startedClientIds.length && needToRefocusGame ) {
+        var trueProperResolution = properResolution; // we don't watch launch game to save our perhaps incorrect resolution
         await launchGame( currentSystem, currentGame, false, currentParentsString.split(SEPARATOR).filter(el => el != '') ); 
+        properResolution = trueProperResolution;
         needToRefocusGame = false;
     }
     else await goHome(); // focus on chrome from any screen share info popups
@@ -3137,6 +3085,53 @@ async function stopScreencast(id) {
     clientSocketIds = [];
     startedClientIds = [];
     cancelStreamingTimeouts = [];
+    if( menuPageIsActive() ) ensureProperResolution(); // we might have gone home and changed to resolution in preparation to go back to the emulator. If there was an error, we might not have gone back to the emulator. In this case, once the reset timeout fails, we should make sure we have the correct resolution.
+    return Promise.resolve(false);
+}
+
+/**
+ * Perform a click on guystation.
+ * Works for left click, right click, and middle click.
+ * @param {number} xPercent - The percentage x offset on which to perform the click.
+ * @param {number} yPercent - The percentage y offset on which to perform the click.
+ * @param {string} button - left, right, or middle.
+ * @param {boolean} [down] - True if we are pushing the mouse down, false if up.
+ * @returns {Promise<(boolean|string)>} A promise that is false if the action was successful or contains an error message if not.
+ */
+async function performScreencastMouse( xPercent, yPercent, button, down ) {
+    if( xPercent > xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
+        return Promise.resolve( ERROR_MESSAGES.browsePageInvalidCoordinates );
+    }
+
+    let screenResolution = proc.execSync(GET_RESOLUTION_COMMAND).toString().split("x");
+    let width = parseInt(screenResolution[0]);
+    let height = parseInt(screenResolution[1]);
+    let x = width * xPercent;
+    let y = height * yPercent;
+
+    if( down ) {
+        robot.moveMouse(x, y);
+    }
+    else {
+        robot.dragMouse(x, y);
+    }
+    robot.mouseToggle(down ? "down" : "up", button);
+
+    return Promise.resolve(false);
+}
+
+/**
+ * Perform a button key down or up on a screencast.
+ * @param {Array<Number>} buttons - An array of button keycodes to press.
+ * @param {boolean} [down] - True if we are pushing the buttons down, false if up.
+ * @returns {Promise<(boolean|string)>} A promise that is false if the action was successful or contains an error message if not.
+ */
+async function performScreencastButtons( buttons, down ) {
+
+    for( let button of buttons ) {
+        robot.keyToggle( keycode(button).replace(" ",""), down ? "down" : "up");
+    }
+
     return Promise.resolve(false);
 }
 

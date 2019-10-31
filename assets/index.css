@@ -533,8 +533,12 @@ h1 {
     display: none;
 }
 
-#remote-screencast-form video {
+#remote-screencast-form video, #remote-screencast-form {
     width: 550px;
+}
+
+#remote-screencast-form button {
+    margin-top: 20px;
 }
 
 .game-preview {

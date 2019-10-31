@@ -18,7 +18,9 @@
     "node-key-sender": "^1.0.11",
     "multer": "1.4.2",
     "socket.io": "2.2.0",
-    "axios": "^0.19.0"
+    "axios": "^0.19.0",
+    "robotjs": "git://github.com/malhotra-sidharth/robotjs.git",
+    "keycode": "^2.2.0"
   },
   "engines": {
     "node": ">= 10.10.0",

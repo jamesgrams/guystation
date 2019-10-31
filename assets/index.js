@@ -33,7 +33,6 @@ var makingRequest = false;
 var bubbleScreenshotsSet;
 var focusInterval = null;
 var closeModalCallback;
-var sendInputTimeout;
 var currentAddress;
 var browserAddressHeartbeat;
 var tabsHeartbeat;
@@ -75,7 +74,6 @@ var buttonsUp = {
     "gamepad": {},
     "keyboard": {
         "13": true, // Enter
-        "8": true // Backspace
     }
 };
 buttonsUp.gamepad[joyMapping["A"]] = true;
@@ -533,20 +531,15 @@ function enableControls() {
                     break;
             }
         }
-        else if( enableModalControls ) {
-            switch (event.keyCode) {
-                // Enter
-                case 13:
-                    if( document.querySelector(".modal #address-bar") && document.querySelector(".modal #address-bar") === document.activeElement && !navigating ) {
-                        document.querySelector(".modal #go-button").click();
-                    }
-                    break;
-                // Backspace
-                case 8:
-                    if( buttonsUp.keyboard["8"] && document.querySelector( "#browser-controls-form" ) && (document.activeElement === document.body) ) {
-                        makeRequest( "POST", "/browser/button", { button: "Backspace" } );
-                    }
-                    buttonsUp.keyboard["8"] = false;
+        // for the video
+        else if( enableModalControls && document.querySelector(".modal #remote-screencast-form video, .modal #browser-controls-form video") ) {
+            // Allow enter for the browser address bar
+            if( document.querySelector(".modal #address-bar") && document.querySelector(".modal #address-bar") === document.activeElement && !navigating ) {
+                document.querySelector(".modal #go-button").click();
+            }
+            else if( buttonsUp[event.keyCode.toString()] || buttonsUp[event.keyCode.toString()] === undefined ) {
+                makeRequest( "POST", "/screencast/buttons", { "down": true, "buttons": [event.keyCode] } );
+                buttonsUp[event.keyCode.toString()] = false;
             }
         }
         // Prevent Ctrl + S
@@ -576,38 +569,19 @@ function enableControls() {
             case 13:
                 buttonsUp.keyboard["13"] = true;
                 break;
-            // Backspace
-            case 8:
-                buttonsUp.keyboard["8"] = true;
-                break;
             // Escape
             case 27:
                 clearTimeout(escapeDown);
                 escapeDown = null;
                 break;
         }
-    }
-    // keypress for forwarding input
-    // Forward input for the browser
-    document.onkeypress = function(event) {
-        if( document.querySelector( "#browser-controls-form" ) && (document.activeElement === document.body || document.activeElement === document.querySelector("#forward-input") ) ) {
-            var keyLetter = String.fromCharCode(event.which);
-            // the user has pressed a key
-            if( keyLetter ) {
-                sendString += keyLetter;
-
-                if( sendInputTimeout ) {
-                    clearTimeout(sendInputTimeout);
-                }
-                sendInputTimeout = setTimeout( function() {
-                    makeRequest( "POST", "/browser/input", { input: sendString } );
-                    sendString = "";
-                    document.querySelector("#forward-input").value = "";
-                }, SEND_INPUT_TIME);
-                document.querySelector("#forward-input").value = sendString;
+        // for the video
+        if( enableModalControls && document.querySelector(".modal #remote-screencast-form video, .modal #browser-controls-form video") ) {
+            // Allow enter for the browser address bar
+            if( !(document.querySelector(".modal #address-bar") && document.querySelector(".modal #address-bar") === document.activeElement && !navigating) && !buttonsUp[event.keyCode.toString()] ) {
+                makeRequest( "POST", "/screencast/buttons", { "down": false, "buttons": [event.keyCode] } );
+                buttonsUp[event.keyCode.toString()] = true;
             }
-            
-            event.preventDefault();
         }
     }
 }
@@ -1785,36 +1759,8 @@ function displayBrowserControls() {
     launchModal( form, function() { stopConnectionToPeer(false, "server"); clearInterval(browserAddressHeartbeat); clearInterval(tabsHeartbeat); } );
     
     //video
-    var video = document.createElement("video");
-    video.setAttribute("autoplay", "true");
-    video.onclick = function(e) {
-        var nativeWidth = video.videoWidth;
-        var nativeHeight = video.videoHeight;
-        var areaWidth = video.offsetWidth;
-        var areaHeight = video.offsetHeight;
-        var actualWidth;
-        var actualHeight;
-        var offsetLeft = 0;
-        var offsetTop = 0;
-        if( nativeWidth/nativeHeight > areaWidth/areaHeight ) {
-            actualWidth = areaWidth;
-            actualHeight = actualWidth * (nativeHeight/nativeWidth);
-            offsetTop = (areaHeight - actualHeight) / 2;
-        }
-        else {
-            actualHeight = areaHeight;
-            actualWidth = actualHeight * (nativeWidth/nativeHeight);
-            offsetLeft = (areaWidth - actualWidth) / 2;
-        }
-        var rect = video.getBoundingClientRect();
-        var x = event.clientX - rect.left;
-        var y = event.clientY - rect.top;
-        var xPercent = (x - offsetLeft)/actualWidth;
-        var yPercent = (y - offsetTop)/actualHeight;
-        if( xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
-            makeRequest( "POST", "/browser/click", {"xPercent": xPercent, "yPercent": yPercent} );
-        }
-    };
+    var video = createInteractiveScreencast();
+    
     makeRequest( "GET", "/screencast/connect", { id: socket.id }, function() {
         // start letting the server know we exist after it is now looking for us i.e. won't accept another connection
         // (serverSocketId is set)
@@ -1960,11 +1906,14 @@ function displayScreencast() {
     }
     var form = document.createElement("div");
     form.appendChild( createFormTitle("Screencast") );
-    var video = document.createElement("video");
-    video.setAttribute("autoplay", "true");
-    video.setAttribute("controls", "true");
+    
+    var video = createInteractiveScreencast();
+
     form.setAttribute("id", "remote-screencast-form");
     form.appendChild(video);
+
+    form.appendChild( createButton("Fullscreen", function() {video.requestFullscreen();}));
+
     makeRequest( "GET", "/screencast/connect", { id: socket.id }, function() {
         // start letting the server know we exist after it is now looking for us i.e. won't accept another connection
         // (serverSocketId is set)
@@ -1974,6 +1923,62 @@ function displayScreencast() {
         launchModal( form, function() { stopConnectionToPeer(false, "server"); } );
         connectToSignalServer(false);
     }, function(responseText) { standardFailure(responseText, true) } );
+}
+
+/**
+ * Create an interactive screencast.
+ * @returns {HTMLElement} A video element that can be interacted with.
+ */
+function createInteractiveScreencast() {
+    var video = document.createElement("video");
+    video.setAttribute("autoplay", "true");
+
+    var getMousePercentLocation = function(event) {
+        var nativeWidth = video.videoWidth;
+        var nativeHeight = video.videoHeight;
+        var areaWidth = video.offsetWidth;
+        var areaHeight = video.offsetHeight;
+        var actualWidth;
+        var actualHeight;
+        var offsetLeft = 0;
+        var offsetTop = 0;
+        if( nativeWidth/nativeHeight > areaWidth/areaHeight ) {
+            actualWidth = areaWidth;
+            actualHeight = actualWidth * (nativeHeight/nativeWidth);
+            offsetTop = (areaHeight - actualHeight) / 2;
+        }
+        else {
+            actualHeight = areaHeight;
+            actualWidth = actualHeight * (nativeWidth/nativeHeight);
+            offsetLeft = (areaWidth - actualWidth) / 2;
+        }
+        var rect = video.getBoundingClientRect();
+        var x = event.clientX - rect.left;
+        var y = event.clientY - rect.top;
+        var xPercent = (x - offsetLeft)/actualWidth;
+        var yPercent = (y - offsetTop)/actualHeight;
+        return { xPercent: xPercent, yPercent: yPercent };
+    }
+
+    video.onmousedown = function(event) {
+        var mousePercentLocation = getMousePercentLocation(event);
+        var xPercent = mousePercentLocation.xPercent;
+        var yPercent = mousePercentLocation.yPercent;
+        console.log(xPercent);
+        console.log(yPercent);
+        if( xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
+            //makeRequest( "POST", "/screencast/mouse", { "down": true, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 2 ? "right" : middle } );
+        }
+    };
+    video.onmouseup = function(event) {
+        var mousePercentLocation = getMousePercentLocation(event);
+        var xPercent = mousePercentLocation.xPercent;
+        var yPercent = mousePercentLocation.yPercent;
+        if( xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
+            //makeRequest( "POST", "/screencast/mouse", { "down": false, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 2 ? "right" : middle } );
+        }
+    };
+    return video;
 }
 
 /**
@@ -3540,162 +3545,164 @@ function manageGamepadInput() {
         return;
     }
     
-    var gp = gamepads[0];
-    if( !disableMenuControls && document.hasFocus() ) {
+    for (var i=0; i<gamepads.length; i++) {
+        var gp = gamepads[i];
+        if( !disableMenuControls && document.hasFocus() ) {
 
-        // See this helpful image for mappings: https://www.html5rocks.com/en/tutorials/doodles/gamepad/gamepad_diagram.png
+            // See this helpful image for mappings: https://www.html5rocks.com/en/tutorials/doodles/gamepad/gamepad_diagram.png
+            
+            var aPressed = buttonPressed(gp.buttons[joyMapping["A"]]);
+            var startPressed = buttonPressed(gp.buttons[joyMapping["Start"]]);
+            // A or Start - launch a game (no need to quit a game, since they should have escape mapped to a key so they can go back to the menu)
+            if( (aPressed && buttonsUp.gamepad[joyMapping["A"]]) 
+                || (startPressed && buttonsUp.gamepad[joyMapping["Start"]]) ) {
+                
+                if( aPressed ) buttonsUp.gamepad[joyMapping["A"]] = false;
+                if( startPressed ) buttonsUp.gamepad[joyMapping["Start"]] = false;
+                
+                document.querySelector("#launch-game").click();
+            }
+            else {
+                if(!aPressed) buttonsUp.gamepad[joyMapping["A"]] = true;
+                if(!startPressed) buttonsUp.gamepad[joyMapping["Start"]] = true;
+            }
         
-        var aPressed = buttonPressed(gp.buttons[joyMapping["A"]]);
-        var startPressed = buttonPressed(gp.buttons[joyMapping["Start"]]);
-        // A or Start - launch a game (no need to quit a game, since they should have escape mapped to a key so they can go back to the menu)
-        if( (aPressed && buttonsUp.gamepad[joyMapping["A"]]) 
-            || (startPressed && buttonsUp.gamepad[joyMapping["Start"]]) ) {
-            
-            if( aPressed ) buttonsUp.gamepad[joyMapping["A"]] = false;
-            if( startPressed ) buttonsUp.gamepad[joyMapping["Start"]] = false;
-            
-            document.querySelector("#launch-game").click();
-        }
-        else {
-            if(!aPressed) buttonsUp.gamepad[joyMapping["A"]] = true;
-            if(!startPressed) buttonsUp.gamepad[joyMapping["Start"]] = true;
-        }
-      
-        var rightTriggerPressed = buttonPressed(gp.buttons[joyMapping["Right Trigger"]]);
-        // Right shoulder or trigger - cycle saves - only if there is a game in front of the user
-        if( rightTriggerPressed && buttonsUp.gamepad[joyMapping["Right Trigger"]] && document.querySelector(".system.selected .game.selected") ) {
-            buttonsUp.gamepad[joyMapping["Right Trigger"]] = false;
-            cycleSave(1);
-            menuChangeDelay("right-trigger");
-        }
-        else {
-            if( menuDirection == "right-trigger" ) menuDirection = null;
-            buttonsUp.gamepad[joyMapping["Right Trigger"]] = true;
-        }
+            var rightTriggerPressed = buttonPressed(gp.buttons[joyMapping["Right Trigger"]]);
+            // Right shoulder or trigger - cycle saves - only if there is a game in front of the user
+            if( rightTriggerPressed && buttonsUp.gamepad[joyMapping["Right Trigger"]] && document.querySelector(".system.selected .game.selected") ) {
+                buttonsUp.gamepad[joyMapping["Right Trigger"]] = false;
+                cycleSave(1);
+                menuChangeDelay("right-trigger");
+            }
+            else {
+                if( menuDirection == "right-trigger" ) menuDirection = null;
+                buttonsUp.gamepad[joyMapping["Right Trigger"]] = true;
+            }
 
-        var leftTriggerPressed = buttonPressed(gp.buttons[joyMapping["Left Trigger"]]);
-        // Left shoulder or trigger - cycle saves
-        if( leftTriggerPressed && buttonsUp.gamepad[joyMapping["Left Trigger"]] && document.querySelector(".system.selected .game.selected") ) {
-            buttonsUp.gamepad[joyMapping["Left Trigger"]] = false;
-            cycleSave(-1);
-            menuChangeDelay("left-trigger");
-        }
-        else {
-            if( menuDirection == "left-trigger" ) menuDirection = null;
-            buttonsUp.gamepad[joyMapping["Left Trigger"]] = true;
-        }
+            var leftTriggerPressed = buttonPressed(gp.buttons[joyMapping["Left Trigger"]]);
+            // Left shoulder or trigger - cycle saves
+            if( leftTriggerPressed && buttonsUp.gamepad[joyMapping["Left Trigger"]] && document.querySelector(".system.selected .game.selected") ) {
+                buttonsUp.gamepad[joyMapping["Left Trigger"]] = false;
+                cycleSave(-1);
+                menuChangeDelay("left-trigger");
+            }
+            else {
+                if( menuDirection == "left-trigger" ) menuDirection = null;
+                buttonsUp.gamepad[joyMapping["Left Trigger"]] = true;
+            }
 
-        var leftStickXPosition = gp.axes[0];
-        var leftStickYPosition = gp.axes[1];
-        // Right
-        if( leftStickXPosition > 0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Right"]]) ) {
-            moveMenu( -1 );
-            menuChangeDelay("right-stick");
+            var leftStickXPosition = gp.axes[0];
+            var leftStickYPosition = gp.axes[1];
+            // Right
+            if( leftStickXPosition > 0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Right"]]) ) {
+                moveMenu( -1 );
+                menuChangeDelay("right-stick");
+            }
+            // Left
+            else if( leftStickXPosition < -0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Left"]]) ) {
+                moveMenu( 1 );
+                menuChangeDelay("left-stick");
+            }
+            // Up
+            else if( leftStickYPosition < -0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Up"]]) ) {
+                moveSubMenu( -1 );
+                menuChangeDelay("up-stick");
+            }
+            // Down
+            else if( leftStickYPosition > 0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Down"]]) ) {
+                moveSubMenu( 1 );
+                menuChangeDelay("down-stick");
+            }
+            // no buttons are pressed
+            else if( menuDirection && menuDirection.match(/-stick$/) ) {
+                menuDirection = null;
+            }
         }
-        // Left
-        else if( leftStickXPosition < -0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Left"]]) ) {
-            moveMenu( 1 );
-	        menuChangeDelay("left-stick");
-        }
-        // Up
-        else if( leftStickYPosition < -0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Up"]]) ) {
-            moveSubMenu( -1 );
-	        menuChangeDelay("up-stick");
-        }
-        // Down
-        else if( leftStickYPosition > 0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Down"]]) ) {
-            moveSubMenu( 1 );
-	        menuChangeDelay("down-stick");
-        }
-        // no buttons are pressed
-        else if( menuDirection && menuDirection.match(/-stick$/) ) {
-            menuDirection = null;
-        }
-    }
-    // Check if we are setting a key, and register the current gamepad key down
-    else if( document.hasFocus() && document.querySelector("#joypad-config-form") ) {
-        var inputs = document.querySelectorAll("#joypad-config-form input");
-        // Check if an input is focused
-        for( var i=0; i<inputs.length; i++ ) {
-            if( inputs[i] === document.activeElement ) {
-                // If so, check if any buttons are pressed
-                for( var j=0; j<gp.buttons.length; j++ ) {
-                    // If so, set the input's value to be that of the pressed button
-                    if(buttonPressed(gp.buttons[j])) {
-                        inputs[i].value = j;
-                        if( inputs[i+1] ) {
-                            if( focusInterval ) {
-                                clearTimeout(focusInterval);
-                                focusInterval = null;
-                            }
-                            focusInterval = setTimeout( function() { inputs[i+1].focus() }, FOCUS_NEXT_INTERVAL );
-                        } 
+        // Check if we are setting a key, and register the current gamepad key down
+        else if( document.hasFocus() && document.querySelector("#joypad-config-form") ) {
+            var inputs = document.querySelectorAll("#joypad-config-form input");
+            // Check if an input is focused
+            for( var i=0; i<inputs.length; i++ ) {
+                if( inputs[i] === document.activeElement ) {
+                    // If so, check if any buttons are pressed
+                    for( var j=0; j<gp.buttons.length; j++ ) {
+                        // If so, set the input's value to be that of the pressed button
+                        if(buttonPressed(gp.buttons[j])) {
+                            inputs[i].value = j;
+                            if( inputs[i+1] ) {
+                                if( focusInterval ) {
+                                    clearTimeout(focusInterval);
+                                    focusInterval = null;
+                                }
+                                focusInterval = setTimeout( function() { inputs[i+1].focus() }, FOCUS_NEXT_INTERVAL );
+                            } 
+                        }
                     }
+                    break;
                 }
-                break;
             }
         }
-    }
-    // Check if we are controlling media
-    else if( document.hasFocus() && document.querySelector(".modal #remote-media-form") ) {
-        var aPressed = buttonPressed(gp.buttons[joyMapping["A"]]);
-        var startPressed = buttonPressed(gp.buttons[joyMapping["Start"]]);
-        // A or Start - will pause/play
-        if( (aPressed && buttonsUp.gamepad[joyMapping["A"]]) 
-            || (startPressed && buttonsUp.gamepad[joyMapping["Start"]]) ) {
-            
-            if( aPressed ) buttonsUp.gamepad[joyMapping["A"]] = false;
-            if( startPressed ) buttonsUp.gamepad[joyMapping["Start"]] = false;
-            
-            var video = document.querySelector(".modal #remote-media-form video");
-            if( video.paused ) {
-                video.play();
-            }
-            else {
-                video.pause();
-            }
-        }
-        else {
-            if(!aPressed) buttonsUp.gamepad[joyMapping["A"]] = true;
-            if(!startPressed) buttonsUp.gamepad[joyMapping["Start"]] = true;
-        }
-
-        // Select will go full screen
-        var selectPressed = buttonPressed(gp.buttons[joyMapping["Select"]]);
-        if( selectPressed && buttonsUp.gamepad[joyMapping["Select"]] ) {
-            buttonsUp.gamepad[joyMapping["Select"]] = false;
-
-            if(document.fullscreenElement && document.fullscreenElement == document.querySelector(".modal #remote-media-form video")) {
-                document.exitFullscreen();
+        // Check if we are controlling media
+        else if( document.hasFocus() && document.querySelector(".modal #remote-media-form") ) {
+            var aPressed = buttonPressed(gp.buttons[joyMapping["A"]]);
+            var startPressed = buttonPressed(gp.buttons[joyMapping["Start"]]);
+            // A or Start - will pause/play
+            if( (aPressed && buttonsUp.gamepad[joyMapping["A"]]) 
+                || (startPressed && buttonsUp.gamepad[joyMapping["Start"]]) ) {
+                
+                if( aPressed ) buttonsUp.gamepad[joyMapping["A"]] = false;
+                if( startPressed ) buttonsUp.gamepad[joyMapping["Start"]] = false;
+                
+                var video = document.querySelector(".modal #remote-media-form video");
+                if( video.paused ) {
+                    video.play();
+                }
+                else {
+                    video.pause();
+                }
             }
             else {
-                document.querySelector(".modal #remote-media-form video").requestFullscreen();
+                if(!aPressed) buttonsUp.gamepad[joyMapping["A"]] = true;
+                if(!startPressed) buttonsUp.gamepad[joyMapping["Start"]] = true;
             }
-        }
-        else if(!selectPressed) {
-            buttonsUp.gamepad[joyMapping["Select"]] = true;
-        }
 
-        // Right trigger will got to next
-        var rightTriggerPressed = buttonPressed(gp.buttons[joyMapping["Right Trigger"]]);
-        if( rightTriggerPressed && buttonsUp.gamepad[joyMapping["Right Trigger"]] ) {
-            buttonsUp.gamepad[joyMapping["Right Trigger"]] = false;
+            // Select will go full screen
+            var selectPressed = buttonPressed(gp.buttons[joyMapping["Select"]]);
+            if( selectPressed && buttonsUp.gamepad[joyMapping["Select"]] ) {
+                buttonsUp.gamepad[joyMapping["Select"]] = false;
 
-            playNextMedia(1);
-        }
-        else if(!rightTriggerPressed) {
-            buttonsUp.gamepad[joyMapping["Right Trigger"]] = true;
-        }
+                if(document.fullscreenElement && document.fullscreenElement == document.querySelector(".modal #remote-media-form video")) {
+                    document.exitFullscreen();
+                }
+                else {
+                    document.querySelector(".modal #remote-media-form video").requestFullscreen();
+                }
+            }
+            else if(!selectPressed) {
+                buttonsUp.gamepad[joyMapping["Select"]] = true;
+            }
 
-        // Left trigger will go to previous
-        var leftTriggerPressed = buttonPressed(gp.buttons[joyMapping["Left Trigger"]]);
-        if( leftTriggerPressed && buttonsUp.gamepad[joyMapping["Left Trigger"]] ) {
-            buttonsUp.gamepad[joyMapping["Left Trigger"]] = false;
+            // Right trigger will got to next
+            var rightTriggerPressed = buttonPressed(gp.buttons[joyMapping["Right Trigger"]]);
+            if( rightTriggerPressed && buttonsUp.gamepad[joyMapping["Right Trigger"]] ) {
+                buttonsUp.gamepad[joyMapping["Right Trigger"]] = false;
 
-            previousMedia();
-        }
-        else if(!leftTriggerPressed) {
-            buttonsUp.gamepad[joyMapping["Left Trigger"]] = true;
+                playNextMedia(1);
+            }
+            else if(!rightTriggerPressed) {
+                buttonsUp.gamepad[joyMapping["Right Trigger"]] = true;
+            }
+
+            // Left trigger will go to previous
+            var leftTriggerPressed = buttonPressed(gp.buttons[joyMapping["Left Trigger"]]);
+            if( leftTriggerPressed && buttonsUp.gamepad[joyMapping["Left Trigger"]] ) {
+                buttonsUp.gamepad[joyMapping["Left Trigger"]] = false;
+
+                previousMedia();
+            }
+            else if(!leftTriggerPressed) {
+                buttonsUp.gamepad[joyMapping["Left Trigger"]] = true;
+            }
         }
     }
     setTimeout(manageGamepadInput, GAMEPAD_INPUT_INTERVAL);
@@ -3868,7 +3875,7 @@ function startConnectionToPeer( isStreamer, id ) {
 function handlePotentialDisconnect( id ) {
     var peerConnection = peerConnections.filter(el => el.id==id)[0].peerConnection;
     if( peerConnection.iceConnectionState == "disconnected" ) {
-        //stopConnectionToPeer(false, id, isServer ? true : false); // note we pretend we are not the streamer even if we are here.
+        stopConnectionToPeer(false, id, isServer ? true : false); // note we pretend we are not the streamer even if we are here.
         // this will close the connection, but then it will call all the server functions we need to allow for
         // another connection to take place. Then, the server will try to stop the connection on the menuPage, but
         // it will not pass any of the checks, since peerConnection will already be null as will localStream
