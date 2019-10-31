@@ -3545,7 +3545,7 @@ function manageGamepadInput() {
     
     for (var i=0; i<gamepads.length; i++) {
         var gp = gamepads[i];
-        if( !disableMenuControls && document.hasFocus() ) {
+        if( !disableMenuControls && document.hasFocus() && gp ) {
 
             // See this helpful image for mappings: https://www.html5rocks.com/en/tutorials/doodles/gamepad/gamepad_diagram.png
             
