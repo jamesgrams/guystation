@@ -374,7 +374,7 @@ h1 {
     right: 0;
     text-align: center;
     transform: translateX(97%); /* ~24px shown */
-    width: 876px; /* 58px to add another icon */
+    width: 932px; /* 58px to add another icon */
     transition: transform 0.5s, width 0.5s;
     z-index: 998;
 }
@@ -603,7 +603,7 @@ h1 {
     100% { transform: translate(calc(-100% - 10px), -100%); } /* End the animation after the element has traveled to the left its entire width and then 10 more px to put it past the padding */
 }
 
-@media only screen and (max-width: 970px) {
+@media only screen and (max-width: 1030px) {
     #functions {
         width: 230px;
         transform: translateX(90%);
@@ -703,6 +703,9 @@ readers do not read off random characters that represent icons */
 
 .fa-power-off:before {
     content: "\f011"; }
+
+.fa-exchange-alt:before {
+    content: "\f362"; }
 
 .sr-only-focusable:active, .sr-only-focusable:focus {
   clip: auto;

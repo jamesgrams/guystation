@@ -105,7 +105,7 @@ const PLATFORM_LOOKUP = {
     "psp": [38],
     "3ds": [37, 137] // 3ds & new 3ds
 }
-const IGDB_API_KEY = process.env.GUYSTATION_IGDB_API_KEY; // TODO make this an environment variables
+const IGDB_API_KEY = process.env.GUYSTATION_IGDB_API_KEY;
 const IGBD_API_URL = "https://api-v3.igdb.com/";
 const GAMES_ENDPOINT = IGBD_API_URL + "games";
 const GAMES_FIELDS = "fields cover, name, first_release_date, summary;";
@@ -188,8 +188,6 @@ let systemsDict = {};
 let browser = null;
 let menuPage = null;
 let browsePage = null;
-let lastOutputTime = 0;
-let outputTimeout = null;
 let properResolution = null;
 let clearMediaPlayingInterval = null;
 let needToRefocusGame = false;
@@ -210,7 +208,7 @@ staticApp.use( "/"+SYSTEMS_DIR+"/", express.static(SYSTEMS_DIR) );
 app.use(function(req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-    res.header('Access-Control-Allow-Methods', 'PUT, POST, GET, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Methods', 'PUT, POST, GET, DELETE, OPTIONS, PATCH');
     next();
 });
 
@@ -331,8 +329,30 @@ app.post("/save", async function(request, response) {
     }
 });
 
-// Change the current save
+// Update the current save
 app.put("/save", async function(request, response) {
+    console.log("app serving /save/ (PUT) with body: " + JSON.stringify(request.body));
+    if( ! requestLocked ) {
+        requestLocked = true;
+        try {
+            let errorMessage = updateSave( request.body.system, request.body.game, request.body.parents, request.body.oldSave, request.body.save );
+            getData(); // Reload data
+            requestLocked = false;
+            writeActionResponse( response, errorMessage );
+        }
+        catch(err) {
+            console.log(err);
+            requestLocked = false;
+            writeActionResponse( response, ERROR_MESSAGES.genericError );
+        }
+    }
+    else {
+        writeLockedResponse( response );
+    }
+});
+
+// Change the current save
+app.patch("/save", async function(request, response) {
     console.log("app serving /save/ (PUT) with body: " + JSON.stringify(request.body));
     if( ! requestLocked ) {
         requestLocked = true;
@@ -550,7 +570,7 @@ app.get("/screencast/connect", async function(request, response) {
     if( ! requestLocked ) {
         requestLocked = true;
         try {
-            let errorMessage = await connectScreencast();
+            let errorMessage = await connectScreencast( request.query.id );
             requestLocked = false;
             writeActionResponse( response, errorMessage );
         }
@@ -565,24 +585,17 @@ app.get("/screencast/connect", async function(request, response) {
     }
 });
 
-// Start screencast
-app.get("/screencast/start", async function(request, response) {
-    console.log("app serving /screencast/start");
-    let errorMessage = await startScreencast();
-    writeActionResponse( response, errorMessage );
-});
-
 // Stop screencast
 app.get("/screencast/stop", async function(request, response) {
     console.log("app serving /screencast/stop");
-    let errorMessage = await stopScreencast();
+    let errorMessage = await stopScreencast( request.query.id );
     writeActionResponse( response, errorMessage );
 });
 
 // Reset screencast cancel timeout
 app.get("/screencast/reset-cancel", async function(request, response) {
     console.log("app serving /screencast/reset-cancel");
-    let errorMessage = resetScreencastTimeout();
+    let errorMessage = resetScreencastTimeout( request.query.id );
     writeActionResponse( response, errorMessage );
 });
 
@@ -1703,6 +1716,57 @@ function newSave(system, game, save, force, parents=[]) {
 }
 
 /**
+ * Update a save.
+ * This function only allows a name to be updated. A save can't be transferred inter-game.
+ * @param {string} system - The system the game is on.
+ * @param {string} game - The game to create a save for.
+ * @param {Array<string>} [parents] - An array of parent folders for a game.
+ * @param {string} oldSave - The name of the old save.
+ * @param {string} save - The new name of the save.
+ * @returns {(boolean|string)} An error message if there was an error, otherwise false.
+ */
+function updateSave(system, game, parents=[], oldSave, save) {
+
+    // Everything the same is a no-op like updateGame
+    if( save == oldSave ) return false;
+
+    // Error check
+    var invalidName = isInvalidName( save );
+    if( invalidName ) return invalidName;
+    // Make sure the game is valid
+    let isInvalid = isInvalidGame( system, game, parents );
+    if( isInvalid ) return isInvalid;
+    // This name is reserved (current)
+    if( save == CURRENT_SAVE_DIR ) {
+        return ERROR_MESSAGES.usingReservedSaveName;
+    }
+    // Make sure the name is not already being used
+    if( getGameDictEntry(system, game, parents).saves[save] ) {
+        return ERROR_MESSAGES.saveAlreadyExists;
+    }
+    // Make sure there is a save
+    if( !save ) return ERROR_MESSAGES.saveNameRequired;
+    // Make sure the old save exists
+    if( !getGameDictEntry(system, game, parents).saves[oldSave] ) {
+        return ERROR_MESSAGES.saveDoesNotExist;
+    }
+
+    // move the save directory
+    let oldSaveDir = generateSaveDir( system, game, oldSave, parents );
+    let saveDir = generateSaveDir( system, game, save, parents );
+    fsExtra.moveSync( oldSaveDir, saveDir );
+
+    // update the symlinks
+    let currentSave = getCurrentSave( system, game, parents );
+    if( currentSave == oldSave ) {
+        // force is true since gamedict hasn't been updated
+        changeSave( system, game, save, true, parents );
+    }
+
+    return false;
+}
+
+/**
  * Switch the current save.
  * @param {string} system - The system the game is on.
  * @param {string} game - The game to change saves for.
@@ -1828,7 +1892,7 @@ function addGame( system, game, file, parents=[], isFolder, isPlaylist, playlist
     // Make sure the game is valid
     if( !systemsDict[system] ) return ERROR_MESSAGES.noSystem;
     if( getGameDictEntry(system, game, parents) ) return ERROR_MESSAGES.gameAlreadyExists;
-    if( !isSymlink && parents.length && !getGameDictEntry(system, parents[parents.length-1], parents.slice(parents.length-1 > 0 ? parents.length-1 : 1) ) ) return ERROR_MESSAGES.invalidParents;
+    if( !isSymlink && parents.length && !getGameDictEntry(system, parents[parents.length-1], parents.slice(0, parents.length-1) ) ) return ERROR_MESSAGES.invalidParents;
     if( !game ) return ERROR_MESSAGES.gameNameRequired;
     var invalidName = isInvalidName( game );
     if( invalidName ) return invalidName;
@@ -2803,11 +2867,15 @@ async function fetchGameData( system, game, parents, currentMetadataContents, fo
         return ERROR_MESSAGES.alreadyFetchedWithinWeek;
     }
 
+    delete currentMetadataContents.summary
+    delete currentMetadataContents.releaseDate;
+    delete currentMetadataContents.name;
+    delete currentMetadataContents.cover;
+
     let payload = GAMES_FIELDS + 'search "' + game + '";' + 'where platforms=(' + PLATFORM_LOOKUP[system].join() + ");";
     let gameInfo = await axios.post( GAMES_ENDPOINT, payload, { "headers": IGDB_HEADERS } );
     if( gameInfo.data.length ) {
         gameInfo = gameInfo.data[0];
-        if( gameInfo.summary ) currentMetadataContents.summary = gameInfo.summary;
         if( gameInfo.first_release_date ) currentMetadataContents.releaseDate = gameInfo.first_release_date;
         if( gameInfo.name ) currentMetadataContents.name = gameInfo.name;
         if( gameInfo.summary ) currentMetadataContents.summary = gameInfo.summary;
@@ -2908,10 +2976,11 @@ ioHook.start();
 // Signal server section
 let streamerMediaReady = false;
 let clientJoined = false;
-let screencastStarted = false;
+let SERVER_ID = "server";
 let serverSocketId;
-let clientSocketId;
-let cancelStreamingTimeout;
+let clientSocketIds = [];
+let startedClientIds = [];
+let cancelStreamingTimeouts = {};
 io.on('connection', function(socket) {
     socket.on("connect-screencast-streamer", function() {
         if( !serverSocketId ) {
@@ -2924,78 +2993,89 @@ io.on('connection', function(socket) {
     socket.on("streamer-media-ready", function() {
         console.log("screencast media ready");
         streamerMediaReady = true;
-        if( clientJoined && !screencastStarted ) {
-            startScreencast();
-            screencastStarted = true;
+        if( clientJoined ) {
+            for( let clientSocketId of clientSocketIds.filter( el => !startedClientIds.includes(el) ) ) {
+                startedClientIds.push( clientSocketId );
+                startScreencast(clientSocketId);
+            }
         }
     } );
     socket.on("connect-screencast-client", function() {
-        if( !clientSocketId ) {
+        if( clientSocketIds.indexOf(socket.id) == -1 ) {
             console.log("screencast client connected");
-            clientSocketId = socket.id;
+            clientSocketIds.push(socket.id);
             // the client will only connect
             // this will always happen after the server connect
             // since client connect is the success function when we call to server connect
             // as such, we can now tell the server to start the stream
             clientJoined = true;
-            if( streamerMediaReady && !screencastStarted ) {
-                startScreencast();
-                screencastStarted = true;
+            if( streamerMediaReady ) {
+                for( let clientSocketId of clientSocketIds.filter( el => !startedClientIds.includes(el) ) ) {
+                    startedClientIds.push( clientSocketIds );
+                    startScreencast(clientSocketId);
+                }
             }
         }
     } );
     socket.on("sdp", function(message) {
         if( socket.id == serverSocketId ) {
-            io.to(clientSocketId).emit("sdp", message);
+            io.to(message.id).emit("sdp", { "id": SERVER_ID, "sdp": message.description });
         }
-        else if( socket.id == clientSocketId ) {
-            io.to(serverSocketId).emit("sdp", message);
+        else if( clientSocketIds.includes(socket.id) ) {
+            io.to(serverSocketId).emit("sdp", { "id": socket.id, "sdp": message.description } );
         }
     } );
     socket.on("ice", function(message) {
         if( socket.id == serverSocketId ) {
-            io.to(clientSocketId).emit("ice", message);
+            io.to(message.id).emit("ice", { "id": SERVER_ID, "ice": message.candidate });
         }
-        else if( socket.id == clientSocketId ) {
-            io.to(serverSocketId).emit("ice", message);
+        else if( clientSocketIds.includes(socket.id) ) {
+            io.to(serverSocketId).emit("ice", { "id": socket.id, "ice": message.candidate } );
         }
     } );
 } );
 
 /**
  * Reset the streaming timeout heartbeat time.
- * @returns {boolean} - Returns false.
+ * @param {string} [id] - The id of the client.
+ * @returns {boolean} Returns false.
  */
-function resetScreencastTimeout() {
-    clearTimeout(cancelStreamingTimeout);
-    cancelStreamingTimeout = setTimeout( function() { if( serverSocketId ) { stopScreencast(true); } }, STREAMING_HEARTBEAT_TIME );
+function resetScreencastTimeout( id ) {
+    clearTimeout(cancelStreamingTimeouts[id]);
+    cancelStreamingTimeouts[id] = setTimeout( function() {
+        if( serverSocketId ) { 
+            stopScreencast(id); } 
+        },
+    STREAMING_HEARTBEAT_TIME );
     return false;
 }
 
 /**
  * Connect the menuPage to the signal server.
+ * @param {id} - The id of the socket asking the menuPage to connect.
  * @returns {Promise<(boolean|string)>} An error message if there is one or false if there is not.
  */
-async function connectScreencast() {
+async function connectScreencast( id ) {
     if( !menuPage || menuPage.isClosed() ) {
         return Promise.resolve(ERROR_MESSAGES.menuPageClosed);
     }
-    // the client will not try to connect if we reject it here
-    // so that will save it from trying to connect (it'll be rejected anyway)
-    if( serverSocketId || clientSocketId ) {
-        return Promise.resolve(ERROR_MESSAGES.connectionAlreadyExists);
+
+    resetScreencastTimeout( id ); // add to the screencast timeouts
+    // this is extra security beyond oniceconnectionstatechange in case the connection never happens
+    // so it never disconnects
+
+    // do not connect again if we are already connected
+    if( serverSocketId ) {
+        return false;
     }
     // starting a screencast will activate the home tab
     // it is best to predict that and to it anyway
-    if( currentEmulator && currentSystem != MEDIA && !menuPageIsActive() ) { 
+    if( currentEmulator && currentSystem != MEDIA && !startedClientIds.length && !menuPageIsActive() ) { 
         await goHome(); 
         needToRefocusGame = true; 
     }
     // focus on guy station
-    await menuPage.evaluate( () => connectToSignalServer(true) );
-    resetScreencastTimeout(); // if we don't hear from the client, we'll end the stream
-    // this is extra security beyond oniceconnectionstatechange in case the connection never happens
-    // so it never disconnects
+    await menuPage.evaluate( () => connectToSignalServer(true) );    
 
     // focus on 
     return Promise.resolve(false);
@@ -3003,21 +3083,19 @@ async function connectScreencast() {
 
 /**
  * Start the menuPage's screencast.
+ * @param {string} id - The socket id of the client to start screencasting to.
  * @returns {Promise<(boolean|string)>} An error message if there is one or false if there is not.
  */
-async function startScreencast() {
+async function startScreencast( id ) {
     if( !menuPage || menuPage.isClosed() ) {
         return Promise.resolve(ERROR_MESSAGES.menuPageClosed);
     }
-    if( !serverSocketId || !clientSocketId ) {
+    if( !serverSocketId || !clientSocketIds.length ) {
         return Promise.resolve(ERROR_MESSAGES.clientAndServerAreNotBothConnected );
     }
-    if( screencastStarted ) {
-        return Promise.resolve(ERROR_MESSAGES.screencastAlreadyStarted);
-    }
-    await menuPage.evaluate( () => startConnectionToPeer(true) );
+    await menuPage.evaluate( (id) => startConnectionToPeer(true, id), id );
     // we can return to the game now
-    if( currentEmulator && currentSystem != MEDIA && needToRefocusGame ) { 
+    if( currentEmulator && currentSystem != MEDIA && !startedClientIds.length && needToRefocusGame ) { 
         await launchGame( currentSystem, currentGame, false, currentParentsString.split(SEPARATOR).filter(el => el != '') ); 
         needToRefocusGame = false;
     }
@@ -3026,32 +3104,39 @@ async function startScreencast() {
 }
 
 /**
- * Stop the menuPage's screencast.
- * @param {boolean} force - Force the connection to end.
+ * Stop the menuPage's screencast iff there are no more clients.
+ * @param {string} id - The id of the client that no longer needs the stream.
  * @returns {Promise<(boolean|string)>} An error message if there is one or false if there is not.
  */
-async function stopScreencast(force) {
-    if( !force ) {
-        if( !menuPage || menuPage.isClosed() ) {
-            return Promise.resolve(ERROR_MESSAGES.menuPageClosed);
-        }
-        if( !serverSocketId || !clientSocketId ) {
-            return Promise.resolve(ERROR_MESSAGES.clientAndServerAreNotBothConnected );
-        }
-        if( !screencastStarted ) {
-            return Promise.resolve(ERROR_MESSAGES.screencastNotStarted);
-        }
+async function stopScreencast(id) {
+    if( !menuPage || menuPage.isClosed() ) {
+        return Promise.resolve(ERROR_MESSAGES.menuPageClosed);
     }
+    if( !serverSocketId || !clientSocketIds.length ) {
+        return Promise.resolve(ERROR_MESSAGES.clientAndServerAreNotBothConnected );
+    }
+    if( !clientSocketIds.length ) {
+        return Promise.resolve(ERROR_MESSAGES.screencastNotStarted);
+    }
+
+    console.log( "stopping: " + id );
+    clientSocketIds = clientSocketIds.filter( el => el != id );
+    startedClientIds = clientSocketIds.filter( el => el != id );
+    delete cancelStreamingTimeouts[id];
+
     try {
-        await menuPage.evaluate( () => stopConnectionToPeer(true) );
+        await menuPage.evaluate( (id) => stopConnectionToPeer(true, id), id );
     }
-    catch(err) {/*ok*/}
-    screencastStarted = false;
+    catch(err) { console.log(err); }
+
+    if( clientSocketIds.length ) return false; // there are still more clients
+
     streamerMediaReady = false;
     clientJoined = false;
     serverSocketId = null;
-    clientSocketId = null;
-    clearTimeout(cancelStreamingTimeout); // clear the timeout waiting to cancel
+    clientSocketIds = [];
+    startedClientIds = [];
+    cancelStreamingTimeouts = [];
     return Promise.resolve(false);
 }
 

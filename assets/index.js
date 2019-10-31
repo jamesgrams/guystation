@@ -1053,6 +1053,7 @@ function toggleButtons() {
     var updateGameButton = document.getElementById("update-game");
     var deleteGameButton = document.getElementById("delete-game");
     var addSaveButton = document.getElementById("add-save");
+    var changeSaveButton = document.getElementById("change-save");
     var updateSaveButton = document.getElementById("update-save");
     var deleteSaveButton = document.getElementById("delete-save");
     var joypadConfigButton = document.getElementById("joypad-config");
@@ -1071,6 +1072,8 @@ function toggleButtons() {
     if(!anyGameNotFolder) {
         addSaveButton.onclick = null;
         addSaveButton.classList.add("inactive");
+        changeSaveButton.onclick = null;
+        changeSaveButton.classList.add("inactive");
         updateSaveButton.onclick = null;
         updateSaveButton.classList.add("inactive");
         deleteSaveButton.onclick = null;
@@ -1079,8 +1082,10 @@ function toggleButtons() {
     else {
         addSaveButton.onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#add-save-form") ) displayAddSave(); };
         addSaveButton.classList.remove("inactive");
-        updateSaveButton.onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#change-save-form") ) displaySelectSave(); };
+        updateSaveButton.onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#update-save-form") ) displayUpdateSave(); };
         updateSaveButton.classList.remove("inactive");
+        changeSaveButton.onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#change-save-form") ) displaySelectSave(); };
+        changeSaveButton.classList.remove("inactive");
         deleteSaveButton.onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#delete-save-form") ) displayDeleteSave(); };
         deleteSaveButton.classList.remove("inactive");
     }
@@ -1777,7 +1782,7 @@ function displayBrowserControls() {
     form.appendChild( backButton );
     form.appendChild( forwardButton );
 
-    launchModal( form, function() { stopConnectionToPeer(false); clearInterval(browserAddressHeartbeat); clearInterval(tabsHeartbeat); } );
+    launchModal( form, function() { stopConnectionToPeer(false, "server"); clearInterval(browserAddressHeartbeat); clearInterval(tabsHeartbeat); } );
     
     //video
     var video = document.createElement("video");
@@ -1810,11 +1815,11 @@ function displayBrowserControls() {
             makeRequest( "POST", "/browser/click", {"xPercent": xPercent, "yPercent": yPercent} );
         }
     };
-    makeRequest( "GET", "/screencast/connect", [], function() {
+    makeRequest( "GET", "/screencast/connect", { id: socket.id }, function() {
         // start letting the server know we exist after it is now looking for us i.e. won't accept another connection
         // (serverSocketId is set)
         resetCancelStreamingInterval = setInterval( function() {
-            makeRequest( "GET", "/screencast/reset-cancel", [] );
+            makeRequest( "GET", "/screencast/reset-cancel", { id: socket.id } );
         }, RESET_CANCEL_STREAMING_INTERVAL );
         connectToSignalServer(false);
     }, function(responseText) { standardFailure(responseText, true) } );
@@ -1960,13 +1965,13 @@ function displayScreencast() {
     video.setAttribute("controls", "true");
     form.setAttribute("id", "remote-screencast-form");
     form.appendChild(video);
-    makeRequest( "GET", "/screencast/connect", [], function() {
+    makeRequest( "GET", "/screencast/connect", { id: socket.id }, function() {
         // start letting the server know we exist after it is now looking for us i.e. won't accept another connection
         // (serverSocketId is set)
         resetCancelStreamingInterval = setInterval( function() {
-            makeRequest( "GET", "/screencast/reset-cancel", [] );
+            makeRequest( "GET", "/screencast/reset-cancel", { id: socket.id } );
         }, RESET_CANCEL_STREAMING_INTERVAL );
-        launchModal( form, function() { stopConnectionToPeer(false); } );
+        launchModal( form, function() { stopConnectionToPeer(false, "server"); } );
         connectToSignalServer(false);
     }, function(responseText) { standardFailure(responseText, true) } );
 }
@@ -2112,6 +2117,36 @@ function cycleSave(offset) {
             changeSave( selected.system, selected.game, saves[nextIndex], selected.parents );
         }
     }
+}
+
+/**
+ * Display the menu to delete a save.
+ */
+function displayUpdateSave() {
+    var form = document.createElement("div");
+    var selected = getSelectedValues(true, true);
+    form.setAttribute("id", "update-save-form");
+    form.appendChild( createFormTitle("Update Save") );
+    form.appendChild( createSystemMenu( selected.system, false, true, true, true, true ) );
+    form.appendChild( createFolderMenu( selected.parents, selected.system, false, false, true, true) );
+    form.appendChild( createGameMenu(selected.game, selected.system, false, true, selected.parents, true) );
+    var saveMenu = createSaveMenu(selected.save, selected.system, selected.game, true, selected.parents);
+    saveMenu.querySelector("span").innerText = "Old " + saveMenu.querySelector("span").innerText;
+    form.appendChild( saveMenu );
+    var saveInput = createSaveInput(null, true);
+    form.appendChild( saveInput );
+    form.appendChild( createButton( "Update Save", function() {
+        if( !makingRequest ) {
+            startRequest();
+            var systemSelect = document.querySelector(".modal #update-save-form #system-select");
+            var gameSelect = document.querySelector(".modal #update-save-form #game-select");
+            var saveSelect = document.querySelector(".modal #update-save-form #save-select");
+            var saveInput = document.querySelector(".modal #update-save-form #save-input");
+            var parents = extractParentsFromFolderMenu();
+            updateSave( systemSelect.options[systemSelect.selectedIndex].value, gameSelect.options[gameSelect.selectedIndex].value, parents, saveSelect.options[saveSelect.selectedIndex].value, saveInput.value );
+        }
+    }, [saveInput.firstElementChild.nextElementSibling] ) );
+    launchModal( form );
 }
 
 /**
@@ -2838,13 +2873,29 @@ function createFolderMenu( parents, system, old, required, onlyWithGames, onlyWi
                         }
                     }
 
+                    var newFolderMenu;
                     // for a playlist, first element set to null, remove 
                     if( isForPlaylist && newParents[0] == "" && allPlaylistSelects.length > 1 ) {
                         this.parentNode.parentNode.parentNode.parentNode.removeChild( this.parentNode.parentNode.parentNode );
                     }
-                    else
-                        this.parentNode.parentNode.parentNode.replaceWith( createFolderMenu( newParents, system, old, required, onlyWithGames, onlyWithRealGames, null, onlyWithLeafNodes, isForPlaylist, playlistId ) );
+                    else {
+                        newFolderMenu = createFolderMenu( newParents, system, old, required, onlyWithGames, onlyWithRealGames, null, onlyWithLeafNodes, isForPlaylist, playlistId );
+                        this.parentNode.parentNode.parentNode.replaceWith( newFolderMenu );
+                    }
                     
+                    // select folders further in if we have to due to leafnodes or real games only
+                    if( !isForPlaylist && (onlyWithLeafNodes || onlyWithRealGames) ) {
+                        var testGameSelect = createGameMenu(null, system, false, false, newParents, onlyWithRealGames, onlyWithLeafNodes);
+                        while( !testGameSelect.querySelector("select").options.length ) {
+                            var folderSelects = newFolderMenu.querySelectorAll("select");
+                            newParents.push(folderSelects[folderSelects.length-1].options[1].value);
+                            var oldFolderMenu = newFolderMenu;
+                            newFolderMenu = createFolderMenu( newParents, system, old, required, onlyWithGames, onlyWithRealGames, null, onlyWithLeafNodes, isForPlaylist, playlistId );
+                            oldFolderMenu.replaceWith( newFolderMenu );
+                            testGameSelect = createGameMenu(null, system, false, false, newParents, onlyWithRealGames, onlyWithLeafNodes);
+                        }
+                    }
+
                     if( !isForPlaylist ) {
                         // If there are any game menus below the folders, trigger them to change
                         var gameSelect = modal.querySelector("#" + (old ? "old-" : "") + "game-select");
@@ -2916,7 +2967,6 @@ function createSaveInput( defaultValue, required ) {
  * @param {string} [selected] - The save selected by default.
  * @param {string} system - The system the saves are for.
  * @param {string} game - The game the saves are for.
- * @param {boolean} [old] - True if the old game for chanding (changes the id).
  * @param {boolean} [required] - If the field is required.
  * @param {Array<string>} parents - The games the saves are for.
  * @returns {HTMLElement} - A select element containing the necessary keys wrapped by a label.
@@ -3292,6 +3342,20 @@ function addSave( system, game, save, parents ) {
 }
 
 /**
+ * Update a save.
+ * @param {string} system - The system the game is on.
+ * @param {string} game - The name of the game.
+ * @param {Array<string>} parents - The parents of a game.
+ * @param {string} oldSave - The old name of the save.
+ * @param {string} save - The new name of the save.
+ */
+function updateSave( system, game, parents, oldSave, save ) {
+    makeRequest( "PUT", "/save", { "system": system, "game": game, "save": save, "parents": parents, "oldSave": oldSave }, 
+    function( responseText ) { standardSuccess(responseText, "Save successfully updated") },
+    function( responseText ) { standardFailure( responseText ) } );
+}
+
+/**
  * Change the current save.
  * @param {string} system - The system the game is on.
  * @param {string} game - The name of the game.
@@ -3299,7 +3363,7 @@ function addSave( system, game, save, parents ) {
  * @param {Array<string>} parents - The parents of a game.
  */
 function changeSave( system, game, save, parents ) {
-    makeRequest( "PUT", "/save", { "system": system, "game": game, "save": save, "parents": parents }, 
+    makeRequest( "PATCH", "/save", { "system": system, "game": game, "save": save, "parents": parents }, 
     function( responseText ) { standardSuccess(responseText, "Save successfully changed") },
     function( responseText ) { standardFailure( responseText ) } );
 }
@@ -3737,7 +3801,7 @@ function handleTouchMove(evt) {
 // Connection is made and remote streams handled with ontrack
 
 var localStream = null;
-var peerConnection = null;
+var peerConnections = [];
 
 /**
  * Connect to the signal server.
@@ -3772,16 +3836,19 @@ function getDisplayMediaSuccess(stream) {
  * Peer connection should already be defined.
  * This should be initially called by the menuPage (using puppeteer evaluate) after it detects a client connect to it.
  * Once the server is connected to the client, the client will connect to the server automaitcally as seen in the handle functions
- * @param {boolean} isStreamer - True if this is the streamer, false if this is the client.
+ * @param {boolean} [isStreamer] - True if this is the streamer, false if this is the client.
+ * @param {string} [id] - The id of the peer (this is only relevant for the server).
  */
-function startConnectionToPeer( isStreamer ) {
-    peerConnection = new RTCPeerConnection(null);
+function startConnectionToPeer( isStreamer, id ) {
+    if( !id ) id = "server";
+    var peerConnection = new RTCPeerConnection(null);
+    peerConnections.push( {"id": id, "peerConnection": peerConnection } );
     // https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/onicecandidate
     // onicecandidate is not called when you do addIceCandidate. It is called whenever
     // it is deemed necessary that you send your ice candidates to the signal server
     // (usually after you have sent an offer or an answer).
-    peerConnection.onicecandidate = gotIceCandidate;
-    peerConnection.oniceconnectionstatechange = handlePotentialDisconnect;
+    peerConnection.onicecandidate = function(event) {gotIceCandidate(id, event)};
+    peerConnection.oniceconnectionstatechange = function() {handlePotentialDisconnect(id)};
     // Only the receiver will need to worry about what happens when it gets a remote stream
     if( !isStreamer ) {
         peerConnection.ontrack = gotRemoteStream;
@@ -3790,16 +3857,18 @@ function startConnectionToPeer( isStreamer ) {
     if( isStreamer ) {
         peerConnection.addStream(localStream);
         // the streamer will create an offer once it creates its peer connection
-        peerConnection.createOffer({offerToReceiveVideo: true}).then(createdDescription).catch(errorHandler);
+        peerConnection.createOffer({offerToReceiveVideo: true}).then(function(data) {createdDescription(id, data)}).catch(errorHandler);
     }
 }
 
 /**
  * Handle a potential disconnect.
+ * @param {string} [id] - The id of the peer that we lost connection to.
  */
-function handlePotentialDisconnect() {
-    if( peerConnection && peerConnection.iceConnectionState == "disconnected" ) {
-        stopConnectionToPeer(false); // note we pretend we are not the streamer even if we are here.
+function handlePotentialDisconnect( id ) {
+    var peerConnection = peerConnections.filter(el => el.id==id)[0].peerConnection;
+    if( peerConnection.iceConnectionState == "disconnected" ) {
+        //stopConnectionToPeer(false, id, isServer ? true : false); // note we pretend we are not the streamer even if we are here.
         // this will close the connection, but then it will call all the server functions we need to allow for
         // another connection to take place. Then, the server will try to stop the connection on the menuPage, but
         // it will not pass any of the checks, since peerConnection will already be null as will localStream
@@ -3811,16 +3880,26 @@ function handlePotentialDisconnect() {
  * Since the connection will always be closed from the client, if this is the client
  * this will tell the server to stop too once it has closed.
  * @param {boolean} isStreamer - True if this is the streamer, or we want to pretend that we are
+ * @param {string} [id] - The id of the peer to stop the connection to.
+ * @param {boolean} [useIdAsSocketId] - send the id as the socket id - this is what the server will read as the id to stop the connection to. So when we are pretending to not be the server, we should set this to the peer id. When are the client, it should be our socket id.
  */
-function stopConnectionToPeer( isStreamer ) {
-    if( peerConnection ) {
+function stopConnectionToPeer( isStreamer, id, useIdAsSocketId ) {
+    if( !id ) { // this is a disconnect from reset cancel
+        for( var i=0; i<peerConnections.length; i++ ) {
+            peerConnections[i].peerConnection.close();
+        }
+        peerConnections = [];
+    }
+    if( peerConnections.length ) {
+        var peerConnection = peerConnections.filter(el => el.id==id)[0].peerConnection;
         peerConnection.close();
-        peerConnection = null;
+        peerConnections = peerConnections.filter(el => el.id != id);
     }
     if( !isStreamer ) {
         var stopLettingServerKnowWeExist = function() { clearInterval(resetCancelStreamingInterval); };
         // stop letting the server know we exist once it stops expecting us
-        makeRequest("GET", "/screencast/stop", [], stopLettingServerKnowWeExist, stopLettingServerKnowWeExist);
+        // this will only stop the server if this is the last connection
+        makeRequest("GET", "/screencast/stop", {id: useIdAsSocketId ? id : socket.id}, stopLettingServerKnowWeExist, stopLettingServerKnowWeExist);
 
         // this should only be called on the client
         // if this is because the server disconnects, we'll close the modal here
@@ -3831,7 +3910,8 @@ function stopConnectionToPeer( isStreamer ) {
             closeModal();
         }
     }
-    else if(localStream) {
+    // stop streaming if this was the last connection
+    else if(localStream && !peerConnections.length) {
         localStream.getTracks().forEach( function(tr) {tr.stop();} ); // should be idempotent, tracks aren't started again, localStream is just overwritten
         localStream = null;
     }
@@ -3839,18 +3919,23 @@ function stopConnectionToPeer( isStreamer ) {
  
 /**
  * Handle an offer/answer in WebRTC protocol.
- * @param {Object} data - The data associated with the offer/answer.
+ * Note how this expects data modified by the server to have some identification metadata.
+ * @param {Object} data - A peer ID and some sdp data.
+ * @param {string} data.id - The peer id.
+ * @param {Object} data.sdp - The data associated with the offer/answer.
  */
 function handleRemoteSdp(data) {
     // this is to create the peer connection on the client (an offer has been received from guystation)
-    if(!peerConnection) startConnectionToPeer(false);
+    if(!peerConnections.length) startConnectionToPeer(false);
+
+    var peerConnection = peerConnections.filter( (el) => el.id == data.id )[0].peerConnection;
 
     // Set the information about the remote peer set in the offer/answer
-    peerConnection.setRemoteDescription(new RTCSessionDescription(data)).then(function() {
+    peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp)).then(function() {
         // If this was an offer sent from guystation, respond to the client
-        if( data.type == "offer" ) {
+        if( data.sdp.type == "offer" ) {
             // Send an answer
-            peerConnection.createAnswer().then(createdDescription).catch(errorHandler);
+            peerConnection.createAnswer().then(function(data) {createdDescription("server", data)}).catch(errorHandler);
         }
     });
 }
@@ -3858,34 +3943,42 @@ function handleRemoteSdp(data) {
 /**
  * Handle receiving information about and ICE candidate in the WebRTC protocol.
  * Note: this can happen simulatneously with the offer/call although theoretically happens after.
- * @param {Object} data - The data associated with the offer/answer.
+ * Note how this expects data modified by the server to have some identification metadata.
+ * @param {Object} data - A peer ID and some ice data.
+ * @param {string} data.id - The peer id.
+ * @param {Object} data.sdp - The data associated with the ice candidates.
  */
 function handleRemoteIce(data) {
     // this is to create the peer connection on the client (an offer has been received from guystation)
-    if(!peerConnection) startConnectionToPeer(false);
+    if(!peerConnections.length) startConnectionToPeer(false);
+
+    var peerConnection = peerConnections.filter( (el) => el.id == data.id )[0].peerConnection;
 
     // Set the information about the remote peer set in the offer/answer
-    peerConnection.addIceCandidate(new RTCIceCandidate(data)).catch(errorHandler);
+    peerConnection.addIceCandidate(new RTCIceCandidate(data.ice)).catch(errorHandler);
 }
 
 /**
  * Handle when we have successfully determined one of our OWN ice candidates.
+ * @param {string} id - The id of the peer.
  * @param {Event} event - The event that triggers this handler.
  */
-function gotIceCandidate(event) {
+function gotIceCandidate(id, event) {
     if(event.candidate != null) {
         // alert the signal server about this ice candidate
-        socket.emit("ice", event.candidate);
+        socket.emit("ice", {id: id, candidate: event.candidate});
     }
 }
 
 /**
  * Handle when the local description has been successfully determined.
+ * @param {string} id - The id of the peer.
  * @param {Object} description - A generated local description necessary to include in an offer/answer.
  */
-function createdDescription(description) {
+function createdDescription(id, description) {
+    var peerConnection = peerConnections.filter(el => el.id==id)[0].peerConnection;
     peerConnection.setLocalDescription(description).then(function() {
-        socket.emit("sdp", peerConnection.localDescription);
+        socket.emit("sdp", {id: id, description: peerConnection.localDescription});
     }).catch(errorHandler);
 }
 
