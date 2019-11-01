@@ -75,7 +75,7 @@ const SCROLL_AMOUNT_MULTIPLIER = 0.8;
 const LINUX_CHROME_PATH = "/usr/bin/google-chrome";
 const HOMEPAGE = "https://game103.net";
 const INVALID_CHARACTERS = ["/"];
-const GET_RESOLUTION_COMMAND = "xdpyinfo | grep dimensions | tr -s ' ' | cut -d' ' -f3"; // e.g. "1920x1080"
+const GET_RESOLUTION_COMMAND = "xrandr | grep '*' | tr -s ' ' |cut -d' ' -f 2"; // e.g. "1920x1080"
 const SET_RESOLUTION_COMMAND = "xrandr -s ";
 const CHECK_TIMEOUT = 100;
 const ACTIVE_WINDOW_COMMAND = "xdotool getwindowfocus getwindowname";
@@ -175,6 +175,12 @@ const ERROR_MESSAGES = {
     "noApiKey": "No IGDB API key",
     "invalidFileName": "Invalid file name",
     "genericError": "An uncaught error ocurred"
+}
+const KEYCODE_TO_ROBOT_JS = {
+    "esc": "escape",
+    "page up": "pageup",
+    "page down": "pagedown",
+    "ctrl": "control",
 }
 
 // We will only allow for one request at a time for app
@@ -1108,6 +1114,10 @@ function generateGames(system, games, parents=[]) {
                 var tempCurParents = curParents.slice(0);
                 tempCurParents.push(game);
                 gameData.games = generateGames(system, gameDirContents.filter((name) => name != METADATA_FILENAME), tempCurParents);
+                if( Object.keys(gameData.games).length == 0 ) {
+                    deleteGame( MEDIA, game, curParents, true, true ); // will not call getData
+                    continue; // don't include in the json
+                }
             }
             else {
                 try {
@@ -1354,9 +1364,10 @@ function getGameDictEntry(system, game, parents) {
  * @param {string} game - The game to run.
  * @param {boolean} [restart] - If true, the game will be reloaded no matter what. If false, and the game is currently being played, it will just be brought to focus.
  * @param {Array<string>} [parents] - An array of parent folders for a game.
+ * @param {boolean} [dontSaveResolution] - True if we should not save the home menu resolution.
  * @returns {Promise<(boolean|string)>} A promise containing an error message if there was an error, or false if there was not.
  */
-async function launchGame(system, game, restart=false, parents=[]) {
+async function launchGame(system, game, restart=false, parents=[], dontSaveResolution) {
 
     // Error check
     let isInvalid = isInvalidGame( system, game, parents );
@@ -1413,7 +1424,7 @@ async function launchGame(system, game, restart=false, parents=[]) {
         }
 
         // Get the screen dimensions
-        saveCurrentResolution();
+        if( !dontSaveResolution ) saveCurrentResolution();
 
         // If the symlink to the save directory is the same for all games, update the symlink
         if( systemsDict[system].allGamesShareNand ) {
@@ -1827,20 +1838,20 @@ function addGame( system, game, file, parents=[], isFolder, isPlaylist, playlist
 
     // Error check
     // Make sure the game is valid
-    if( !systemsDict[system] ) return ERROR_MESSAGES.noSystem;
-    if( getGameDictEntry(system, game, parents) ) return ERROR_MESSAGES.gameAlreadyExists;
-    if( !isSymlink && parents.length && !getGameDictEntry(system, parents[parents.length-1], parents.slice(0, parents.length-1) ) ) return ERROR_MESSAGES.invalidParents;
-    if( !game ) return ERROR_MESSAGES.gameNameRequired;
-    var invalidName = isInvalidName( game );
-    if( invalidName ) return invalidName;
-    if( (!file || !file.path || !file.originalname) && !isFolder && !isPlaylist && !isSymlink ) return ERROR_MESSAGES.romFileRequired;
-    if( isPlaylist && system != MEDIA ) return ERROR_MESSAGES.playlistsOnlyForMedia;
-    if( (!playlistItems || !playlistItems.length) && isPlaylist ) return ERROR_MESSAGES.playlistItemsRequired;
-    if( isPlaylist ) {
-        let playlistItemsError = errorCheckValidPlaylistItems( playlistItems );
-        if( playlistItemsError ) return playlistItemsError;
-    }
     if( !force ) {
+        if( !systemsDict[system] ) return ERROR_MESSAGES.noSystem;
+        if( getGameDictEntry(system, game, parents) ) return ERROR_MESSAGES.gameAlreadyExists;
+        if( !isSymlink && parents.length && !getGameDictEntry(system, parents[parents.length-1], parents.slice(0, parents.length-1) ) ) return ERROR_MESSAGES.invalidParents;
+        if( !game ) return ERROR_MESSAGES.gameNameRequired;
+        var invalidName = isInvalidName( game );
+        if( invalidName ) return invalidName;
+        if( (!file || !file.path || !file.originalname) && !isFolder && !isPlaylist && !isSymlink ) return ERROR_MESSAGES.romFileRequired;
+        if( isPlaylist && system != MEDIA ) return ERROR_MESSAGES.playlistsOnlyForMedia;
+        if( (!playlistItems || !playlistItems.length) && isPlaylist ) return ERROR_MESSAGES.playlistItemsRequired;
+        if( isPlaylist ) {
+            let playlistItemsError = errorCheckValidPlaylistItems( playlistItems );
+            if( playlistItemsError ) return playlistItemsError;
+        }
         if( isSymlink && !getGameDictEntry(symlink.system, symlink.game, symlink.parents)) return ERROR_MESSAGES.invalidSymlink;
     }
 
@@ -1918,11 +1929,11 @@ function addSymlinksToPlaylist( system, game, parents, playlistItems ) {
     for( let playlistItem of playlistItems ) {
         // The name is the order, plus the seperator, plus the items path (parents + game) joined by the separator
         let symlinkName =  indexPrefix + PLAYLIST_SEPERATOR + playlistItem.join(PLAYLIST_SEPERATOR);
-        addGame( system, symlinkName, null, parentsOfSymlinks, false, false, null, true, {
+        console.log( addGame( system, symlinkName, null, parentsOfSymlinks, false, false, null, true, {
             system: system,
             game: playlistItem[playlistItem.length-1],
             parents: playlistItem.slice(0, playlistItem.length-1)
-        });
+        }, true ) );
         indexPrefix = indexPrefix.slice(0, -1);
     }
     // Make note that it is a playlist
@@ -1940,7 +1951,7 @@ function deletePlaylistSymlinks( system, game, parents ) {
     let parentsOfSymlinks = parents.slice(0);
     parentsOfSymlinks.push(game);
     for( let game of Object.keys(playlist.games) ) {
-        deleteGame( system, game, parentsOfSymlinks );
+        deleteGame( system, game, parentsOfSymlinks, true );
     }
 }
 
@@ -2179,10 +2190,10 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
                 return ERROR_MESSAGES.convertFolderToGame; // this could also be the case if trying to convert to playlist
             }
             // check to make sure we aren't moving the folder underneath itself
-            else if( isFolder ) {
+            else if( isFolder && (!system || oldSystem == system) ) {
                 let testOldParents = oldParents.slice(0);
                 testOldParents.push(oldGame);
-                var matching = true;
+                let matching = true;
                 for( let i=0; i<testOldParents.length; i++ ) {
                     if( !parents[i] || testOldParents[i] != parents[i] ) {
                         matching = false;
@@ -2312,11 +2323,7 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
         for( let symlink of Object.keys(symlinks) ) {
             let symlinkEntry = symlinks[symlink];
             deleteGame( MEDIA, symlinkEntry.game, symlinkEntry.parents, true );
-            // check to see if the playlist is empty and delete it if it is
-            let playlistEntry = getGameDictEntry( MEDIA, symlinkEntry.parents[symlinkEntry.parents.length-1], symlinkEntry.parents.slice(0, symlinkEntry.parents.length -1) );
-            if( Object.keys(playlistEntry.games).length == 0 ) {
-                deleteGame( MEDIA, playlistEntry.game, symlinkEntry.parents.slice(0, symlinkEntry.parents.length - 1), true );
-            }
+            // If the playlist is empty, it will be deleted when we regenerate the data.
         }
     }
     if( !isFolder && !isPlaylist ) { // Playlists can't be symlinked to
@@ -2474,54 +2481,56 @@ function updatePlaylistSymlinksToItem( game, parents, oldGame, oldParents ) {
  * Delete a game.
  * @param {string} system - The game the system is on.
  * @param {string} game - The game to delete.
- * @param {Array<string>} parents - An array of parent folders for a game.
- * @param {boolean} force - true if the game validity check should be skipped.
+ * @param {Array<string>} [parents] - An array of parent folders for a game.
+ * @param {boolean} [force] - True if the game validity check should be skipped.
+ * @param {boolean} isPlaylist - Overwrite the default isPlaylist value when force is used.
  * @returns {boolean|string} An error message if there was an error, false if there was not.
  */
-function deleteGame( system, game, parents=[], force ) {
+function deleteGame( system, game, parents=[], force, isPlaylist=false ) {
     let isFolder = false;
-    let isPlaylist = false;
 
     // Error check
-    var invalidName = isInvalidName( game );
-    if( invalidName ) return invalidName;
+    if( !force ) {
+        var invalidName = isInvalidName( game );
+        if( invalidName ) return invalidName;
 
-    // Make sure the game and system are valid
-    isInvalid = isInvalidGame( system, game, parents );
-    if( isInvalid ) {
-        // Check to see if it is a folder
-        let gameDictEntry = getGameDictEntry(system, game, parents);
-        if( gameDictEntry ) {
-            if( Object.keys(gameDictEntry.games).length ) {
-                if( !force ) return ERROR_MESSAGES.nonEmptyDirectory;
+        // Make sure the game and system are valid
+        isInvalid = isInvalidGame( system, game, parents );
+        if( isInvalid ) {
+            // Check to see if it is a folder
+            let gameDictEntry = getGameDictEntry(system, game, parents);
+            if( gameDictEntry ) {
+                if( Object.keys(gameDictEntry.games).length ) {
+                    if( !force ) return ERROR_MESSAGES.nonEmptyDirectory;
+                }
+                else {
+                    isFolder = true;
+                }
             }
             else {
-                isFolder = true;
+                return isInvalid;
             }
         }
         else {
-            return isInvalid;
+            let gameDictEntry = getGameDictEntry(system, game, parents);
+            if( gameDictEntry.isPlaylist ) {
+                isPlaylist = true;
+            }
         }
-    }
-    else {
-        let gameDictEntry = getGameDictEntry(system, game, parents);
-        if( gameDictEntry.isPlaylist ) {
-            isPlaylist = true;
+        // Can't change the save of a playing game
+        if( isBeingPlayed( system, game, parents ) ) {
+            return ERROR_MESSAGES.gameBeingPlayed;
         }
-    }
-    // Can't change the save of a playing game
-    if( isBeingPlayed( system, game, parents ) ) {
-        return ERROR_MESSAGES.gameBeingPlayed;
-    }
-    if( !isPlaylist && !isFolder && system == MEDIA ) {
-        if( hasSymlinksBeingPlayed( system, game, parents ) ) {
-            return ERROR_MESSAGES.symlinkToItemBeingPlayed;
+        if( !isPlaylist && !isFolder && system == MEDIA ) {
+            if( hasSymlinksBeingPlayed( system, game, parents ) ) {
+                return ERROR_MESSAGES.symlinkToItemBeingPlayed;
+            }
         }
-    }
-    // isBeingPlayedRecursive will work here since playlists are only one level deep folders
-    // we don't have to check for this for folders since we can't delete empty folders
-    if( isPlaylist && isBeingPlayedRecursive(system, game, parents)) {
-        return ERROR_MESSAGES.playlistHasGameBeingPlayed;
+        // isBeingPlayedRecursive will work here since playlists are only one level deep folders
+        // we don't have to check for this for folders since we can't delete empty folders
+        if( isPlaylist && isBeingPlayedRecursive(system, game, parents)) {
+            return ERROR_MESSAGES.playlistHasGameBeingPlayed;
+        }
     }
 
     if( !isFolder && !isPlaylist ) {
@@ -2542,11 +2551,7 @@ function deleteGame( system, game, parents=[], force ) {
             for( let symlink of Object.keys(symlinks) ) {
                 let symlinkEntry = symlinks[symlink];
                 deleteGame( MEDIA, symlinkEntry.game, symlinkEntry.parents, true );
-                // check to see if the playlist is empty and delete it if it is
-                let playlistEntry = getGameDictEntry( MEDIA, symlinkEntry.parents[symlinkEntry.parents.length-1], symlinkEntry.parents.slice(0, symlinkEntry.parents.length -1) );
-                if( Object.keys(playlistEntry.games).length == 0 ) {
-                    deleteGame( MEDIA, playlistEntry.game, symlinkEntry.parents.slice(0, symlinkEntry.parents.length - 1), true );
-                }
+                // If the playlist is empty, it will be deleted when we regenerate the data.
             }
         }
     }
@@ -3006,7 +3011,17 @@ async function connectScreencast( id ) {
     // starting a screencast will activate the home tab
     // it is best to predict that and to it anyway
     if( currentEmulator && currentSystem != MEDIA && !startedClientIds.length && !menuPageIsActive() ) { 
+        // Get the current resolution of the emulator	
+        let emulatorResolution = proc.execSync(GET_RESOLUTION_COMMAND).toString();
         await goHome();
+        if( !properResolution ) {	
+            saveCurrentResolution();	
+        }
+        // Update the home resolution before we start the stream, so when we start the start it gets the right resolution for the emulator	
+        let homeResolution = proc.execSync(GET_RESOLUTION_COMMAND).toString();	
+        if( homeResolution != emulatorResolution ) {	
+            proc.execSync(SET_RESOLUTION_COMMAND + emulatorResolution);	
+        }
         needToRefocusGame = true; 
     }
     // focus on guy station
@@ -3035,7 +3050,7 @@ async function startScreencast( id ) {
     await menuPage.evaluate( (id) => startConnectionToPeer(true, id), id );
     // we can return to the game now
     if( currentEmulator && currentSystem != MEDIA && !currentStartedClientIdsLength && needToRefocusGame ) {
-        await launchGame( currentSystem, currentGame, false, currentParentsString.split(SEPARATOR).filter(el => el != '') ); 
+        await launchGame( currentSystem, currentGame, false, currentParentsString.split(SEPARATOR).filter(el => el != ''), true ); 
         needToRefocusGame = false;
     }
     else if( !currentStartedClientIdsLength ) await goHome(); // focus on chrome from any screen share info popups
@@ -3076,6 +3091,7 @@ async function stopScreencast(id) {
     clientSocketIds = [];
     startedClientIds = [];
     cancelStreamingTimeouts = [];
+    if( menuPageIsActive() ) ensureProperResolution(); // we might have gone home and changed to resolution in preparation to go back to the emulator. If there was an error, we might not have gone back to the emulator. In this case, once the reset timeout fails, we should make sure we have the correct resolution.
     return Promise.resolve(false);
 }
 
@@ -3105,7 +3121,7 @@ async function performScreencastMouse( xPercent, yPercent, button, down ) {
     else {
         robot.dragMouse(x, y);
     }
-    robot.mouseToggle(down ? "down" : "up", button);
+    robot.mouseToggle(down ? DOWN : UP, button);
 
     return Promise.resolve(false);
 }
@@ -3119,7 +3135,12 @@ async function performScreencastMouse( xPercent, yPercent, button, down ) {
 async function performScreencastButtons( buttons, down ) {
 
     for( let button of buttons ) {
-        robot.keyToggle( keycode(button).replace(" ",""), down ? "down" : "up");
+        try {
+            let curKeycode = keycode(button);
+            if( KEYCODE_TO_ROBOT_JS[curKeycode] ) curKeycode = KEYCODE_TO_ROBOT_JS[curKeycode];
+            robot.keyToggle( curKeycode, down ? DOWN : UP);
+        }
+        catch(err) {/* invalid key code - ok */};
     }
 
     return Promise.resolve(false);

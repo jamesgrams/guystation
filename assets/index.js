@@ -535,7 +535,8 @@ function enableControls() {
         else if( enableModalControls && document.querySelector(".modal #remote-screencast-form video, .modal #browser-controls-form video") ) {
             // Allow enter for the browser address bar
             if( document.querySelector(".modal #address-bar") && document.querySelector(".modal #address-bar") === document.activeElement && !navigating ) {
-                document.querySelector(".modal #go-button").click();
+                // only go on enter
+                if( event.keyCode == 13 ) document.querySelector(".modal #go-button").click();
             }
             else if( buttonsUp[event.keyCode.toString()] || buttonsUp[event.keyCode.toString()] === undefined ) {
                 makeRequest( "POST", "/screencast/buttons", { "down": true, "buttons": [event.keyCode] } );
@@ -2224,13 +2225,16 @@ function displayConfirm( message, yesCallback, noCallback ) {
 function displayUpdateGame() {
     var form = document.createElement("div");
     var selected = getSelectedValues();
+    var selectedGame = getGamesInFolder(selected.parents, selected.system)[selected.game];
+    var mediaOnly = false;
+    if( selectedGame.isPlaylist ) mediaOnly = true;
     form.setAttribute("id", "update-game-form");
     form.appendChild( createFormTitle("Update Game") );
     form.appendChild( createSystemMenu( selected.system, true, true, true, false, false ) );
     form.appendChild( createFolderMenu( selected.parents, selected.system, true, false, true, false) );
     form.appendChild( createGameMenu( selected.game, selected.system, true, true, selected.parents, false ) );
     form.appendChild( createWarning("If you do not wish to change a field, you may leave it blank.") );
-    form.appendChild( createSystemMenu( selected.system, false, false, false, false, false ) );
+    form.appendChild( createSystemMenu( selected.system, false, false, false, false, false, false, mediaOnly ) );
     form.appendChild( createFolderMenu( selected.parents, selected.system, false, false, false, false, form) );
     var gameInput = createGameInput();
     form.appendChild( gameInput );
@@ -2369,10 +2373,12 @@ function folderContainsRealGames(games) {
  * @param {boolean} [onlySystemsSupportingSaves] - True if we should only allow systems supporting saves.
  * @param {boolean} [onlyWithRealGames] - True if we should only show systems with real games in the menu - this will get passed to sub menus.
  * @param {boolean} [onlyWithLeafNodes] - True if we only want to show "leaf nodes" (only impacts the game menu) - i.e. empty folders or games - if onlyWithGames is true (which it should be when this is), then we won't ever selected a leaf node as a folder, so that's why it is only needed for the game menu.
+ * @param {boolean} [mediaOnly] - True if we want the only system to be media.
  * @returns {HTMLElement} A select element containing the necessary keys wrapped by a label.
  */
-function createSystemMenu( selected, old, required, onlyWithGames, onlySystemsSupportingSaves, onlyWithRealGames, onlyWithLeafNodes ) {
+function createSystemMenu( selected, old, required, onlyWithGames, onlySystemsSupportingSaves, onlyWithRealGames, onlyWithLeafNodes, mediaOnly ) {
     var systemsKeys = Object.keys(systemsDict).filter( (element) => !nonGameSystems.includes(element) );
+    if( mediaOnly ) systemsKeys = ["media"];
     if( onlySystemsSupportingSaves ) {
         systemsKeys = systemsKeys.filter( (element) => !nonSaveSystems.includes(element) );
     }
@@ -2457,6 +2463,7 @@ function createSystemMenu( selected, old, required, onlyWithGames, onlySystemsSu
             newTypeSelect.querySelector("#type-select").onchange(); // ensure the proper items are shown
         }
 
+        ensureSystemMenuIsCorrectBasedOnIfOldGameIsPlaylist( modal, old );
         // when we change an old menu - be it system, game or folder, we need to make sure that the new folder menu has all options available
         // to do this, just regenerate the new folder menu
         ensureNewFolderMenuHasCorrectOptions( modal, old );
@@ -2532,12 +2539,36 @@ function createGameMenu( selected, system, old, required, parents, onlyWithRealG
             saveSelect.parentNode.replaceWith( createSaveMenu( currentSave, currentSystem, game, saveSelect.hasAttribute("required"), parents ) );
         }
 
+        ensureSystemMenuIsCorrectBasedOnIfOldGameIsPlaylist( modal, old );
         // when we change an old menu - be it system, game or folder, we need to make sure that the new folder menu has all options available
         // to do this, just regenerate the new folder menu
         ensureNewFolderMenuHasCorrectOptions( modal, old );
         ensureRomInputAndPlaylistSelectIsDisplayedOrHidden( modal, old );
         
     }, required );
+}
+
+/**
+ * Ensure the system menu is correct based on if the old game is a playlist.
+ * If it is, the only system should be media. Otherwise, any system will fly because this is from an update modal.
+ * @param {HTMLElement} [modal] - The modal.
+ * @param {boolean} [old] - A check to make sure the old item is the one that changed.
+ */
+function ensureSystemMenuIsCorrectBasedOnIfOldGameIsPlaylist( modal, old ) {
+    if( old && modal ) {
+        var oldSystemSelect = modal.querySelector("#old-system-select");
+        var oldGameSelect = modal.querySelector("#old-game-select");
+        var oldParents = extractParentsFromFolderMenu( true, modal );
+        var newSystemSelect =  document.querySelector("#system-select");
+        var mediaOnly = false;
+        if( getGamesInFolder(oldParents, oldSystemSelect.options[oldSystemSelect.selectedIndex].value )[oldGameSelect.options[oldGameSelect.selectedIndex].value].isPlaylist ) {
+            newSystemSelect.value = "media";
+            newSystemSelect.onchange(); // will update folders
+            mediaOnly = true;
+        }
+        // This is an update menu, so we use the same settings as for displayUpdateGame
+        newSystemSelect.parentNode.replaceWith( createSystemMenu( "media", false, false, false, false, false, false, mediaOnly ) );
+    }
 }
 
 /**
@@ -2829,14 +2860,19 @@ function createFolderMenu( parents, system, old, required, onlyWithGames, onlyWi
                 // if there is an old menu and the current item is a folder
                 // make sure we don't allow that folder to become the selected folder in the new menu - i.e. exclude it as an item
                 if( !isForPlaylist && !old && helperElement && helperElement.querySelector("#old-game-select") && helperElement.querySelector("#old-folder-select-container") ) {
-                    var oldParents = extractParentsFromFolderMenu(true, helperElement);
-                    var oldGameSelect = helperElement.querySelector("#old-game-select");
-                    oldParents.push( oldGameSelect.options[oldGameSelect.selectedIndex].value );
-                    options = options.filter( function(option) {
-                        var currentParentsCopy = currentParents.slice(0);
-                        currentParentsCopy.push(option);
-                        return JSON.stringify(oldParents) != JSON.stringify(currentParentsCopy);
-                    } );
+                    var oldSystem = document.querySelector("#old-system-select");
+                    var newSystem = document.querySelector("#system-select");
+
+                    if( oldSystem == newSystem ) {
+                        var oldParents = extractParentsFromFolderMenu(true, helperElement);
+                        var oldGameSelect = helperElement.querySelector("#old-game-select");
+                        oldParents.push( oldGameSelect.options[oldGameSelect.selectedIndex].value );
+                        options = options.filter( function(option) {
+                            var currentParentsCopy = currentParents.slice(0);
+                            currentParentsCopy.push(option);
+                            return JSON.stringify(oldParents) != JSON.stringify(currentParentsCopy);
+                        } );
+                    }
                 }
 
             }
@@ -2888,6 +2924,7 @@ function createFolderMenu( parents, system, old, required, onlyWithGames, onlyWi
                     
                     // select folders further in if we have to due to leafnodes or real games only
                     if( !isForPlaylist && (onlyWithLeafNodes || onlyWithRealGames) ) {
+                        newParents = newParents.filter( el => el != "" );
                         var testGameSelect = createGameMenu(null, system, false, false, newParents, onlyWithRealGames, onlyWithLeafNodes);
                         while( !testGameSelect.querySelector("select").options.length ) {
                             var folderSelects = newFolderMenu.querySelectorAll("select");
@@ -2931,6 +2968,7 @@ function createFolderMenu( parents, system, old, required, onlyWithGames, onlyWi
                             }
                         }
 
+                        ensureSystemMenuIsCorrectBasedOnIfOldGameIsPlaylist( modal, old );
                         // when we change an old menu - be it system, game or folder, we need to make sure that the new folder menu has all options available
                         // to do this, just regenerate the new folder menu
                         ensureNewFolderMenuHasCorrectOptions( modal, old );
