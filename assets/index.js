@@ -902,6 +902,7 @@ function toggleButtons() {
     else {
         launchGameButton.classList.remove("inactive");
         launchGameButton.onclick = function(e) { 
+            e.stopPropagation();
             var selectedSystem = document.querySelector(".system.selected").getAttribute("data-system");
             var selectedGameElement = document.querySelector(".system.selected .game.selected");
             if( selectedGameElement ) {
@@ -965,9 +966,9 @@ function toggleButtons() {
     }
     else {
         quitGameButton.classList.remove("inactive");
-        quitGameButton.onclick = quitGame;
+        quitGameButton.onclick = function(e) { e.stopPropagation(); quitGame(); };
         goHomeButton.classList.remove("inactive");
-        goHomeButton.onclick = goHome;
+        goHomeButton.onclick = function(e) { e.stopPropagation(); goHome(); };
     }
 
     // Only allow browser if we are "playing" it
@@ -2131,11 +2132,10 @@ function displayUpdateSave() {
     var selected = getSelectedValues(true, true);
     form.setAttribute("id", "update-save-form");
     form.appendChild( createFormTitle("Update Save") );
-    form.appendChild( createSystemMenu( selected.system, false, true, true, true, true ) );
-    form.appendChild( createFolderMenu( selected.parents, selected.system, false, false, true, true) );
-    form.appendChild( createGameMenu(selected.game, selected.system, false, true, selected.parents, true) );
-    var saveMenu = createSaveMenu(selected.save, selected.system, selected.game, true, selected.parents);
-    saveMenu.querySelector("span").innerText = "Old " + saveMenu.querySelector("span").innerText;
+    form.appendChild( createSystemMenu( selected.system, false, true, true, true, true, null, null, true ) );
+    form.appendChild( createFolderMenu( selected.parents, selected.system, false, false, true, true, null, null, null, null, true) );
+    form.appendChild( createGameMenu(selected.game, selected.system, false, true, selected.parents, true, null, true) );
+    var saveMenu = createSaveMenu(selected.save, selected.system, selected.game, true, selected.parents, true);
     form.appendChild( saveMenu );
     var saveInput = createSaveInput(null, true);
     form.appendChild( saveInput );
@@ -2374,9 +2374,10 @@ function folderContainsRealGames(games) {
  * @param {boolean} [onlyWithRealGames] - True if we should only show systems with real games in the menu - this will get passed to sub menus.
  * @param {boolean} [onlyWithLeafNodes] - True if we only want to show "leaf nodes" (only impacts the game menu) - i.e. empty folders or games - if onlyWithGames is true (which it should be when this is), then we won't ever selected a leaf node as a folder, so that's why it is only needed for the game menu.
  * @param {boolean} [mediaOnly] - True if we want the only system to be media.
+ * @param {boolean} [displaySaveOld] - Alter the label for the save to say current.
  * @returns {HTMLElement} A select element containing the necessary keys wrapped by a label.
  */
-function createSystemMenu( selected, old, required, onlyWithGames, onlySystemsSupportingSaves, onlyWithRealGames, onlyWithLeafNodes, mediaOnly ) {
+function createSystemMenu( selected, old, required, onlyWithGames, onlySystemsSupportingSaves, onlyWithRealGames, onlyWithLeafNodes, mediaOnly, displaySaveOld ) {
     var systemsKeys = Object.keys(systemsDict).filter( (element) => !nonGameSystems.includes(element) );
     if( mediaOnly ) systemsKeys = ["media"];
     if( onlySystemsSupportingSaves ) {
@@ -2401,7 +2402,7 @@ function createSystemMenu( selected, old, required, onlyWithGames, onlySystemsSu
             if( currentGameElement ) {
                 selectedParents = parentsStringToArray(currentGameElement.getAttribute("data-parents"));
             } 
-            folderSelect.parentNode.replaceWith( createFolderMenu( selectedParents, system, old, folderSelect.hasAttribute("required"), onlyWithGames, onlyWithRealGames, null, onlyWithLeafNodes ) );
+            folderSelect.parentNode.replaceWith( createFolderMenu( selectedParents, system, old, folderSelect.hasAttribute("required"), onlyWithGames, onlyWithRealGames, null, onlyWithLeafNodes, null, null, displaySaveOld ) );
         }
         if( gameSelect ) {
             var currentGameElement = document.querySelector(".system[data-system='"+system+"'] .game.selected")
@@ -2440,11 +2441,11 @@ function createSystemMenu( selected, old, required, onlyWithGames, onlySystemsSu
                 currentGame = decodeURIComponent(currentGameElement.getAttribute("data-game"));
             }
             if( folderSelect ) {
-                folderSelect.parentNode.replaceWith( createFolderMenu( parentsStringToArray(currentGameElement.getAttribute("data-parents")), system, old, folderSelect.hasAttribute("required"), onlyWithGames, onlyWithRealGames, null, onlyWithLeafNodes ) );
+                folderSelect.parentNode.replaceWith( createFolderMenu( parentsStringToArray(currentGameElement.getAttribute("data-parents")), system, old, folderSelect.hasAttribute("required"), onlyWithGames, onlyWithRealGames, null, onlyWithLeafNodes, null, null, displaySaveOld ) );
             }
             // Again, it's fine to use a folder as parents
             var selectedParents = parentsStringToArray(currentGameElement.getAttribute("data-parents"));
-            gameSelect.parentNode.replaceWith( createGameMenu( currentGame, system, old, gameSelect.hasAttribute("required"), selectedParents, onlyWithRealGames, onlyWithLeafNodes ) );
+            gameSelect.parentNode.replaceWith( createGameMenu( currentGame, system, old, gameSelect.hasAttribute("required"), selectedParents, onlyWithRealGames, onlyWithLeafNodes, displaySaveOld ) );
             var saveSelect = modal.querySelector("#save-select");
             if( saveSelect && !old ) {
                 var currentSave = null;
@@ -2454,7 +2455,7 @@ function createSystemMenu( selected, old, required, onlyWithGames, onlySystemsSu
                         currentSave = currentSaveElement.innerText;
                     }
                 }
-                saveSelect.parentNode.replaceWith( createSaveMenu( currentSave, system, currentGame, saveSelect.hasAttribute("required"), selectedParents ) );
+                saveSelect.parentNode.replaceWith( createSaveMenu( currentSave, system, currentGame, saveSelect.hasAttribute("required"), selectedParents, displaySaveOld ) );
             }
         }
         if( typeSelect ) {
@@ -2508,9 +2509,10 @@ function createGameInput( defaultValue, required ) {
  * @param {Array<string>} parents - A list of parent folders for games - options are limited to their contents.
  * @param {boolean} [onlyWithRealGames] - True if we should only show systems with real games in the menu - this will get passed to sub menus.
  * @param {boolean} [onlyWithLeafNodes] - True if we only want to show "leaf nodes" (only impacts the game menu) - i.e. empty folders or games.
+ * @param {boolean} [displaySaveOld] - Alter the label for the save to say current.
  * @returns {HTMLElement} A select element containing the necessary keys wrapped by a label.
  */
-function createGameMenu( selected, system, old, required, parents, onlyWithRealGames, onlyWithLeafNodes ) {
+function createGameMenu( selected, system, old, required, parents, onlyWithRealGames, onlyWithLeafNodes, displaySaveOld ) {
     // Note how we will never include folders in a game select
     var games = getGamesInFolder(parents, system);
     if( onlyWithRealGames ) games = filterGameTypes(games, false);
@@ -2536,7 +2538,7 @@ function createGameMenu( selected, system, old, required, parents, onlyWithRealG
                 currentSave = currentSaveElement.innerText;
                 // If we're only changing game, parents shouldn't have changed. We'll get a new game menu if parents change.
             }
-            saveSelect.parentNode.replaceWith( createSaveMenu( currentSave, currentSystem, game, saveSelect.hasAttribute("required"), parents ) );
+            saveSelect.parentNode.replaceWith( createSaveMenu( currentSave, currentSystem, game, saveSelect.hasAttribute("required"), parents, displaySaveOld ) );
         }
 
         ensureSystemMenuIsCorrectBasedOnIfOldGameIsPlaylist( modal, old );
@@ -2778,7 +2780,7 @@ function createPlaylistMenu( gameDictEntries ) {
     for( var i=0; i<gameDictEntries.length; i++ ) {
         var currentParents = gameDictEntries[i].parents.slice(0);
         currentParents.push(gameDictEntries[i].game);
-        var folderMenu = createFolderMenu( currentParents, "media", false, false, true, true, null, true, true, i );
+        var folderMenu = createFolderMenu( currentParents, "media", false, false, true, true, null, true, true );
         playlistElement.appendChild(folderMenu);
     }
     
@@ -2797,9 +2799,10 @@ function createPlaylistMenu( gameDictEntries ) {
  * @param {boolean} [onlyWithLeafNodes] - True if we only want to show "leaf nodes" (only impacts the game menu) - i.e. empty folders or games - if onlyWithGames is true (which it should be when this is), then we won't ever selected a leaf node as a folder, so that's why it is only needed for the game menu.
  * @param {boolean} [isForPlaylist] - True if this is a folder menu for a playlist container.
  * @param {number} [playlistId] - The index of the playlist.
+ * @param {boolean} [displaySaveOld] - Alter the label for the save to say current.
  * @returns {HTMLElement} An element containing dynamic folder dropdowns wrapped by a label.
  */
-function createFolderMenu( parents, system, old, required, onlyWithGames, onlyWithRealGames, helperElement, onlyWithLeafNodes, isForPlaylist, playlistId ) {
+function createFolderMenu( parents, system, old, required, onlyWithGames, onlyWithRealGames, helperElement, onlyWithLeafNodes, isForPlaylist, playlistId, displaySaveOld ) {
     // We will have a dropdown for each possible folder
     var count = 0;
     var currentParents = [];
@@ -2918,7 +2921,7 @@ function createFolderMenu( parents, system, old, required, onlyWithGames, onlyWi
                         this.parentNode.parentNode.parentNode.parentNode.removeChild( this.parentNode.parentNode.parentNode );
                     }
                     else {
-                        newFolderMenu = createFolderMenu( newParents, system, old, required, onlyWithGames, onlyWithRealGames, null, onlyWithLeafNodes, isForPlaylist, playlistId );
+                        newFolderMenu = createFolderMenu( newParents, system, old, required, onlyWithGames, onlyWithRealGames, null, onlyWithLeafNodes, isForPlaylist, playlistId, displaySaveOld );
                         this.parentNode.parentNode.parentNode.replaceWith( newFolderMenu );
                     }
                     
@@ -2930,7 +2933,7 @@ function createFolderMenu( parents, system, old, required, onlyWithGames, onlyWi
                             var folderSelects = newFolderMenu.querySelectorAll("select");
                             newParents.push(folderSelects[folderSelects.length-1].options[1].value);
                             var oldFolderMenu = newFolderMenu;
-                            newFolderMenu = createFolderMenu( newParents, system, old, required, onlyWithGames, onlyWithRealGames, null, onlyWithLeafNodes, isForPlaylist, playlistId );
+                            newFolderMenu = createFolderMenu( newParents, system, old, required, onlyWithGames, onlyWithRealGames, null, onlyWithLeafNodes, isForPlaylist, playlistId, displaySaveOld );
                             oldFolderMenu.replaceWith( newFolderMenu );
                             testGameSelect = createGameMenu(null, system, false, false, newParents, onlyWithRealGames, onlyWithLeafNodes);
                         }
@@ -2952,7 +2955,7 @@ function createFolderMenu( parents, system, old, required, onlyWithGames, onlyWi
                             // look for any game in the folder. But that's the same as letting the select menu just not have a valid selected value by default.
                             
                             // See if we can get a selected game within the folder
-                            var newGameSelect = createGameMenu(selectedGame, system, old, gameSelect.hasAttribute("required"), parentsForGameMenu, onlyWithRealGames, onlyWithLeafNodes);
+                            var newGameSelect = createGameMenu(selectedGame, system, old, gameSelect.hasAttribute("required"), parentsForGameMenu, onlyWithRealGames, onlyWithLeafNodes, displaySaveOld);
                             gameSelect.parentNode.replaceWith( newGameSelect );
                             var newGameSelectMenu = newGameSelect.querySelector("select");
                             selectedGame = newGameSelectMenu.options[newGameSelectMenu.selectedIndex].value;
@@ -2964,7 +2967,7 @@ function createFolderMenu( parents, system, old, required, onlyWithGames, onlyWi
                                     var currentSaveElement = selectedGameElement.querySelector(".current-save");
                                     if( currentSaveElement ) currentSave = currentSaveElement.innerText;
                                 }
-                                saveSelect.parentNode.replaceWith( createSaveMenu( currentSave, system, selectedGame, saveSelect.hasAttribute("required"), parentsForGameMenu ) );
+                                saveSelect.parentNode.replaceWith( createSaveMenu( currentSave, system, selectedGame, saveSelect.hasAttribute("required"), parentsForGameMenu, displaySaveOld ) );
                             }
                         }
 
@@ -3010,10 +3013,11 @@ function createSaveInput( defaultValue, required ) {
  * @param {string} game - The game the saves are for.
  * @param {boolean} [required] - If the field is required.
  * @param {Array<string>} parents - The games the saves are for.
+ * @param {boolean} [displaySaveOld] - Alter the label for the save to say current.
  * @returns {HTMLElement} - A select element containing the necessary keys wrapped by a label.
  */
-function createSaveMenu( selected, system, game, required, parents ) {
-    return createMenu( selected, Object.keys(getGamesInFolder( parents, system )[game].saves), "save-select", "Save: ", null, required );
+function createSaveMenu( selected, system, game, required, parents, displaySaveOld ) {
+    return createMenu( selected, Object.keys(getGamesInFolder( parents, system )[game].saves), "save-select", (displaySaveOld ? "Current " : "") + "Save: ", null, required );
 }
 
 /**
