@@ -2214,8 +2214,8 @@ function displayConfirm( message, yesCallback, noCallback ) {
     form.setAttribute("id", "are-you-sure");
     form.appendChild( createFormTitle("Are You Sure?") );
     form.appendChild( createWarning(message) );
-    form.appendChild( createButton( "No", noCallback ) );
-    form.appendChild( createButton( "Yes", yesCallback ) );
+    form.appendChild( createButton( "No", function(event) { if(!event.detail || event.detail == 1) noCallback(event); } ) );
+    form.appendChild( createButton( "Yes", function(event) { if(!event.detail || event.detail == 1) yesCallback(event); } ) );
     launchModal(form);
 }
 
