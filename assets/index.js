@@ -2571,7 +2571,7 @@ function ensureSystemMenuIsCorrectBasedOnIfOldGameIsPlaylist( modal, old ) {
             mediaOnly = true;
         }
         // This is an update menu, so we use the same settings as for displayUpdateGame
-        newSystemSelect.parentNode.replaceWith( createSystemMenu( mediaOnly ? "media" : oldSystemSelect.options[oldSystemSelect.selectedIndex].value, false, false, false, false, false, false, mediaOnly ) );
+        newSystemSelect.parentNode.replaceWith( createSystemMenu( mediaOnly ? "media" : newSystemSelect.options[newSystemSelect.selectedIndex].value, false, false, false, false, false, false, mediaOnly ) );
     }
 }
 
