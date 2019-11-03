@@ -1185,15 +1185,16 @@ function generateStartSystem( oldSystemName, newSystemName, oldGameName, newGame
         var selectedGameElement = systems[i].querySelector(".game.selected"); // guaranteed since takes place before redraw
         var selectedGame = null;
         var selectedParents = null;
-        var useNewParents = true;
+        var useNewParents = false;
         if( selectedGameElement ) {
             selectedGame = decodeURIComponent(selectedGameElement.getAttribute("data-game"));
+            selectedParents = selectedGameElement.getAttribute("data-parents"); 
             // newGameName being null means the game was deleted, we have to try to get a close by index
             // also if we are changing systems we want to do a delete
             // it's ok if we leave the folder - there will always be a previous sibling and that will the folder in some cases
             // which is fine
             // deleting an item might also delete a playlist(s) if it was the last item in the list(s) which might result in the previous/next sibling being removed. In this case, we restart at the top but should we?
-            if( systems[i].getAttribute("data-system") == oldSystemName && selectedGame == oldGameName && (newGameName === null || oldSystemName != newSystemName) ) {
+            if( systems[i].getAttribute("data-system") == oldSystemName && selectedGame == oldGameName && selectedParents == parentsArrayToString(oldParents) && (newGameName === null || oldSystemName != newSystemName) ) {
                 if( selectedGameElement.previousElementSibling ) {
                     selectedGameElement = selectedGameElement.previousElementSibling;
                     selectedGame = decodeURIComponent(selectedGameElement.getAttribute("data-game"));
@@ -1207,12 +1208,11 @@ function generateStartSystem( oldSystemName, newSystemName, oldGameName, newGame
                     selectedGame = null;
                     selectedGameElement = null;
                 }
-                useNewParents = false; // when the system is changed, we aren't selected on the element anymore, so we don't want to use new parents
-                // new parents are null on delete
             }
             // If the game name is updated, we'll have to change it
-            else if( systems[i].getAttribute("data-system") == oldSystemName && selectedGame == oldGameName ) {
+            else if( systems[i].getAttribute("data-system") == oldSystemName && selectedGame == oldGameName && selectedParents == parentsArrayToString(oldParents) ) {
                 selectedGame = newGameName;
+                useNewParents = true;
             }
             if( selectedGameElement ) selectedParents = selectedGameElement.getAttribute("data-parents"); 
         }
