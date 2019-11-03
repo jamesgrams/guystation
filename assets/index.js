@@ -2782,7 +2782,7 @@ function createPlaylistMenu( gameDictEntries ) {
     for( var i=0; i<gameDictEntries.length; i++ ) {
         var currentParents = gameDictEntries[i].parents.slice(0);
         currentParents.push(gameDictEntries[i].game);
-        var folderMenu = createFolderMenu( currentParents, "media", false, false, true, true, null, true, true );
+        var folderMenu = createFolderMenu( currentParents, "media", false, false, true, true, null, true, true, i );
         playlistElement.appendChild(folderMenu);
     }
     
