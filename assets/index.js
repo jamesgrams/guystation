@@ -1988,8 +1988,8 @@ function displayPowerOptions() {
     var form = document.createElement("div");
     form.appendChild( createFormTitle("Power Options") );
     form.setAttribute("id", "power-options-form");
-    var updateButton = createButton("Update GuyStation", function() {
-        if( !makingRequest && !this.classList.contains("inactive") ) {
+    var updateButton = createButton("Update GuyStation", function(event) {
+        if( (!event.detail || event.detail == 1) && !makingRequest && !this.classList.contains("inactive") ) {
             displayConfirm( "Are you sure you want to update GuyStation?", function() { 
                 startRequest(); 
                 makeRequest( "GET", "/system/update", [], function() {
@@ -2018,8 +2018,8 @@ function displayPowerOptions() {
             updateButton.classList.remove("inactive");
         }
     });
-    form.appendChild( createButton("Restart GuyStation", function() {
-        if( !makingRequest ) {
+    form.appendChild( createButton("Restart GuyStation", function(event) {
+        if( (!event.detail || event.detail == 1) && !makingRequest ) {
             displayConfirm( "Are you sure you want to restart GuyStation?", function() { 
                 startRequest(); 
                 makeRequest( "GET", "/system/restart", [], null, function(responseText) {
@@ -2035,8 +2035,8 @@ function displayPowerOptions() {
             }, closeModal);
         }
     }) );
-    form.appendChild( createButton("Reboot Machine", function() {
-        if( !makingRequest ) {
+    form.appendChild( createButton("Reboot Machine", function(event) {
+        if( (!event.detail || event.detail == 1) && !makingRequest ) {
             displayConfirm( "Are you sure you want to reboot GuyStation?", function() { 
                 startRequest(); 
                 makeRequest( "GET", "/system/reboot", [], null, function(responseText) {
@@ -2067,8 +2067,8 @@ function displayDeleteSave() {
     form.appendChild( createFolderMenu( selected.parents, selected.system, false, false, true, true) );
     form.appendChild( createGameMenu(selected.game, selected.system, false, true, selected.parents, true) );
     form.appendChild( createSaveMenu(selected.save, selected.system, selected.game, true, selected.parents) );
-    form.appendChild( createButton( "Delete Save", function() {
-        if( !makingRequest ) {
+    form.appendChild( createButton( "Delete Save", function(event) {
+        if( (!event.detail || event.detail == 1) && !makingRequest ) {
             var systemSelect = document.querySelector(".modal #delete-save-form #system-select");
             var gameSelect = document.querySelector(".modal #delete-save-form #game-select");
             var saveSelect = document.querySelector(".modal #delete-save-form #save-select");
@@ -2094,8 +2094,8 @@ function displaySelectSave() {
     form.appendChild( createFolderMenu( selected.parents, selected.system, false, false, true, true) );
     form.appendChild( createGameMenu(selected.game, selected.system, false, true, selected.parents, true) );
     form.appendChild( createSaveMenu(selected.save, selected.system, selected.game, true, selected.parents) );
-    form.appendChild( createButton( "Change Save", function() {
-        if( !makingRequest ) {
+    form.appendChild( createButton( "Change Save", function(event) {
+        if( (!event.detail || event.detail == 1) && !makingRequest ) {
             startRequest();
             var systemSelect = document.querySelector(".modal #change-save-form #system-select");
             var gameSelect = document.querySelector(".modal #change-save-form #game-select");
@@ -2139,8 +2139,8 @@ function displayUpdateSave() {
     form.appendChild( saveMenu );
     var saveInput = createSaveInput(null, true);
     form.appendChild( saveInput );
-    form.appendChild( createButton( "Update Save", function() {
-        if( !makingRequest ) {
+    form.appendChild( createButton( "Update Save", function(event) {
+        if( (!event.detail || event.detail == 1) && !makingRequest ) {
             startRequest();
             var systemSelect = document.querySelector(".modal #update-save-form #system-select");
             var gameSelect = document.querySelector(".modal #update-save-form #game-select");
@@ -2166,8 +2166,8 @@ function displayAddSave() {
     form.appendChild( createGameMenu(selected.game, selected.system, false, true, selected.parents, true) );
     var saveInput = createSaveInput(null, true);
     form.appendChild( saveInput );
-    form.appendChild( createButton( "Add Save", function() {
-        if( !makingRequest ) {
+    form.appendChild( createButton( "Add Save", function(event) {
+        if( (!event.detail || event.detail == 1) && !makingRequest ) {
             startRequest();
             var systemSelect = document.querySelector(".modal #add-save-form #system-select");
             var gameSelect = document.querySelector(".modal #add-save-form #game-select");
@@ -2190,8 +2190,8 @@ function displayDeleteGame() {
     form.appendChild( createSystemMenu( selected.system, false, true, true, false, false, true ) );
     form.appendChild( createFolderMenu( selected.parents, selected.system, false, false, true, false, null, true) );
     form.appendChild( createGameMenu(selected.game, selected.system, false, true, selected.parents, false, true) );
-    form.appendChild( createButton( "Delete Game", function() {
-        if( !makingRequest ) {
+    form.appendChild( createButton( "Delete Game", function(event) {
+        if( (!event.detail || event.detail == 1) && !makingRequest ) {
             var systemSelect = document.querySelector(".modal #delete-game-form #system-select");
             var gameSelect = document.querySelector(".modal #delete-game-form #game-select");
             var system = systemSelect.options[systemSelect.selectedIndex].value;
@@ -2243,8 +2243,8 @@ function displayUpdateGame() {
     form.appendChild( createPlaylistMenu( translateSymlinks(getGamesInFolder(selected.parents, selected.system)[selected.game], selected.system) ) );
     // Do this here 
     ensureRomInputAndPlaylistSelectIsDisplayedOrHidden( form, true );
-    form.appendChild( createButton( "Update Game", function() {
-        if( !makingRequest ) {
+    form.appendChild( createButton( "Update Game", function(event) {
+        if( (!event.detail || event.detail == 1) && !makingRequest ) {
             startRequest();
             var oldSystemSelect = document.querySelector(".modal #update-game-form #old-system-select");
             var oldGameSelect = document.querySelector(".modal #update-game-form #old-game-select");
@@ -2316,8 +2316,8 @@ function displayAddGame() {
     var playlistMenu = createPlaylistMenu();
     playlistMenu.classList.add("hidden");
     form.appendChild( playlistMenu );
-    form.appendChild( createButton( "Add Game", function() {
-        if( !makingRequest ) {
+    form.appendChild( createButton( "Add Game", function(event) {
+        if( (!event.detail || event.detail == 1) && !makingRequest ) {
             startRequest();
             var systemSelect = document.querySelector(".modal #add-game-form #system-select");
             var gameInput = document.querySelector(".modal #add-game-form #game-input");
@@ -2863,8 +2863,10 @@ function createFolderMenu( parents, system, old, required, onlyWithGames, onlyWi
                 // if there is an old menu and the current item is a folder
                 // make sure we don't allow that folder to become the selected folder in the new menu - i.e. exclude it as an item
                 if( !isForPlaylist && !old && helperElement && helperElement.querySelector("#old-game-select") && helperElement.querySelector("#old-folder-select-container") ) {
-                    var oldSystem = document.querySelector("#old-system-select");
-                    var newSystem = document.querySelector("#system-select");
+                    var oldSystem = helperElement.querySelector("#old-system-select");
+                    var newSystem = helperElement.querySelector("#system-select");
+                    oldSystem = oldSystem.options[oldSystem.selectedIndex].value;
+                    newSystem = newSystem.options[newSystem.selectedIndex].value;
 
                     if( oldSystem == newSystem ) {
                         var oldParents = extractParentsFromFolderMenu(true, helperElement);

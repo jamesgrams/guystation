@@ -297,7 +297,7 @@ app.post("/home", async function(request, response) {
             getData(); // Reload data
             requestLocked = false;
 
-            if( errorMessage.didPause ) {
+            if( errorMessage.didPause === true || errorMessage.didPause === false ) {
                 writeResponse( response, SUCCESS, errorMessage );
             }
             else {
