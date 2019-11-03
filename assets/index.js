@@ -2564,8 +2564,10 @@ function ensureSystemMenuIsCorrectBasedOnIfOldGameIsPlaylist( modal, old ) {
         var newSystemSelect =  document.querySelector("#system-select");
         var mediaOnly = false;
         if( getGamesInFolder(oldParents, oldSystemSelect.options[oldSystemSelect.selectedIndex].value )[oldGameSelect.options[oldGameSelect.selectedIndex].value].isPlaylist ) {
-            newSystemSelect.value = "media";
-            newSystemSelect.onchange(); // will update folders
+            if( newSystemSelect.options[newSystemSelect.selectedIndex].value != "media" ) {
+                newSystemSelect.value = "media";
+                newSystemSelect.onchange(); // will update folders
+            }
             mediaOnly = true;
         }
         // This is an update menu, so we use the same settings as for displayUpdateGame
