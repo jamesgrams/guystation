@@ -79,6 +79,7 @@ You may need to change the Video Plugin for Mupen64Plus. It defaults to `mupen64
     * This version of Mupen64Plus changes the quit key to F15 rather than Escape (since Escape takes you home) and sets the screenshot key to "S" by default (In DesMuME, the screenshot key is Ctrl+S, so mapping a button to Ctrl+S will allow you to take screenshots in both). If you use a keyboard, this might overlap with the keyboard controls, so you might want to change those.
     * Guystation will install M64Py, a frontend for Mupen64Plus, but will not use it due to it having problems with Fullscreen. You can still use it to esily configure settings, however. It can be opened by running `m64py` in the command line.
     * The best resolution that I have found is 720x526 with aspect set to 2 (stretch). This runs in fullscreen, full-speed, with proper sound. The aspect ratio is an important factor. If it is too high (for me, 1920x1080), games can be very slow, and some games stuggled with sound through HDMI with an aspect ratio of 640x480 in my experience.
+    * When streaming Nintendo 64 games, it is best to start streaming while playing the game if you change the aspect ratio. GuyStation takes into account the current aspect ratio when the stream is started and will stream with those dimensions.
 
 ### Dolphin (Gamecube/Wii)
 The version of Dolphin used changes the default screenshot key to Ctrl+S, and the quit key to Delete+F12. I have found the easiest way to connect Wiimotes is to do the following:
@@ -132,7 +133,7 @@ GuyStation launches a Node.js server along with a Chromium browser (via Puppetee
         * `metadata.json`
 
 ## Additional Information
-Multiple monitors are not supported. Using multiple monitors will cause issues with ensuring the screen resolution is correct and streaming the screen. 
+Multiple monitors are not supported. Using multiple monitors will cause issues with ensuring the screen resolution is correct and streaming the screen.
 
 ## Credits and Special Thanks
 * Game Boy Advance and DS Lite icons: [David Pérez](https://thenounproject.com/david730/)
