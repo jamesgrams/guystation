@@ -3589,165 +3589,171 @@ function manageGamepadInput() {
         return;
     }
     
-    for (var i=0; i<gamepads.length; i++) {
-        var gp = gamepads[i];
-        if( !disableMenuControls && document.hasFocus() && gp ) {
+    try {
+        for (var i=0; i<gamepads.length; i++) {
+            var gp = gamepads[i];
+            if( !disableMenuControls && document.hasFocus() && gp && gp.buttons ) {
 
-            // See this helpful image for mappings: https://www.html5rocks.com/en/tutorials/doodles/gamepad/gamepad_diagram.png
+                // See this helpful image for mappings: https://www.html5rocks.com/en/tutorials/doodles/gamepad/gamepad_diagram.png
+                
+                var aPressed = buttonPressed(gp.buttons[joyMapping["A"]]);
+                var startPressed = buttonPressed(gp.buttons[joyMapping["Start"]]);
+                // A or Start - launch a game (no need to quit a game, since they should have escape mapped to a key so they can go back to the menu)
+                if( (aPressed && buttonsUp.gamepad[joyMapping["A"]]) 
+                    || (startPressed && buttonsUp.gamepad[joyMapping["Start"]]) ) {
+                    
+                    if( aPressed ) buttonsUp.gamepad[joyMapping["A"]] = false;
+                    if( startPressed ) buttonsUp.gamepad[joyMapping["Start"]] = false;
+                    
+                    document.querySelector("#launch-game").click();
+                }
+                else {
+                    if(!aPressed) buttonsUp.gamepad[joyMapping["A"]] = true;
+                    if(!startPressed) buttonsUp.gamepad[joyMapping["Start"]] = true;
+                }
             
-            var aPressed = buttonPressed(gp.buttons[joyMapping["A"]]);
-            var startPressed = buttonPressed(gp.buttons[joyMapping["Start"]]);
-            // A or Start - launch a game (no need to quit a game, since they should have escape mapped to a key so they can go back to the menu)
-            if( (aPressed && buttonsUp.gamepad[joyMapping["A"]]) 
-                || (startPressed && buttonsUp.gamepad[joyMapping["Start"]]) ) {
-                
-                if( aPressed ) buttonsUp.gamepad[joyMapping["A"]] = false;
-                if( startPressed ) buttonsUp.gamepad[joyMapping["Start"]] = false;
-                
-                document.querySelector("#launch-game").click();
-            }
-            else {
-                if(!aPressed) buttonsUp.gamepad[joyMapping["A"]] = true;
-                if(!startPressed) buttonsUp.gamepad[joyMapping["Start"]] = true;
-            }
-        
-            var rightTriggerPressed = buttonPressed(gp.buttons[joyMapping["Right Trigger"]]);
-            // Right shoulder or trigger - cycle saves - only if there is a game in front of the user
-            if( rightTriggerPressed && buttonsUp.gamepad[joyMapping["Right Trigger"]] && document.querySelector(".system.selected .game.selected") ) {
-                buttonsUp.gamepad[joyMapping["Right Trigger"]] = false;
-                cycleSave(1);
-                menuChangeDelay("right-trigger");
-            }
-            else {
-                if( menuDirection == "right-trigger" ) menuDirection = null;
-                buttonsUp.gamepad[joyMapping["Right Trigger"]] = true;
-            }
+                var rightTriggerPressed = buttonPressed(gp.buttons[joyMapping["Right Trigger"]]);
+                // Right shoulder or trigger - cycle saves - only if there is a game in front of the user
+                if( rightTriggerPressed && buttonsUp.gamepad[joyMapping["Right Trigger"]] && document.querySelector(".system.selected .game.selected") ) {
+                    buttonsUp.gamepad[joyMapping["Right Trigger"]] = false;
+                    cycleSave(1);
+                    menuChangeDelay("right-trigger");
+                }
+                else {
+                    if( menuDirection == "right-trigger" ) menuDirection = null;
+                    buttonsUp.gamepad[joyMapping["Right Trigger"]] = true;
+                }
 
-            var leftTriggerPressed = buttonPressed(gp.buttons[joyMapping["Left Trigger"]]);
-            // Left shoulder or trigger - cycle saves
-            if( leftTriggerPressed && buttonsUp.gamepad[joyMapping["Left Trigger"]] && document.querySelector(".system.selected .game.selected") ) {
-                buttonsUp.gamepad[joyMapping["Left Trigger"]] = false;
-                cycleSave(-1);
-                menuChangeDelay("left-trigger");
-            }
-            else {
-                if( menuDirection == "left-trigger" ) menuDirection = null;
-                buttonsUp.gamepad[joyMapping["Left Trigger"]] = true;
-            }
+                var leftTriggerPressed = buttonPressed(gp.buttons[joyMapping["Left Trigger"]]);
+                // Left shoulder or trigger - cycle saves
+                if( leftTriggerPressed && buttonsUp.gamepad[joyMapping["Left Trigger"]] && document.querySelector(".system.selected .game.selected") ) {
+                    buttonsUp.gamepad[joyMapping["Left Trigger"]] = false;
+                    cycleSave(-1);
+                    menuChangeDelay("left-trigger");
+                }
+                else {
+                    if( menuDirection == "left-trigger" ) menuDirection = null;
+                    buttonsUp.gamepad[joyMapping["Left Trigger"]] = true;
+                }
 
-            var leftStickXPosition = gp.axes[0];
-            var leftStickYPosition = gp.axes[1];
-            // Right
-            if( leftStickXPosition > 0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Right"]]) ) {
-                moveMenu( -1 );
-                menuChangeDelay("right-stick");
+                var leftStickXPosition = gp.axes[0];
+                var leftStickYPosition = gp.axes[1];
+                // Right
+                if( leftStickXPosition > 0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Right"]]) ) {
+                    moveMenu( -1 );
+                    menuChangeDelay("right-stick");
+                }
+                // Left
+                else if( leftStickXPosition < -0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Left"]]) ) {
+                    moveMenu( 1 );
+                    menuChangeDelay("left-stick");
+                }
+                // Up
+                else if( leftStickYPosition < -0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Up"]]) ) {
+                    moveSubMenu( -1 );
+                    menuChangeDelay("up-stick");
+                }
+                // Down
+                else if( leftStickYPosition > 0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Down"]]) ) {
+                    moveSubMenu( 1 );
+                    menuChangeDelay("down-stick");
+                }
+                // no buttons are pressed
+                else if( menuDirection && menuDirection.match(/-stick$/) ) {
+                    menuDirection = null;
+                }
             }
-            // Left
-            else if( leftStickXPosition < -0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Left"]]) ) {
-                moveMenu( 1 );
-                menuChangeDelay("left-stick");
-            }
-            // Up
-            else if( leftStickYPosition < -0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Up"]]) ) {
-                moveSubMenu( -1 );
-                menuChangeDelay("up-stick");
-            }
-            // Down
-            else if( leftStickYPosition > 0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Down"]]) ) {
-                moveSubMenu( 1 );
-                menuChangeDelay("down-stick");
-            }
-            // no buttons are pressed
-            else if( menuDirection && menuDirection.match(/-stick$/) ) {
-                menuDirection = null;
-            }
-        }
-        // Check if we are setting a key, and register the current gamepad key down
-        else if( document.hasFocus() && document.querySelector("#joypad-config-form") ) {
-            var inputs = document.querySelectorAll("#joypad-config-form input");
-            // Check if an input is focused
-            for( var i=0; i<inputs.length; i++ ) {
-                if( inputs[i] === document.activeElement ) {
-                    // If so, check if any buttons are pressed
-                    for( var j=0; j<gp.buttons.length; j++ ) {
-                        // If so, set the input's value to be that of the pressed button
-                        if(buttonPressed(gp.buttons[j])) {
-                            inputs[i].value = j;
-                            if( inputs[i+1] ) {
-                                if( focusInterval ) {
-                                    clearTimeout(focusInterval);
-                                    focusInterval = null;
-                                }
-                                focusInterval = setTimeout( function() { inputs[i+1].focus() }, FOCUS_NEXT_INTERVAL );
-                            } 
+            // Check if we are setting a key, and register the current gamepad key down
+            else if( document.hasFocus() && document.querySelector("#joypad-config-form") ) {
+                var inputs = document.querySelectorAll("#joypad-config-form input");
+                // Check if an input is focused
+                for( var i=0; i<inputs.length; i++ ) {
+                    if( inputs[i] === document.activeElement ) {
+                        // If so, check if any buttons are pressed
+                        for( var j=0; j<gp.buttons.length; j++ ) {
+                            // If so, set the input's value to be that of the pressed button
+                            if(buttonPressed(gp.buttons[j])) {
+                                inputs[i].value = j;
+                                if( inputs[i+1] ) {
+                                    if( focusInterval ) {
+                                        clearTimeout(focusInterval);
+                                        focusInterval = null;
+                                    }
+                                    focusInterval = setTimeout( function() { inputs[i+1].focus() }, FOCUS_NEXT_INTERVAL );
+                                } 
+                            }
                         }
+                        break;
                     }
-                    break;
+                }
+            }
+            // Check if we are controlling media
+            else if( document.hasFocus() && document.querySelector(".modal #remote-media-form") ) {
+                var aPressed = buttonPressed(gp.buttons[joyMapping["A"]]);
+                var startPressed = buttonPressed(gp.buttons[joyMapping["Start"]]);
+                // A or Start - will pause/play
+                if( (aPressed && buttonsUp.gamepad[joyMapping["A"]]) 
+                    || (startPressed && buttonsUp.gamepad[joyMapping["Start"]]) ) {
+                    
+                    if( aPressed ) buttonsUp.gamepad[joyMapping["A"]] = false;
+                    if( startPressed ) buttonsUp.gamepad[joyMapping["Start"]] = false;
+                    
+                    var video = document.querySelector(".modal #remote-media-form video");
+                    if( video.paused ) {
+                        video.play();
+                    }
+                    else {
+                        video.pause();
+                    }
+                }
+                else {
+                    if(!aPressed) buttonsUp.gamepad[joyMapping["A"]] = true;
+                    if(!startPressed) buttonsUp.gamepad[joyMapping["Start"]] = true;
+                }
+
+                // Select will go full screen
+                var selectPressed = buttonPressed(gp.buttons[joyMapping["Select"]]);
+                if( selectPressed && buttonsUp.gamepad[joyMapping["Select"]] ) {
+                    buttonsUp.gamepad[joyMapping["Select"]] = false;
+
+                    if(document.fullscreenElement && document.fullscreenElement == document.querySelector(".modal #remote-media-form video")) {
+                        document.exitFullscreen();
+                    }
+                    else {
+                        document.querySelector(".modal #remote-media-form video").requestFullscreen();
+                    }
+                }
+                else if(!selectPressed) {
+                    buttonsUp.gamepad[joyMapping["Select"]] = true;
+                }
+
+                // Right trigger will got to next
+                var rightTriggerPressed = buttonPressed(gp.buttons[joyMapping["Right Trigger"]]);
+                if( rightTriggerPressed && buttonsUp.gamepad[joyMapping["Right Trigger"]] ) {
+                    buttonsUp.gamepad[joyMapping["Right Trigger"]] = false;
+
+                    playNextMedia(1);
+                }
+                else if(!rightTriggerPressed) {
+                    buttonsUp.gamepad[joyMapping["Right Trigger"]] = true;
+                }
+
+                // Left trigger will go to previous
+                var leftTriggerPressed = buttonPressed(gp.buttons[joyMapping["Left Trigger"]]);
+                if( leftTriggerPressed && buttonsUp.gamepad[joyMapping["Left Trigger"]] ) {
+                    buttonsUp.gamepad[joyMapping["Left Trigger"]] = false;
+
+                    previousMedia();
+                }
+                else if(!leftTriggerPressed) {
+                    buttonsUp.gamepad[joyMapping["Left Trigger"]] = true;
                 }
             }
         }
-        // Check if we are controlling media
-        else if( document.hasFocus() && document.querySelector(".modal #remote-media-form") ) {
-            var aPressed = buttonPressed(gp.buttons[joyMapping["A"]]);
-            var startPressed = buttonPressed(gp.buttons[joyMapping["Start"]]);
-            // A or Start - will pause/play
-            if( (aPressed && buttonsUp.gamepad[joyMapping["A"]]) 
-                || (startPressed && buttonsUp.gamepad[joyMapping["Start"]]) ) {
-                
-                if( aPressed ) buttonsUp.gamepad[joyMapping["A"]] = false;
-                if( startPressed ) buttonsUp.gamepad[joyMapping["Start"]] = false;
-                
-                var video = document.querySelector(".modal #remote-media-form video");
-                if( video.paused ) {
-                    video.play();
-                }
-                else {
-                    video.pause();
-                }
-            }
-            else {
-                if(!aPressed) buttonsUp.gamepad[joyMapping["A"]] = true;
-                if(!startPressed) buttonsUp.gamepad[joyMapping["Start"]] = true;
-            }
-
-            // Select will go full screen
-            var selectPressed = buttonPressed(gp.buttons[joyMapping["Select"]]);
-            if( selectPressed && buttonsUp.gamepad[joyMapping["Select"]] ) {
-                buttonsUp.gamepad[joyMapping["Select"]] = false;
-
-                if(document.fullscreenElement && document.fullscreenElement == document.querySelector(".modal #remote-media-form video")) {
-                    document.exitFullscreen();
-                }
-                else {
-                    document.querySelector(".modal #remote-media-form video").requestFullscreen();
-                }
-            }
-            else if(!selectPressed) {
-                buttonsUp.gamepad[joyMapping["Select"]] = true;
-            }
-
-            // Right trigger will got to next
-            var rightTriggerPressed = buttonPressed(gp.buttons[joyMapping["Right Trigger"]]);
-            if( rightTriggerPressed && buttonsUp.gamepad[joyMapping["Right Trigger"]] ) {
-                buttonsUp.gamepad[joyMapping["Right Trigger"]] = false;
-
-                playNextMedia(1);
-            }
-            else if(!rightTriggerPressed) {
-                buttonsUp.gamepad[joyMapping["Right Trigger"]] = true;
-            }
-
-            // Left trigger will go to previous
-            var leftTriggerPressed = buttonPressed(gp.buttons[joyMapping["Left Trigger"]]);
-            if( leftTriggerPressed && buttonsUp.gamepad[joyMapping["Left Trigger"]] ) {
-                buttonsUp.gamepad[joyMapping["Left Trigger"]] = false;
-
-                previousMedia();
-            }
-            else if(!leftTriggerPressed) {
-                buttonsUp.gamepad[joyMapping["Left Trigger"]] = true;
-            }
-        }
+    }
+    catch( err ) {
+        gamePadInterval = setInterval(pollGamepads, GAMEPAD_INTERVAL);
+        return;
     }
     setTimeout(manageGamepadInput, GAMEPAD_INPUT_INTERVAL);
 }
