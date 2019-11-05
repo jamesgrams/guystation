@@ -120,6 +120,8 @@ const IGDB_HEADERS = {
 const THUMB_IMAGE_SIZE = "thumb";
 const COVER_IMAGE_SIZE = "cover_big";
 const COVER_FILENAME = "cover.jpg";
+const USER_DATA_DIR = "../chrome";
+const STATUS_FILE = USER_DATA_DIR + SEPARATOR + "Default" + SEPARATOR + "Preferences";
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -763,9 +765,23 @@ function writeResponse( response, status, object, code, contentType ) {
 }
 
 /**
+ * Remove Chrome's knowledge that it crashed.
+ */
+function removeChromeCrashed() {
+    try {
+        let chromeStatus = JSON.parse(fs.readFileSync(STATUS_FILE));
+        chromeStatus.profile.exit_type = "none";
+        chromeStatus.profile.exited_cleanly = true;
+        fs.writeFileSync(STATUS_FILE, JSON.stringify(chromeStatus));
+    }
+    catch(err) { console.log(err.message); }
+}
+
+/**
  * Launch a puppeteer browser.
  */
 async function launchBrowser() {
+    removeChromeCrashed();
     let options = {
         headless: false,
         defaultViewport: null,
@@ -773,7 +789,8 @@ async function launchBrowser() {
             '--start-fullscreen',
             '--no-sandbox',
             `--auto-select-desktop-capture-source=${ENTIRE_SCREEN}` // this has to be like this otherwise the launcher will not read the argument. It has to do with node.js processes and how they handle quotes with shell=true. 
-        ]
+        ],
+        userDataDir: USER_DATA_DIR
     };
     if(process.argv.indexOf("--chromium") == -1) {
         options.executablePath = LINUX_CHROME_PATH;
@@ -1080,6 +1097,8 @@ function getData() {
         // Set the games for this system
         systemData.games = gamesDict;
 
+        if( isBeingPlayed( system, null, null ) ) systemData.playing = true;
+
         // Add this system to the dictionary of systems
         systemsDict[system] = systemData;
     }
@@ -1361,7 +1380,7 @@ function getGameDictEntry(system, game, parents) {
 /**
  * Launch a game.
  * @param {string} system - The system to run the game on.
- * @param {string} game - The game to run.
+ * @param {string} [game] - The game to run. This is null if we just want to launch the emulator.
  * @param {boolean} [restart] - If true, the game will be reloaded no matter what. If false, and the game is currently being played, it will just be brought to focus.
  * @param {Array<string>} [parents] - An array of parent folders for a game.
  * @param {boolean} [dontSaveResolution] - True if we should not save the home menu resolution.
@@ -1369,21 +1388,29 @@ function getGameDictEntry(system, game, parents) {
  */
 async function launchGame(system, game, restart=false, parents=[], dontSaveResolution) {
 
-    // Error check
-    let isInvalid = isInvalidGame( system, game, parents );
-    if( isInvalid ) {
-        return Promise.resolve(isInvalid);
-    }
-    let gameDictEntry = getGameDictEntry(system, game, parents);
-    if( !fs.existsSync(generateRomLocation( system, game, gameDictEntry.rom, parents )) && system != BROWSER && !gameDictEntry.isPlaylist ) {
-        return Promise.resolve(ERROR_MESSAGES.noRomFile);
-    }
-    else if( system == MEDIA && (!menuPage || menuPage.isClosed())) {
-        return Promise.resolve(ERROR_MESSAGES.menuPageClosed);
+    let noGame = false;
+    if( game === null && system != MEDIA ) {
+        noGame = true;
     }
 
+    // Error check
+    if( !noGame ) {
+        let isInvalid = isInvalidGame( system, game, parents );
+        if( isInvalid ) {
+            return Promise.resolve(isInvalid);
+        }
+        let gameDictEntry = getGameDictEntry(system, game, parents);
+        if( !fs.existsSync(generateRomLocation( system, game, gameDictEntry.rom, parents )) && system != BROWSER && !gameDictEntry.isPlaylist ) {
+            return Promise.resolve(ERROR_MESSAGES.noRomFile);
+        }
+        else if( system == MEDIA && (!menuPage || menuPage.isClosed())) {
+            return Promise.resolve(ERROR_MESSAGES.menuPageClosed);
+        }
+    }
+    else if( !systemsDict[system] ) return ERROR_MESSAGES.noSystem;
+
     // Call on the first child if this is a playlist
-    if( gameDictEntry.isPlaylist ) {
+    if( !noGame && gameDictEntry.isPlaylist ) {
         let tempParents = parents.slice(0);
         tempParents.push( game );
         // see if any of the tracks are currently being played and call launch on them if they are
@@ -1406,6 +1433,8 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         await quitGame();
 
         let command = systemsDict[system].command;
+        if( noGame && systemsDict[system].frontendCommand ) command = systemsDict[system].frontendCommand;
+
         if( system == BROWSER ) {
             await launchBrowseTab();
             currentSystem = systemsDict[system].system;
@@ -1427,49 +1456,52 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         if( !dontSaveResolution ) saveCurrentResolution();
 
         // If the symlink to the save directory is the same for all games, update the symlink
-        if( systemsDict[system].allGamesShareNand ) {
+        if( !noGame && systemsDict[system].allGamesShareNand ) {
             updateNandSymlinks( system, game, null, parents );
         }
 
-        let arguments = [ 
-            generateRomLocation( system, game, getGameDictEntry(system, game, parents).rom, parents )
-        ];
+        let arguments = [];
 
-        if( systemsDict[system].saveDirFlag ) {
-            if( systemsDict[system].optionPrefix ) { arguments.push( systemsDict[system].optionPrefix ); }
-            arguments.push(systemsDict[system].saveDirFlag);
+        if( !noGame ) {
+            arguments.push( generateRomLocation( system, game, getGameDictEntry(system, game, parents).rom, parents ) );
 
-            let saveDir = generateSaveDir( system, game, CURRENT_SAVE_DIR, parents );
-            // for space seperated arguments, add to arguments
-            if( systemsDict[system].saveDirArgType == SPACE ) {
-                arguments.push(saveDir);
-            }
-            // otherwise edit the argument
-            else {
-                arguments[arguments.length-1] += systemsDict[system].saveDirArgType + saveDir;
-            }
-        }
+            if( systemsDict[system].saveDirFlag ) {
+                if( systemsDict[system].optionPrefix ) { arguments.push( systemsDict[system].optionPrefix ); }
+                arguments.push(systemsDict[system].saveDirFlag);
 
-        if( systemsDict[system].screenshotsDirFlag ) {
-            if( systemsDict[system].optionPrefix ) { arguments.push( systemsDict[system].optionPrefix ); }
-            arguments.push( systemsDict[system].screenshotsDirFlag );
-            let screenshotsDir = generateScreenshotsDir( system, game, CURRENT_SAVE_DIR, parents );
-            // for space seperated arguments, add to arguments
-            if( systemsDict[system].screenshotsDirArgType == SPACE ) {
-                arguments.push(screenshotsDir + SEPARATOR);
+                let saveDir = generateSaveDir( system, game, CURRENT_SAVE_DIR, parents );
+                // for space seperated arguments, add to arguments
+                if( systemsDict[system].saveDirArgType == SPACE ) {
+                    arguments.push(saveDir);
+                }
+                // otherwise edit the argument
+                else {
+                    arguments[arguments.length-1] += systemsDict[system].saveDirArgType + saveDir;
+                }
             }
-            // otherwise edit the argument
-            else {
-                arguments[arguments.length-1] += systemsDict[system].screenshotsDirArgType + screenshotsDir + SEPARATOR;
-            }
-        }
-        if( systemsDict[system].extraFlags ) {
-            arguments = arguments.concat( systemsDict[system].extraFlags );
-        }
 
-        if( systemsDict[system].argsFirst ) {
-            arguments.push(arguments[0]);
-            arguments.shift();
+            if( systemsDict[system].screenshotsDirFlag ) {
+                if( systemsDict[system].optionPrefix ) { arguments.push( systemsDict[system].optionPrefix ); }
+                arguments.push( systemsDict[system].screenshotsDirFlag );
+                let screenshotsDir = generateScreenshotsDir( system, game, CURRENT_SAVE_DIR, parents );
+                // for space seperated arguments, add to arguments
+                if( systemsDict[system].screenshotsDirArgType == SPACE ) {
+                    arguments.push(screenshotsDir + SEPARATOR);
+                }
+                // otherwise edit the argument
+                else {
+                    arguments[arguments.length-1] += systemsDict[system].screenshotsDirArgType + screenshotsDir + SEPARATOR;
+                }
+            }
+
+            if( systemsDict[system].extraFlags ) {
+                arguments = arguments.concat( systemsDict[system].extraFlags );
+            }
+
+            if( systemsDict[system].argsFirst ) {
+                arguments.push(arguments[0]);
+                arguments.shift();
+            }
         }
 
         currentEmulator = proc.spawn( command, arguments, {detached: true, stdio: 'ignore'} );
@@ -1479,7 +1511,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         currentSystem = system;
         currentParentsString = parents.join(SEPARATOR);
 
-        if( systemsDict[system].fullScreenPress ) {
+        if( !noGame && systemsDict[system].fullScreenPress ) {
             activateTries = 1; // We know the program since we waited until we could full screen
             // I guess the only time this would come into play is if we failed to full screen
             // due to this program not opening. I think it is best we don't wait another X tries
@@ -1499,9 +1531,12 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
     }
 
     if( systemsDict[system].activateCommand ) {
+        let command = systemsDict[system].activateCommand;
+        if( noGame && systemsDict[system].frontendActivateCommand ) command = systemsDict[system].frontendActivateCommand;
+        
         for( let i=0; i<activateTries; i++ ) {
             try {
-                proc.execSync( systemsDict[system].activateCommand );
+                proc.execSync( command );
                 break;
             }
             catch(err) { 

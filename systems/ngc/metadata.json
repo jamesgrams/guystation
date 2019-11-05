@@ -6,6 +6,7 @@
   "screenshotsDirArgType": "=",
   "extraFlags": ["-C", "Dolphin.Display.Fullscreen=True"],
   "activateCommand": "wmctrl -a 'JIT64'",
+  "frontendActivateCommand": "wmctrl -a 'Dolphin'",
   "optionPrefix": "-C",
   "argsFirst": true
 }

@@ -625,6 +625,7 @@ function draw( startSystem ) {
         var systemElement = document.createElement("div");
         systemElement.classList.add("system");
         systemElement.setAttribute("data-system", system.system);
+        if( system.playing ) systemElement.classList.add("playing");
 
         // Get the icon
         var icon = "/systems/" + system.system + "/icon.png";
@@ -681,14 +682,15 @@ function draw( startSystem ) {
     var systemsElementNew = document.createElement("div");
     systemsElementNew.setAttribute("id", "systems");
     // Add the systems elements
-    var clickToMove = function() {
-        var myOffset = this.parentElement.style.left;
+    var clickToMove = function(element) {
+        var myOffset = element.parentElement.style.left;
         if( myOffset )
             myOffset = parseInt(myOffset.match(/(-?\s?\d+)px/)[1].replace(/\s/,""));
         else
             myOffset = 0;
         var mySpaces = myOffset/SPACING;
         moveMenu(-mySpaces);
+        return -mySpaces;
     };
     var clickToMoveSubmenu = function(element) {
         // Add the onclick element
@@ -703,22 +705,28 @@ function draw( startSystem ) {
         }
         return -1;
     }
+    var clickToMoveOrLaunch = function() {
+        var spacesMoved = clickToMove(this);
+        if( this.getAttribute("data-system") != "media" ) {
+            if( !spacesMoved) launchGame( document.querySelector(".system.selected").getAttribute("data-system"), null, [] );
+        }
+    }
 
     systemsElementNew.appendChild( systemElements[startIndex] );
-    systemsElementNew.querySelector("img").onclick = clickToMove;
+    systemsElementNew.querySelector("img").onclick = clickToMoveOrLaunch;
 
     for( var i=1; i<expandCountRight+1; i++ ) {
         var nextIndex = getIndex( startIndex, systemElements, i );
         var nextElement = systemElements[nextIndex].cloneNode(true);
         nextElement.style.left = "calc( 50% + " + (i*SPACING) + "px )";
-        nextElement.querySelector("img").onclick = clickToMove;
+        nextElement.querySelector("img").onclick = clickToMoveOrLaunch;
         systemsElementNew.appendChild(nextElement);
     }
     for( var i=1; i<expandCountLeft+1; i++ ) {
         var prevIndex = getIndex( startIndex, systemElements, -1*i );
         var prevElement = systemElements[prevIndex].cloneNode(true);
         prevElement.style.left = "calc( 50% + -" + (i*SPACING) + "px )";
-        prevElement.querySelector("img").onclick = clickToMove;
+        prevElement.querySelector("img").onclick = clickToMoveOrLaunch;
         systemsElementNew.appendChild(prevElement);
     }
 
@@ -958,7 +966,7 @@ function toggleButtons() {
     // Only allow a game to be quit if one is not selected
     var quitGameButton = document.getElementById("quit-game");
     var goHomeButton = document.getElementById("go-home");
-    if( !document.querySelector(".game.playing") ) {
+    if( !document.querySelector(".system.playing, .game.playing") ) {
         quitGameButton.classList.add("inactive");
         quitGameButton.onclick = null;
         goHomeButton.classList.add("inactive");
