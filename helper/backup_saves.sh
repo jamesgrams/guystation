@@ -1,7 +1,7 @@
 #!/bin/bash
 
 BACKUP_DIR=~
-SYSTEMS_DIR="$(echo ~/guystation/systems)"
+SYSTEMS_DIR="$(echo /home/*/guystation/systems)"
 
 cd $BACKUP_DIR
 mkdir -p backup_saves
