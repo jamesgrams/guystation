@@ -22,6 +22,8 @@ var HEADER_MARQUEE_TIMEOUT_TIME = 250;
 var RESET_CANCEL_STREAMING_INTERVAL = 1000; // reset the cancellation of streaming every second
 var SHOW_PREVIEW_TIMEOUT = 1000;
 var PREVIEW_ANIMATION_TIME = 1000;
+var SCROLL_TIMEOUT_TIME = 500;
+var SCROLL_NEEDED = 1250;
 
 var expandCountLeft; // We always need to have a complete list of systems, repeated however many times we want, so the loop works properly
 var expandCountRight;
@@ -52,6 +54,9 @@ var socket;
 var isServer = false;
 var resetCancelStreamingInterval;
 var showPreviewTimeout;
+var scrollVerticalTotal = 0;
+var scrollHorizontalTotal = 0;
+var scrollAddTimeout;
 
 // Hold escape for 5 seconds to quit
 // Note this variable contains a function interval, not a boolean value
@@ -707,7 +712,7 @@ function draw( startSystem ) {
     }
     var clickToMoveOrLaunch = function() {
         var spacesMoved = clickToMove(this);
-        if( this.getAttribute("data-system") != "media" ) {
+        if( this.parentNode.getAttribute("data-system") != "media" ) {
             if( !spacesMoved) launchGame( document.querySelector(".system.selected").getAttribute("data-system"), null, [] );
         }
     }
@@ -3856,6 +3861,34 @@ function handleTouchMove(evt) {
     xDown = null;
     yDown = null;                                             
 };
+
+window.addEventListener("wheel", event => scrollWheel(event), { passive: false });
+
+/**
+ * Scroll the menus on scroll.
+ * @param {Event} event - The scroll event.
+ */
+function scrollWheel( event ) {
+
+    clearTimeout(scrollAddTimeout);
+    scrollAddTimeout = setTimeout( function() { scrollVerticalTotal = 0; scrollHorizontalTotal = 0; }, SCROLL_TIMEOUT_TIME );
+
+    scrollVerticalTotal += event.deltaY;
+    if( Math.abs(scrollVerticalTotal/SCROLL_NEEDED) >= 1 ) {
+        moveSubMenu( Math.floor(scrollVerticalTotal/SCROLL_NEEDED) );
+        scrollVerticalTotal = scrollVerticalTotal % SCROLL_NEEDED;
+    }
+
+    scrollHorizontalTotal += event.deltaX;
+    if( Math.abs(scrollHorizontalTotal/SCROLL_NEEDED) >= 1 ) {
+        moveMenu( -Math.floor(scrollHorizontalTotal/SCROLL_NEEDED) );
+        scrollHorizontalTotal = scrollHorizontalTotal % SCROLL_NEEDED;
+    }
+
+
+    event.stopPropagation();
+    event.preventDefault();
+}
 
 
 // Screencast section
