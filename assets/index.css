@@ -501,6 +501,10 @@ h1 {
     min-width: 200px;
 }
 
+#browser-controls-form video::-webkit-media-controls, #remote-media-form video::-webkit-media-controls {
+    display:none !important;
+}
+
 #remote-media-form #previous-media, #remote-media-form #next-media, #remote-media-form-screenshots #previous-screenshot, #remote-media-form-screenshots #next-screenshot {
     width: 80px;
     height: 58px;

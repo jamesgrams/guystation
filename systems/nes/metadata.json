@@ -1,0 +1,9 @@
+{
+  "command": "/home/james/Mesen/bin/x64/Release/Mesen.exe",
+  "saveDirFlag": "/savedir",
+  "screenshotsDirFlag": "/sshotdir",
+  "saveDirArgType": "=",
+  "screenshotsDirArgType": "=",
+  "extraFlags": ["/fullscreen", "/donotsavesettings"],
+  "activateCommand": "wmctrl -a 'Mesen'"
+}

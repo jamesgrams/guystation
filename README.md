@@ -19,6 +19,7 @@ Note: You can press F11 to get GuyStation out of full screen mode at any time.
 * Game Boy
 * Game Boy Color
 * Game Boy Advance
+* NES
 * Nintendo DS
 * Nintendo 3DS
 * Nintendo 64
@@ -70,7 +71,7 @@ Here are some recommendedations to make your experience better on Ubuntu.
 For all emulators, you will have to setup your controller(s). You can do this by opening emulator GUIs by clicking a system image when it is the selected system. This will launch the emulator without any game allowing you to choose options.
 
 ### VBA-M (Game Boy Advance)
-This emulator doesn't change the default screenshot key to be S/Ctrl+S like most others, mainly because you can set the screenshot key to a joystick button. Feel free to set it accordingly when you set up your controller.
+This emulator doesn't change the default screenshot key to be Ctrl+S like most others, mainly because you can set the screenshot key to a joystick button. Feel free to set it accordingly when you set up your controller.
 Personally, I use the same controller button that I have mappend to Ctrl+S in Antimicro, so the same button takes screenshots in all emulators.
 
 ### Mupen64Plus (Nintendo 64)
@@ -100,6 +101,9 @@ Make sure set to set a key for taking screenshots if you want to (probably Ctrl+
 
 ### Snes9X (SNES)
 No keys are mapped by default, so it is recommended that you map "Take Screenshot" to "S" when you are setting up your controller. This version also removes functionality for the Escape key. Finally, it is recommended that you use the "PulseAudio" sound driver (I had some trouble with the default PortAudio driver on my machine). To save games properly, please set the "Auto-save SRAM" setting to a low number (1-2). Otherwise, you game will not save, since GuyStation does not use the conventional method to save games.
+
+### Mesen (NES)
+This version of Mesen changes the default screenshot key to Ctrl+S, the default pause key from Escape to Ctrl+R, and the default save state key from Ctrl+S to Ctrl+K.
 
 ## Backwards Compatibility
 Some emulators have Backwards compability. From what I understand, VisualBoyAdvance-M supports Game Boy Color and Game Boy Games (like the Game Boy Advance), and PCSX2 supports PS1 games (like the Playstation 2). Dolphin could be thought of as a Wii emulator with backwards compability for the GameCube (like the Wii), however they are two seperate menu options since the Wii requires some extra commands due to the structure it uses for save games. Citra does not support DS games.
@@ -145,6 +149,7 @@ Multiple monitors are not supported. Using multiple monitors will cause issues w
 * Internet icon: [flaticon.com](https://www.flaticon.com/)
 * PSP icon: [Guilherme Simoes](https://icons-for-free.com/icons-author-Guilherme+Simoes/)
 * SNES icon: [Icon-Library.net](https://icon-library.net/icon/nintendo-controller-icon-14.html)
+* NES icon: [Icon-Library.net](https://icon-library.net/icon/nes-icon-22.html)
 * Game Boy Advance emulator: [VisualBoyAdvance-m](https://vba-m.com/)
 * DS emulator: [DeSmuMe](http://desmume.org/)
 * Nintendo 64 emulator: [Mupen64Plus](https://mupen64plus.org/)
@@ -153,6 +158,8 @@ Multiple monitors are not supported. Using multiple monitors will cause issues w
 * 3DS emulator: [Citra](https://citra-emu.org/)
 * PSP emulator: [PPSSPP](https://www.ppsspp.org/)
 * SNES emulator: [Snes9X](http://www.snes9x.com/)
+* NES emulator: [Mesen](https://www.mesen.ca/)
 * Menu Icons: [Font Awesome](https://fontawesome.com/)
 * Blinker font: [Juergen Huber](https://fonts.google.com/specimen/Blinker)
 * Toy Train font: [West Winds Fonts](https://www.dafont.com/west-wind-fonts.d361)
+* The many contributors to the Node packages used in this project
