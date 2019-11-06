@@ -1394,12 +1394,13 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
     }
 
     // Error check
+    let gameDictEntry;
     if( !noGame ) {
         let isInvalid = isInvalidGame( system, game, parents );
         if( isInvalid ) {
             return Promise.resolve(isInvalid);
         }
-        let gameDictEntry = getGameDictEntry(system, game, parents);
+        gameDictEntry = getGameDictEntry(system, game, parents);
         if( !fs.existsSync(generateRomLocation( system, game, gameDictEntry.rom, parents )) && system != BROWSER && !gameDictEntry.isPlaylist ) {
             return Promise.resolve(ERROR_MESSAGES.noRomFile);
         }
