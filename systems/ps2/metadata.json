@@ -6,5 +6,5 @@
   "screenshotsDirArgType": "=",
   "extraFlags": ["--fullscreen"],
   "activateCommand": "wmctrl -l | grep -E \"PCSX2\\s*$|Speed: \" | cut -d' ' -f1 | xargs wmctrl -i -a",
-  "frontendActivateCommand": "wmctrl -l | grep -E \"PCSX2\\s*\\d\" | cut -d' ' -f1 | xargs wmctrl -i -a"
+  "frontendActivateCommand": "wmctrl -l | grep -E \"PCSX2\\s*v\" | cut -d' ' -f1 | xargs wmctrl -i -a"
 }

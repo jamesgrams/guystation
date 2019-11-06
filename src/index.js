@@ -1097,7 +1097,7 @@ function getData() {
         // Set the games for this system
         systemData.games = gamesDict;
 
-        if( isBeingPlayed( system, null, null ) ) systemData.playing = true;
+        if( isBeingPlayed( system, null, [] ) ) systemData.playing = true;
 
         // Add this system to the dictionary of systems
         systemsDict[system] = systemData;
