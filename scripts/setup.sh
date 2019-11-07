@@ -8,8 +8,6 @@ cd ~
 sed -i "s/james/$USER/g" ~/guystation/systems/ps2/metadata.json
 # Update the metadata for PSP to include the user's home directory
 sed -i "s/james/$USER/g" ~/guystation/systems/psp/metadata.json
-# Update the metadata for Mesen to include the user's home directory
-sed -i "s/james/$USER/g" ~/guystation/systems/nes/metadata.json
 
 # Install nodejs
 sudo apt-get -y install curl
@@ -22,13 +20,14 @@ sudo npm install -g npm@latest --force
 sudo apt-get -y install git
 
 # Install dependencies needed
-DEP_64="build-essential autoconf cmake automake libgtk2.0-dev libglu1-mesa-dev libsdl1.2-dev libglade2-dev gettext zlib1g-dev libosmesa6-dev intltool libagg-dev libasound2-dev libsoundtouch-dev libpcap-dev default-jdk libboost-filesystem-dev libevdev-dev qt5-default qtbase5-private-dev libbluetooth-dev gcc gcc-multilib g++ g++-multilib python-pyqt5 pyqt5-dev-tools python-pyqt5.qtopengl libsdl2-dev python-setuptools libwxbase3.0-dev wx-common libgtk-3-dev libwxbase3.0-dev libwxgtk3.0-dev libwxgtk3.0-gtk3-dev wx-common python-sdl2 qtbase5-dev libqt5opengl5-dev qtmultimedia5-dev libjack-dev libvulkan-dev libgl1-mesa-dev qttools5-dev-tools qt5-qmake libglib2.0-dev gawk libxml2-dev libxv-dev libpulse-dev portaudio19-dev meson ninja-build minizip xdotool libxtst-dev libpng++-dev mono-devel gnome-themes-standard clang"
+DEP_64="build-essential autoconf cmake automake libgtk2.0-dev libglu1-mesa-dev libsdl1.2-dev libglade2-dev gettext zlib1g-dev libosmesa6-dev intltool libagg-dev libasound2-dev libsoundtouch-dev libpcap-dev default-jdk libboost-filesystem-dev libevdev-dev qt5-default qtbase5-private-dev libbluetooth-dev gcc gcc-multilib g++ g++-multilib python-pyqt5 pyqt5-dev-tools python-pyqt5.qtopengl libsdl2-dev python-setuptools libwxbase3.0-dev wx-common libgtk-3-dev libwxbase3.0-dev libwxgtk3.0-dev libwxgtk3.0-gtk3-dev wx-common python-sdl2 qtbase5-dev libqt5opengl5-dev qtmultimedia5-dev libjack-dev libvulkan-dev libgl1-mesa-dev qttools5-dev-tools qt5-qmake libglib2.0-dev gawk libxml2-dev libxv-dev libpulse-dev portaudio19-dev meson ninja-build minizip xdotool libxtst-dev libpng++-dev scons"
 sudo apt-get -y install $DEP_64
 
-# Install Mesen
-git clone https://github.com/jamesgrams/Mesen.git
-cd Mesen
-make
+# Install FCEUX
+git clone https://github.com/jamesgrams/fceux.git
+cd fceux
+scons
+scons install
 
 # Return to the home directory
 cd ~
