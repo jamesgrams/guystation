@@ -4,6 +4,7 @@
   "screenshotsDirFlag": "--sshotdir",
   "saveDirArgType": " ",
   "screenshotsDirArgType": " ",
-  "extraFlags": ["--fullscreen"],
+  "extraFlags": [],
+  "fullScreenButtons": ["alt", "enter"],
   "activateCommand": "wmctrl -a 'FCEUX'"
 }

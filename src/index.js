@@ -64,7 +64,6 @@ const MAX_ACTIVATE_TRIES = 20;
 const FOCUS_CHROMIUM_COMMAND = "wmctrl -a 'Chrom'";
 const TMP_ROM_LOCATION = "/tmp/tmprom";
 const NAND_ROM_FILE_PLACEHOLDER = "ROM_FILE_PLACEHOLDER";
-const FULL_SCREEN_KEY = "f11";
 const BROWSER = "browser";
 const MEDIA = "media";
 const GOOGLE_SEARCH_URL = "https://google.com/search?q=";
@@ -1512,7 +1511,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         currentSystem = system;
         currentParentsString = parents.join(SEPARATOR);
 
-        if( !noGame && systemsDict[system].fullScreenPress ) {
+        if( !noGame && systemsDict[system].fullScreenButtons ) {
             activateTries = 1; // We know the program since we waited until we could full screen
             // I guess the only time this would come into play is if we failed to full screen
             // due to this program not opening. I think it is best we don't wait another X tries
@@ -1520,7 +1519,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
             for( let i=0; i<fullScreenTries; i++ ) {
                 try {
                     proc.execSync( systemsDict[system].activateCommand );
-                    ks.sendKey(FULL_SCREEN_KEY);
+                    ks.sendCombination( systemsDict[system].fullScreenButtons );
                     break;
                 }
                 catch(err) { 

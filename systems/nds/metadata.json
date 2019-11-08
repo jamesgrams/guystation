@@ -5,6 +5,6 @@
   "saveDirArgType": " ",
   "screenshotsDirArgType": " ",
   "extraFlags": [],
-  "fullScreenPress": true,
+  "fullScreenButtons": ["f11"],
   "activateCommand": "wmctrl -a 'DeSmuME'"
 }
