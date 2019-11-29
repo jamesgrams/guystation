@@ -52,6 +52,7 @@ Here are some recommendedations to make your experience better on Ubuntu.
 2. Use a Bluetooth adapater and install Bluetooth Manager (`sudo apt-get install blueman`)
     * This is good for initially pariring your controller.
 3. For Wii/Wii U Controllers use xwiimote (`sudo apt-get install xwiimote`)
+    * In addition, I recommend the Mayflash Wii U Pro Controller Adapter for third party Wii U Pro controllers. I had an afterglow controller that would not work with a regular bluetooth adapter, but it worked great with this. Note that you will need one adapter per controller.
 4. To map controller buttons to keyboard keys, use [Antimicro](https://github.com/AntiMicro/antimicro).
     * To build on Ubuntu, in addition to following the instructions in the project's README, you will need the following libraries:
         * `sudo apt-get install libqt4-dev libqt4-dev-bin libqt4-opengl-dev libqtwebkit-dev qt4-linguist-tools qt4-qmake`

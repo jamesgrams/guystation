@@ -3126,7 +3126,10 @@ async function stopScreencast(id) {
     clientSocketIds = [];
     startedClientIds = [];
     cancelStreamingTimeouts = [];
-    if( menuPageIsActive() ) ensureProperResolution(); // we might have gone home and changed to resolution in preparation to go back to the emulator. If there was an error, we might not have gone back to the emulator. In this case, once the reset timeout fails, we should make sure we have the correct resolution.
+    try {
+        if( menuPageIsActive() ) ensureProperResolution(); // we might have gone home and changed to resolution in preparation to go back to the emulator. If there was an error, we might not have gone back to the emulator. In this case, once the reset timeout fails, we should make sure we have the correct resolution.
+    }
+    catch(err) { /* ok */ }
     return Promise.resolve(false);
 }
 

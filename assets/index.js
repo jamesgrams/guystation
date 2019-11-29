@@ -144,12 +144,15 @@ function displayGamePreview() {
             previewElement.setAttribute("data-game", currentGameElement.getAttribute("data-game"));
             previewElement.setAttribute("data-system", currentSystemElement.getAttribute("data-system"));
             previewElement.setAttribute("data-parents", currentGameElement.getAttribute("data-parents"));
-            previewElement.onclick = function() { 
-                if( this.classList.contains("game-preview-clicked") ) {
-                    this.classList.remove("game-preview-clicked");
-                }
-                else {
-                    this.classList.add("game-preview-clicked"); 
+            previewElement.onclick = function(e) { 
+                if( !disableMenuControls ) {
+                    if( this.classList.contains("game-preview-clicked") ) {
+                        this.classList.remove("game-preview-clicked");
+                    }
+                    else {
+                        this.classList.add("game-preview-clicked"); 
+                    }
+                    e.stopPropagation();
                 }
             }
 
@@ -363,7 +366,9 @@ function addMarquee(element, gameElement, header) {
         headerMarqueeTimeout = setTimeout( function() {element.classList.add("game-marquee-header"); element.classList.add("game-marquee");}, HEADER_MARQUEE_TIMEOUT_TIME );
     }
     else {
+        element.style.animationPlayState = "paused";
         element.classList.add("game-marquee");
+        setTimeout( function() { element.style.animationPlayState = "running" }, 0 ); // this is necessary for iOS safari
     }
 }
 
@@ -582,7 +587,7 @@ function enableControls() {
                 break;
         }
         // for the video
-        if( enableModalControls && document.querySelector(".modal #remote-screencast-form video, .modal #browser-controls-form video") ) {
+        if( enableModalControls && document.querySelector(".modal #remote-screencast-form video, .modal #browser-controls-form video, .black-background video") ) {
             // Allow enter for the browser address bar
             if( !(document.querySelector(".modal #address-bar") && document.querySelector(".modal #address-bar") === document.activeElement && !navigating) && !buttonsUp[event.keyCode.toString()] ) {
                 makeRequest( "POST", "/screencast/buttons", { "down": false, "buttons": [event.keyCode] } );
@@ -667,7 +672,7 @@ function draw( startSystem ) {
             cpyGameElement.style.visibility = "";
             cpyGameElement.parentElement.removeChild(cpyGameElement);
             var newOffset = j * height * -1;
-            gamesElement.style.top = newOffset + "px";
+            gamesElement.style.transform = "translateY("+newOffset+"px)";
         }
 
         // Append the games list element to the system
@@ -688,9 +693,9 @@ function draw( startSystem ) {
     systemsElementNew.setAttribute("id", "systems");
     // Add the systems elements
     var clickToMove = function(element) {
-        var myOffset = element.parentElement.style.left;
+        var myOffset = element.parentElement.style.transform;
         if( myOffset )
-            myOffset = parseInt(myOffset.match(/(-?\s?\d+)px/)[1].replace(/\s/,""));
+            myOffset = parseInt(myOffset.match(/([\+\-]?\s?\d+)px/)[1].replace(/\s/,""));
         else
             myOffset = 0;
         var mySpaces = myOffset/SPACING;
@@ -710,10 +715,13 @@ function draw( startSystem ) {
         }
         return -1;
     }
-    var clickToMoveOrLaunch = function() {
-        var spacesMoved = clickToMove(this);
-        if( this.parentNode.getAttribute("data-system") != "media" ) {
-            if( !spacesMoved) launchGame( document.querySelector(".system.selected").getAttribute("data-system"), null, [] );
+    var clickToMoveOrLaunch = function(e) {
+        if( !disableMenuControls ) {
+            var spacesMoved = clickToMove(this);
+            if( this.parentNode.getAttribute("data-system") != "media" ) {
+                if( !spacesMoved) launchGame( document.querySelector(".system.selected").getAttribute("data-system"), null, [] );
+            }
+            e.stopPropagation();
         }
     }
 
@@ -723,21 +731,27 @@ function draw( startSystem ) {
     for( var i=1; i<expandCountRight+1; i++ ) {
         var nextIndex = getIndex( startIndex, systemElements, i );
         var nextElement = systemElements[nextIndex].cloneNode(true);
-        nextElement.style.left = "calc( 50% + " + (i*SPACING) + "px )";
+        nextElement.style.transform = "translateX( calc( -50% + "+(i*SPACING)+"px ) )translateY(-50%)";
         nextElement.querySelector("img").onclick = clickToMoveOrLaunch;
         systemsElementNew.appendChild(nextElement);
     }
     for( var i=1; i<expandCountLeft+1; i++ ) {
         var prevIndex = getIndex( startIndex, systemElements, -1*i );
         var prevElement = systemElements[prevIndex].cloneNode(true);
-        prevElement.style.left = "calc( 50% + -" + (i*SPACING) + "px )";
+        prevElement.style.transform = "translateX( calc( -50% - "+(i*SPACING)+"px ) )translateY(-50%)";
         prevElement.querySelector("img").onclick = clickToMoveOrLaunch;
         systemsElementNew.appendChild(prevElement);
     }
 
     // onclick move submenu, if we don't move anywhere, then launch the game
-    systemsElementNew.querySelectorAll(".games .game").forEach( function(element) { element.onclick = function() {
-        var spacesMoved = clickToMoveSubmenu(element); if(!spacesMoved) document.querySelector("#launch-game").click(); }
+    systemsElementNew.querySelectorAll(".games .game").forEach( function(element) { 
+        element.onclick = function(e) {
+            if( !disableMenuControls && !this.classList.contains("above") ) {
+                var spacesMoved = clickToMoveSubmenu(element); 
+                if(!spacesMoved) document.querySelector("#launch-game").click();
+                e.stopPropagation();
+            }
+        }
     } );
 
     // Add the selected class
@@ -1280,9 +1294,9 @@ function moveMenu( spaces ) {
         systems[i].classList.remove("no-transition"); // Return all elements to default transition
 
         // Get the current offset of the system
-        var offset = systems[i].style.left;
+        var offset = systems[i].style.transform;
         if( offset ) {
-            offset = parseInt(offset.match(/(-?\s?\d+)px/)[1].replace(/\s/,""));
+            offset = parseInt(offset.match(/([\+\-]?\s?\d+)px/)[1].replace(/\s/,""));
         }
         else {
             offset = 0;
@@ -1305,7 +1319,7 @@ function moveMenu( spaces ) {
             systems[i].classList.add("selected");
         }
         // Set the offset
-        systems[i].style.left = "calc( 50% + " + (offset) + "px )";
+        systems[i].style.transform = "translateX( calc( -50% + "+(offset)+"px ) )translateY(-50%)";
     }
     toggleButtons();
     saveMenuPosition();
@@ -1338,11 +1352,11 @@ function moveSubMenu( spaces ) {
     for( var i=0; i<subMenus.length; i++ ) {
         var subMenu = subMenus[i];
 
-        var currentOffset = subMenu.style.top;
+        var currentOffset = subMenu.style.transform;
 
         // Get the current offset of the sub menu
         if( currentOffset ) {
-            currentOffset = currentOffset.match(/-?\d+/)[0];
+            currentOffset = parseInt(currentOffset.match(/(\-?\d+)px/)[1].replace(/\s/,""));
         }
         else {
             currentOffset = 0;
@@ -1388,7 +1402,7 @@ function moveSubMenu( spaces ) {
         }
 
         // Set the submenu offset
-        subMenu.style.top = newOffset + "px";
+        subMenu.style.transform = "translateY("+newOffset+"px)";
     }
     toggleButtons();
     saveMenuPosition();
@@ -1927,7 +1941,7 @@ function displayScreencast() {
     form.setAttribute("id", "remote-screencast-form");
     form.appendChild(video);
 
-    form.appendChild( createButton("Fullscreen", function() {video.requestFullscreen();}));
+    form.appendChild( createButton("Fullscreen", function() { fullscreenVideo(video) }));
 
     makeRequest( "GET", "/screencast/connect", { id: socket.id }, function() {
         // start letting the server know we exist after it is now looking for us i.e. won't accept another connection
@@ -1941,12 +1955,88 @@ function displayScreencast() {
 }
 
 /**
+ * Fullscreen a video element.
+ * @param {HTMLElement} element - The video element to fullscreen.
+ */
+function fullscreenVideo( element ) {
+    try {
+        element.requestFullscreen();
+    }
+    catch(err) {
+        if( /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream ) {
+            // this should be for iOS safari
+            //element.webkitEnterFullScreen();
+            var oldParent = element.parentNode;
+            var nextSibling = element.nextSibling;
+            var blackBackground = document.createElement("div");
+            blackBackground.classList.add("black-background");
+            document.body.appendChild(blackBackground);
+            blackBackground.appendChild( element );
+
+            resizePseudoFullscreen();
+
+            window.addEventListener("resize", resizePseudoFullscreen);
+            window.addEventListener("orientationchange", resizePseudoFullscreen);
+
+            blackBackground.onclick = function(e) {
+                e.stopPropagation();
+                e.preventDefault();
+            }
+            var exitButton = createButton( "X", function() { 
+                if( nextSibling ) {
+                    oldParent.insertBefore(element, nextSibling);
+                }
+                else {
+                    oldParent.appendChild(element);
+                }
+                blackBackground.parentNode.removeChild(blackBackground);
+                window.removeEventListener("resize", resizePseudoFullscreen);
+                window.removeEventListener("orientationchange", resizePseudoFullscreen);
+            } );
+            blackBackground.appendChild(exitButton);
+            var keyboardInput = createInput().children[1];
+            keyboardInput.setAttribute("placeholder", "⌨️");
+            keyboardInput.oninput = function() { keyboardInput.value = "" };
+            blackBackground.appendChild( keyboardInput );
+        }
+    }
+}
+
+/**
+ * Resize the pseudo-fullscreen element created for iOS.
+ */
+function resizePseudoFullscreen() {
+
+    var element = document.querySelector(".black-background video");
+    if( element ) {
+
+        var elWidth = element.clientWidth;
+        var elHeight = element.clientHeight;
+        var elRatio = elWidth/elHeight;
+
+        var windowWidth = window.innerWidth;
+        var windowHeight = window.innerHeight;
+
+        element.classList.remove("width-max");
+        element.classList.remove("height-max");
+        if( windowWidth / elRatio > windowHeight ) {
+            element.classList.add("height-max");
+        }
+        else {
+            element.classList.add("width-max");
+        }
+
+    }
+}
+
+/**
  * Create an interactive screencast.
  * @returns {HTMLElement} A video element that can be interacted with.
  */
 function createInteractiveScreencast() {
     var video = document.createElement("video");
     video.setAttribute("autoplay", "true");
+    video.setAttribute("playsinline", "true");
 
     var getMousePercentLocation = function(event) {
         var nativeWidth = video.videoWidth;
@@ -3733,7 +3823,7 @@ function manageGamepadInput() {
                         document.exitFullscreen();
                     }
                     else {
-                        document.querySelector(".modal #remote-media-form video").requestFullscreen();
+                        fullscreenVideo( document.querySelector(".modal #remote-media-form video") );
                     }
                 }
                 else if(!selectPressed) {
@@ -3805,9 +3895,12 @@ function buttonPressed(b) {
 
 document.addEventListener('touchstart', handleTouchStart, false);        
 document.addEventListener('touchmove', handleTouchMove, false);
+document.addEventListener('touchend', handleTouchEnd, false);
 
 var xDown = null;                                                        
 var yDown = null;
+var xUp = null;
+var yUp = null;
 
 /**
  * Get the touches that occurred.
@@ -3829,8 +3922,10 @@ function handleTouchStart(evt) {
     yDown = firstTouch.clientY;                                      
 };                                                
 
+var r=0;
+
 /**
- * Handle the touch move event (moves the menu/submenus).
+ * Handle the touch move event.
  * @param {Event} evt - The touch event.
  */
 function handleTouchMove(evt) {
@@ -3838,29 +3933,43 @@ function handleTouchMove(evt) {
         return;
     }
 
-    var xUp = evt.touches[0].clientX;                                    
-    var yUp = evt.touches[0].clientY;
+    xUp = evt.touches[0].clientX;                                    
+    yUp = evt.touches[0].clientY;          
+};
+
+/**
+ * Handle the touch end event (moves the menu/submenus).
+ */
+function handleTouchEnd() {
+    if ( ! xDown || ! yDown || !xUp || !xDown || disableMenuControls ) {
+        return;
+    }
 
     var xDiff = xDown - xUp;
     var yDiff = yDown - yUp;
 
-    if ( Math.abs( xDiff ) > Math.abs( yDiff ) ) {/*most significant*/
-        if ( xDiff > 0 ) {
-            moveMenu(-1);
+    if( Math.abs(xDiff) > 50 || Math.abs(yDiff) > 50 ) {
+        if ( Math.abs( xDiff ) > Math.abs( yDiff ) ) {/*most significant*/
+            if ( xDiff > 0 ) {
+                moveMenu(-1);
+            } else {
+                moveMenu(1);
+            }                       
         } else {
-            moveMenu(1);
-        }                       
-    } else {
-        if ( yDiff > 0 ) {
-            moveSubMenu(1);
-        } else { 
-            moveSubMenu(-1);
-        }                                                                 
+            if ( yDiff > 0 ) {
+                moveSubMenu(1);
+            } else { 
+                moveSubMenu(-1);
+            }                                                                 
+        }
     }
+
     /* reset values */
     xDown = null;
-    yDown = null;                                             
-};
+    yDown = null;   
+    xUp = null;
+    yUp = null;
+}
 
 window.addEventListener("wheel", event => scrollWheel(event), { passive: false });
 
@@ -3869,6 +3978,7 @@ window.addEventListener("wheel", event => scrollWheel(event), { passive: false }
  * @param {Event} event - The scroll event.
  */
 function scrollWheel( event ) {
+    if( disableMenuControls ) return;
 
     clearTimeout(scrollAddTimeout);
     scrollAddTimeout = setTimeout( function() { scrollVerticalTotal = 0; scrollHorizontalTotal = 0; }, SCROLL_TIMEOUT_TIME );

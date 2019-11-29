@@ -55,7 +55,7 @@ h1 {
     position: absolute;
     left: 50%;
     transform: translateX( -50% )translateY( -50% );
-    transition: opacity 0.5s, left 0.5s;
+    transition: opacity 0.5s, transform 0.5s;
     opacity: 0.5;
     user-select: none;
 }
@@ -87,7 +87,7 @@ h1 {
 
 .games {
     height: 0;
-    transition: opacity 0.5s, top 0.5s;
+    transition: opacity 0.5s, transform 0.5s;
     margin-top: 20px;
     position: relative;
     top: 0;
@@ -175,7 +175,7 @@ h1 {
 }
 
 .game-folder { 
-    font-size: 45%;
+    font-size: 40%;
 }
 
 .game-folder + .game-title {
@@ -187,7 +187,7 @@ h1 {
 }
 
 .game-folder ~ .current-save {
-    font-size: 55%;
+    font-size: 50%;
 }
 
 .current-save::before {
@@ -272,9 +272,10 @@ h1 {
     background-color: black;
     color: white;
     border: 1px solid white;
+    -webkit-appearance: none;
 }
 
-.modal button, .dying-modal button, #functions button {
+.modal button, .dying-modal button, #functions button, .black-background button {
     float: right;
     margin-top: 2px;
     background-color: white;
@@ -299,22 +300,26 @@ h1 {
     display: inline-block;
     float: none;
     vertical-align: bottom;
+    color: white;
+    background-color: transparent;
 }
 
 #game-functions, #save-functions, #more-functions {
-    background-color: white;
+    background-color: transparent;
     text-align: center;
-    color: #191919;
-    margin-top: 2px;
-    background-color: white;
-    color: #191919;
+    color: white;
+    margin-top: 2px;    
     border-radius: 5px;
     padding: 8px;
     font-family: blinker;
     font-size: 100%;
-    margin-left: 10px;
     display: inline-block;
     vertical-align: bottom;
+    margin-left: 10px;
+}
+
+#game-functions {
+    margin-left: 0;
 }
 
 .function-title {
@@ -325,14 +330,14 @@ h1 {
     display: inline-block;
 }
 
-#game-functions button, #save-functions button, #more-functions button {
+#game-functions button, #save-functions button, #more-functions button, .black-background button {
     display: inline-block;
     width: 52px;
     margin-left: 0;
     margin-top: 0;
 }
 
-.modal button.inactive, .dying-modal button.inactive, #functions button.inactive {
+.modal button.inactive, .dying-modal button.inactive, #functions button.inactive, .black-background button.inactive {
     opacity: 0.5;
 }
 
@@ -373,10 +378,18 @@ h1 {
     bottom: 0;
     right: 0;
     text-align: center;
-    transform: translateX(97%); /* ~24px shown */
+    transform: translateX(100%); /* ~24px shown */
     width: 932px; /* 58px to add another icon */
-    transition: transform 0.5s, width 0.5s;
+    transition: transform 0.5s, width 0.5s, background-color 1s;
     z-index: 998;
+    background-color: #191919;
+    border-radius: 5px 0 0 0;
+    border-left: 2px solid white;
+    border-top: 2px solid white;
+}
+
+.modal-open #functions {
+    background-color: black;
 }
 
 #functions.open {
@@ -389,10 +402,15 @@ h1 {
     bottom: 0;
     transform: translateY(100%);
     opacity: 1;
-    animation: fade 5s;
-    animation-timing-function: linear;
+    /*animation: fade 5s;
+    animation-timing-function: linear;*/
+    animation: fade 4.9s linear 0.1s infinite; /* we need the delay to work on iOS */
     pointer-events: none;
     user-select: none;
+}
+
+video::-webkit-media-controls-enclosure {
+    display: none !important;
 }
 
 #browser-controls-form {
@@ -589,6 +607,63 @@ h1 {
     overflow: auto;
 }
 
+.black-background {
+    height: 100%;
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000000;
+    background-color: black;
+}
+
+.black-background video {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.black-background video.height-max {
+    height: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.black-background video.width-max {
+    width: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.black-background button {
+    margin-right: 5px;
+    margin-top: 5px;
+    position: absolute;
+    top: 0;
+    right: 0;
+    opacity: 0.2;
+}
+
+.black-background input {
+    cursor: none;
+    color: transparent;
+    width: 52px;
+    position: absolute;
+    height: 52px;
+    opacity: 0.3;
+    top: 5px;
+    left: 5px;
+    font-size: 25px;
+    font-style: italic;
+    font-family: 'blinker', sans-serif;
+    border: none;
+    outline: none;
+}
+
+.black-background input:focus {
+    outline: none;
+}
+
 @keyframes fade {
     0% {transform: translateY(100%); opacity: 1;}
     75% {transform: translateY(0%); opacity: 0.7;}
@@ -613,12 +688,16 @@ h1 {
 
 @media only screen and (max-width: 1030px) {
     #functions {
-        width: 230px;
-        transform: translateX(90%);
+        width: 220px;
     }
     #game-functions, #save-functions, #more-functions {
         padding: 8px 0;
         width: 220px;
+        margin-left: 0;
+    }
+    #game-functions {
+        margin-top: 0;
+        margin-left: 0;
     }
     .game-preview {
         display: none !important;
