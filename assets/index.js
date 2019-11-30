@@ -805,7 +805,7 @@ function draw( startSystem ) {
         // Add the onclick element
         var parentGamesList = element.closest(".games");
         if( parentGamesList.parentElement.classList.contains("selected") && !element.classList.contains("above") ) {
-            var parentGamesArray = Array.prototype.slice.call( parentGamesList.querySelectorAll(".game") );
+            var parentGamesArray = Array.prototype.slice.call( parentGamesList.querySelectorAll(".game:not(.hidden)") );
             var currentGame = parentGamesList.querySelector(".game.selected");
             var currentPosition = parentGamesArray.indexOf( currentGame );
             var myPosition = parentGamesArray.indexOf( element );
@@ -2141,6 +2141,11 @@ function fullscreenVideo( element ) {
             var editButton = createButton( '<i class="fas fa-edit"></i>', function(e) {
                 var icon = this.querySelector("i");
                 if( actionButton.classList.contains("hidden") ) {
+                    // show the select menus if starting out on keyboard
+                    if( document.querySelector(".black-background #action-button .fa-keyboard") ) {
+                        document.querySelectorAll(".black-background .key-button .key-display").forEach( function(el) { el.classList.add("hidden"); } );
+                        document.querySelectorAll(".black-background .key-button .key-select").forEach( function(el) { el.classList.remove("hidden"); } );
+                    }
                     actionButton.classList.remove("hidden");
                     icon.classList.remove("fa-edit");
                     icon.classList.add("fa-check");
