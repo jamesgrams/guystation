@@ -24,6 +24,105 @@ var SHOW_PREVIEW_TIMEOUT = 1000;
 var PREVIEW_ANIMATION_TIME = 1000;
 var SCROLL_TIMEOUT_TIME = 500;
 var SCROLL_NEEDED = 1250;
+var KEYCODES = {
+    '0': "48",
+    '1': "49",
+    '2': "50",
+    '3': "51",
+    '4': "52",
+    '5': "53",
+    '6': "54",
+    '7': "55",
+    '8': "56",
+    '9': "57",
+    '!': "161",
+    '#': "163",
+    '$': "164",
+    '*': "170",
+    ':': "58",
+    '<': "60",
+    '?': "193",
+    'L⌘': "91",
+    'R⌘': "93",
+    '^': "160",
+    '`': "223",
+    'A': "65",
+    '+': "107",
+    '⎇': "18",
+    'B': "66",
+    '\\': "220",
+    '⌫': "8",
+    '⎊': "3",
+    'C': "67",
+    '⇪': "20",
+    ']': "221",
+    ',': "188",
+    '✲': "17",
+    'D': "68",
+    '-': "189",
+    '⬇': "40",
+    'E': "69",
+    '↵': "13",
+    '=': "187",
+    '⎋': "27",
+    'F': "70",
+    'F1': "112",
+    'F2': "113",
+    'F3': "114",
+    'F4': "115",
+    'F5': "116",
+    'F6': "117",
+    'F7': "118",
+    'F8': "119",
+    'F9': "120",
+    'F10': "121",
+    'F11': "122",
+    'F12': "123",
+    'F13': "124",
+    'F14': "125",
+    'F15': "126",
+    'F16': "127",
+    'F17': "128",
+    'F18': "129",
+    'F19': "130",
+    'F20': "131",
+    'F21': "132",
+    'F22': "133",
+    'F23': "134",
+    'F24': "135",
+    '/': "191",
+    'G': "71",
+    'H': "72",
+    'I': "73",
+    'J': "74",
+    'K': "75",
+    'L': "76",
+    '⬅': "37",
+    'M': "77",
+    'N': "78",
+    'O': "79",
+    '[': "219",
+    'P': "80",
+    '.': "190",
+    'Q': "81",
+    'R': "82",
+    '➡': "39",
+    'S': "83",
+    ';': "186",
+    '⇧': "16",
+    '\'': "222",
+    ' ': "32",
+    'T': "84",
+    '↹': "9",
+    'U': "85",
+    '⬆': "38",
+    'V': "86",
+    'W': "87",
+    'X': "88",
+    'Y': "89",
+    'Z': "90",
+    '~': "171"
+}
 
 var expandCountLeft; // We always need to have a complete list of systems, repeated however many times we want, so the loop works properly
 var expandCountRight;
@@ -1987,6 +2086,16 @@ function fullscreenVideo( element ) {
             window.addEventListener("orientationchange", resizePseudoFullscreen);
 
             blackBackground.onclick = function(e) {
+
+                if( document.querySelector(".black-background #edit-button .fa-check") ) {
+
+                    if( document.querySelector(".black-background #action-button:not(.hidden) .fa-plus") ) {
+                        var keyButton = createKeyButton( '0', e.clientX, e.clientY );
+                        blackBackground.appendChild(keyButton);
+                    }
+
+                }
+
                 e.stopPropagation();
                 e.preventDefault();
             }
@@ -2001,12 +2110,182 @@ function fullscreenVideo( element ) {
                 window.removeEventListener("resize", resizePseudoFullscreen);
                 window.removeEventListener("orientationchange", resizePseudoFullscreen);
             } );
+            exitButton.setAttribute("id", "exit-button");
             blackBackground.appendChild(exitButton);
-            var keyboardInput = createInput().children[1];
-            keyboardInput.setAttribute("placeholder", "⌨️");
-            keyboardInput.oninput = function() { keyboardInput.value = "" };
-            blackBackground.appendChild( keyboardInput );
+            
+            var actionButton = createButton( '<i class="fas fa-plus"></i>', function(e) {
+                var icon = this.querySelector( "i" );
+                var currentAction = icon.classList[1];
+                icon.classList.remove( currentAction );
+
+                if( currentAction == "fa-plus" ) {
+                    icon.classList.add("fa-arrows-alt");
+                }
+                else if( currentAction == "fa-arrows-alt" ) {
+                    document.querySelectorAll(".black-background .key-button .key-display").forEach( function(el) { el.classList.add("hidden"); } );
+                    document.querySelectorAll(".black-background .key-button .key-select").forEach( function(el) { el.classList.remove("hidden"); } );
+                    icon.classList.add("fa-keyboard");
+                }
+                else if( currentAction == "fa-keyboard" ) {
+                    document.querySelectorAll(".black-background .key-button .key-select").forEach( function(el) { el.classList.add("hidden"); } );
+                    document.querySelectorAll(".black-background .key-button .key-display").forEach( function(el) { el.classList.remove("hidden"); } );
+                    icon.classList.add("fa-trash");
+                }
+                else if( currentAction == "fa-trash" ) {
+                    icon.classList.add("fa-plus");
+                }
+                e.stopPropagation();
+                e.preventDefault();
+            } );
+            actionButton.setAttribute("id", "action-button");
+            var editButton = createButton( '<i class="fas fa-edit"></i>', function(e) {
+                var icon = this.querySelector("i");
+                if( actionButton.classList.contains("hidden") ) {
+                    actionButton.classList.remove("hidden");
+                    icon.classList.remove("fa-edit");
+                    icon.classList.add("fa-check");
+                }
+                else {
+                    document.querySelectorAll(".black-background .key-button .key-select").forEach( function(el) { el.classList.add("hidden"); } );
+                    document.querySelectorAll(".black-background .key-button .key-display").forEach( function(el) { el.classList.remove("hidden"); } );
+                    actionButton.classList.add("hidden");
+                    icon.classList.remove("fa-check");
+                    icon.classList.add("fa-edit");
+                    saveKeyConfiguration();
+                }
+                e.stopPropagation();
+                e.preventDefault();
+            } );
+            editButton.setAttribute("id", "edit-button");
+            actionButton.classList.add("hidden");
+
+            blackBackground.appendChild(editButton);
+            blackBackground.appendChild(actionButton);
+
+            loadKeyConfiguration();
         }
+    }
+}
+
+/**
+ * Create a key button.
+ * @param {string} selected - The selected key for the button.
+ * @param {number} x - The X coordinate of the center of the button.
+ * @param {number} y - The Y coordinate of the center of the button.
+ * @returns {HTMLElement} The button element.
+ */
+function createKeyButton( selected, x, y ) {
+    var blackBackground = document.querySelector(".black-background");
+    var keySelect = createMenu( selected, Object.keys(KEYCODES) ).children[1];
+
+    keySelect.onclick = function(e) {
+        if( !document.querySelector(".black-background #action-button:not(.hidden) .fa-keyboard") ) {
+            e.preventDefault();
+            this.blur();
+            window.focus();
+        }
+    }
+    keySelect.classList.add("hidden");
+    keySelect.classList.add("key-select");
+    var keyDisplay = document.createElement("span");
+    keyDisplay.classList.add("key-display");
+    keyDisplay.innerText = selected;
+
+    // update the value
+    keySelect.onchange = function() { keyDisplay.innerText = keySelect.options[keySelect.selectedIndex].value };
+
+    var keyButton = document.createElement("button");
+    keyButton.classList.add("key-button");
+    var squareButtonSideHalf = blackBackground.querySelector("#edit-button").clientWidth/2;
+    keyButton.style.left = x - squareButtonSideHalf;
+    keyButton.style.top = y - squareButtonSideHalf;
+
+    keyButton.appendChild(keySelect);
+    keyButton.appendChild(keyDisplay);
+    
+    keyButton.onclick = function(e) {
+        if( document.querySelector(".black-background #edit-button .fa-check") ) {
+            if( document.querySelector(".black-background #action-button:not(.hidden) .fa-trash") ) {
+                this.parentNode.removeChild(this);
+            }
+        }
+        e.stopPropagation();
+        e.preventDefault();
+    }
+
+    var dragKey = function(e) {
+        keyButton.style.left = e.touches[0].clientX - squareButtonSideHalf;
+        keyButton.style.top = e.touches[0].clientY - squareButtonSideHalf;
+    }
+    keyButton.ontouchstart = function(e) {
+        if( document.querySelector(".black-background #action-button:not(.hidden) .fa-arrows-alt") ) {
+            window.addEventListener( "touchmove", dragKey );
+        }
+        
+        if( ! document.querySelector(".black-background #edit-button .fa-check") ) {
+            makeRequest( "POST", "/screencast/buttons", { "down": true, "buttons": [KEYCODES[keyButton.querySelector(".key-display").innerText]] } );
+        }
+    }
+    keyButton.ontouchend = function(e) {
+        window.removeEventListener("touchmove", dragKey);
+
+        if( ! document.querySelector(".black-background #edit-button .fa-check") ) {
+            makeRequest( "POST", "/screencast/buttons", { "down": false, "buttons": [KEYCODES[keyButton.querySelector(".key-display").innerText]] } );
+        }
+    }
+
+    return keyButton;
+}
+
+/**
+ * Save the current mobile key configuration to localstorage.
+ */
+function saveKeyConfiguration() {
+    
+    var keyMappings = window.localStorage.guystationMobileKeyMappings;
+    if( !keyMappings ) {
+        keyMappings = {};
+    }
+    else {
+        keyMappings = JSON.parse(keyMappings);
+    }
+
+    var resolution = window.innerWidth.toString() + "x" + window.innerHeight.toString();
+
+    var keys = [];
+    var keyButtons = document.querySelectorAll(".black-background .key-button");
+    var squareButtonSideHalf = document.querySelector(".black-background #edit-button").clientWidth/2;
+    for( var i=0; i<keyButtons.length; i++ ) {
+        var saveObject = {
+            "key": keyButtons[i].querySelector(".key-display").innerText,
+            "x": parseInt(keyButtons[i].style.left.replace("px","")) + squareButtonSideHalf,
+            "y": parseInt(keyButtons[i].style.top.replace("px","")) + squareButtonSideHalf
+        };
+        keys.push( saveObject );
+    }
+
+    keyMappings[resolution] = keys;
+
+    window.localStorage.guystationMobileKeyMappings = JSON.stringify(keyMappings);
+}
+
+/**
+ * Load the mobile key configuration.
+ */
+function loadKeyConfiguration() {
+
+    if( !window.localStorage.guystationMobileKeyMappings ) return;
+
+    var resolution = window.innerWidth.toString() + "x" + window.innerHeight.toString();
+    var keyMappings = JSON.parse( window.localStorage.guystationMobileKeyMappings );
+
+    if( !keyMappings[resolution] ) return;
+
+    var keys = keyMappings[resolution];
+
+    for( var i=0; i<keys.length; i++ ) {
+        var keyButton = createKeyButton( keys[i].key, keys[i].x, keys[i].y );
+        document.querySelector(".black-background").appendChild(keyButton);
     }
 }
 
@@ -2032,6 +2311,15 @@ function resizePseudoFullscreen() {
         }
         else {
             element.classList.add("width-max");
+        }
+
+        // if we aren't editing, load a new configuration.
+        if( document.querySelector(".black-background #edit-button .fa-edit") ) {
+            // remove the current buttons
+            document.querySelectorAll(".black-background .key-button").forEach( function(el) {
+                el.parentNode.removeChild(el);
+            });
+            loadKeyConfiguration();
         }
 
     }
@@ -2074,19 +2362,23 @@ function createInteractiveScreencast() {
     }
 
     video.onmousedown = function(event) {
-        var mousePercentLocation = getMousePercentLocation(event);
-        var xPercent = mousePercentLocation.xPercent;
-        var yPercent = mousePercentLocation.yPercent;
-        if( xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
-            makeRequest( "POST", "/screencast/mouse", { "down": true, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 2 ? "right" : middle } );
+        if( !document.querySelector(".black-background #edit-button .fa-check") ) { // dont record clicks if editing the interface
+            var mousePercentLocation = getMousePercentLocation(event);
+            var xPercent = mousePercentLocation.xPercent;
+            var yPercent = mousePercentLocation.yPercent;
+            if( xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
+                makeRequest( "POST", "/screencast/mouse", { "down": true, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 2 ? "right" : middle } );
+            }
         }
     };
     video.onmouseup = function(event) {
-        var mousePercentLocation = getMousePercentLocation(event);
-        var xPercent = mousePercentLocation.xPercent;
-        var yPercent = mousePercentLocation.yPercent;
-        if( xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
-            makeRequest( "POST", "/screencast/mouse", { "down": false, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 2 ? "right" : middle } );
+        if( !document.querySelector(".black-background #edit-button .fa-check") ) { // dont record clicks if editing the interface
+            var mousePercentLocation = getMousePercentLocation(event);
+            var xPercent = mousePercentLocation.xPercent;
+            var yPercent = mousePercentLocation.yPercent;
+            if( xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
+                makeRequest( "POST", "/screencast/mouse", { "down": false, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 2 ? "right" : middle } );
+            }
         }
     };
     return video;
@@ -4122,8 +4414,8 @@ function stopConnectionToPeer( isStreamer, id, useIdAsSocketId ) {
         // if they have manually quit the modal, this check will fail and we will
         // not call it again
         if( document.querySelector(".modal #remote-screencast-form") ) {
-            if( document.querySelector(".black-background button") ) {
-                document.querySelector(".black-background button").click();
+            if( document.querySelector(".black-background #exit-button") ) {
+                document.querySelector(".black-background #exit-button").click();
             }
             closeModalCallback = null; // we don't need to call stop connection again
             closeModal();

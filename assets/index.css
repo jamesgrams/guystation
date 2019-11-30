@@ -636,32 +636,46 @@ video::-webkit-media-controls-enclosure {
 }
 
 .black-background button {
-    margin-right: 5px;
-    margin-top: 5px;
+    opacity: 0.2;
     position: absolute;
     top: 0;
-    right: 0;
-    opacity: 0.2;
-}
-
-.black-background input {
-    cursor: none;
-    color: transparent;
-    width: 52px;
-    position: absolute;
     height: 52px;
-    opacity: 0.3;
-    top: 5px;
-    left: 5px;
-    font-size: 25px;
-    font-style: italic;
-    font-family: 'blinker', sans-serif;
-    border: none;
-    outline: none;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
-.black-background input:focus {
+.black-background #exit-button {
+    margin-right: 5px;
+    margin-top: 5px;
+    right: 0;
+}
+
+.black-background #edit-button {
+    margin-left: 5px;
+    margin-top: 5px;
+    left: 0;
+}
+
+.black-background #action-button {
+    margin-left: 5px;
+    margin-top: 5px;
+    left: 57px;
+}
+
+.black-background .key-button .key-display {
+    font-size: 25px;
+    padding: 0;
+    font-family: 'blinker', sans-serif;
+}
+
+.black-background .key-button select {
+    width: 30px;
+    -webkit-appearance: none;
     outline: none;
+    font-size: 23px;
+    padding: 0 3px;
+    font-family: 'blinker', sans-serif;
+    border: 1px solid black;
 }
 
 @keyframes fade {
@@ -793,6 +807,18 @@ readers do not read off random characters that represent icons */
 
 .fa-exchange-alt:before {
     content: "\f362"; }
+
+.fa-edit:before {
+    content: "\f044"; }
+
+.fa-arrows-alt:before {
+    content: "\f0b2"; }
+
+.fa-keyboard:before {
+    content: "\f11c"; }
+
+.fa-check:before {
+    content: "\f00c"; }
 
 .sr-only-focusable:active, .sr-only-focusable:focus {
   clip: auto;
