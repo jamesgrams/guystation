@@ -542,7 +542,7 @@ function enableControls() {
             }
         }
         // for the video
-        else if( enableModalControls && document.querySelector(".modal #remote-screencast-form video, .modal #browser-controls-form video") ) {
+        else if( enableModalControls && document.querySelector(".modal #remote-screencast-form video, .modal #browser-controls-form video, .black-background video") ) {
             // Allow enter for the browser address bar
             if( document.querySelector(".modal #address-bar") && document.querySelector(".modal #address-bar") === document.activeElement && !navigating ) {
                 // only go on enter
@@ -1955,6 +1955,14 @@ function displayScreencast() {
 }
 
 /**
+ * Determine if the current platform is iOS.
+ * @returns {boolean} True is the current platform is iOS.
+ */
+function isIOS() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+}
+
+/**
  * Fullscreen a video element.
  * @param {HTMLElement} element - The video element to fullscreen.
  */
@@ -1963,7 +1971,7 @@ function fullscreenVideo( element ) {
         element.requestFullscreen();
     }
     catch(err) {
-        if( /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream ) {
+        if( isIOS() ) {
             // this should be for iOS safari
             //element.webkitEnterFullScreen();
             var oldParent = element.parentNode;
@@ -4114,6 +4122,9 @@ function stopConnectionToPeer( isStreamer, id, useIdAsSocketId ) {
         // if they have manually quit the modal, this check will fail and we will
         // not call it again
         if( document.querySelector(".modal #remote-screencast-form") ) {
+            if( document.querySelector(".black-background button") ) {
+                document.querySelector(".black-background button").click();
+            }
             closeModalCallback = null; // we don't need to call stop connection again
             closeModal();
         }
