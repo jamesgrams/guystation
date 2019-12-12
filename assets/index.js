@@ -2233,9 +2233,10 @@ function createKeyButton( selected, x, y ) {
         keyButton.style.top = e.touches[0].clientY - squareButtonSideHalf;
     }
     var curTarget;
+    var curTouchIdentifier;
     var changeKey = function(e) {
         var newTarget = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
-        if( curTarget != newTarget && newTarget.classList.contains("key-button") ) {
+        if( e.touches[0].identifier == curTouchIdentifier && curTarget != newTarget && newTarget.classList.contains("key-button") ) {
             // keyup for the old target
             makeRequest( "POST", "/screencast/buttons", { "down": false, "buttons": [KEYCODES[curTarget.querySelector(".key-display").innerText]] } );
             // keydown for the new target
@@ -2250,6 +2251,7 @@ function createKeyButton( selected, x, y ) {
         
         if( ! document.querySelector(".black-background #edit-button .fa-check") ) {
             curTarget = keyButton;
+            curTouchIdentifier = e.touches[0].identifier;
             makeRequest( "POST", "/screencast/buttons", { "down": true, "buttons": [KEYCODES[keyButton.querySelector(".key-display").innerText]] } );
             window.addEventListener( "touchmove", changeKey );
         }
@@ -2390,6 +2392,9 @@ function createInteractiveScreencast() {
         return { xPercent: xPercent, yPercent: yPercent };
     }
 
+    video.onclick = function(event) {
+        event.preventDefault(); // prevent pausing the video onclick
+    }
     video.onmousedown = function(event) {
         if( !document.querySelector(".black-background #edit-button .fa-check") ) { // dont record clicks if editing the interface
             var mousePercentLocation = getMousePercentLocation(event);
