@@ -92,7 +92,7 @@ The version of Dolphin used changes the default screenshot key to Ctrl+S, and th
 
 ### PXSX2 (PS2)
 The version of PCSX2 changes the default screenshot key to Ctrl+S. It also changes the default suspend/resume key from Escape to Ctrl+R. In addition, you will have to run PCSX2 once to get it set up first (you can do that by running `/home/*/pcsx2/bin/PCSX2` in the command line). The main configuration you will have to make is providing PS2 BIOS. You can look more into how this can be acheived online.
-    * The configuration options for PCSX2 are extensive. You might want to play around with them to try to get as little lag as possible.
+The configuration options for PCSX2 are extensive. You might want to play around with them to try to get as little lag as possible.
 
 ### Citra (3DS)
 The version of Citra changes the default screenshot key to Ctrl+S, the default toggle status bar key to Ctrl+P, and the default exit full screen key to F12. In addition, this version removes the prompt that asks you for a screenshot file name and simply uses the current timestamp as the name. When Citra first starts up, it will ask if you want to send data to the Citra team for debugging. Finally, there are some points within games where you might have to do something that usually would interact with shared 3DS data such as select a Mii. Citra handles this nicely and shows a dialog box. You'll likely have to use a mouse to navigate these, however. 

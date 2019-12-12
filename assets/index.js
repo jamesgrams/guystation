@@ -2054,11 +2054,21 @@ function displayScreencast() {
 }
 
 /**
- * Determine if the current platform is iOS.
- * @returns {boolean} True is the current platform is iOS.
+ * Determine if the current platform has touch enabled.
+ * @returns {boolean} True is the current platform has touch enabled.
  */
-function isIOS() {
-    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+function isTouch() {
+    var prefixes = ' -webkit- -moz- -o- -ms- '.split(' ');
+    var mq = function(query) {
+        return window.matchMedia(query).matches;
+    }
+
+    if (('ontouchstart' in window) || window.DocumentTouch && document instanceof DocumentTouch) {
+        return true;
+    }
+
+    var query = ['(', prefixes.join('touch-enabled),('), 'hertz', ')'].join('');
+    return mq(query);
 }
 
 /**
@@ -2070,7 +2080,7 @@ function fullscreenVideo( element ) {
         element.requestFullscreen();
     }
     catch(err) {
-        if( isIOS() ) {
+        if( isTouch() ) {
             // this should be for iOS safari
             //element.webkitEnterFullScreen();
             var oldParent = element.parentNode;
@@ -2222,20 +2232,34 @@ function createKeyButton( selected, x, y ) {
         keyButton.style.left = e.touches[0].clientX - squareButtonSideHalf;
         keyButton.style.top = e.touches[0].clientY - squareButtonSideHalf;
     }
+    var curTarget;
+    var changeKey = function(e) {
+        var newTarget = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
+        if( curTarget != newTarget && newTarget.classList.contains("key-button") ) {
+            // keyup for the old target
+            makeRequest( "POST", "/screencast/buttons", { "down": false, "buttons": [KEYCODES[curTarget.querySelector(".key-display").innerText]] } );
+            // keydown for the new target
+            makeRequest( "POST", "/screencast/buttons", { "down": true, "buttons": [KEYCODES[newTarget.querySelector(".key-display").innerText]] } );
+            curTarget = newTarget;
+        }
+    }
     keyButton.ontouchstart = function(e) {
         if( document.querySelector(".black-background #action-button:not(.hidden) .fa-arrows-alt") ) {
             window.addEventListener( "touchmove", dragKey );
         }
         
         if( ! document.querySelector(".black-background #edit-button .fa-check") ) {
+            curTarget = keyButton;
             makeRequest( "POST", "/screencast/buttons", { "down": true, "buttons": [KEYCODES[keyButton.querySelector(".key-display").innerText]] } );
+            window.addEventListener( "touchmove", changeKey );
         }
     }
     keyButton.ontouchend = function(e) {
         window.removeEventListener("touchmove", dragKey);
+        window.removeEventListener("touchmove", changeKey);
 
         if( ! document.querySelector(".black-background #edit-button .fa-check") ) {
-            makeRequest( "POST", "/screencast/buttons", { "down": false, "buttons": [KEYCODES[keyButton.querySelector(".key-display").innerText]] } );
+            makeRequest( "POST", "/screencast/buttons", { "down": false, "buttons": [KEYCODES[curTarget.querySelector(".key-display").innerText]] } );
         }
     }
 
@@ -4283,6 +4307,8 @@ window.addEventListener("wheel", event => scrollWheel(event), { passive: false }
  * @param {Event} event - The scroll event.
  */
 function scrollWheel( event ) {
+    
+    if( event.target.classList.contains("game-preview-summary") ) return;
     if( disableMenuControls ) return;
 
     clearTimeout(scrollAddTimeout);
@@ -4329,7 +4355,7 @@ function connectToSignalServer( isStreamer ) {
     socket.on( 'ice', handleRemoteIce );
 
     if( isStreamer ) {
-        navigator.mediaDevices.getDisplayMedia({"video": true}).then(getDisplayMediaSuccess).catch(errorHandler);
+        navigator.mediaDevices.getDisplayMedia({"video": true, "audio": true}).then(getDisplayMediaSuccess).catch(errorHandler);
     }
 
 }
@@ -4370,7 +4396,7 @@ function startConnectionToPeer( isStreamer, id ) {
     if( isStreamer ) {
         peerConnection.addStream(localStream);
         // the streamer will create an offer once it creates its peer connection
-        peerConnection.createOffer({offerToReceiveVideo: true}).then(function(data) {createdDescription(id, data)}).catch(errorHandler);
+        peerConnection.createOffer({offerToReceiveVideo: true, offerToReceiveAudio: true}).then(function(data) {createdDescription(id, data)}).catch(errorHandler);
     }
 }
 
