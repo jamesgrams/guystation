@@ -1,5 +1,6 @@
 {
  "name": "GuyStation",
+ "description": "An Emulator Hub",
  "display": "standalone",
  "background_color": "#191919",
  "theme_color": "#191919",

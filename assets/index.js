@@ -24,6 +24,7 @@ var SHOW_PREVIEW_TIMEOUT = 1000;
 var PREVIEW_ANIMATION_TIME = 1000;
 var SCROLL_TIMEOUT_TIME = 500;
 var SCROLL_NEEDED = 1250;
+var RELOAD_MESSAGES_INTERVAL = 1000;
 var KEYCODES = {
     '0': 48,
     '1': 49,
@@ -156,6 +157,9 @@ var showPreviewTimeout;
 var scrollVerticalTotal = 0;
 var scrollHorizontalTotal = 0;
 var scrollAddTimeout;
+var messages = [];
+var fetchedMessages = false;
+var swRegistration;
 
 // Hold escape for 5 seconds to quit
 // Note this variable contains a function interval, not a boolean value
@@ -512,6 +516,20 @@ function load() {
         isServer = true;
     }
 
+    // register service worker
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker
+            .register('/assets/sw.js')
+            .then(serviceWorker => {
+                swRegistration = serviceWorker;
+                serviceWorker.update(); // always keep up to date
+                console.log('Service Worker registered: ' + serviceWorker);
+            })
+            .catch(error => {
+                console.log('Error registering the Service Worker: ' + error);
+        });
+    }
+
     startRequest();
     makeRequest( "GET", "/data", {}, function(responseText) {
         var response = JSON.parse(responseText);
@@ -552,6 +570,52 @@ function load() {
                 } );
             }
         }, REDRAW_INTERVAL );
+        // Check for new messages every second
+        setInterval( function() {
+            makeRequest( "GET", "/message", {}, function(responseText) {
+                var response = JSON.parse(responseText);
+                if( JSON.stringify(messages) != JSON.stringify(response.messages) ) {
+                    var maxId = messages.length ? messages[messages.length-1].id : -1;
+                    var newMessages = [];
+                    // determine the new messages
+                    for( var i=response.messages.length-1; i>=0; i-- ) {
+                        if( response.messages[i].id > maxId ) {
+                            newMessages.push( response.messages[i] );
+                        }
+                        else{
+                            break;
+                        }
+                    }
+
+                    messages = response.messages;
+
+                    var messagingBox = document.querySelector("#messaging-box");
+
+                    if( !messagingBox ) {
+
+                        if( fetchedMessages ) {
+                            // filter out messages sent by me in the toast
+                            var toastMessages = [];
+                            for( var i=0; i<newMessages.length; i++ ) {
+                                if( newMessages[i].user.id != window.localStorage.guystationMessagingId ) {
+                                    toastMessages.push( newMessages[i].user.name + ": " + newMessages[i].content );
+                                }
+                            }
+                            if( toastMessages.length ) {
+                                // create a toast of the new messages
+                                createToast( toastMessages.join("<br>"), null, true );
+                            }
+                        }
+                    }
+                    else {
+                        // there should definately be new messages, update the box if needed
+                        updateMessages( messagingBox );
+                    }
+
+                }
+                fetchedMessages = true;
+            } );
+        }, RELOAD_MESSAGES_INTERVAL );
 
         socket = io.connect("http://"+window.location.hostname+":3000");
         socket.on("connect", function() {console.log("socket connected")});
@@ -678,6 +742,9 @@ function enableControls() {
             // Enter
             case 13:
                 buttonsUp.keyboard["13"] = true;
+                if( document.querySelector("#messaging-box") ) {
+                    document.querySelector("#messaging-form button").click();
+                }
                 break;
             // Escape
             case 27:
@@ -1159,6 +1226,7 @@ function toggleButtons() {
     var updateSaveButton = document.getElementById("update-save");
     var deleteSaveButton = document.getElementById("delete-save");
     var joypadConfigButton = document.getElementById("joypad-config");
+    var messagingButton = document.getElementById("messaging");
     if( !anyGame ) {
         updateGameButton.onclick = null; 
         updateGameButton.classList.add("inactive");
@@ -1197,6 +1265,9 @@ function toggleButtons() {
  
     // Always allow joypad config
     joypadConfigButton.onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#joypad-config-form") ) displayJoypadConfig(); };
+
+    // Always allow messaging
+    messaging.onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#messaging-form") ) displayMessaging(); }
 
     // Always allow power controls
     document.getElementById("power-options").onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#power-options-form") ) displayPowerOptions(); }
@@ -2235,12 +2306,18 @@ function createKeyButton( selected, x, y ) {
     var curTarget;
     var curTouchIdentifier;
     var changeKey = function(e) {
-        var newTarget = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
-        if( e.touches[0].identifier == curTouchIdentifier && curTarget != newTarget && newTarget.classList.contains("key-button") ) {
+        var correctTouch = Array.from(e.touches).filter( (el) => el.identifier == curTouchIdentifier );
+        if( !correctTouch.length ) return;
+        correctTouch = correctTouch[0];
+        var newTarget = document.elementFromPoint(correctTouch.clientX, correctTouch.clientY);
+        if( curTarget != newTarget &&
+            newTarget.classList.contains("key-button") ) {
             // keyup for the old target
-            makeRequest( "POST", "/screencast/buttons", { "down": false, "buttons": [KEYCODES[curTarget.querySelector(".key-display").innerText]] } );
-            // keydown for the new target
-            makeRequest( "POST", "/screencast/buttons", { "down": true, "buttons": [KEYCODES[newTarget.querySelector(".key-display").innerText]] } );
+            makeRequest( "POST", "/screencast/buttons", { "down": false, "buttons": [KEYCODES[curTarget.querySelector(".key-display").innerText]] },
+                function() {
+                    // keydown for the new target
+                    makeRequest( "POST", "/screencast/buttons", { "down": true, "buttons": [KEYCODES[newTarget.querySelector(".key-display").innerText]] } );
+                } );
             curTarget = newTarget;
         }
     }
@@ -2251,7 +2328,7 @@ function createKeyButton( selected, x, y ) {
         
         if( ! document.querySelector(".black-background #edit-button .fa-check") ) {
             curTarget = keyButton;
-            curTouchIdentifier = e.touches[0].identifier;
+            curTouchIdentifier = e.targetTouches[0].identifier;
             makeRequest( "POST", "/screencast/buttons", { "down": true, "buttons": [KEYCODES[keyButton.querySelector(".key-display").innerText]] } );
             window.addEventListener( "touchmove", changeKey );
         }
@@ -2416,6 +2493,82 @@ function createInteractiveScreencast() {
         }
     };
     return video;
+}
+
+/**
+ * Display messaging.
+ */
+function displayMessaging() {
+    var form = document.createElement("div");
+    form.appendChild( createFormTitle("Messaging") );
+    form.setAttribute("id", "messaging-form");
+
+    var messagingBox = document.createElement("div");
+    messagingBox.setAttribute("id", "messaging-box");
+    updateMessages( messagingBox );
+    form.appendChild(messagingBox);
+
+    var userId = window.localStorage.guystationMessagingId ? window.localStorage.guystationMessagingId : Math.random().toString(36).substr(2, 9);
+    window.localStorage.guystationMessagingId = userId;
+    if ( swRegistration.active ) {
+        swRegistration.active.postMessage( JSON.stringify( {id: userId}) );
+    }
+    var usernameInput = createInput( window.localStorage.guystationMessagingUsername ? window.localStorage.guystationMessagingUsername : "", "username-input", "Username: " );
+    usernameInput.querySelector("input").oninput = function() {
+        window.localStorage.guystationMessagingUsername = this.value;
+    }
+    form.appendChild( usernameInput );
+    var contentInput = createInput( "", "content-input", "Message: ", null, true );
+    form.appendChild( contentInput );
+    form.appendChild( createButton("Send", function() {
+        makeRequest( "POST", "/message", { "message": { "content": contentInput.querySelector("input").value, "user": { "id": userId, "name": usernameInput.querySelector("input").value } } } );
+        contentInput.querySelector("input").value = "";
+    }, [contentInput.querySelector("input")]) );
+
+    launchModal( form );
+    messagingBox.scrollTop = messagingBox.scrollHeight;
+
+    registerNotification();
+}
+
+/**
+ * Update the message display.
+ * @param {HTMLElement} messagingBox - The element to put the messages in.
+ */
+function updateMessages( messagingBox ) {
+    if ( !messagingBox ) messagingBox = document.querySelector("#messaging-box");
+    if ( !messagingBox ) return;
+
+    var scrollToBottom = false;
+    if( messagingBox.scrollHeight - messagingBox.scrollTop === messagingBox.clientHeight) {
+        scrollToBottom = true;
+    }
+
+    messagingBox.innerHTML = "";
+
+    for( var i=0; i<messages.length; i++ ) {
+        var message = document.createElement("div");
+        message.classList.add("message");
+        var name = document.createElement("span");
+        name.classList.add("message-name");
+        name.innerText = messages[i].user.name + ": ";
+        message.appendChild(name);
+        var content = document.createElement("span");
+        content.innerText = messages[i].content;
+        message.appendChild(content);
+        messagingBox.appendChild( message );
+    }
+
+    if( scrollToBottom ) messagingBox.scrollTop = messagingBox.scrollHeight;
+}
+
+/**
+ * Ask for permission to send notifications.
+ */
+function registerNotification() {
+    Notification.requestPermission(permission => {
+	    if (!permission === 'granted') console.log("Permission was not granted.");
+	})
 }
 
 /**
@@ -3700,11 +3853,13 @@ function alertSuccess(message) {
  * Create a toast.
  * @param {string} message - The message to display in the toast.
  * @param {string} [type] - The type of toast (success or failure).
+ * @param {boolean} [html] - True if the message is in HTML.
  */
-function createToast(message, type) {
+function createToast(message, type, html) {
     var toast = document.createElement("div");
     toast.classList.add("toast");
-    toast.innerText = message;
+    if( html ) toast.innerHTML = message;
+    else toast.innerText = message;
     document.body.appendChild(toast);
     setTimeout( function() { // Timeout for opacity
         toast.classList.add("toast-shown");

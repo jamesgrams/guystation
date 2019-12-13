@@ -379,7 +379,7 @@ h1 {
     right: 0;
     text-align: center;
     transform: translateX(100%); /* ~24px shown */
-    width: 932px; /* 58px to add another icon */
+    width: 990px; /* 58px to add another icon */
     transition: transform 0.5s, width 0.5s, background-color 1s;
     z-index: 998;
     background-color: #191919;
@@ -678,6 +678,25 @@ video::-webkit-media-controls-enclosure {
     border: 1px solid black;
 }
 
+#messaging-box {
+    min-width: 320px;
+    height: 260px;
+    overflow: auto;
+    border: 1px solid white;
+    margin-bottom: 10px;
+    border-radius: 5px;
+}
+
+#messaging-box .message {
+    margin: 5px;
+    margin-left: 10px;
+    font-size: 75%;
+}
+
+#messaging-box .message .message-name {
+    opacity: 0.6;
+}
+
 @keyframes fade {
     0% {transform: translateY(100%); opacity: 1;}
     75% {transform: translateY(0%); opacity: 0.7;}
@@ -700,7 +719,7 @@ video::-webkit-media-controls-enclosure {
     100% { transform: translate(calc(-100% - 10px), -100%); } /* End the animation after the element has traveled to the left its entire width and then 10 more px to put it past the padding */
 }
 
-@media only screen and (max-width: 1030px) {
+@media only screen and (max-width: 1088px) {
     #functions {
         width: 220px;
     }
@@ -819,6 +838,9 @@ readers do not read off random characters that represent icons */
 
 .fa-check:before {
     content: "\f00c"; }
+
+.fa-envelope:before {
+    content: "\f0e0"; }
 
 .sr-only-focusable:active, .sr-only-focusable:focus {
   clip: auto;

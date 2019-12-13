@@ -121,6 +121,7 @@ const COVER_IMAGE_SIZE = "cover_big";
 const COVER_FILENAME = "cover.jpg";
 const USER_DATA_DIR = "../chrome";
 const STATUS_FILE = USER_DATA_DIR + SEPARATOR + "Default" + SEPARATOR + "Preferences";
+const MAX_MESSAGES_LENGTH = 100;
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -175,7 +176,8 @@ const ERROR_MESSAGES = {
     "noGameInfo": "No game info available",
     "noApiKey": "No IGDB API key",
     "invalidFileName": "Invalid file name",
-    "genericError": "An uncaught error ocurred"
+    "genericError": "An uncaught error ocurred",
+    "invalidMessage": "Invalid message"
 }
 const KEYCODE_TO_ROBOT_JS = {
     "esc": "escape",
@@ -183,6 +185,7 @@ const KEYCODE_TO_ROBOT_JS = {
     "page down": "pagedown",
     "ctrl": "control",
 }
+const USERNAME_OPTIONS = ["🐵", "🐶", "🦊", "🐱", "🦁", "🐯", "🐮", "🐷", "🐘", "🐹", "🐰", "🐻", "🐨", "🐼", "🐣", "🐧", "🐸", "🦕", "🐳", "🐬"];
 
 // We will only allow for one request at a time for app
 let requestLocked = false;
@@ -200,6 +203,8 @@ let browsePage = null;
 let properResolution = null;
 let clearMediaPlayingInterval = null;
 let needToRefocusGame = false;
+
+let messages = [];
 
 // Load the data on startup
 getData();
@@ -340,7 +345,7 @@ app.post("/save", async function(request, response) {
 
 // Update the current save
 app.put("/save", async function(request, response) {
-    console.log("app serving /save/ (PUT) with body: " + JSON.stringify(request.body));
+    console.log("app serving /save (PUT) with body: " + JSON.stringify(request.body));
     if( ! requestLocked ) {
         requestLocked = true;
         try {
@@ -468,6 +473,19 @@ app.delete("/game", async function(request, response) {
     else {
         writeLockedResponse( response );
     }
+});
+
+// Send a message
+app.post("/message", function(request, response) {
+    console.log("app serving /message (POST)");
+    let errorMessage = sendMessage( request.body.message );
+    writeActionResponse( response, errorMessage );
+});
+
+// Get all messages
+app.get("/message", function(request, response) {
+    console.log("app serving /message (GET)");
+    writeResponse( response, SUCCESS, { "messages": messages } );
 });
 
 // Get input for the a browser
@@ -2912,7 +2930,7 @@ function guystationHasUpdates() {
 
 /**
  * Update guystation to the latest version.
- * @returns {boolean} Returns false.
+ * @returns {boolean} False.
  */
 function updateGuystation() {
     proc.execSync( GIT_PULL_COMMAND );
@@ -2921,7 +2939,7 @@ function updateGuystation() {
 }
 
 /**
- * Restart guystation
+ * Restart guystation.
  * @returns {boolean|string} An error message if there is an error, false if not.
  */
 function restartGuystation() {
@@ -2934,12 +2952,51 @@ function restartGuystation() {
 }
 
 /**
- * Reboot the computer guystation is running on
- * @returns {boolean} false.
+ * Reboot the computer guystation is running on.
+ * @returns {boolean} False.
  */
 function rebootGuystation() {
     proc.execSync( REBOOT_GUYSTATION_COMMAND );
     return false;
+}
+
+/**
+ * Send a message.
+ * @param {Object} message - The message object to send.
+ * @param {Object} message.user - The user who sent the message.
+ * @param {string} message.user.name - The nickname of the user who sent the message.
+ * @param {string} message.user.id - The unique id of the user who sent the message.
+ * @param {string} message.content - The content of the message.
+ * @returns {boolean|string} An error message if there is an error, false if not.
+ */
+function sendMessage( message ) {
+    if( !message.content || !message.user || !message.user.id ) {
+        return ERROR_MESSAGES.invalidMessage;
+    }
+
+    if( !message.user.name ) {
+        message.user.name = generateMessageUserName( message.user.id );
+    }
+    
+    message.id = messages.length ? (messages[messages.length - 1].id + 1) : 0; // message ids go up in increments of one
+    messages.push( message );
+    messages = messages.slice( -MAX_MESSAGES_LENGTH );
+    return false;
+}
+
+/**
+ * Generate a username for some one who sent a message without a username.
+ * @param {string} id - The unique ID of the user who sent the message.
+ * @returns {string} A username.
+ */
+function generateMessageUserName( id ) {
+
+    var previousMessages = messages.filter( (el) => el.user.id == id );
+    if( previousMessages.length ) {
+        return previousMessages[previousMessages.length - 1].user.name;
+    }
+    
+    return USERNAME_OPTIONS[Math.floor(Math.random() * USERNAME_OPTIONS.length)];
 }
 
 // Listen for the "home" button to be pressed
