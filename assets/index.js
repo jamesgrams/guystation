@@ -2510,7 +2510,7 @@ function displayMessaging() {
 
     var userId = window.localStorage.guystationMessagingId ? window.localStorage.guystationMessagingId : Math.random().toString(36).substr(2, 9);
     window.localStorage.guystationMessagingId = userId;
-    if ( swRegistration.active ) {
+    if ( swRegistration && swRegistration.active ) {
         swRegistration.active.postMessage( JSON.stringify( {id: userId}) );
     }
     var usernameInput = createInput( window.localStorage.guystationMessagingUsername ? window.localStorage.guystationMessagingUsername : "", "username-input", "Username: " );
