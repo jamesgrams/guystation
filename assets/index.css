@@ -211,7 +211,7 @@ h1 {
     left: 50%;
     transform: translateX(-50%);
     top: 0;
-    z-index: 997;
+    z-index: 996;
 }
 
 #time {
@@ -236,7 +236,7 @@ h1 {
     overflow: auto;
     max-width: 100vw;
     box-sizing: border-box;
-    z-index: 999;
+    z-index: 998;
 }
 
 .modal > div, .dying-modal > div {
@@ -381,7 +381,7 @@ h1 {
     transform: translateX(100%); /* ~24px shown */
     width: 990px; /* 58px to add another icon */
     transition: transform 0.5s, width 0.5s, background-color 1s;
-    z-index: 998;
+    z-index: 997;
     background-color: #191919;
     border-radius: 5px 0 0 0;
     border-left: 2px solid white;
@@ -559,6 +559,16 @@ video::-webkit-media-controls-enclosure {
     width: 550px;
 }
 
+.screencast-wrapper:fullscreen {
+    width: 100%;
+    height: 100%;
+}
+
+.screencast-wrapper:fullscreen video {
+    width: 100% !important;
+    height: 100%;
+}
+
 #remote-screencast-form button {
     margin-top: 20px;
 }
@@ -613,7 +623,7 @@ video::-webkit-media-controls-enclosure {
     position: fixed;
     top: 0;
     left: 0;
-    z-index: 1000000;
+    z-index: 999;
     background-color: black;
 }
 

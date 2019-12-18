@@ -24,7 +24,8 @@ var SHOW_PREVIEW_TIMEOUT = 1000;
 var PREVIEW_ANIMATION_TIME = 1000;
 var SCROLL_TIMEOUT_TIME = 500;
 var SCROLL_NEEDED = 1250;
-var RELOAD_MESSAGES_INTERVAL = 1000;
+var RELOAD_MESSAGES_INTERVAL = 5000;
+var CHATTING_MESSAGES_INTERVAL = 1000;
 var KEYCODES = {
     '0': 48,
     '1': 49,
@@ -571,7 +572,7 @@ function load() {
             }
         }, REDRAW_INTERVAL );
         // Check for new messages every second
-        setInterval( function() {
+        var reloadMessages = function() {
             makeRequest( "GET", "/message", {}, function(responseText) {
                 var response = JSON.parse(responseText);
                 if( JSON.stringify(messages) != JSON.stringify(response.messages) ) {
@@ -614,8 +615,12 @@ function load() {
 
                 }
                 fetchedMessages = true;
+                setTimeout( reloadMessages, document.querySelector("#messaging-box") ? CHATTING_MESSAGES_INTERVAL : RELOAD_MESSAGES_INTERVAL );
+            }, function() {
+                setTimeout( reloadMessages, document.querySelector("#messaging-box") ? CHATTING_MESSAGES_INTERVAL : RELOAD_MESSAGES_INTERVAL );
             } );
-        }, RELOAD_MESSAGES_INTERVAL );
+        }
+        setTimeout( reloadMessages, RELOAD_MESSAGES_INTERVAL );
 
         socket = io.connect("http://"+window.location.hostname+":3000");
         socket.on("connect", function() {console.log("socket connected")});
@@ -2143,6 +2148,18 @@ function isTouch() {
 }
 
 /**
+ * Force a redraw of the elements on the screen.
+ * @param {HTMLElement} - The vide element we want to redraw.
+ */
+function forceRedraw( element ) {
+    setTimeout( function() {
+        element.style.display='inline-block';
+        element.offsetHeight;
+        element.style.display='';
+    }, 0 );
+}
+
+/**
  * Fullscreen a video element.
  * @param {HTMLElement} element - The video element to fullscreen.
  */
@@ -2478,7 +2495,7 @@ function createInteractiveScreencast() {
             var xPercent = mousePercentLocation.xPercent;
             var yPercent = mousePercentLocation.yPercent;
             if( xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
-                makeRequest( "POST", "/screencast/mouse", { "down": true, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 2 ? "right" : middle } );
+                makeRequest( "POST", "/screencast/mouse", { "down": true, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 2 ? "right" : "middle" } );
             }
         }
     };
@@ -2488,11 +2505,17 @@ function createInteractiveScreencast() {
             var xPercent = mousePercentLocation.xPercent;
             var yPercent = mousePercentLocation.yPercent;
             if( xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
-                makeRequest( "POST", "/screencast/mouse", { "down": false, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 2 ? "right" : middle } );
+                makeRequest( "POST", "/screencast/mouse", { "down": false, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 2 ? "right" : "middle" } );
             }
         }
     };
-    return video;
+    var wrapper = document.createElement("div");
+    wrapper.classList.add("screencast-wrapper");
+    wrapper.appendChild(video);
+    wrapper.addEventListener("fullscreenchange", function() {
+        forceRedraw(video);
+    });
+    return wrapper;
 }
 
 /**
@@ -2592,7 +2615,7 @@ function displayPowerOptions() {
 			            createToast(message);
                     }
                     catch(err) {
-                                createToast("An error occurred while trying to update");
+                        createToast("An error occurred while trying to update");
                     }
                     endRequest();
                 } );
@@ -3860,7 +3883,10 @@ function createToast(message, type, html) {
     toast.classList.add("toast");
     if( html ) toast.innerHTML = message;
     else toast.innerText = message;
-    document.body.appendChild(toast);
+    var appendElement = document.querySelector(".black-background");
+    if( !appendElement && (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement) ) appendElement = document.querySelector(".screencast-wrapper");
+    if( !appendElement ) appendElement = document.body;
+    appendElement.appendChild(toast);
     setTimeout( function() { // Timeout for opacity
         toast.classList.add("toast-shown");
         setTimeout( function() { // Timeout until hiding
