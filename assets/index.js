@@ -4541,7 +4541,7 @@ function connectToSignalServer( isStreamer ) {
     socket.on( 'ice', handleRemoteIce );
 
     if( isStreamer ) {
-        navigator.mediaDevices.getDisplayMedia({"video": true, "audio": true}).then(getDisplayMediaSuccess).catch(errorHandler);
+        navigator.mediaDevices.getDisplayMedia({"video": { "cursor": "never" }, "audio": true}).then(getDisplayMediaSuccess).catch(errorHandler);
     }
 
 }
