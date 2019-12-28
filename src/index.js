@@ -817,6 +817,39 @@ async function launchBrowser() {
     menuPage = await pages[0];
     await menuPage.goto(LOCALHOST + ":" + STATIC_PORT + "?" + IS_SERVER_PARAM);
     ks.sendKey('tab');
+
+    browser.on("targetdestroyed", async function() {
+        // If there are no more browse tabs, the browser has been quit
+        let pages = await browser.pages();
+        if( pages.length == 1 ) { // only the menu page is open
+            browsePage = null; // There is no browse page
+            if( currentSystem === BROWSER ) {
+                blankCurrentGame();
+            }
+        }
+        else {
+            let currentPage;
+            let currentPageIndex = 0;
+            // Get the currently visible (active) page
+            for(let page of pages) {
+                if( await isActivePage(page) ) {
+                    currentPage = page;
+                    break;
+                }
+                currentPageIndex ++;
+            }
+            // If the current page is the menu page, we need to switch it
+            if( currentPage.mainFrame()._id === menuPage.mainFrame()._id ) {
+                // there is necessarily at least one other browse tab, since the open pages > 1
+                currentPageIndex++;
+                if( currentPageIndex >= pages.length ) {
+                    currentPageIndex = 0;
+                }
+                currentPage = pages[currentPageIndex];
+            }
+            await switchBrowseTab( currentPage.mainFrame()._id );
+        }
+    });
 }
 
 /**
@@ -940,38 +973,6 @@ async function launchBrowseTab() {
         await browsePage.goto(HOMEPAGE);
     }
     catch(err) {};
-    browsePage.on("close", async function() {
-        // If there are no more browse tabs, the browser has been quit
-        let pages = await browser.pages();
-        if( pages.length == 1 ) { // only the menu page is open
-            browsePage = null; // There is no browse page
-            if( currentSystem === BROWSER ) { 
-                blankCurrentGame(); 
-            } 
-        }
-        else {
-            let currentPage;
-            let currentPageIndex = 0;
-            // Get the currently visible (active) page
-            for(let page of pages) {
-                if( await isActivePage(page) ) {
-                    currentPage = page;
-                    break;
-                }
-                currentPageIndex ++;
-            }
-            // If the current page is the menu page, we need to switch it
-            if( currentPage.mainFrame()._id === menuPage.mainFrame()._id ) {
-                // there is necessarily at least one other browse tab, since the open pages > 1
-                currentPageIndex++;
-                if( currentPageIndex >= pages.length ) {
-                    currentPageIndex = 0;
-                }
-                currentPage = pages[currentPageIndex];
-            }
-            await switchBrowseTab( currentPage.mainFrame()._id );
-        }
-    });
     return Promise.resolve(false);
 }
 
