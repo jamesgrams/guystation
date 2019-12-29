@@ -1753,13 +1753,14 @@ function updateSave(system, game, parents=[], oldSave, save) {
         return ERROR_MESSAGES.saveDoesNotExist;
     }
 
+    // update the symlinks
+    let currentSave = getCurrentSave( system, game, parents );
+
     // move the save directory
     let oldSaveDir = generateSaveDir( system, game, oldSave, parents );
     let saveDir = generateSaveDir( system, game, save, parents );
     fsExtra.moveSync( oldSaveDir, saveDir );
 
-    // update the symlinks
-    let currentSave = getCurrentSave( system, game, parents );
     if( currentSave == oldSave ) {
         // force is true since gamedict hasn't been updated
         changeSave( system, game, save, true, parents );
