@@ -122,6 +122,13 @@ const COVER_FILENAME = "cover.jpg";
 const USER_DATA_DIR = "../chrome";
 const STATUS_FILE = USER_DATA_DIR + SEPARATOR + "Default" + SEPARATOR + "Preferences";
 const MAX_MESSAGES_LENGTH = 100;
+const TAB_BUTTON = 9;
+const ENTER_BUTTON = 13;
+const SHARING_PROMPT = "http://localhost is sharing your screen.";
+const SHARING_PROMPT_DELAY_TIME = 100;
+const SHARING_PROMPT_MAX_TRIES = 5;
+const SYSTEM_3DS = '3ds';
+const SYSTEM_N64 = 'n64';
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -2808,6 +2815,14 @@ function menuPageIsActive() {
 }
 
 /**
+ * Determine if the sharing prompt is active.
+ * @returns {boolean} True if the sharing prompt is active.
+ */
+function sharingPromptIsActive() {
+    return proc.execSync(ACTIVE_WINDOW_COMMAND).toString().startsWith(SHARING_PROMPT);
+}
+
+/**
  * Go to the home menu.
  * @returns {Promise<(boolean|string)>} An error message if there was an error, or an object indicating if we paused if not.
  */
@@ -3142,6 +3157,23 @@ async function startScreencast( id ) {
     let currentStartedClientIdsLength = startedClientIds.length;
     startedClientIds.push(id);
     await menuPage.evaluate( (id) => startConnectionToPeer(true, id), id );
+
+    // n64 and 3ds cause screen flickers when the screen is being shraed button is hidden
+    if( !currentStartedClientIdsLength && ( !currentEmulator || (currentSystem != SYSTEM_3DS && currentSystem != SYSTEM_N64 ) ) ) {
+        for( let i=0; i<SHARING_PROMPT_MAX_TRIES; i++ ) {
+            if( sharingPromptIsActive() ) {
+                await performScreencastButtons( [TAB_BUTTON], true );
+                await performScreencastButtons( [TAB_BUTTON], false );
+                await performScreencastButtons( [TAB_BUTTON], true );
+                await performScreencastButtons( [TAB_BUTTON], false );
+                await performScreencastButtons( [ENTER_BUTTON], true );
+                await performScreencastButtons( [ENTER_BUTTON], false );
+                break;
+	    }
+            await menuPage.waitFor(SHARING_PROMPT_DELAY_TIME);
+	}
+    }
+
     // we can return to the game now
     if( currentEmulator && currentSystem != MEDIA && !currentStartedClientIdsLength && needToRefocusGame ) {
         await launchGame( currentSystem, currentGame, false, currentParentsString.split(SEPARATOR).filter(el => el != ''), true ); 
@@ -3170,6 +3202,7 @@ async function stopScreencast(id) {
     console.log( "stopping: " + id );
     clientSocketIds = clientSocketIds.filter( el => el != id );
     startedClientIds = clientSocketIds.filter( el => el != id );
+    clearTimeout(cancelStreamingTimeouts[id]);
     delete cancelStreamingTimeouts[id];
 
     try {
