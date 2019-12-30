@@ -409,7 +409,7 @@ h1 {
     user-select: none;
 }
 
-video::-webkit-media-controls-enclosure {
+*:not(#remote-media-form) > video::-webkit-media-controls-enclosure {
     display: none !important;
 }
 
@@ -519,7 +519,7 @@ video::-webkit-media-controls-enclosure {
     min-width: 200px;
 }
 
-#browser-controls-form video::-webkit-media-controls, #remote-media-form video::-webkit-media-controls {
+#browser-controls-form video::-webkit-media-controls {
     display:none !important;
 }
 
