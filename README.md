@@ -3,6 +3,9 @@
 # GuyStation
 An Emulator Hub for Ubuntu. This is a small frontend for emulators designed to be easily installable and accessible on Ubuntu. In addition to having several emulators, GuyStation's major highlights include the ability to stream games to and access the menu from any device on the same network, the ability create seperate save files for the same game (designed for Pokémon :)), a media player that lets you play music or videos on any device on the same network, and an internet browser that can be controlled remotely.
 
+## Overview Video
+[![GuyStation Overview Video](https://img.youtube.com/vi/Zykq1mJrGgM/0.jpg)](https://www.youtube.com/watch?v=Zykq1mJrGgM)
+
 ## Run
 GuyStation is designed to run on Ubuntu (and to basically be the sole purpose of the machine). The steps to get it running are as follows:
 1. Clone this repository into your home directory
