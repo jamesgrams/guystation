@@ -677,7 +677,7 @@ app.get("/system/restart", async function(request, response) {
 
 // Reboot the system
 app.get("/system/reboot", async function(request, response) {
-    console.log("app serving /system/update");
+    console.log("app serving /system/reboot");
     if( ! requestLocked ) {
         requestLocked = true;
         try {
@@ -1481,8 +1481,11 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         // Get the screen dimensions
         if( !dontSaveResolution ) saveCurrentResolution();
 
-        // If the symlink to the save directory is the same for all games, update the symlink
-        if( !noGame && systemsDict[system].allGamesShareNand ) {
+        // If the symlink to the save directory is the same for all games, update the symlink from
+        // the all games folder to this specific game.
+        // Also update it if it uses NAND symlinks at all. This will account for if we've
+        // copied files onto a system or used SAMBA to share files and we're starting a game.
+        if( !noGame && systemsDict[system].nandPathCommand ) {
             updateNandSymlinks( system, game, null, parents );
         }
 
@@ -2973,7 +2976,10 @@ function restartGuystation() {
  * @returns {boolean} False.
  */
 function rebootGuystation() {
-    proc.execSync( REBOOT_GUYSTATION_COMMAND );
+    try {
+        proc.execSync( REBOOT_GUYSTATION_COMMAND );
+    }
+    catch(err) { /* seems like this command throws an error all the time, but it's probably safe to ignore */ }
     return false;
 }
 
