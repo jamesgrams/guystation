@@ -3,9 +3,9 @@
 // note: underscores instead of camel casing was used in variable names. This
 // was done to keep the name consistent with the underlying c/c++ files.
 
-var ref = require('ref');
-var ArrayType = require('ref-array');
-var StructType = require('ref-struct');
+var ref = require('ref-napi');
+var ArrayType = require('ref-array-napi');
+var StructType = require('ref-struct-napi');
 var uinput = require('./uinput');
 
 var uinputStructs = {};
