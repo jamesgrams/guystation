@@ -3045,7 +3045,6 @@ function generateMessageUserName( id ) {
  * @returns {boolean|string} An error message if there is an error, false if not.
  */
 function createVirtualGamepad() {
-    let gamepadFileDescriptor;
     try {
         gamepadFileDescriptor = fs.openSync(UINPUT_PATH, UINPUT_MODE);
     }
@@ -3094,7 +3093,7 @@ function createVirtualGamepad() {
         fs.writeSync(gamepadFileDescriptor, uidev_buffer, 0, uidev_buffer.length, null);
     }
     catch(err) {
-        fs.close(gamepadFileDescriptor);
+        fs.closeSync(gamepadFileDescriptor);
         gamepadFileDescriptor = null;
         return ERROR_MESSAGES.couldNotCreateGamepad;
     }
@@ -3102,7 +3101,7 @@ function createVirtualGamepad() {
         ioctl(gamepadFileDescriptor, uinput.UI_DEV_CREATE);
     }
     catch(err) {
-        fs.close(gamepadFileDescriptor);
+        fs.closeSync(gamepadFileDescriptor);
         gamepadFileDescriptor = null;
         return ERROR_MESSAGES.couldNotCreateGamepad;
     }
@@ -3119,7 +3118,7 @@ function disconnectVirtualGamepad() {
         return ERROR_MESSAGES.gamepadNotConnected;
     }
     ioctl(gamepadFileDescriptor, uinput.UI_DEV_DESTROY);
-    fs.close(gamepadFileDescriptor);
+    fs.closeSync(gamepadFileDescriptor);
     gamepadFileDescriptor = null;
 }
 
@@ -3145,11 +3144,11 @@ function createGamepadEvent(event) {
         ev_end.time.tv_usec = Math.round(Date.now() % 1000 * 1000);
         ev_end_buffer = ev_end.ref();
         try {
-            fs.writeSync(this.fd, ev_buffer, 0, ev_buffer.length, null);
+            fs.writeSync(gamepadFileDescriptor, ev_buffer, 0, ev_buffer.length, null);
         }
         catch(err) {}
         try {
-            fs.writeSync(this.fd, ev_end_buffer, 0, ev_end_buffer.length, null);
+            fs.writeSync(gamepadFileDescriptor, ev_end_buffer, 0, ev_end_buffer.length, null);
         }
         catch(err) {}
     }
