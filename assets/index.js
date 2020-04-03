@@ -2388,7 +2388,7 @@ function createKeyButton( selected, x, y ) {
 function handleKeyButton(keyButton, down, callback) {
     var displayValue = keyButton.querySelector(".key-display").innerText;
     // it's a gamepad key
-    if( PADCODES.includes(displayValue) ) {
+    if( PADCODES[displayValue] ) {
         makeRequest( "POST", "/screencast/gamepad", { "event": { "type": 0x01, "code": PADCODES[displayValue], "value": down ? 1 : 0 } },
         function() { if(callback) callback(); } );
     }
