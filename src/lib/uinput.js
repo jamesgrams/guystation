@@ -63,6 +63,11 @@ uinput.ABS_X         = 0x00;
 uinput.ABS_Y         = 0x01;
 uinput.ABS_Z         = 0x02;
 
+uinput.BTN_DPAD_UP   = 0x220;
+uinput.BTN_DPAD_DOWN = 0x221;
+uinput.BTN_DPAD_LEFT = 0x222;
+uinput.BTN_DPAD_RIGHT = 0x223;
+
 uinput.ABS_RX        = 0x03;
 uinput.ABS_RY        = 0x04;
 uinput.ABS_RZ        = 0x05;
