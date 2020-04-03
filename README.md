@@ -46,6 +46,7 @@ Note: You can press F11 to get GuyStation out of full screen mode at any time.
 * Streaming - you can stream the screen to any web capable device.
     * Simply open Guystation in a web browser by going to the Guystation IP address on another device and click the monitor icon in the menu on the device you want to stream to.
     * Keyboard input and mouse clicks will be forwarded to GuyStation when streaming (with the exception of Escape, since that is used to exit Fullscreen).
+    * On a mobile device, fullscreen mode in streaming will allow you to add keyboard and gamepad buttons to the page, whose value will by fowarded when touched. Please note, the values for the gamepad keys (e.g. A, B, X, etc.) correspond to those in the linux event codes list (https://github.com/torvalds/linux/blob/master/include/uapi/linux/input-event-codes.h). They may not match your controller, so be sure to test it out.
 * You can update, restart, or reboot the system by clicking the power button under "More" in the menu.
 * GuyStation has IGDB integration to display information about games. To display information, you must first generate an API key by creating an account [here](https://api.igdb.com/). Then, you must set the environment variable GUYSTATION_IGDB_API_KEY to this value. The easiest way to do this is to add the line `GUYSTATION_IGDB_API_KEY=<api key>` to `/etc/environment`. After a system reboot, GuyStation should start fetching game metadata.
 

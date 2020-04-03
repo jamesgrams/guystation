@@ -125,6 +125,27 @@ var KEYCODES = {
     'Z': 90,
     '~': 171
 }
+// These buttons may not be in the same places on your controller
+// Their names are taken straight from Linux: https://github.com/torvalds/linux/blob/master/include/uapi/linux/input-event-codes.h
+var PADCODES = {
+    'Ⓐ': 0x130,
+    'Ⓑ': 0x131,
+    'Ⓒ': 0x132,
+    'Ⓧ': 0x133,
+    'Ⓨ': 0x134,
+    'Ⓩ': 0x135,
+    'Ⓛ': 0x136,
+    'Ⓡ': 0x137,
+    '🅛': 0x138,
+    '🅡': 0x139, // right trigger 2
+    '🔘': 0x13a, // select
+    '⭐': 0x13b, // start
+    '🏠': 0x13c, //mode 
+    '▲': 0x220, // dpad up
+    '▼': 0x221, // dpad down
+    '◀': 0x222, // dpad left
+    '▶': 0x223 // dpad right
+}
 
 var expandCountLeft; // We always need to have a complete list of systems, repeated however many times we want, so the loop works properly
 var expandCountRight;
@@ -2279,7 +2300,7 @@ function fullscreenVideo( element ) {
  */
 function createKeyButton( selected, x, y ) {
     var blackBackground = document.querySelector(".black-background");
-    var keySelect = createMenu( selected, Object.keys(KEYCODES) ).children[1];
+    var keySelect = createMenu( selected, Object.keys(KEYCODES).concat(Object.keys(PADCODES)) ).children[1];
 
     keySelect.onclick = function(e) {
         if( !document.querySelector(".black-background #action-button:not(.hidden) .fa-keyboard") ) {
@@ -2329,12 +2350,8 @@ function createKeyButton( selected, x, y ) {
         var newTarget = document.elementFromPoint(correctTouch.clientX, correctTouch.clientY);
         if( curTarget != newTarget &&
             newTarget.classList.contains("key-button") ) {
-            // keyup for the old target
-            makeRequest( "POST", "/screencast/buttons", { "down": false, "buttons": [KEYCODES[curTarget.querySelector(".key-display").innerText]] },
-                function() {
-                    // keydown for the new target
-                    makeRequest( "POST", "/screencast/buttons", { "down": true, "buttons": [KEYCODES[newTarget.querySelector(".key-display").innerText]] } );
-                } );
+            // keyup for the old target and then keydown for the new target
+            handleKeyButton( curTarget, false, function() { handleKeyButton(newTarget, true); } );
             curTarget = newTarget;
         }
     }
@@ -2346,7 +2363,7 @@ function createKeyButton( selected, x, y ) {
         if( ! document.querySelector(".black-background #edit-button .fa-check") ) {
             curTarget = keyButton;
             curTouchIdentifier = e.targetTouches[0].identifier;
-            makeRequest( "POST", "/screencast/buttons", { "down": true, "buttons": [KEYCODES[keyButton.querySelector(".key-display").innerText]] } );
+            handleKeyButton( keyButton, true );
             window.addEventListener( "touchmove", changeKey );
         }
     }
@@ -2355,11 +2372,31 @@ function createKeyButton( selected, x, y ) {
         window.removeEventListener("touchmove", changeKey);
 
         if( ! document.querySelector(".black-background #edit-button .fa-check") ) {
-            makeRequest( "POST", "/screencast/buttons", { "down": false, "buttons": [KEYCODES[curTarget.querySelector(".key-display").innerText]] } );
+            handleKeyButton( keyButton, false );
         }
     }
 
     return keyButton;
+}
+
+/**
+ * Handle a key button press - either make a request to gamepad or buttons.
+ * @param {HTMLElement} keyButton - The key button element.
+ * @param {boolean} down - True if the key is down, false if up.
+ * @param {Function} callback - The callback function.
+ */
+function handleKeyButton(keyButton, down, callback) {
+    var displayValue = keyButton.querySelector(".key-display").innerText;
+    // it's a gamepad key
+    if( PADCODES.includes(displayValue) ) {
+        makeRequest( "POST", "/screencast/gamepad", { "event": { "type": 0x01, "code": PADCODES[displayValue], "value": down ? 1 : 0 } },
+        function() { if(callback) callback(); } );
+    }
+    // it's a keyboard key
+    else {
+        makeRequest( "POST", "/screencast/buttons", { "down": down, "buttons": [KEYCODES[displayValue]] },
+        function() { if(callback) callback(); } );
+    }
 }
 
 /**
@@ -2750,7 +2787,7 @@ function displayUpdateSave() {
     form.appendChild( createGameMenu(selected.game, selected.system, false, true, selected.parents, true, null, true) );
     var saveMenu = createSaveMenu(selected.save, selected.system, selected.game, true, selected.parents, true);
     form.appendChild( saveMenu );
-    var saveInput = createSaveInput(null, true);
+    var saveInput = createSaveInput(selected.save, true);
     form.appendChild( saveInput );
     form.appendChild( createButton( "Update Save", function(event) {
         if( (!event.detail || event.detail == 1) && !makingRequest ) {
@@ -2849,7 +2886,7 @@ function displayUpdateGame() {
     form.appendChild( createWarning("If you do not wish to change a field, you may leave it blank.") );
     form.appendChild( createSystemMenu( selected.system, false, false, false, false, false, false, mediaOnly ) );
     form.appendChild( createFolderMenu( selected.parents, selected.system, false, false, false, false, form) );
-    var gameInput = createGameInput();
+    var gameInput = createGameInput(selected.game);
     form.appendChild( gameInput );
     var romFileInput = createRomFileInput();
     form.appendChild( romFileInput );
