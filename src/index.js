@@ -3051,6 +3051,12 @@ function createVirtualGamepad() {
     catch(err) {
         return ERROR_MESSAGES.couldNotCreateGamepad;
     }
+    // This is currently set to be the same configuration as a Wii U pro controller
+    // Note that the order buttons are registered corresponds to the button number (0, 1, 2, etc.)
+    // as registered with GuyStation and the emulators
+    // I'm not sure how much the event codes from uinput (last parameter) matter...
+    // I guess they only matter for when receiving them from the fake controller.
+    // So we go from event code > button number > program input.
     ioctl(gamepadFileDescriptor, uinput.UI_SET_EVBIT, uinput.EV_KEY);
     ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_A);
     ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_B);
@@ -3058,9 +3064,13 @@ function createVirtualGamepad() {
     ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_Y);
     ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_TL);
     ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_TR);
-    ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_START);
+    ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_TL2);
+    ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_TR2);
     ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_SELECT);
+    ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_START);
     ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_MODE);
+    ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_THUMB_L);
+    ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_THUMB_R);
     ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_DPAD_UP);
     ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_DPAD_DOWN);
     ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_DPAD_LEFT);

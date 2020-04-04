@@ -124,6 +124,23 @@ You will want to use Antimicro to map home (or some other button) to the escape 
 ## Technical Notes
 GuyStation launches a Node.js server along with a Chromium browser (via Puppeteer) that automatically navigates to a web page that allows you to interact with the server. This same page can be accessed by going to the IP address listed on the page in any web capable device.
 
+## Samba Guide
+It's possible to set up multiple GuyStations and set up one to share the `systems` directory over Samba, and have the other one mount it. To do this, add the following to `/etc/samba/smb.conf` on the server:
+```
+[systems]
+path = /home/james/guystation/systems
+valid users = root
+writable = yes
+force user = root
+force group = root
+#veto files = /*current*/
+```
+On the client, install (`sudo apt-get`) samba and cfs-utils. Then, update `/etc/fstab` to have the following entry, replacing the values within angle brackets appropriately:
+```
+//192.168.1.2/systems   /home/<your_home_name>/guystation/systems  cifs    sfu,rw,username=root,password=<root_password>,vers=1.0       00
+```
+There are a few important things to note with this. You won't be able to change saves on the client machine. This is simply because you can't update symlinks on a mounted drive. Additionally, you can't use colons or pipes in your game or save names. Samba doesn't like files that have these names, so it is best to avoid them.
+
 ## File Structure for Systems Directory
 * `systems`
     * `<system>` (d)
