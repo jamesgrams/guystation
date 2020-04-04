@@ -289,6 +289,8 @@ h1 {
     cursor: pointer;
     transition: opacity 0.5s;
     border: none;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 #power-options-form button {
@@ -672,10 +674,36 @@ h1 {
     left: 57px;
 }
 
+.black-background .key-button {
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+}
+
 .black-background .key-button .key-display {
     font-size: 25px;
     padding: 0;
     font-family: 'blinker', sans-serif;
+}
+
+.black-background .key-button .key-display.analog {
+    width: 100px;
+    height: 100px;
+    background-color: white;
+    display: block;
+    position: absolute;
+    top: -25px;
+    left: -25px;
+    border-radius: 50%;
+}
+
+.black-background .key-button .key-display.analog .analog-stick {
+    width: 50px;
+    height: 50px;
+    background-color: black;
+    border-radius: 50%;
+    position: absolute;
+    top: 25px;
+    left: 25px;
 }
 
 .black-background .key-button select {

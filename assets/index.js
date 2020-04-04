@@ -130,21 +130,23 @@ var KEYCODES = {
 var PADCODES = {
     'Ⓐ': 0x130,
     'Ⓑ': 0x131,
-    'Ⓒ': 0x132,
     'Ⓧ': 0x133,
     'Ⓨ': 0x134,
-    'Ⓩ': 0x135,
     'Ⓛ': 0x136,
     'Ⓡ': 0x137,
     '🅛': 0x138,
     '🅡': 0x139, // right trigger 2
+    '🅻': 0x13d,
+    '🆁': 0x13e, // thumb right trigger
     '🔘': 0x13a, // select
     '⭐': 0x13b, // start
     '🏠': 0x13c, //mode 
     '▲': 0x220, // dpad up
     '▼': 0x221, // dpad down
     '◀': 0x222, // dpad left
-    '▶': 0x223 // dpad right
+    '▶': 0x223, // dpad right
+    '🕹️L': 1, // there's special logic for these analog pads based on their names, so be careful when changing them
+    '🕹️R': 2
 }
 
 var expandCountLeft; // We always need to have a complete list of systems, repeated however many times we want, so the loop works properly
@@ -2247,7 +2249,7 @@ function fullscreenVideo( element ) {
                 }
                 else if( currentAction == "fa-keyboard" ) {
                     document.querySelectorAll(".black-background .key-button .key-select").forEach( function(el) { el.classList.add("hidden"); } );
-                    document.querySelectorAll(".black-background .key-button .key-display").forEach( function(el) { el.classList.remove("hidden"); } );
+                    document.querySelectorAll(".black-background .key-button .key-display").forEach( function(el) { el.classList.remove("hidden"); determineAnalog(el); } );
                     icon.classList.add("fa-trash");
                 }
                 else if( currentAction == "fa-trash" ) {
@@ -2271,7 +2273,7 @@ function fullscreenVideo( element ) {
                 }
                 else {
                     document.querySelectorAll(".black-background .key-button .key-select").forEach( function(el) { el.classList.add("hidden"); } );
-                    document.querySelectorAll(".black-background .key-button .key-display").forEach( function(el) { el.classList.remove("hidden"); } );
+                    document.querySelectorAll(".black-background .key-button .key-display").forEach( function(el) { el.classList.remove("hidden"); determineAnalog(el); } );
                     actionButton.classList.add("hidden");
                     icon.classList.remove("fa-check");
                     icon.classList.add("fa-edit");
@@ -2287,6 +2289,29 @@ function fullscreenVideo( element ) {
             blackBackground.appendChild(actionButton);
 
             loadKeyConfiguration();
+        }
+    }
+}
+
+/**
+ * Determine if a key display should be Analog or not, and adjust it appropriately.
+ * @param {HTMLElement} keyDisplay - The element containing the text of the key.
+ */
+function determineAnalog(keyDisplay) {
+    var stick = keyDisplay.querySelector(".analog-stick");
+    // hijack the key display for an analog stick
+    if( keyDisplay.innerText.match(/\u{1f579}/u) ) {
+        keyDisplay.classList.add("analog");
+        if( !stick ) {
+            stick = document.createElement("div");
+            stick.classList.add("analog-stick");
+            keyDisplay.appendChild(stick);
+        }
+    }
+    else {
+        keyDisplay.classList.remove("analog");
+        if( stick ) {
+            stick.parentNode.removeChild( stick );
         }
     }
 }
@@ -2324,6 +2349,8 @@ function createKeyButton( selected, x, y ) {
     keyButton.style.left = x - squareButtonSideHalf;
     keyButton.style.top = y - squareButtonSideHalf;
 
+    determineAnalog(keyDisplay);
+
     keyButton.appendChild(keySelect);
     keyButton.appendChild(keyDisplay);
     
@@ -2335,6 +2362,56 @@ function createKeyButton( selected, x, y ) {
         }
         e.stopPropagation();
         e.preventDefault();
+    }
+
+    var lastTimeSent = 0;
+    var moveJoystick = function(e) {
+        var stick = keyButton.querySelector(".analog-stick");
+        var keyLeft = parseInt(keyButton.style.left.replace("px",""));
+        var keyTop = parseInt(keyButton.style.top.replace("px",""));
+        // these two should be the same
+        var stickCenterX = (keyDisplay.clientWidth - stick.clientWidth)/2;
+        var stickCenterY = (keyDisplay.clientHeight - stick.clientHeight)/2;
+
+        var stickLeft = stickCenterX;
+        var stickTop = stickCenterY;
+
+        var maxDistanceTraveled = keyDisplay.clientWidth - stick.clientWidth;
+        if( e ) {
+            stickLeft = e.touches[0].clientX - keyLeft;
+            stickTop = e.touches[0].clientY - keyTop;
+            // Get the angle the stick is currently at
+            var angleRadians = Math.atan2( stickLeft - stickCenterX, stickTop - stickCenterY);
+            // 0 is the bottom, and it goes counter clockwise
+            // get the max x coordinate
+            var maxY = maxDistanceTraveled*Math.cos(angleRadians);
+            // get the max y coordinate
+            var maxX = maxDistanceTraveled*Math.sin(angleRadians);
+            if( Math.abs(maxX) < Math.abs(stickLeft - stickCenterX) ) {
+                stickLeft = maxX + stickCenterX;
+            }
+            if( Math.abs(maxY) < Math.abs(stickTop - stickCenterY) ) {
+                stickTop = maxY + stickCenterY;
+            }
+        }
+        stick.style.left = stickLeft;
+        stick.style.top = stickTop;
+
+        var distanceXFromCenter = stickLeft - stickCenterX;
+        var distanceYFromCenter = stickTop - stickCenterY;
+        var xValueForServer = distanceXFromCenter/maxDistanceTraveled * 128 + 127;
+        var yValueForServer = distanceYFromCenter/maxDistanceTraveled * 128 + 127;
+
+        var currentTimeSend = new Date().getTime();
+        // always send the stop event (!e)
+        if( currentTimeSend - lastTimeSent > 100 || (!e) ) {
+            lastTimeSent = currentTimeSend;
+
+            // The right axis are 2 & 3
+            var axisAdder = selected.includes("L") ? 0 : 3;
+            makeRequest( "POST", "/screencast/gamepad", { "event": { "type": 0x03, "code": 0x00 + axisAdder, "value": xValueForServer } });
+            makeRequest( "POST", "/screencast/gamepad", { "event": { "type": 0x03, "code": 0x01 + axisAdder, "value": yValueForServer } });
+        }
     }
 
     var dragKey = function(e) {
@@ -2361,18 +2438,30 @@ function createKeyButton( selected, x, y ) {
         }
         
         if( ! document.querySelector(".black-background #edit-button .fa-check") ) {
-            curTarget = keyButton;
-            curTouchIdentifier = e.targetTouches[0].identifier;
-            handleKeyButton( keyButton, true );
-            window.addEventListener( "touchmove", changeKey );
+            if( keyDisplay.classList.contains("analog") ) {
+                moveJoystick(e);
+                window.addEventListener( "touchmove", moveJoystick );
+            }
+            else {
+                curTarget = keyButton;
+                curTouchIdentifier = e.targetTouches[0].identifier;
+                handleKeyButton( keyButton, true );
+                window.addEventListener( "touchmove", changeKey );
+            }
         }
     }
     keyButton.ontouchend = function(e) {
         window.removeEventListener("touchmove", dragKey);
         window.removeEventListener("touchmove", changeKey);
+        window.removeEventListener("touchmove", moveJoystick);
 
         if( ! document.querySelector(".black-background #edit-button .fa-check") ) {
-            handleKeyButton( keyButton, false );
+            if( keyDisplay.classList.contains("analog") ) {
+                moveJoystick();
+            }
+            else {
+                handleKeyButton( keyButton, false );
+            }
         }
     }
 
