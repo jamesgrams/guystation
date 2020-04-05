@@ -26,6 +26,7 @@ var SCROLL_TIMEOUT_TIME = 500;
 var SCROLL_NEEDED = 1250;
 var RELOAD_MESSAGES_INTERVAL = 5000;
 var CHATTING_MESSAGES_INTERVAL = 1000;
+var TIME_BETWEEN_JOYSTICK_SENDS = 100;
 var KEYCODES = {
     '0': 48,
     '1': 49,
@@ -184,6 +185,8 @@ var scrollAddTimeout;
 var messages = [];
 var fetchedMessages = false;
 var swRegistration;
+var screencastButtonsPressed = {};
+var screencastAxisLastSent = 0;
 
 // Hold escape for 5 seconds to quit
 // Note this variable contains a function interval, not a boolean value
@@ -2404,7 +2407,7 @@ function createKeyButton( selected, x, y ) {
 
         var currentTimeSend = new Date().getTime();
         // always send the stop event (!e)
-        if( currentTimeSend - lastTimeSent > 100 || (!e) ) {
+        if( currentTimeSend - lastTimeSent > TIME_BETWEEN_JOYSTICK_SENDS || (!e) ) {
             lastTimeSent = currentTimeSend;
 
             // The right axis are 2 & 3
@@ -4429,6 +4432,37 @@ function manageGamepadInput() {
                         }
                         break;
                     }
+                }
+            }
+            // Check if we are on a screencast - forward buttons
+            else if( document.hasFocus() && document.querySelector(".screencast-wrapper") ) {
+                for( var i=0; i<gp.buttons.length; i++ ) {
+                    if( ( !screencastButtonsPressed[i] && buttonPressed(gp.buttons[i]) ) || ( screencastButtonsPressed[i] && !buttonPressed(gp.buttons[i]) ) ) {
+                        if( !screencastButtonsPressed[i] ) {
+                            screencastButtonsPressed[i] = true;
+                        }
+                        else {
+                            screencastButtonsPressed[i] = false;
+                        }
+                        // we send the codes that correspond with the buttons numbers. So padcodes have A as button 0, so when
+                        // the client controller presses button 0, we send A, which means button 0 on the server.
+                        makeRequest( "POST", "/screencast/gamepad", { "event": { "type": 0x01, "code": Object.values(PADCODES)[i], "value": screencastButtonsPressed[i] } } );
+                    }
+                }
+                var leftStickXPosition = gp.axes[0];
+                var leftStickYPosition = gp.axes[1];
+                var rightStickXPosition = gp.axes[2];
+                var rightStickYPosition = gp.axes[3];
+
+                var currentTimeSend = new Date().getTime();
+                if( currentTimeSend - screencastAxisLastSent > TIME_BETWEEN_JOYSTICK_SENDS ) {
+                    screencastAxisLastSent = currentTimeSend;
+
+                    // The right axis are 2 & 3
+                    makeRequest( "POST", "/screencast/gamepad", { "event": { "type": 0x03, "code": 0x00, "value": leftStickXPosition } });
+                    makeRequest( "POST", "/screencast/gamepad", { "event": { "type": 0x03, "code": 0x01, "value": leftStickYPosition } });
+                    makeRequest( "POST", "/screencast/gamepad", { "event": { "type": 0x03, "code": 0x03, "value": rightStickXPosition } });
+                    makeRequest( "POST", "/screencast/gamepad", { "event": { "type": 0x03, "code": 0x04, "value": rightStickYPosition } });
                 }
             }
             // Check if we are controlling media
