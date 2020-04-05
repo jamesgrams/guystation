@@ -186,6 +186,7 @@ var messages = [];
 var fetchedMessages = false;
 var swRegistration;
 var screencastButtonsPressed = {};
+var screencastAxisLastValues = {};
 var screencastAxisLastSent = 0;
 
 // Hold escape for 5 seconds to quit
@@ -4449,21 +4450,28 @@ function manageGamepadInput() {
                         makeRequest( "POST", "/screencast/gamepad", { "event": { "type": 0x01, "code": Object.values(PADCODES)[i], "value": screencastButtonsPressed[i] } } );
                     }
                 }
-                var leftStickXPosition = gp.axes[0];
-                var leftStickYPosition = gp.axes[1];
-                var rightStickXPosition = gp.axes[2];
-                var rightStickYPosition = gp.axes[3];
 
                 var currentTimeSend = new Date().getTime();
                 if( currentTimeSend - screencastAxisLastSent > TIME_BETWEEN_JOYSTICK_SENDS ) {
                     screencastAxisLastSent = currentTimeSend;
 
-                    // The right axis are 2 & 3
-                    makeRequest( "POST", "/screencast/gamepad", { "event": { "type": 0x03, "code": 0x00, "value": leftStickXPosition } });
-                    makeRequest( "POST", "/screencast/gamepad", { "event": { "type": 0x03, "code": 0x01, "value": leftStickYPosition } });
-                    makeRequest( "POST", "/screencast/gamepad", { "event": { "type": 0x03, "code": 0x03, "value": rightStickXPosition } });
-                    makeRequest( "POST", "/screencast/gamepad", { "event": { "type": 0x03, "code": 0x04, "value": rightStickYPosition } });
+                    for( var i=0; i<gp.axes.length; i++ ) {
+                        var serverAxisValue = Math.round(gp.axes[i] * 128 + 127);
+                        // if within 1, its ok, unless it is 0
+                        if( !screencastAxisLastValues[i] || Math.abs(serverAxisValue - screencastAxisLastValues[i]) > 1 || (serverAxisValue == 127 && screencastAxisLastValues != 127) ) {
+                            screencastAxisLastValues[i] = serverAxisValue;
+                            // a wii u pro controller uses axes 0,1 for left stick and 3,4 for right stick
+                            // an xbox 360 controller does this too. but there are also axes 2 and 5 for the left and right triggers respectively.
+                            // however, since the js gamepad api returns arrays, for wii u, axis 2 and 3 in the gamepad api are 3 and 4.
+                            var axisAdder = 0;
+                            if( gp.axes.length == 4 && i > 1 ) {
+                                axisAdder = 1;
+                            }
+                            makeRequest( "POST", "/screencast/gamepad", { "event": { "type": 0x03, "code": i + axisAdder, "value": serverAxisValue } });
+                        }
+                    }
                 }
+
             }
             // Check if we are controlling media
             else if( document.hasFocus() && document.querySelector(".modal #remote-media-form") ) {
