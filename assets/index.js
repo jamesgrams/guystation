@@ -744,7 +744,7 @@ function enableControls() {
                 if( event.keyCode == 13 ) document.querySelector(".modal #go-button").click();
             }
             else if( buttonsUp[event.keyCode.toString()] || buttonsUp[event.keyCode.toString()] === undefined ) {
-                makeRequest( "POST", "/screencast/buttons", { "down": true, "buttons": [event.keyCode] } );
+                socket.emit("/screencast/buttons", { "down": true, "buttons": [event.keyCode] } );
                 buttonsUp[event.keyCode.toString()] = false;
             }
         }
@@ -788,7 +788,7 @@ function enableControls() {
         if( enableModalControls && document.querySelector(".modal #remote-screencast-form video, .modal #browser-controls-form video, .black-background video") ) {
             // Allow enter for the browser address bar
             if( !(document.querySelector(".modal #address-bar") && document.querySelector(".modal #address-bar") === document.activeElement && !navigating) && !buttonsUp[event.keyCode.toString()] ) {
-                makeRequest( "POST", "/screencast/buttons", { "down": false, "buttons": [event.keyCode] } );
+                socket.emit("/screencast/buttons", { "down": false, "buttons": [event.keyCode] } );
                 buttonsUp[event.keyCode.toString()] = true;
             }
         }
@@ -1992,7 +1992,7 @@ function displayBrowserControls() {
     //video
     var video = createInteractiveScreencast();
     
-    makeRequest( "GET", "/screencast/connect", { id: socket.id }, function() {
+    makeRequest( "GET", "/screencast/connect", { id: socket.id, noController: true }, function() {
         // start letting the server know we exist after it is now looking for us i.e. won't accept another connection
         // (serverSocketId is set)
         resetCancelStreamingInterval = setInterval( function() {
@@ -2145,7 +2145,10 @@ function displayScreencast() {
 
     form.appendChild( createButton("Fullscreen", function() { fullscreenVideo(video) }));
 
-    makeRequest( "GET", "/screencast/connect", { id: socket.id }, function() {
+    // don't create a virtual controller if we don't have a controller plugged in
+    // and we are on desktop
+    var desktopAndNoClientGamepad = !(isTouch()) && (navigator.getGamepads ? ( (navigator.getGamepads() && navigator.getGamepads()[0]) ? false : true) : true);
+    makeRequest( "GET", "/screencast/connect", { id: socket.id, noController: desktopAndNoClientGamepad }, function() {
         // start letting the server know we exist after it is now looking for us i.e. won't accept another connection
         // (serverSocketId is set)
         resetCancelStreamingInterval = setInterval( function() {
@@ -2413,8 +2416,8 @@ function createKeyButton( selected, x, y ) {
 
             // The right axis are 2 & 3
             var axisAdder = selected.includes("L") ? 0 : 3;
-            makeRequest( "POST", "/screencast/gamepad", { "event": { "type": 0x03, "code": 0x00 + axisAdder, "value": xValueForServer } });
-            makeRequest( "POST", "/screencast/gamepad", { "event": { "type": 0x03, "code": 0x01 + axisAdder, "value": yValueForServer } });
+            socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": 0x00 + axisAdder, "value": xValueForServer } });
+            socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": 0x01 + axisAdder, "value": yValueForServer } });
         }
     }
 
@@ -2482,12 +2485,12 @@ function handleKeyButton(keyButton, down, callback) {
     var displayValue = keyButton.querySelector(".key-display").innerText;
     // it's a gamepad key
     if( PADCODES[displayValue] ) {
-        makeRequest( "POST", "/screencast/gamepad", { "event": { "type": 0x01, "code": PADCODES[displayValue], "value": down ? 1 : 0 } },
+        socket.emit("/screencast/gamepad", { "event": { "type": 0x01, "code": PADCODES[displayValue], "value": down ? 1 : 0 } },
         function() { if(callback) callback(); } );
     }
     // it's a keyboard key
     else {
-        makeRequest( "POST", "/screencast/buttons", { "down": down, "buttons": [KEYCODES[displayValue]] },
+        socket.emit("/screencast/buttons", { "down": down, "buttons": [KEYCODES[displayValue]] },
         function() { if(callback) callback(); } );
     }
 }
@@ -2625,7 +2628,7 @@ function createInteractiveScreencast() {
             var xPercent = mousePercentLocation.xPercent;
             var yPercent = mousePercentLocation.yPercent;
             if( xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
-                makeRequest( "POST", "/screencast/mouse", { "down": true, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 2 ? "right" : "middle" } );
+                socket.emit( "/screencast/mouse", { "down": true, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 2 ? "right" : "middle" } );
             }
         }
     };
@@ -2635,7 +2638,7 @@ function createInteractiveScreencast() {
             var xPercent = mousePercentLocation.xPercent;
             var yPercent = mousePercentLocation.yPercent;
             if( xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
-                makeRequest( "POST", "/screencast/mouse", { "down": false, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 2 ? "right" : "middle" } );
+                socket.emit( "/screencast/mouse", { "down": false, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 2 ? "right" : "middle" } );
             }
         }
     };
@@ -4447,7 +4450,7 @@ function manageGamepadInput() {
                         }
                         // we send the codes that correspond with the buttons numbers. So padcodes have A as button 0, so when
                         // the client controller presses button 0, we send A, which means button 0 on the server.
-                        makeRequest( "POST", "/screencast/gamepad", { "event": { "type": 0x01, "code": Object.values(PADCODES)[i], "value": screencastButtonsPressed[i] } } );
+                        socket.emit("/screencast/gamepad", { "event": { "type": 0x01, "code": Object.values(PADCODES)[i], "value": screencastButtonsPressed[i] } } );
                     }
                 }
 
@@ -4467,7 +4470,7 @@ function manageGamepadInput() {
                             if( gp.axes.length == 4 && i > 1 ) {
                                 axisAdder = 1;
                             }
-                            makeRequest( "POST", "/screencast/gamepad", { "event": { "type": 0x03, "code": i + axisAdder, "value": serverAxisValue } });
+                            socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": i + axisAdder, "value": serverAxisValue } });
                         }
                     }
                 }

@@ -592,7 +592,7 @@ app.get("/screencast/connect", async function(request, response) {
     if( ! requestLocked ) {
         requestLocked = true;
         try {
-            let errorMessage = await connectScreencast( request.query.id );
+            let errorMessage = await connectScreencast( request.query.id, request.query.noController === 'true' );
             requestLocked = false;
             writeActionResponse( response, errorMessage );
         }
@@ -3235,6 +3235,18 @@ io.on('connection', function(socket) {
             io.to(serverSocketId).emit("ice", { "id": socket.id, "ice": message.candidate } );
         }
     } );
+    // all some requests to come through socket.io too
+    // these are requests that we want to be fast
+    // websockets are faster than http requests
+    socket.on("/screencast/mouse", function(body) {
+        performScreencastMouse( body.xPercent, body.yPercent, body.button, body.down );
+    } );
+    socket.on("/screencast/buttons", function(body) {
+        performScreencastButtons( body.buttons, body.down );
+    } );
+    socket.on("/screencast/gamepad", function(body) {
+        performScreencastGamepad( body.event );
+    } );
 } );
 
 /**
@@ -3254,10 +3266,11 @@ function resetScreencastTimeout( id ) {
 
 /**
  * Connect the menuPage to the signal server.
- * @param {id} - The id of the socket asking the menuPage to connect.
+ * @param {string} id - The id of the socket asking the menuPage to connect.
+ * @param {boolean} [noController] - True if we should not create a controller.  
  * @returns {Promise<(boolean|string)>} An error message if there is one or false if there is not.
  */
-async function connectScreencast( id ) {
+async function connectScreencast( id, noController ) {
     if( !menuPage || menuPage.isClosed() ) {
         return Promise.resolve(ERROR_MESSAGES.menuPageClosed);
     }
@@ -3290,7 +3303,7 @@ async function connectScreencast( id ) {
     await menuPage.evaluate( () => connectToSignalServer(true) );
 
     // connect the virtual gamepad if necessary
-    if( !gamepadFileDescriptor ) {
+    if( !gamepadFileDescriptor && !noController ) {
         createVirtualGamepad();
     }
 
