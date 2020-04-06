@@ -45,7 +45,7 @@ Note: You can press F11 to get GuyStation out of full screen mode at any time.
 * Screenshots - you can view the screenshots for a game (or folder) by opening the menu and clicking the CD icon under "More".
 * Streaming - you can stream the screen to any web capable device.
     * Simply open Guystation in a web browser by going to the Guystation IP address on another device and click the monitor icon in the menu on the device you want to stream to.
-    * Keyboard input and mouse clicks will be forwarded to GuyStation when streaming (with the exception of Escape, since that is used to exit Fullscreen).
+    * Keyboard input, gamepad input, and mouse clicks will be forwarded to GuyStation when streaming (with the exception of Escape, since that is used to exit Fullscreen).
     * On a mobile device, streaming in fullscreen mode will allow you to add virtual keyboard and gamepad buttons to the page. These buttons' values will by fowarded when touched. Please note, the gamepad buttons (e.g. A, B, X, etc.), which are at the bottom of the list of keys that a button can be assigned, are listed in order of their button number. So, if your emulator is set to map "button 0" to a control, that would be "A" for the virtual controller, since "A" is the first button in the list.
         * When you start streaming, a virtual controller will be added to GuyStation. Please keep in mind that some emulators need to have a controller plugged in before starting up, so you might need to start streaming before opening the game. Also keep this in mind as it may conflict with your physical controllers, if they are not already connected before starting to stream.
 * You can update, restart, or reboot the system by clicking the power button under "More" in the menu.
@@ -162,6 +162,12 @@ There are a few important things to note with this. You won't be able to change 
 
 ## Additional Information
 Multiple monitors are not supported. Using multiple monitors will cause issues with ensuring the screen resolution is correct and streaming the screen.
+
+## Known issues
+* Citra maps buttons with respect to individual controller types, so you'll need separate control profiles for each control (and the vitual controller through screencast).
+* Dolphin does something similar where it keeps track of controllers by controller type.
+* PCSX2 does not recognize the virtual controller.
+* Citra and Mupen64 flicker when hiding the screenshare message. As such, the message is not hidden when these emulators are in use and screenshare is started.
 
 ## Credits and Special Thanks
 * Game Boy Advance and DS Lite icons: [David Pérez](https://thenounproject.com/david730/)

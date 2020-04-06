@@ -3080,6 +3080,9 @@ function createVirtualGamepad() {
     ioctl(gamepadFileDescriptor, uinput.UI_SET_ABSBIT, uinput.ABS_Y);
     ioctl(gamepadFileDescriptor, uinput.UI_SET_ABSBIT, uinput.ABS_RX);
     ioctl(gamepadFileDescriptor, uinput.UI_SET_ABSBIT, uinput.ABS_RY);
+    // trigger axis
+    ioctl(gamepadFileDescriptor, uinput.UI_SET_ABSBIT, uinput.ABS_HAT0X);
+    ioctl(gamepadFileDescriptor, uinput.UI_SET_ABSBIT, uinput.ABS_HAT0Y);
     uidev = new uinputStructs.uinput_user_dev;
     uidev_buffer = uidev.ref();
     uidev_buffer.fill(0);
@@ -3088,22 +3091,12 @@ function createVirtualGamepad() {
     uidev.id.vendor = 0x3;
     uidev.id.product = 0x3;
     uidev.id.version = 2;
-    uidev.absmax[uinput.ABS_X] = 255;
-    uidev.absmin[uinput.ABS_X] = 0;
-    uidev.absfuzz[uinput.ABS_X] = 0;
-    uidev.absflat[uinput.ABS_X] = 15;
-    uidev.absmax[uinput.ABS_Y] = 255;
-    uidev.absmin[uinput.ABS_Y] = 0;
-    uidev.absfuzz[uinput.ABS_Y] = 0;
-    uidev.absflat[uinput.ABS_Y] = 15;
-    uidev.absmax[uinput.ABS_RX] = 255;
-    uidev.absmin[uinput.ABS_RX] = 0;
-    uidev.absfuzz[uinput.ABS_RX] = 0;
-    uidev.absflat[uinput.ABS_RX] = 15;
-    uidev.absmax[uinput.ABS_RY] = 255;
-    uidev.absmin[uinput.ABS_RY] = 0;
-    uidev.absfuzz[uinput.ABS_RY] = 0;
-    uidev.absflat[uinput.ABS_RY] = 15;
+    for( let axis of [uinput.ABS_X, uinput.ABS_Y, uinput.ABS_RX, uinput.ABS_RY, uinput.ABS_HAT0X, uinput.ABS_HAT0Y] ) {
+        uidev.absmax[axis] = 255;
+        uidev.absmin[axis] = 0;
+        uidev.absfuzz[axis] = 0;
+        uidev.absflat[axis] = 15;
+    }
     try {
         fs.writeSync(gamepadFileDescriptor, uidev_buffer, 0, uidev_buffer.length, null);
     }
@@ -3238,14 +3231,17 @@ io.on('connection', function(socket) {
     // all some requests to come through socket.io too
     // these are requests that we want to be fast
     // websockets are faster than http requests
-    socket.on("/screencast/mouse", function(body) {
+    socket.on("/screencast/mouse", function(body, ack) {
         performScreencastMouse( body.xPercent, body.yPercent, body.button, body.down );
+        if(ack) ack();
     } );
-    socket.on("/screencast/buttons", function(body) {
+    socket.on("/screencast/buttons", function(body, ack) {
         performScreencastButtons( body.buttons, body.down );
+        if(ack) ack();
     } );
-    socket.on("/screencast/gamepad", function(body) {
+    socket.on("/screencast/gamepad", function(body, ack) {
         performScreencastGamepad( body.event );
+        if(ack) ack();
     } );
 } );
 

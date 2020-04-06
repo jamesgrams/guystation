@@ -188,6 +188,8 @@ var swRegistration;
 var screencastButtonsPressed = {};
 var screencastAxisLastValues = {};
 var screencastAxisLastSent = 0;
+// keys are server values, values are client values
+var screencastControllerMap = {}; // allow the user to map button inputs on the client to buttons on the virtual controller (button 5 on the client xbox contrller goes to button 9 on the virtual controller)
 
 // Hold escape for 5 seconds to quit
 // Note this variable contains a function interval, not a boolean value
@@ -569,6 +571,9 @@ function load() {
         }
         if( window.localStorage.guystationJoyMapping ) {
             joyMapping = JSON.parse(window.localStorage.guystationJoyMapping);
+        }
+        if( window.localStorage.guystationScreencastControllerMap ) {
+            screencastControllerMap = JSON.parse(window.localStorage.guystationScreencastControllerMap);
         }
 
         ip = response.ip;
@@ -2111,18 +2116,40 @@ function displayJoypadConfig() {
     var joyButtons = Object.keys(joyMapping);
     form.appendChild( createFormTitle("Joypad Configuration") );
     form.appendChild( createWarning("Click a field, then press a button on the controller.") );
+    form.appendChild( createWarning("Menu Controls") );
     for( var i=0; i<joyButtons.length; i++ ) {
         var label = createInput( joyMapping[joyButtons[i]], "input-" + i, joyButtons[i] + ": ", "number", true );
         label.setAttribute("data-button", joyButtons[i]);
         form.appendChild( label );
     }
+    var warning = createWarning("Virtual Controller Configuration");
+    warning.setAttribute("title", "The client-connected controller maps to a virtual server controller while streaming.");
+    form.appendChild(warning);
+    var padcodeKeys = Object.keys(PADCODES);
+    for( var i=0; i<padcodeKeys.length-2; i++ ) {
+        var label = createInput( screencastControllerMap[i] ? screencastControllerMap[i].toString() : i.toString(), "virtual-input-" + i, padcodeKeys[i] + " (button " + i + "): ", "number", true );
+        label.setAttribute("data-virtual-button", i);
+        form.appendChild( label ); 
+    }
     form.appendChild( createButton( "Save", function() {
-        var inputs = document.querySelectorAll("#joypad-config-form input");
+        var inputs = document.querySelectorAll("#joypad-config-form label[data-button] input");
         for(var i=0; i<inputs.length; i++) {
             var button = inputs[i].parentElement.getAttribute("data-button");
             joyMapping[button] = inputs[i].value;
         }
         window.localStorage.guystationJoyMapping = JSON.stringify(joyMapping);
+
+        var inputs = document.querySelectorAll("#joypad-config-form label[data-virtual-button] input");
+        var newScreencastControllerMap = {};
+        for(var i=0; i<inputs.length; i++) {
+            // if say button 0 != button 0
+            if( inputs[i].value != i ) {
+                // the mapping is server to client
+                newScreencastControllerMap[ i ] = inputs[i].value;
+            }
+        }
+        screencastControllerMap = newScreencastControllerMap;
+        window.localStorage.guystationScreencastControllerMap = JSON.stringify(screencastControllerMap);
         closeModal();
     } ) );
     launchModal( form );
@@ -2372,6 +2399,7 @@ function createKeyButton( selected, x, y ) {
     }
 
     var lastTimeSent = 0;
+    var curTouchIdentifier;
     var moveJoystick = function(e) {
         var stick = keyButton.querySelector(".analog-stick");
         var keyLeft = parseInt(keyButton.style.left.replace("px",""));
@@ -2385,8 +2413,12 @@ function createKeyButton( selected, x, y ) {
 
         var maxDistanceTraveled = keyDisplay.clientWidth - stick.clientWidth;
         if( e ) {
-            stickLeft = e.touches[0].clientX - keyLeft;
-            stickTop = e.touches[0].clientY - keyTop;
+            var correctTouch = Array.from(e.touches).filter( (el) => el.identifier == curTouchIdentifier );
+            if( !correctTouch.length ) return;
+            correctTouch = correctTouch[0];
+
+            stickLeft = correctTouch.clientX - keyLeft;
+            stickTop = correctTouch.clientY - keyTop;
             // Get the angle the stick is currently at
             var angleRadians = Math.atan2( stickLeft - stickCenterX, stickTop - stickCenterY);
             // 0 is the bottom, and it goes counter clockwise
@@ -2426,7 +2458,7 @@ function createKeyButton( selected, x, y ) {
         keyButton.style.top = e.touches[0].clientY - squareButtonSideHalf;
     }
     var curTarget;
-    var curTouchIdentifier;
+    // changeKey won't be assigned with moveJoystick for the same key
     var changeKey = function(e) {
         var correctTouch = Array.from(e.touches).filter( (el) => el.identifier == curTouchIdentifier );
         if( !correctTouch.length ) return;
@@ -2445,13 +2477,13 @@ function createKeyButton( selected, x, y ) {
         }
         
         if( ! document.querySelector(".black-background #edit-button .fa-check") ) {
+            curTouchIdentifier = e.targetTouches[0].identifier;
             if( keyDisplay.classList.contains("analog") ) {
                 moveJoystick(e);
                 window.addEventListener( "touchmove", moveJoystick );
             }
             else {
                 curTarget = keyButton;
-                curTouchIdentifier = e.targetTouches[0].identifier;
                 handleKeyButton( keyButton, true );
                 window.addEventListener( "touchmove", changeKey );
             }
@@ -2467,7 +2499,7 @@ function createKeyButton( selected, x, y ) {
                 moveJoystick();
             }
             else {
-                handleKeyButton( keyButton, false );
+                handleKeyButton( curTarget, false );
             }
         }
     }
@@ -2487,6 +2519,13 @@ function handleKeyButton(keyButton, down, callback) {
     if( PADCODES[displayValue] ) {
         socket.emit("/screencast/gamepad", { "event": { "type": 0x01, "code": PADCODES[displayValue], "value": down ? 1 : 0 } },
         function() { if(callback) callback(); } );
+        // if the user is sending a trigger event, also send an event for the trigger axis
+        // it is very unlikely the user has button trigger buttons and axis, so they likely won't
+        // have both mapped to buttons
+        if( PADCODES[displayValue] == 0x138 || PADCODES[displayValue] == 0x139 ) {
+            var newCode = PADCODES[displayValue] == 0x138 ? 0x10 : 0x11;
+            socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": newCode, "value": down ? 255 : 0 } } );
+        }
     }
     // it's a keyboard key
     else {
@@ -2883,7 +2922,7 @@ function displayUpdateSave() {
     form.appendChild( createGameMenu(selected.game, selected.system, false, true, selected.parents, true, null, true) );
     var saveMenu = createSaveMenu(selected.save, selected.system, selected.game, true, selected.parents, true);
     form.appendChild( saveMenu );
-    var saveInput = createSaveInput(selected.save, true);
+    var saveInput = createSaveInput(null, true);
     form.appendChild( saveInput );
     form.appendChild( createButton( "Update Save", function(event) {
         if( (!event.detail || event.detail == 1) && !makingRequest ) {
@@ -2982,7 +3021,7 @@ function displayUpdateGame() {
     form.appendChild( createWarning("If you do not wish to change a field, you may leave it blank.") );
     form.appendChild( createSystemMenu( selected.system, false, false, false, false, false, false, mediaOnly ) );
     form.appendChild( createFolderMenu( selected.parents, selected.system, false, false, false, false, form) );
-    var gameInput = createGameInput(selected.game);
+    var gameInput = createGameInput();
     form.appendChild( gameInput );
     var romFileInput = createRomFileInput();
     form.appendChild( romFileInput );
@@ -4418,23 +4457,26 @@ function manageGamepadInput() {
             else if( document.hasFocus() && document.querySelector("#joypad-config-form") ) {
                 var inputs = document.querySelectorAll("#joypad-config-form input");
                 // Check if an input is focused
-                for( var i=0; i<inputs.length; i++ ) {
-                    if( inputs[i] === document.activeElement ) {
-                        // If so, check if any buttons are pressed
-                        for( var j=0; j<gp.buttons.length; j++ ) {
-                            // If so, set the input's value to be that of the pressed button
-                            if(buttonPressed(gp.buttons[j])) {
-                                inputs[i].value = j;
-                                if( inputs[i+1] ) {
-                                    if( focusInterval ) {
-                                        clearTimeout(focusInterval);
-                                        focusInterval = null;
-                                    }
-                                    focusInterval = setTimeout( function() { inputs[i+1].focus() }, FOCUS_NEXT_INTERVAL );
-                                } 
+                if( !focusInterval ) {
+                    for( var i=0; i<inputs.length; i++ ) {
+                        if( inputs[i] === document.activeElement ) {
+                            // If so, check if any buttons are pressed
+                            for( var j=0; j<gp.buttons.length; j++ ) {
+                                // If so, set the input's value to be that of the pressed button
+                                if(buttonPressed(gp.buttons[j])) {
+                                    inputs[i].value = j;
+                                    if( inputs[i+1] ) {
+                                        if( focusInterval ) {
+                                            clearTimeout(focusInterval);
+                                            focusInterval = null;
+                                        }
+                                        focusInterval = setTimeout( function(index) { return function() { inputs[index+1].focus(); focusInterval=null; } }(i), FOCUS_NEXT_INTERVAL );
+                                    } 
+                                    break;
+                                }
                             }
+                            break;
                         }
-                        break;
                     }
                 }
             }
@@ -4449,8 +4491,14 @@ function manageGamepadInput() {
                             screencastButtonsPressed[i] = false;
                         }
                         // we send the codes that correspond with the buttons numbers. So padcodes have A as button 0, so when
-                        // the client controller presses button 0, we send A, which means button 0 on the server.
-                        socket.emit("/screencast/gamepad", { "event": { "type": 0x01, "code": Object.values(PADCODES)[i], "value": screencastButtonsPressed[i] } } );
+                        // the client controller presses button 0, we send A, which means button 0 on the server unless a mapping specifies otherwise
+                        // i is the client controller button
+                        var scMapKeys = Object.keys(screencastControllerMap);
+                        var valuesForClientButton = scMapKeys.filter( el => screencastControllerMap[el] == i );
+                        if( !screencastControllerMap[i] ) valuesForClientButton.push(i); // if nothing is mapped for this button on the server, send this button. this means 2 == 2 as we intentionally left that blank.
+                        for( var j=0; j<valuesForClientButton.length; j++ ) {
+                            socket.emit("/screencast/gamepad", { "event": { "type": 0x01, "code": Object.values(PADCODES)[valuesForClientButton[j]], "value": screencastButtonsPressed[i] } } );
+                        }
                     }
                 }
 
@@ -4469,6 +4517,10 @@ function manageGamepadInput() {
                             var axisAdder = 0;
                             if( gp.axes.length == 4 && i > 1 ) {
                                 axisAdder = 1;
+                            }
+                            if( gp.axes.length == 6 ) {
+                                if( i == 2 ) axisAdder = 14;
+                                if( i == 5 ) axisAdder = 12;
                             }
                             socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": i + axisAdder, "value": serverAxisValue } });
                         }
