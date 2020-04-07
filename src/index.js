@@ -135,6 +135,13 @@ const SYSTEM_N64 = 'n64';
 const UINPUT_PATH = "/dev/uinput";
 const UINPUT_MODE = "w+";
 const VIRTUAL_GAMEPAD_NAME = "GuyStation Gamepad";
+const SHARING_PROMPT_MINIMIZE_COMMAND = "xdotool windowminimize $(xdotool search --name '" + SHARING_PROMPT + "')";
+const SHARING_PROMPT_TRANSPARENT_COMMAND = "xprop -id $(wmctrl -l | grep '"+ SHARING_PROMPT +"' | cut -d ' ' -f 1) -format _NET_WM_WINDOW_OPACITY 32c -set _NET_WM_WINDOW_OPACITY 0x00000000";
+const SHARING_PROMPT_GET_WINDOW_INFO_COMMAND = "xwininfo -id $(xdotool search --name '" + SHARING_PROMPT + "')";
+const SHARING_PROMPT_MOVE_WINDOW = "xdotool windowmove $(xdotool search --name '"+ SHARING_PROMPT +"') ";
+const SHARING_PROMPT_MINIMUM = 0;
+const SHARING_PROMPT_MAXIMUM = 10000;
+const SHARING_PROMPT_TOP_AREA = 200;
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -3326,19 +3333,19 @@ async function startScreencast( id ) {
     await menuPage.evaluate( (id) => startConnectionToPeer(true, id), id );
 
     // n64 and 3ds cause screen flickers when the screen is being shraed button is hidden
-    if( !currentStartedClientIdsLength && ( !currentEmulator || (currentSystem != SYSTEM_3DS && currentSystem != SYSTEM_N64 ) ) ) {
+    if( !currentStartedClientIdsLength ) {
         for( let i=0; i<SHARING_PROMPT_MAX_TRIES; i++ ) {
             if( sharingPromptIsActive() ) {
-                await performScreencastButtons( [TAB_BUTTON], true );
-                await performScreencastButtons( [TAB_BUTTON], false );
-                await performScreencastButtons( [TAB_BUTTON], true );
-                await performScreencastButtons( [TAB_BUTTON], false );
-                await performScreencastButtons( [ENTER_BUTTON], true );
-                await performScreencastButtons( [ENTER_BUTTON], false );
+                if( currentSystem && (currentSystem == SYSTEM_N64 || currentSystem == SYSTEM_3DS) ) {
+                    proc.execSync(SHARING_PROMPT_TRANSPARENT_COMMAND);
+                }
+                else {
+                    proc.execSync(SHARING_PROMPT_MINIMIZE_COMMAND);
+                }
                 break;
-	    }
+	        }
             await menuPage.waitFor(SHARING_PROMPT_DELAY_TIME);
-	}
+	    }
     }
 
     // we can return to the game now
@@ -3412,6 +3419,14 @@ async function performScreencastMouse( xPercent, yPercent, button, down ) {
     let height = parseInt(screenResolution[1]);
     let x = width * xPercent;
     let y = height * yPercent;
+
+    // move the screenshare if we have to
+    let windowInfo = proc.execSync(SHARING_PROMPT_GET_WINDOW_INFO_COMMAND).toString();
+    let [windowAll, windowLeft, windowTop, windowWidth, windowHeight] = windowInfo.match(/Absolute upper-left X:\s+(\d+).*Absolute upper-left Y:\s+(\d+).*Width:\s+(\d+).*Height:\s+(\d+)/s);
+    // the click is within the window, so move the window before we perform the click
+    if( x > windowLeft && x < (windowLeft + windowWidth) && y > windowTop && y < (windowTop + windowHeight) ) {
+        proc.execSync(SHARING_PROMPT_MOVE_WINDOW + "0 " + (windowTop > SHARING_PROMPT_TOP_AREA ? SHARING_PROMPT_MINIMUM : SHARING_PROMPT_MAXIMUM));
+    }
 
     if( down ) {
         robot.moveMouse(x, y);
