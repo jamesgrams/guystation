@@ -142,6 +142,7 @@ const SHARING_PROMPT_MOVE_WINDOW = "xdotool windowmove $(xdotool search --name '
 const SHARING_PROMPT_MINIMUM = 0;
 const SHARING_PROMPT_MAXIMUM = 10000;
 const SHARING_PROMPT_TOP_AREA = 200;
+const RENEGOTIATE_TIMEOUT = 10000;
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -1475,6 +1476,9 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         return Promise.resolve( launchGame(system, Object.keys(gameDictEntry.games)[startIndex], false, tempParents ) );
     }
 
+    let oldSystem = currentSystem;
+    let menuPageWasActive = menuPageIsActive();
+
     // Restart unless restart is false, we have a current emulator, and we are playing the game we selected
     let fullScreenTries = MAX_ACTIVATE_TRIES;
     let activateTries = MAX_ACTIVATE_TRIES;
@@ -1563,7 +1567,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         currentSystem = system;
         currentParentsString = parents.join(SEPARATOR);
 
-        if( !noGame && (systemsDict[system].fullScreenButtons || systemsDict[system].fullScreenFailsafe ) ) {
+        if( !noGame && (systemsDict[system].fullScreenButtons ) ) {
             activateTries = 1; // We know the program since we waited until we could full screen
             // I guess the only time this would come into play is if we failed to full screen
             // due to this program not opening. I think it is best we don't wait another X tries
@@ -1574,12 +1578,6 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
                     if( systemsDict[system].fullScreenButtons ) {
                         ks.sendCombination( systemsDict[system].fullScreenButtons );
                     }
-                    if( systemsDict[system].fullScreenFailsafe ) {
-                        let isFullscreen = proc.execSync(systemsDict[system].fullScreenCheck).toString();
-                        if( !isFullscreen ) {
-                            proc.execSync(systemsDict[system].fullScreenFailsafe);
-                        }
-                    }
                     break;
                 }
                 catch(err) { 
@@ -1588,6 +1586,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
                 }
             }
         }
+
     }
 
     if( systemsDict[system].activateCommand ) {
@@ -1619,6 +1618,31 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
             resumeRemoteMedia();
         }
     }
+
+    // failsafe fullscreen
+    // mupen didnt always fullscreen again after refocus, especially on screenshare refocus
+    if( systemsDict[system].fullScreenFailsafe ) {
+        for( let i=0; i<fullScreenTries; i++ ) {
+            try {
+                proc.execSync(systemsDict[system].fullScreenFailsafe);
+                // command succeeds, we know the windows all set
+                // this is the case if we were not playing a n64 game || the game was paused
+                // note that what will be active, when starting the screencast, is actually the "your screen is being shared" button
+                if( (oldSystem != SYSTEM_N64 || menuPageWasActive) && currentSystem == SYSTEM_N64 && startedClientIds.length ) {
+                    setTimeout( function() {
+                        renegotiate();
+                    }, RENEGOTIATE_TIMEOUT );
+                }
+                break;
+            }
+            catch(err) {
+                /* we get errors sometimes before the window is ready*/
+                console.log(err);
+                proc.execSync( SLEEP_COMMAND );
+            }
+        }
+    }
+
     return Promise.resolve(false);
 }
 
@@ -3292,13 +3316,41 @@ async function connectScreencast( id, noController ) {
 
     // do not connect again if we are already connected
     if( serverSocketId ) {
-        return false;
+        return Promise.resolve(false);
     }
+
+    await screencastPrepare(startedClientIds.length);
+
+    // focus on guy station
+    await menuPage.evaluate( () => connectToSignalServer(true) );
+
+    // connect the virtual gamepad if necessary
+    if( !gamepadFileDescriptor && !noController ) {
+        createVirtualGamepad();
+    }
+
+    return Promise.resolve(false);
+}
+
+/**
+ * Prepare for the screencast to start.
+ * It will make some changes, and here we prepare
+ * to make them in screencastFix.
+ * @param {boolean} alreadyStarted - True if the screencast has already started.
+ * @returns {Promise<(boolean)>} A promise containing false.
+ */
+async function screencastPrepare(alreadyStarted) {
+    if( typeof alreadyStarted === 'undefined' ) alreadyStarted = startedClientIds.length;
     // starting a screencast will activate the home tab
     // it is best to predict that and to it anyway
-    if( currentEmulator && currentSystem != MEDIA && !startedClientIds.length && !menuPageIsActive() ) { 
+    if( currentEmulator && currentSystem != MEDIA && !alreadyStarted && !menuPageIsActive() ) { 
         // Get the current resolution of the emulator	
-        let emulatorResolution = proc.execSync(GET_RESOLUTION_COMMAND).toString();
+        // I was getting an error where, despite the n64 emulator being active, it hadn't yet changed the screen resolution
+        // by the time we were getting the screen resolution to determine the "emulatorResolution"
+        // As such, now for n64 we will just determine the window resolution, as we know that's what the
+        // screen resolution will be set to, once it gets the chance.
+        let emulatorResolution = proc.execSync(systemsDict[currentSystem].getResolutionCommand ? systemsDict[currentSystem].getResolutionCommand : GET_RESOLUTION_COMMAND).toString();
+
         await goHome();
         if( !properResolution ) {	
             saveCurrentResolution();	
@@ -3309,13 +3361,6 @@ async function connectScreencast( id, noController ) {
             proc.execSync(SET_RESOLUTION_COMMAND + emulatorResolution);	
         }
         needToRefocusGame = true; 
-    }
-    // focus on guy station
-    await menuPage.evaluate( () => connectToSignalServer(true) );
-
-    // connect the virtual gamepad if necessary
-    if( !gamepadFileDescriptor && !noController ) {
-        createVirtualGamepad();
     }
 
     return Promise.resolve(false);
@@ -3336,34 +3381,43 @@ async function startScreencast( id ) {
     if( startedClientIds.includes( id ) ) {
         return Promise.resolve(ERROR_MESSAGES.screencastAlreadyStarted);
     }
-    let currentStartedClientIdsLength = startedClientIds.length;
+    let currentStartedClientIdsLength = startedClientIds.length; 
     startedClientIds.push(id);
     await menuPage.evaluate( (id) => startConnectionToPeer(true, id), id );
 
+    await screencastFix(currentStartedClientIdsLength);
+
+    return Promise.resolve(false);
+}
+
+/**
+ * Starting the screencast will change some things we don't
+ * want changed (e.g. adding the screen being shared toolbar). This function will fix them.
+ * @param {boolean} alreadyStarted - True if the screencast has already started.
+ * @returns {Promise<(boolean)>} A promise containing false.
+ */
+async function screencastFix(alreadyStarted) {
+    if( typeof alreadyStarted === 'undefined' ) alreadyStarted = startedClientIds.length;
     // n64 and 3ds cause screen flickers when the screen is being shraed button is hidden
-    if( !currentStartedClientIdsLength ) {
+    if( !alreadyStarted ) {
         for( let i=0; i<SHARING_PROMPT_MAX_TRIES; i++ ) {
             if( sharingPromptIsActive() ) {
                 // Transparent for all in case we switch games
-                //if( currentSystem && (currentSystem == SYSTEM_N64 || currentSystem == SYSTEM_3DS) ) {
-                    proc.execSync(SHARING_PROMPT_TRANSPARENT_COMMAND);
-                //}
-                //else {
-                //    proc.execSync(SHARING_PROMPT_MINIMIZE_COMMAND);
-                //}
+                proc.execSync(SHARING_PROMPT_TRANSPARENT_COMMAND);
                 break;
-	        }
+            }
             await menuPage.waitFor(SHARING_PROMPT_DELAY_TIME);
-	    }
+        }
     }
 
     // we can return to the game now
-    if( currentEmulator && currentSystem != MEDIA && !currentStartedClientIdsLength && needToRefocusGame ) {
+    if( currentEmulator && currentSystem != MEDIA && !alreadyStarted && needToRefocusGame ) {
         await launchGame( currentSystem, currentGame, false, currentParentsString.split(SEPARATOR).filter(el => el != ''), true ); 
         needToRefocusGame = false;
     }
-    else if( !currentStartedClientIdsLength ) await goHome(); // focus on chrome from any screen share info popups
-    return Promise.resolve(false);
+    else if( !alreadyStarted ) await goHome(); // focus on chrome from any screen share info popups
+
+    Promise.resolve(false);
 }
 
 /**
@@ -3478,6 +3532,15 @@ async function performScreencastGamepad( event ) {
         return ERROR_MESSAGES.gamepadNotConnected;
     }
     else return createGamepadEvent( event );
+}
+
+/**
+ * Renegotiate the streams.
+ */
+async function renegotiate() {
+    await screencastPrepare(false);
+    await menuPage.evaluate( () => renegotiate() );
+    await screencastFix(false);
 }
 
 // End signal server section

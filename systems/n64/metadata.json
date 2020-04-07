@@ -10,5 +10,6 @@
   "frontendActivateCommand": "wmctrl -a 'M64Py'",
   "argsFirst": true,
   "fullScreenFailsafe": "wmctrl -r 'Glide64' -b add,fullscreen",
-  "fullScreenCheck": "xprop -id $(wmctrl -l | grep 'Glide64' | cut -d ' ' -f 1) | grep _NET_WM_STATE_FULLSCREEN"
+  "fullScreenCheck": "xprop -id $(wmctrl -l | grep 'Glide64' | cut -d ' ' -f 1) | grep _NET_WM_STATE_FULLSCREEN",
+  "getResolutionCommand": "wmctrl -lG | grep Glide64 | tr -s ' ' | cut -f 5,6 -d ' ' | tr ' ' x"
 }

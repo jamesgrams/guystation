@@ -4816,6 +4816,23 @@ function startConnectionToPeer( isStreamer, id ) {
     }
 }
 
+/** 
+ * Renegotiate screenshare with the clients.
+ * This is only called on the server.
+ */
+function renegotiate() {
+    var oldLocalStream = localStream;
+    oldLocalStream.getTracks().forEach(track => track.stop())
+    navigator.mediaDevices.getDisplayMedia({"video": { "cursor": "never" }, "audio": true}).then(function(stream) {
+        localStream = stream;
+        for( let peerConnection of peerConnections ) {
+            peerConnection.peerConnection.removeStream(oldLocalStream);
+            peerConnection.peerConnection.addStream(localStream);
+            peerConnection.peerConnection.createOffer({offerToReceiveVideo: true, offerToReceiveAudio: true}).then(function(data) {createdDescription(peerConnection.id, data)}).catch(errorHandler);
+        }
+    }).catch(errorHandler);
+}
+
 /**
  * Handle a potential disconnect.
  * @param {string} [id] - The id of the peer that we lost connection to.
