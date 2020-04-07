@@ -168,7 +168,7 @@ Multiple monitors are not supported. Using multiple monitors will cause issues w
 * Citra maps buttons with respect to individual controller types, so you'll need separate control profiles for each control (and the vitual controller through screencast).
 * Dolphin does something similar where it keeps track of controllers by controller type.
 * PCSX2 does not recognize the virtual controller.
-* Citra and Mupen64 flicker when hiding the screenshare message. As such, the message is not hidden when these emulators are in use and screenshare is started.
+* Citra and Mupen64 flicker when hiding the screenshare message. As such, the message is not hidden when these emulators are in use and screenshare is started. It is made transparent, and click event are ignored on it.
 
 ## Credits and Special Thanks
 * Game Boy Advance and DS Lite icons: [David Pérez](https://thenounproject.com/david730/)

@@ -1563,7 +1563,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         currentSystem = system;
         currentParentsString = parents.join(SEPARATOR);
 
-        if( !noGame && systemsDict[system].fullScreenButtons ) {
+        if( !noGame && (systemsDict[system].fullScreenButtons || systemsDict[system].fullScreenFailsafe ) ) {
             activateTries = 1; // We know the program since we waited until we could full screen
             // I guess the only time this would come into play is if we failed to full screen
             // due to this program not opening. I think it is best we don't wait another X tries
@@ -1571,7 +1571,15 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
             for( let i=0; i<fullScreenTries; i++ ) {
                 try {
                     proc.execSync( systemsDict[system].activateCommand );
-                    ks.sendCombination( systemsDict[system].fullScreenButtons );
+                    if( systemsDict[system].fullScreenButtons ) {
+                        ks.sendCombination( systemsDict[system].fullScreenButtons );
+                    }
+                    if( systemsDict[system].fullScreenFailsafe ) {
+                        let isFullscreen = proc.execSync(systemsDict[system].fullScreenCheck).toString();
+                        if( !isFullscreen ) {
+                            proc.execSync(systemsDict[system].fullScreenFailsafe);
+                        }
+                    }
                     break;
                 }
                 catch(err) { 

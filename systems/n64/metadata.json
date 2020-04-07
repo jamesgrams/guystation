@@ -6,7 +6,9 @@
   "saveDirArgType": " ",
   "screenshotsDirArgType": " ",
   "extraFlags": ["--fullscreen"],
-  "activateCommand": "wmctrl -a 'Glide64' && wmctrl -r 'Glide64' -b add,fullscreen",
+  "activateCommand": "wmctrl -a 'Glide64'",
   "frontendActivateCommand": "wmctrl -a 'M64Py'",
-  "argsFirst": true
+  "argsFirst": true,
+  "fullScreenFailsafe": "wmctrl -r 'Glide64' -b add,fullscreen",
+  "fullScreenCheck": "xprop -id $(wmctrl -l | grep 'Glide64' | cut -d ' ' -f 1) | grep _NET_WM_STATE_FULLSCREEN"
 }
