@@ -73,6 +73,7 @@ Here are some recommendedations to make your experience better on Ubuntu.
     * The `/helper/autocontrol` directory contains example scripts for antimicro (with hidden GUI), google-drice-ocamlfuse, and the controller_connect script.
 10. There is a script called `backup_saves.sh` in the `helper` directory that you can edit to copy your savedata to another location on your computer. Personally, I run the script each night in cron and copy the data to my mounted Google Drive.
 11. Turn off notifications. You can do this in Ubuntu settings.
+12. Disable auto-checking and notifications of new Ubuntu versions in Update Manager. This will prevent update popups.
 
 ## Emulator Specific Setup
 For all emulators, you will have to setup your controller(s). You can do this by opening emulator GUIs by clicking a system image when it is the selected system. This will launch the emulator without any game allowing you to choose options.
