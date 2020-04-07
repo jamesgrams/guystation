@@ -3344,12 +3344,13 @@ async function startScreencast( id ) {
     if( !currentStartedClientIdsLength ) {
         for( let i=0; i<SHARING_PROMPT_MAX_TRIES; i++ ) {
             if( sharingPromptIsActive() ) {
-                if( currentSystem && (currentSystem == SYSTEM_N64 || currentSystem == SYSTEM_3DS) ) {
+                // Transparent for all in case we switch games
+                //if( currentSystem && (currentSystem == SYSTEM_N64 || currentSystem == SYSTEM_3DS) ) {
                     proc.execSync(SHARING_PROMPT_TRANSPARENT_COMMAND);
-                }
-                else {
-                    proc.execSync(SHARING_PROMPT_MINIMIZE_COMMAND);
-                }
+                //}
+                //else {
+                //    proc.execSync(SHARING_PROMPT_MINIMIZE_COMMAND);
+                //}
                 break;
 	        }
             await menuPage.waitFor(SHARING_PROMPT_DELAY_TIME);
@@ -3433,7 +3434,7 @@ async function performScreencastMouse( xPercent, yPercent, button, down ) {
     let [windowAll, windowLeft, windowTop, windowWidth, windowHeight] = windowInfo.match(/Absolute upper-left X:\s+(\d+).*Absolute upper-left Y:\s+(\d+).*Width:\s+(\d+).*Height:\s+(\d+)/s);
     // the click is within the window, so move the window before we perform the click
     if( x > windowLeft && x < (windowLeft + windowWidth) && y > windowTop && y < (windowTop + windowHeight) ) {
-        proc.execSync(SHARING_PROMPT_MOVE_WINDOW + "0 " + (windowTop > SHARING_PROMPT_TOP_AREA ? SHARING_PROMPT_MINIMUM : SHARING_PROMPT_MAXIMUM));
+        proc.execSync(SHARING_PROMPT_MOVE_WINDOW + windowLeft + " " + (windowTop > SHARING_PROMPT_TOP_AREA ? SHARING_PROMPT_MINIMUM : SHARING_PROMPT_MAXIMUM));
     }
 
     if( down ) {

@@ -26,7 +26,7 @@ var SCROLL_TIMEOUT_TIME = 500;
 var SCROLL_NEEDED = 1250;
 var RELOAD_MESSAGES_INTERVAL = 5000;
 var CHATTING_MESSAGES_INTERVAL = 1000;
-var TIME_BETWEEN_JOYSTICK_SENDS = 100;
+var AXIS_FUZZINESS = 15;
 var KEYCODES = {
     '0': 48,
     '1': 49,
@@ -187,7 +187,6 @@ var fetchedMessages = false;
 var swRegistration;
 var screencastButtonsPressed = {};
 var screencastAxisLastValues = {};
-var screencastAxisLastSent = 0;
 // keys are server values, values are client values
 var screencastControllerMap = {}; // allow the user to map button inputs on the client to buttons on the virtual controller (button 5 on the client xbox contrller goes to button 9 on the virtual controller)
 
@@ -2398,7 +2397,7 @@ function createKeyButton( selected, x, y ) {
         e.preventDefault();
     }
 
-    var lastTimeSent = 0;
+    var lastJoystickValues = [];
     var curTouchIdentifier;
     var moveJoystick = function(e) {
         var stick = keyButton.querySelector(".analog-stick");
@@ -2441,10 +2440,9 @@ function createKeyButton( selected, x, y ) {
         var xValueForServer = distanceXFromCenter/maxDistanceTraveled * 128 + 127;
         var yValueForServer = distanceYFromCenter/maxDistanceTraveled * 128 + 127;
 
-        var currentTimeSend = new Date().getTime();
         // always send the stop event (!e)
-        if( currentTimeSend - lastTimeSent > TIME_BETWEEN_JOYSTICK_SENDS || (!e) ) {
-            lastTimeSent = currentTimeSend;
+        if( !lastJoystickValues.length || (Math.abs(lastJoystickValues[0] - xValueForServer)) > AXIS_FUZZINESS || (Math.abs(lastJoystickValues[1] - yValueForServer)) > AXIS_FUZZINESS || (!e) ) {
+            lastJoystickValues = [xValueForServer, yValueForServer];
 
             // The right axis are 2 & 3
             var axisAdder = selected.includes("L") ? 0 : 3;
@@ -4497,32 +4495,41 @@ function manageGamepadInput() {
                         var valuesForClientButton = scMapKeys.filter( el => screencastControllerMap[el] == i );
                         if( !screencastControllerMap[i] ) valuesForClientButton.push(i); // if nothing is mapped for this button on the server, send this button. this means 2 == 2 as we intentionally left that blank.
                         for( var j=0; j<valuesForClientButton.length; j++ ) {
-                            socket.emit("/screencast/gamepad", { "event": { "type": 0x01, "code": Object.values(PADCODES)[valuesForClientButton[j]], "value": screencastButtonsPressed[i] } } );
+                            var buttonCode = Object.values(PADCODES)[valuesForClientButton[j]];
+                            socket.emit("/screencast/gamepad", { "event": { "type": 0x01, "code": buttonCode, "value": screencastButtonsPressed[i] } } );
+                            // send trigger axis changes if these are trigger buttons
+                            if( buttonCode == 0x138 || buttonCode == 0x139 ) {
+                                var newCode = buttonCode == 0x138 ? 0x10 : 0x11;
+                                socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": newCode, "value": screencastButtonsPressed[i] ? 255 : 0 } } );
+                            }
                         }
                     }
                 }
 
-                var currentTimeSend = new Date().getTime();
-                if( currentTimeSend - screencastAxisLastSent > TIME_BETWEEN_JOYSTICK_SENDS ) {
-                    screencastAxisLastSent = currentTimeSend;
 
-                    for( var i=0; i<gp.axes.length; i++ ) {
-                        var serverAxisValue = Math.round(gp.axes[i] * 128 + 127);
-                        // if within 1, its ok, unless it is 0
-                        if( !screencastAxisLastValues[i] || Math.abs(serverAxisValue - screencastAxisLastValues[i]) > 1 || (serverAxisValue == 127 && screencastAxisLastValues != 127) ) {
-                            screencastAxisLastValues[i] = serverAxisValue;
-                            // a wii u pro controller uses axes 0,1 for left stick and 3,4 for right stick
-                            // an xbox 360 controller does this too. but there are also axes 2 and 5 for the left and right triggers respectively.
-                            // however, since the js gamepad api returns arrays, for wii u, axis 2 and 3 in the gamepad api are 3 and 4.
-                            var axisAdder = 0;
-                            if( gp.axes.length == 4 && i > 1 ) {
-                                axisAdder = 1;
-                            }
-                            if( gp.axes.length == 6 ) {
-                                if( i == 2 ) axisAdder = 14;
-                                if( i == 5 ) axisAdder = 12;
-                            }
-                            socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": i + axisAdder, "value": serverAxisValue } });
+                for( var i=0; i<gp.axes.length; i++ ) {
+                    var serverAxisValue = Math.round(gp.axes[i] * 128 + 127);
+                    // if within 1, its ok, unless it is 0
+                    if( !screencastAxisLastValues[i] || Math.abs(serverAxisValue - screencastAxisLastValues[i]) > AXIS_FUZZINESS || (serverAxisValue == 127 && screencastAxisLastValues[i] != 127) ) {
+                        screencastAxisLastValues[i] = serverAxisValue;
+                        // a wii u pro controller uses axes 0,1 for left stick and 3,4 for right stick
+                        // an xbox 360 controller does this too. but there are also axes 2 and 5 for the left and right triggers respectively.
+                        // however, since the js gamepad api returns arrays, for wii u, axis 2 and 3 in the gamepad api are 3 and 4.
+                        var axisAdder = 0;
+                        if( gp.axes.length == 4 && i > 1 ) {
+                            axisAdder = 1;
+                        }
+                        if( gp.axes.length == 6 ) {
+                            if( i == 2 ) axisAdder = 14;
+                            if( i == 5 ) axisAdder = 12;
+                        }
+                        socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": i + axisAdder, "value": serverAxisValue } });
+                        // if we press a trigger axis, also send a trigger button
+                        if( gp.axes.length == 6 ) {
+                            var buttonCode;
+                            if( i == 2 ) buttonCode = 0x138;
+                            else if( i == 5 ) buttonCode = 0x139;
+                            socket.emit("/screencast/gamepad", { "event": { "type": 0x01, "code": buttonCode, "value": serverAxisValue > 127 ? 1 : 0 } } );
                         }
                     }
                 }
