@@ -2255,7 +2255,7 @@ function fullscreenVideo( element ) {
                 e.preventDefault();
             }
             blackBackground.ontouchstart = function(e) {
-                if(e.target == this) e.preventDefault();
+                if(e.target == this && !document.querySelector(".black-background #edit-button .fa-check") ) e.preventDefault();
             }
             var exitButton = createButton( "X", function() { 
                 if( nextSibling ) {
