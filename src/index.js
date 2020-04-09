@@ -1598,7 +1598,9 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         // now that we are fullscreen, save the proper emulator resolution
         // If this fails, it might will blank in which case we can get it again later
         properEmulatorResolution = null;
-        saveCurrentEmulatorResolution();
+        // saveCurrentEmulatorResolution();
+        // We actually don't want to do this here, and it will consistenly fail. We'll either get the right resolution
+        // when we screencastPrepare, or when we see the window is hidden in the failsafe (what we'd do anyway if this failed).
     }
 
     if( systemsDict[system].activateCommand ) {
@@ -1635,6 +1637,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
     // keep trying in the background to activate and 
     // mupen didnt always fullscreen again after refocus on screenshare only refocus
     // It also liked to minimize if started too ealy
+    clearInterval(continueInterval);
     if( systemsDict[system].fullScreenFailsafe && startedClientIds.length ) {
         let failsafeTries = 0;
         // this interval will be cleared if we go home or quit the game.
@@ -1644,7 +1647,17 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
             try {
                 let currentWindowStatus = proc.execSync(systemsDict[system].failsafeStateCheck).toString();;
                 
-                if( !properEmulatorResolution ) {
+                // For some reason Mupen is not resized when in starts some times,
+                // but from tests, it consistently reports the right resolution after a while
+                // This seems to be when we need to call this
+                // It's when this is true that we can get the proper resolution from the get resolution command
+                // and if it is true, we likely didn't have the proper resolution before
+                // This was discovered from testing - before this point (following startup), wrong resolution or no resolution, at this point, right resolution
+                // This will only happen if we click screenshare really quickly after starting. 
+                // We know we will hit this point at least once, because starting screenshare really quickly causes the emulator to be hidden.
+                // If we have waited a while after startup, we'll simply get the right resolution in screencastPrepare,
+                // we'll never hit this hidden state.
+                if(currentWindowStatus.includes(HIDDEN_STATE)) {
                     saveCurrentEmulatorResolution();
                 }
 
