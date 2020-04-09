@@ -62,6 +62,7 @@ Here are some recommendedations to make your experience better on Ubuntu.
     * To build on Ubuntu, in addition to following the instructions in the project's README, you will need the following libraries:
         * `sudo apt-get install libqt4-dev libqt4-dev-bin libqt4-opengl-dev libqtwebkit-dev qt4-linguist-tools qt4-qmake`
     * The configuration for my Wii U Pro Controller can be found in the `/helper` directory.
+    * Please note, that Anticicro uses different profiles for different controllers, and as such, you'll need to set one up for the GuyStation virtual controller if you so desire (this controller is available during screencasts).
 5. I sync my saves with Google Drive (Get on Ubuntu with google-drive-ocamlfuse - you'll have to mount as root), so I can play the same game on GuyStation and GBA4iOS (Currently, the Tela fork Beta supports Google Drive). To do this, with GuyStation closed, create a symbolic link from the save file (in the Google Drive mount) to a save file in the GuyStation tree (or the folder containing the save file). See the tree below for more details.
     * Note: the Tela fork will only download your save file if there is no save on your device. As such, you'll only want to turn on Sync when you want to download or upload your save, and you should delete the game from your iPhone before you download. Then, when you turn on sync, Tela will detect the game isn't there and re-download the game and the save.
     * After uploading from Tela, you will have to remount Google Drive or just restart the computer to get the symbolic links to work, since Google Drive will append a suffix to the name to indicate there was a change from another device. There is a helper script located in `/helper/remount_drive.sh` that you can use as a starting point to do this. You might want to map it to a keyboard shortcut and then map some controller keys to that shortcut.
@@ -170,6 +171,7 @@ Multiple monitors are not supported. Using multiple monitors will cause issues w
 * Dolphin does something similar where it keeps track of controllers by controller type.
 * PCSX2 does not recognize the virtual controller.
 * Citra and Mupen64 flicker when hiding the screenshare message. As such, the message is not hidden when these emulators are in use and screenshare is started. It is made transparent, and click event are ignored on it.
+* A program restart is required if you change the screen resolution.
 
 ## Credits and Special Thanks
 * Game Boy Advance and DS Lite icons: [David Pérez](https://thenounproject.com/david730/)

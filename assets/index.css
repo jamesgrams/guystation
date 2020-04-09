@@ -627,12 +627,14 @@ h1 {
     left: 0;
     z-index: 999;
     background-color: black;
+    user-select: none;
 }
 
 .black-background video {
     position: absolute;
     top: 0;
     left: 0;
+    user-select: none;
 }
 
 .black-background video.height-max {

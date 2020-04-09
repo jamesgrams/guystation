@@ -27,6 +27,7 @@ var SCROLL_NEEDED = 1250;
 var RELOAD_MESSAGES_INTERVAL = 5000;
 var CHATTING_MESSAGES_INTERVAL = 1000;
 var AXIS_FUZZINESS = 15;
+var MAX_JOYSTICK_VALUE = 128;
 var KEYCODES = {
     '0': 48,
     '1': 49,
@@ -2253,6 +2254,9 @@ function fullscreenVideo( element ) {
                 e.stopPropagation();
                 e.preventDefault();
             }
+            blackBackground.ontouchstart = function(e) {
+                if(e.target == this) e.preventDefault();
+            }
             var exitButton = createButton( "X", function() { 
                 if( nextSibling ) {
                     oldParent.insertBefore(element, nextSibling);
@@ -2437,8 +2441,8 @@ function createKeyButton( selected, x, y ) {
 
         var distanceXFromCenter = stickLeft - stickCenterX;
         var distanceYFromCenter = stickTop - stickCenterY;
-        var xValueForServer = distanceXFromCenter/maxDistanceTraveled * 128 + 127;
-        var yValueForServer = distanceYFromCenter/maxDistanceTraveled * 128 + 127;
+        var xValueForServer = distanceXFromCenter/maxDistanceTraveled * MAX_JOYSTICK_VALUE;
+        var yValueForServer = distanceYFromCenter/maxDistanceTraveled * MAX_JOYSTICK_VALUE;
 
         // always send the stop event (!e)
         if( !lastJoystickValues.length || (Math.abs(lastJoystickValues[0] - xValueForServer)) > AXIS_FUZZINESS || (Math.abs(lastJoystickValues[1] - yValueForServer)) > AXIS_FUZZINESS || (!e) ) {
@@ -2485,6 +2489,9 @@ function createKeyButton( selected, x, y ) {
                 handleKeyButton( keyButton, true );
                 window.addEventListener( "touchmove", changeKey );
             }
+            e.preventDefault(); // this is important because otherwise on ios the document gets fake-slide up (momentum scroll)
+            // even though the visuals remain in place, the event touch areas move. You can see this in inspector if you hover over
+            // a button or analog stick element, touch and drag up on the phone - you'll see the box move up like if momentum scroll was enabled.
         }
     }
     keyButton.ontouchend = function(e) {
@@ -2522,7 +2529,7 @@ function handleKeyButton(keyButton, down, callback) {
         // have both mapped to buttons
         if( PADCODES[displayValue] == 0x138 || PADCODES[displayValue] == 0x139 ) {
             var newCode = PADCODES[displayValue] == 0x138 ? 0x10 : 0x11;
-            socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": newCode, "value": down ? 255 : 0 } } );
+            socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": newCode, "value": down ? MAX_JOYSTICK_VALUE : -MAX_JOYSTICK_VALUE } } );
         }
     }
     // it's a keyboard key
@@ -2659,6 +2666,7 @@ function createInteractiveScreencast() {
     video.onclick = function(event) {
         event.preventDefault(); // prevent pausing the video onclick
     }
+    var lastTouchEvent;
     video.onmousedown = function(event) {
         if( !document.querySelector(".black-background #edit-button .fa-check") ) { // dont record clicks if editing the interface
             var mousePercentLocation = getMousePercentLocation(event);
@@ -2668,7 +2676,21 @@ function createInteractiveScreencast() {
                 socket.emit( "/screencast/mouse", { "down": true, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 2 ? "right" : "middle" } );
             }
         }
+        try {
+            event.preventDefault();
+        }
+        catch(err) {}
     };
+    var recordLastTouchEvent = function(event) {
+        lastTouchEvent = event;
+    }
+    video.ontouchstart = function(event) {
+        var fakeEvent = { which: 1, clientX: event.targetTouches[0].clientX, clientY: event.targetTouches[0].clientY };
+        video.onmousedown(fakeEvent);
+        recordLastTouchEvent(event);
+        video.addEventListener("touchmove", recordLastTouchEvent);
+        event.preventDefault();
+    }
     video.onmouseup = function(event) {
         if( !document.querySelector(".black-background #edit-button .fa-check") ) { // dont record clicks if editing the interface
             var mousePercentLocation = getMousePercentLocation(event);
@@ -2678,7 +2700,17 @@ function createInteractiveScreencast() {
                 socket.emit( "/screencast/mouse", { "down": false, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 2 ? "right" : "middle" } );
             }
         }
+        try {
+            event.preventDefault();
+        }
+        catch(err) {}
     };
+    video.ontouchend = function(event) {
+        var fakeEvent = { which: 1, clientX: lastTouchEvent.targetTouches[0].clientX, clientY: lastTouchEvent.targetTouches[0].clientY };
+        video.onmouseup(fakeEvent);
+        video.removeEventListener("touchmove", recordLastTouchEvent);
+        event.preventDefault();
+    }
     var wrapper = document.createElement("div");
     wrapper.classList.add("screencast-wrapper");
     wrapper.appendChild(video);
@@ -4500,7 +4532,7 @@ function manageGamepadInput() {
                             // send trigger axis changes if these are trigger buttons
                             if( buttonCode == 0x138 || buttonCode == 0x139 ) {
                                 var newCode = buttonCode == 0x138 ? 0x10 : 0x11;
-                                socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": newCode, "value": screencastButtonsPressed[i] ? 255 : 0 } } );
+                                socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": newCode, "value": screencastButtonsPressed[i] ? MAX_JOYSTICK_VALUE : -MAX_JOYSTICK_VALUE } } );
                             }
                         }
                     }
@@ -4508,9 +4540,9 @@ function manageGamepadInput() {
 
 
                 for( var i=0; i<gp.axes.length; i++ ) {
-                    var serverAxisValue = Math.round(gp.axes[i] * 128 + 127);
+                    var serverAxisValue = Math.round(gp.axes[i] * MAX_JOYSTICK_VALUE);
                     // if within 1, its ok, unless it is 0
-                    if( !screencastAxisLastValues[i] || Math.abs(serverAxisValue - screencastAxisLastValues[i]) > AXIS_FUZZINESS || (serverAxisValue == 127 && screencastAxisLastValues[i] != 127) ) {
+                    if( !screencastAxisLastValues[i] || Math.abs(serverAxisValue - screencastAxisLastValues[i]) > AXIS_FUZZINESS || (serverAxisValue == 0 && screencastAxisLastValues[i] != 0) ) {
                         screencastAxisLastValues[i] = serverAxisValue;
                         // a wii u pro controller uses axes 0,1 for left stick and 3,4 for right stick
                         // an xbox 360 controller does this too. but there are also axes 2 and 5 for the left and right triggers respectively.
@@ -4529,7 +4561,7 @@ function manageGamepadInput() {
                             var buttonCode;
                             if( i == 2 ) buttonCode = 0x138;
                             else if( i == 5 ) buttonCode = 0x139;
-                            socket.emit("/screencast/gamepad", { "event": { "type": 0x01, "code": buttonCode, "value": serverAxisValue > 127 ? 1 : 0 } } );
+                            socket.emit("/screencast/gamepad", { "event": { "type": 0x01, "code": buttonCode, "value": serverAxisValue > 0 ? 1 : 0 } } );
                         }
                     }
                 }
@@ -4818,6 +4850,7 @@ function startConnectionToPeer( isStreamer, id ) {
 
 /** 
  * Renegotiate screenshare with the clients.
+ * We actually don't need to do a true renegotiation since we can just change tracks.
  * This is only called on the server.
  */
 function renegotiate() {
@@ -4826,9 +4859,9 @@ function renegotiate() {
     navigator.mediaDevices.getDisplayMedia({"video": { "cursor": "never" }, "audio": true}).then(function(stream) {
         localStream = stream;
         for( let peerConnection of peerConnections ) {
-            peerConnection.peerConnection.removeStream(oldLocalStream);
-            peerConnection.peerConnection.addStream(localStream);
-            peerConnection.peerConnection.createOffer({offerToReceiveVideo: true, offerToReceiveAudio: true}).then(function(data) {createdDescription(peerConnection.id, data)}).catch(errorHandler);
+            var newTrack = localStream.getVideoTracks()[0];
+            var sender = peerConnection.peerConnection.getSenders()[0];
+            sender.replaceTrack(newTrack);
         }
     }).catch(errorHandler);
 }

@@ -5,7 +5,8 @@
     right: 42px;
     bottom: -5px;
     overflow: visible;
-    transform: scale(1.5);
+    /* translate 3d is a safari fix */
+    transform: scale(1.5)translate3d(0,0,0);;
     width: 82px;
     height: 72px;
     padding: 5px;

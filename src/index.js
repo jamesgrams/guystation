@@ -125,8 +125,6 @@ const COVER_FILENAME = "cover.jpg";
 const USER_DATA_DIR = "../chrome";
 const STATUS_FILE = USER_DATA_DIR + SEPARATOR + "Default" + SEPARATOR + "Preferences";
 const MAX_MESSAGES_LENGTH = 100;
-const TAB_BUTTON = 9;
-const ENTER_BUTTON = 13;
 const SHARING_PROMPT = "http://localhost is sharing your screen.";
 const SHARING_PROMPT_DELAY_TIME = 100;
 const SHARING_PROMPT_MAX_TRIES = 5;
@@ -135,14 +133,15 @@ const SYSTEM_N64 = 'n64';
 const UINPUT_PATH = "/dev/uinput";
 const UINPUT_MODE = "w+";
 const VIRTUAL_GAMEPAD_NAME = "GuyStation Gamepad";
-const SHARING_PROMPT_MINIMIZE_COMMAND = "xdotool windowminimize $(xdotool search --name '" + SHARING_PROMPT + "')";
 const SHARING_PROMPT_TRANSPARENT_COMMAND = "xprop -id $(wmctrl -l | grep '"+ SHARING_PROMPT +"' | cut -d ' ' -f 1) -format _NET_WM_WINDOW_OPACITY 32c -set _NET_WM_WINDOW_OPACITY 0x00000000";
 const SHARING_PROMPT_GET_WINDOW_INFO_COMMAND = "xwininfo -id $(xdotool search --name '" + SHARING_PROMPT + "')";
 const SHARING_PROMPT_MOVE_WINDOW = "xdotool windowmove $(xdotool search --name '"+ SHARING_PROMPT +"') ";
 const SHARING_PROMPT_MINIMUM = 0;
 const SHARING_PROMPT_MAXIMUM = 10000;
 const SHARING_PROMPT_TOP_AREA = 200;
-const RENEGOTIATE_TIMEOUT = 10000;
+const FAILSAFE_TRIES_INTERVAL = 1000;
+const FULLSCREEN_STATE = "_NET_WM_STATE_FULLSCREEN";
+const HIDDEN_STATE = "_NET_WM_STATE_HIDDEN";
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -227,6 +226,8 @@ let properResolution = null;
 let clearMediaPlayingInterval = null;
 let needToRefocusGame = false;
 let gamepadFileDescriptor = null;
+let properEmulatorResolution = null;
+let continueInterval = null;
 
 let messages = [];
 
@@ -1476,14 +1477,21 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         return Promise.resolve( launchGame(system, Object.keys(gameDictEntry.games)[startIndex], false, tempParents ) );
     }
 
+    // We need to keep track of these variables to determine if we need to renegotiate a screencast
     let oldSystem = currentSystem;
     let menuPageWasActive = menuPageIsActive();
+    let startedGame = false;
+    let currentResolution = proc.execSync(GET_RESOLUTION_COMMAND).toString();
 
     // Restart unless restart is false, we have a current emulator, and we are playing the game we selected
     let fullScreenTries = MAX_ACTIVATE_TRIES;
     let activateTries = MAX_ACTIVATE_TRIES;
     if( !isBeingPlayed(system, game, parents) || restart || !currentEmulator ) {
         await quitGame();
+        
+        // for screencast
+        currentResolution = properResolution;
+        startedGame = true;
 
         let command = systemsDict[system].command;
         if( noGame && systemsDict[system].frontendCommand ) command = systemsDict[system].frontendCommand;
@@ -1506,7 +1514,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         }
 
         // Get the screen dimensions
-        if( !dontSaveResolution ) saveCurrentResolution();
+        if( !dontSaveResolution && !properResolution ) saveCurrentResolution();
 
         // If the symlink to the save directory is the same for all games, update the symlink from
         // the all games folder to this specific game.
@@ -1587,6 +1595,10 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
             }
         }
 
+        // now that we are fullscreen, save the proper emulator resolution
+        // If this fails, it might will blank in which case we can get it again later
+        properEmulatorResolution = null;
+        saveCurrentEmulatorResolution();
     }
 
     if( systemsDict[system].activateCommand ) {
@@ -1619,28 +1631,50 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         }
     }
 
-    // failsafe fullscreen
-    // mupen didnt always fullscreen again after refocus, especially on screenshare refocus
-    if( systemsDict[system].fullScreenFailsafe ) {
-        for( let i=0; i<fullScreenTries; i++ ) {
+    // failsafe fullscreen and activate
+    // keep trying in the background to activate and 
+    // mupen didnt always fullscreen again after refocus on screenshare only refocus
+    // It also liked to minimize if started too ealy
+    if( systemsDict[system].fullScreenFailsafe && startedClientIds.length ) {
+        let failsafeTries = 0;
+        // this interval will be cleared if we go home or quit the game.
+        // until that point, just keep forcing it open
+        continueInterval = setInterval( function() {
+            if( failsafeTries >= fullScreenTries ) clearInterval(continueInterval);
             try {
-                proc.execSync(systemsDict[system].fullScreenFailsafe);
-                // command succeeds, we know the windows all set
-                // this is the case if we were not playing a n64 game || the game was paused
-                // note that what will be active, when starting the screencast, is actually the "your screen is being shared" button
-                if( (oldSystem != SYSTEM_N64 || menuPageWasActive) && currentSystem == SYSTEM_N64 && startedClientIds.length ) {
-                    setTimeout( function() {
-                        renegotiate();
-                    }, RENEGOTIATE_TIMEOUT );
+                let currentWindowStatus = proc.execSync(systemsDict[system].failsafeStateCheck).toString();;
+                
+                if( !properEmulatorResolution ) {
+                    saveCurrentEmulatorResolution();
                 }
-                break;
+
+                let shouldRenegotiate = false;
+                if( currentResolution != properEmulatorResolution ) {
+                    if( (oldSystem != SYSTEM_N64 || menuPageWasActive || startedGame) && currentSystem == SYSTEM_N64 && startedClientIds.length ) {
+                        shouldRenegotiate = true;
+                    }
+                    else {
+                        // this is done in renegotiation
+                        proc.execSync(SET_RESOLUTION_COMMAND + properEmulatorResolution);
+                    }
+                }
+                if(!currentWindowStatus.includes(FULLSCREEN_STATE) ) {
+                    proc.execSync(systemsDict[system].fullScreenFailsafe);
+                }
+                if(currentWindowStatus.includes(HIDDEN_STATE)) {
+                    proc.execSync(systemsDict[system].activateCommand);
+                }
+
+                // we only need to renegotiate on resolution changes and when we are not already on the n64/started a new game
+                if( shouldRenegotiate ) {
+                    renegotiate();
+                }
+
+                currentResolution = proc.execSync(GET_RESOLUTION_COMMAND).toString();
             }
-            catch(err) {
-                /* we get errors sometimes before the window is ready*/
-                console.log(err);
-                proc.execSync( SLEEP_COMMAND );
-            }
-        }
+            catch(err) {}
+            failsafeTries++;
+        }, FAILSAFE_TRIES_INTERVAL );
     }
 
     return Promise.resolve(false);
@@ -1651,10 +1685,19 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
  * @returns {Promise<(boolean|string)>} A promise containing an error message if there was an error or false if there was not.
  */
 async function quitGame() {
+
+    clearInterval(continueInterval); // put this here just to be safe
+
     if(currentEmulator) {
         if(currentSystem != BROWSER && currentSystem != MEDIA) {
             currentEmulator.removeListener('exit', blankCurrentGame);
-            proc.execSync( KILL_COMMAND + currentEmulator.pid );
+            try {
+                proc.execSync( KILL_COMMAND + currentEmulator.pid );
+            }
+            catch(err) {
+                console.log(err);
+                /* This is probably because the process quit without us knowing */
+            }
             ensureProperResolution();
         }
         else if( currentSystem == MEDIA ) {
@@ -2691,6 +2734,13 @@ function saveCurrentResolution() {
 }
 
 /**
+ * Save the current emulator resolution
+ */
+function saveCurrentEmulatorResolution() {
+    properEmulatorResolution = proc.execSync(systemsDict[currentSystem].getResolutionCommand ? systemsDict[currentSystem].getResolutionCommand : GET_RESOLUTION_COMMAND).toString();
+}
+
+/**
  * Ensure that the screen is set to its proper resolution.
  * This is mainly in place to deal with emulators that change the screen
  * resolution (Mupen64Plus). From what I have seen SDL_Quit should restore
@@ -2702,7 +2752,10 @@ function ensureProperResolution() {
     if( properResolution ) {
         let currentResolution = proc.execSync(GET_RESOLUTION_COMMAND).toString();
         if( currentResolution != properResolution ) {
-            proc.execSync(SET_RESOLUTION_COMMAND + properResolution);
+            try {
+                proc.execSync(SET_RESOLUTION_COMMAND + properResolution);
+            }
+            catch(err) {/*ok for now*/}
         }
     }
 }
@@ -2888,6 +2941,8 @@ async function goHome() {
     if( !menuPage || menuPage.isClosed() ) {
         return Promise.resolve(ERROR_MESSAGES.menuPageClosed);
     }
+
+    clearInterval(continueInterval);
 
     var needsPause = true;
     if( menuPageIsActive() ) {
@@ -3131,8 +3186,8 @@ function createVirtualGamepad() {
     uidev.id.product = 0x3;
     uidev.id.version = 2;
     for( let axis of [uinput.ABS_X, uinput.ABS_Y, uinput.ABS_RX, uinput.ABS_RY, uinput.ABS_HAT0X, uinput.ABS_HAT0Y] ) {
-        uidev.absmax[axis] = 255;
-        uidev.absmin[axis] = 0;
+        uidev.absmax[axis] = 128;
+        uidev.absmin[axis] = -128;
         uidev.absfuzz[axis] = 0;
         uidev.absflat[axis] = 15;
     }
@@ -3349,16 +3404,23 @@ async function screencastPrepare(alreadyStarted) {
         // by the time we were getting the screen resolution to determine the "emulatorResolution"
         // As such, now for n64 we will just determine the window resolution, as we know that's what the
         // screen resolution will be set to, once it gets the chance.
-        let emulatorResolution = proc.execSync(systemsDict[currentSystem].getResolutionCommand ? systemsDict[currentSystem].getResolutionCommand : GET_RESOLUTION_COMMAND).toString();
+        // Additionally, sometimes when done here it was reported wrong.
+        // We really only ever need it on launch, however, so thats where we do it. Once we've launched and
+        // we're sure it's been fullscreened.
 
         await goHome();
         if( !properResolution ) {	
             saveCurrentResolution();	
         }
+        if( !properEmulatorResolution ) {
+            saveCurrentEmulatorResolution();
+        }
         // Update the home resolution before we start the stream, so when we start the start it gets the right resolution for the emulator	
-        let homeResolution = proc.execSync(GET_RESOLUTION_COMMAND).toString();	
-        if( homeResolution != emulatorResolution ) {	
-            proc.execSync(SET_RESOLUTION_COMMAND + emulatorResolution);	
+        if( properResolution != properEmulatorResolution ) {
+            try {
+                proc.execSync(SET_RESOLUTION_COMMAND + properEmulatorResolution);	
+            }
+            catch(err) {}
         }
         needToRefocusGame = true; 
     }
