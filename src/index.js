@@ -142,6 +142,12 @@ const SHARING_PROMPT_TOP_AREA = 200;
 const FAILSAFE_TRIES_INTERVAL = 1000;
 const FULLSCREEN_STATE = "_NET_WM_STATE_FULLSCREEN";
 const HIDDEN_STATE = "_NET_WM_STATE_HIDDEN";
+const FAKE_MICROPHONE_COMMAND = "modprobe snd_aloop";
+const LIST_SOURCE_OUTPUTS_COMMAND = "pacmd list-source-outputs";
+const MOVE_SOURCE_OUTPUT_COMMAND = "pacmd move-source-output ";
+const GET_DEFAULT_AUDIO_DEVICE_COMMAND = "pacmd list-sinks | grep '* index'";
+const GOOGLE_CHROME_AUDIO_IDENTIFIER = "google-chrome";
+const PACMD_PREFIX = 'export PULSE_RUNTIME_PATH="/run/user/$(id --user $(logname))/pulse/" && sudo -u $(logname) -E '; // need to run as the user
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -721,6 +727,9 @@ app.get("/system/reboot", async function(request, response) {
     }
 });
 
+// Create the fake microphone
+createFakeMicrophone();
+
 // START PROGRAM (Launch Browser and Listen)
 server.listen(SOCKETS_PORT); // This is the screencast server
 staticApp.listen(STATIC_PORT); // Launch the static assets first, so the browser can access them
@@ -845,6 +854,8 @@ async function launchBrowser() {
         options.executablePath = LINUX_CHROME_PATH;
     }
     browser = await puppeteer.launch(options);
+    let context = await browser.defaultBrowserContext();
+    context.overridePermissions("http://" + LOCALHOST, ['microphone']);
     let pages = await browser.pages();
     menuPage = await pages[0];
     await menuPage.goto(LOCALHOST + ":" + STATIC_PORT + "?" + IS_SERVER_PARAM);
@@ -3297,6 +3308,10 @@ io.on('connection', function(socket) {
     socket.on("streamer-media-ready", function() {
         console.log("screencast media ready");
         streamerMediaReady = true;
+
+        // we need to wait until Chrome is recording before we can do this.
+        bindOutputToChromeInput();
+
         if( clientJoined ) {
             for( let clientSocketId of clientSocketIds.filter( el => !startedClientIds.includes(el) ) ) {
                 startScreencast(clientSocketId);
@@ -3616,6 +3631,43 @@ async function renegotiate() {
     await screencastPrepare(false);
     await menuPage.evaluate( () => renegotiate() );
     await screencastFix(false);
+}
+
+/**
+* Create a fake microphone, so Chrome will allow us to record audio.
+* Calling this again should not create a new Microphone.
+*/
+function createFakeMicrophone() {
+    proc.execSync(FAKE_MICROPHONE_COMMAND);
+}
+
+/**
+* Bind the audio output to the Chrome input.
+*/
+async function bindOutputToChromeInput() {
+    try {
+        // get the source outputs
+        let sourceOutputs = proc.execSync(PACMD_PREFIX + LIST_SOURCE_OUTPUTS_COMMAND).toString();
+        if( sourceOutputs ) {
+            // find Chrome's output source
+            let chromeOutputIndex = sourceOutputs.indexOf(GOOGLE_CHROME_AUDIO_IDENTIFIER);
+            if( chromeOutputIndex != -1 ) {
+                sourceOutputs = sourceOutputs.substring(0, chromeOutputIndex);
+                let sourceOutputIndexes = Array.from(sourceOutputs.matchAll(/index: (\d+)/));
+                let sourceOutputIndex = sourceOutputIndexes[sourceOutputIndexes.length-1][1];
+
+                // Now get the source
+                let sourceString = proc.execSync(PACMD_PREFIX + GET_DEFAULT_AUDIO_DEVICE_COMMAND).toString();
+                let sourceIndex = sourceString.match(/\d+/)[0];
+
+                proc.execSync(PACMD_PREFIX + MOVE_SOURCE_OUTPUT_COMMAND + sourceOutputIndex + " " + sourceIndex);
+            }
+
+        }
+    }
+    catch(err) {
+        console.log(err);
+    }
 }
 
 // End signal server section

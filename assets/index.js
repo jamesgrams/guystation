@@ -4803,7 +4803,7 @@ function connectToSignalServer( isStreamer ) {
     socket.on( 'ice', handleRemoteIce );
 
     if( isStreamer ) {
-        navigator.mediaDevices.getDisplayMedia({"video": { "cursor": "never" }, "audio": true}).then(getDisplayMediaSuccess).catch(errorHandler);
+        navigator.mediaDevices.getDisplayMedia({"video": { "cursor": "never" }, "audio": false}).then(getDisplayMediaSuccess).catch(errorHandler);
     }
 
 }
@@ -4814,8 +4814,13 @@ function connectToSignalServer( isStreamer ) {
  * @param {Object} stream - The screencast.
  */
 function getDisplayMediaSuccess(stream) {
-    localStream = stream;
-    socket.emit("streamer-media-ready");
+    navigator.mediaDevices.getUserMedia({"audio": true}).then( function(audio) {
+        var av = new MediaStream();
+        av.addTrack(stream.getTracks()[0]);
+        av.addTrack(audio.getTracks()[0]);
+        localStream = av;
+        socket.emit("streamer-media-ready");
+    });
 }
 
 /**
@@ -4860,7 +4865,7 @@ function renegotiate() {
         localStream = stream;
         for( let peerConnection of peerConnections ) {
             var newTrack = localStream.getVideoTracks()[0];
-            var sender = peerConnection.peerConnection.getSenders()[0];
+            var sender = peerConnection.peerConnection.getSenders().filter( el => el.track.kind == newTrack.kind )[0];
             sender.replaceTrack(newTrack);
         }
     }).catch(errorHandler);
