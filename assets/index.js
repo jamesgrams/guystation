@@ -2675,21 +2675,23 @@ function createInteractiveScreencast() {
             if( xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
                 socket.emit( "/screencast/mouse", { "down": true, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 2 ? "right" : "middle" } );
             }
+            try {
+                event.preventDefault();
+            }
+            catch(err) {}
         }
-        try {
-            event.preventDefault();
-        }
-        catch(err) {}
     };
     var recordLastTouchEvent = function(event) {
         lastTouchEvent = event;
     }
     video.ontouchstart = function(event) {
-        var fakeEvent = { which: 1, clientX: event.targetTouches[0].clientX, clientY: event.targetTouches[0].clientY };
-        video.onmousedown(fakeEvent);
-        recordLastTouchEvent(event);
-        video.addEventListener("touchmove", recordLastTouchEvent);
-        event.preventDefault();
+        if( !document.querySelector(".black-background #edit-button .fa-check") ) { // dont record clicks if editing the interface
+            var fakeEvent = { which: 1, clientX: event.targetTouches[0].clientX, clientY: event.targetTouches[0].clientY };
+            video.onmousedown(fakeEvent);
+            recordLastTouchEvent(event);
+            video.addEventListener("touchmove", recordLastTouchEvent);
+            event.preventDefault();
+        }
     }
     video.onmouseup = function(event) {
         if( !document.querySelector(".black-background #edit-button .fa-check") ) { // dont record clicks if editing the interface
@@ -2699,17 +2701,19 @@ function createInteractiveScreencast() {
             if( xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
                 socket.emit( "/screencast/mouse", { "down": false, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 2 ? "right" : "middle" } );
             }
+            try {
+                event.preventDefault();
+            }
+            catch(err) {}
         }
-        try {
-            event.preventDefault();
-        }
-        catch(err) {}
     };
     video.ontouchend = function(event) {
-        var fakeEvent = { which: 1, clientX: lastTouchEvent.targetTouches[0].clientX, clientY: lastTouchEvent.targetTouches[0].clientY };
-        video.onmouseup(fakeEvent);
-        video.removeEventListener("touchmove", recordLastTouchEvent);
-        event.preventDefault();
+        if( !document.querySelector(".black-background #edit-button .fa-check") ) { // dont record clicks if editing the interface
+            var fakeEvent = { which: 1, clientX: lastTouchEvent.targetTouches[0].clientX, clientY: lastTouchEvent.targetTouches[0].clientY };
+            video.onmouseup(fakeEvent);
+            video.removeEventListener("touchmove", recordLastTouchEvent);
+            event.preventDefault();
+        }
     }
     var wrapper = document.createElement("div");
     wrapper.classList.add("screencast-wrapper");
