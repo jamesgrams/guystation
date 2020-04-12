@@ -1254,8 +1254,9 @@ function toggleButtons() {
     }
 
     // Only allow save configuration menus and update/delete game menus if there is at least one game
-    var anyGame = document.querySelector(".game");
-    var anyGameNotFolder = document.querySelector(".game:not([data-is-folder])");
+    var anyGame = document.querySelector(".game:not([data-game='Browser'])");
+    var anySave = document.querySelector(".game .current-save")
+    //var anyGameNotFolder = document.querySelector(".game:not([data-is-folder])");
     var updateGameButton = document.getElementById("update-game");
     var deleteGameButton = document.getElementById("delete-game");
     var addSaveButton = document.getElementById("add-save");
@@ -1263,7 +1264,7 @@ function toggleButtons() {
     var updateSaveButton = document.getElementById("update-save");
     var deleteSaveButton = document.getElementById("delete-save");
     var joypadConfigButton = document.getElementById("joypad-config");
-    var messagingButton = document.getElementById("messaging");
+    //var messagingButton = document.getElementById("messaging");
     if( !anyGame ) {
         updateGameButton.onclick = null; 
         updateGameButton.classList.add("inactive");
@@ -1276,7 +1277,7 @@ function toggleButtons() {
         deleteGameButton.onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#delete-game-form") ) displayDeleteGame(); };
         deleteGameButton.classList.remove("inactive");
     }
-    if(!anyGameNotFolder) {
+    if(!anySave) {
         addSaveButton.onclick = null;
         addSaveButton.classList.add("inactive");
         changeSaveButton.onclick = null;
@@ -3059,6 +3060,8 @@ function displayUpdateGame() {
     form.appendChild( gameInput );
     var romFileInput = createRomFileInput();
     form.appendChild( romFileInput );
+    var romDownloadInput = createRomDownloadInput();
+    form.appendChild( romDownloadInput );
     form.appendChild( createPlaylistMenu( translateSymlinks(getGamesInFolder(selected.parents, selected.system)[selected.game], selected.system) ) );
     // Do this here 
     ensureRomInputAndPlaylistSelectIsDisplayedOrHidden( form, true );
@@ -3070,13 +3073,14 @@ function displayUpdateGame() {
             var systemSelect = document.querySelector(".modal #update-game-form #system-select");
             var gameInput = document.querySelector(".modal #update-game-form #game-input");
             var romFileInput = document.querySelector(".modal #update-game-form #rom-file-input");
+            var romDownloadInput = document.querySelector(".modal #update-game-form #rom-download-input");
             var parents = extractParentsFromFolderMenu();
             var oldParents = extractParentsFromFolderMenu(true);
             var isFolder = getGamesInFolder(oldParents, oldSystemSelect.options[oldSystemSelect.selectedIndex].value)[oldGameSelect.options[oldGameSelect.selectedIndex].value].isFolder;
             var isPlaylist = getGamesInFolder(oldParents, oldSystemSelect.options[oldSystemSelect.selectedIndex].value)[oldGameSelect.options[oldGameSelect.selectedIndex].value].isPlaylist;
             var playlistItems = extractItemsfromPlaylistContainer();
 
-            updateGame( oldSystemSelect.options[oldSystemSelect.selectedIndex].value, oldGameSelect.options[oldGameSelect.selectedIndex].value, oldParents, systemSelect.options[systemSelect.selectedIndex].value, gameInput.value, romFileInput.files[0], parents, isFolder, isPlaylist, playlistItems );
+            updateGame( oldSystemSelect.options[oldSystemSelect.selectedIndex].value, oldGameSelect.options[oldGameSelect.selectedIndex].value, oldParents, systemSelect.options[systemSelect.selectedIndex].value, gameInput.value, romFileInput.files[0] ? romFileInput.files[0] : romDownloadInput.value, parents, isFolder, isPlaylist, playlistItems );
         }
     } ) );
     launchModal( form );
@@ -3129,8 +3133,10 @@ function displayAddGame() {
     var gameInput = createGameInput(null, true);
     form.appendChild( gameInput );
     form.appendChild( createTypeMenu(null, getTypeOptions( selectedSystem ), true) );
-    var romFileInput = createRomFileInput(true);
+    var romFileInput = createRomFileInput(false);
     form.appendChild( romFileInput );
+    var romDownloadInput = createRomDownloadInput(false);
+    form.appendChild( romDownloadInput );
 
     var playlistMenu = createPlaylistMenu();
     playlistMenu.classList.add("hidden");
@@ -3141,11 +3147,12 @@ function displayAddGame() {
             var systemSelect = document.querySelector(".modal #add-game-form #system-select");
             var gameInput = document.querySelector(".modal #add-game-form #game-input");
             var romFileInput = document.querySelector(".modal #add-game-form #rom-file-input");
+            var romDownloadInput = document.querySelector(".modal #add-game-form #rom-download-input");
             var typeSelect = document.querySelector(".modal #add-game-form #type-select"); 
             var parents = extractParentsFromFolderMenu();
             var playlistItems = extractItemsfromPlaylistContainer();
 
-            addGame( systemSelect.options[systemSelect.selectedIndex].value, gameInput.value, romFileInput.files[0], parents, typeSelect.options[typeSelect.selectedIndex].value == "Folder", typeSelect.options[typeSelect.selectedIndex].value == "Playlist", playlistItems );
+            addGame( systemSelect.options[systemSelect.selectedIndex].value, gameInput.value, romFileInput.files[0] ? romFileInput.files[0] : romDownloadInput.value, parents, typeSelect.options[typeSelect.selectedIndex].value == "Folder", typeSelect.options[typeSelect.selectedIndex].value == "Playlist", playlistItems );
         }
     }, [ gameInput.firstElementChild.nextElementSibling ] ) );
     launchModal( form );
@@ -3310,6 +3317,15 @@ function parentsStringToArray(parents) {
 }
 
 /**
+ * Create a ROM download input element.
+ * @param {boolean} [required] - If the field is required.
+ * @returns {HTMLElement} An input element wrapped by a label.
+ */
+function createRomDownloadInput( required ) {
+    return createInput( "", "rom-download-input", "or Rom URL: ", null, required );
+}
+
+/**
  * Create an input element for a game.
  * @param {string} [defaultValue] - The default value of the element.
  * @param {boolean} [required] - If the field is required.
@@ -3404,6 +3420,7 @@ function ensureRomInputAndPlaylistSelectIsDisplayedOrHidden( modal, old ) {
         var oldSystemSelect = modal.querySelector("#old-system-select");
         var oldGameSelect = modal.querySelector("#old-game-select");
         var romFileInput = modal.querySelector("#rom-file-input");
+        var romDownloadInput = modal.querySelector("#rom-download-input");
         var playlistSelect = modal.querySelector("#playlist-container");
         var oldParents = extractParentsFromFolderMenu(true, modal);
         var oldSystem = oldSystemSelect.options[oldSystemSelect.selectedIndex].value;
@@ -3412,15 +3429,18 @@ function ensureRomInputAndPlaylistSelectIsDisplayedOrHidden( modal, old ) {
         var isPlaylist = getGamesInFolder(oldParents, oldSystem)[oldGame].isPlaylist;
         if( isFolder ) {
             romFileInput.parentNode.classList.add("hidden");
+            romDownloadInput.parentNode.classList.add("hidden");
             playlistSelect.parentNode.classList.add("hidden");
         }
         else if( isPlaylist ) {
             romFileInput.parentNode.classList.add("hidden");
+            romDownloadInput.parentNode.classList.add("hidden");
             playlistSelect.parentNode.classList.remove("hidden");
         }
         else {
             playlistSelect.parentNode.classList.add("hidden");
             romFileInput.parentNode.classList.remove("hidden");
+            romDownloadInput.parentNode.classList.remove("hidden");
         }
         if( !playlistSelect.parentNode.classList.contains("hidden") ) {
             playlistSelect.parentNode.replaceWith( createPlaylistMenu( translateSymlinks(getGamesInFolder(oldParents, oldSystem)[oldGame], oldSystem) ) );
@@ -4158,7 +4178,7 @@ function goHome() {
  * Add a game.
  * @param {string} system - The system the game is on.
  * @param {string} game - The name of the game.
- * @param {object} [file] - A file object.
+ * @param {object|string} [file] - A file object or file url.
  * @param {Array<string>} parents - The parents of a game.
  * @param {boolean} [isFolder] - True if the "game" is a folder.
  * @param {boolean} [isPlaylist] - True if the "game" is a playlist.

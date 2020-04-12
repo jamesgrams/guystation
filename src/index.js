@@ -25,6 +25,11 @@ const keycode = require("keycode");
 const ioctl = require("ioctl");
 const uinput = require("./lib/uinput");
 const uinputStructs = require("./lib/uinput_structs");
+const unzipper = require('unzipper');
+const youtubedl = require('youtube-dl');
+const urlLib = require('url');
+const isBinaryFileSync = require("isbinaryfile").isBinaryFileSync;
+const validUrl = require("valid-url");
 
 const PORT = 8080;
 const SOCKETS_PORT = 3000;
@@ -148,12 +153,18 @@ const MOVE_SOURCE_OUTPUT_COMMAND = "pacmd move-source-output ";
 const GET_DEFAULT_AUDIO_DEVICE_COMMAND = "pacmd list-sinks | grep '* index'";
 const GOOGLE_CHROME_AUDIO_IDENTIFIER = "google-chrome";
 const PACMD_PREFIX = 'export PULSE_RUNTIME_PATH="/run/user/$(id --user $(logname))/pulse/" && sudo -u $(logname) -E '; // need to run as the user
+const DOWNLOAD_ROM_PREFIX = "/tmp/download_rom_";
+const STATUS_DOWNLOADING = "downloading";
+const STATUS_ROM_FAILED = "failed";
+const STRING_TYPE = "string";
+const CHROMIUM_ARG = "--chromium";
+const TMP_FOLDER_EXTENSION = "_folder";
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
     "noGame": "Game does not exist",
     "gameBeingPlayed": "Please quit the current game first",
-    "noRomFile": "No rom found for game",
+    "noRomFile": "No ROM found for game",
     "noRunningGame": "No game currently running",
     "usingReservedSaveName": "You can't use the name 'current' for a save",
     "saveAlreadyExists": "A save with that name already exists",
@@ -205,7 +216,11 @@ const ERROR_MESSAGES = {
     "genericError": "An uncaught error ocurred",
     "invalidMessage": "Invalid message",
     "couldNotCreateGamepad": "Could not create a gamepad",
-    "gamepadNotConnected": "Gamepad not connected"
+    "gamepadNotConnected": "Gamepad not connected",
+    "downloadRomError": "An error ocurred downloading the ROM",
+    "invalidUrl": "Invalid URL",
+    "romNotYetDownloaded": "ROM still downloading",
+    "romFailedDownload": "This ROM failed to download. Please try again."
 }
 const KEYCODE_TO_ROBOT_JS = {
     "esc": "escape",
@@ -446,7 +461,7 @@ app.post("/game", upload.single("file"), async function(request, response) {
     if( ! requestLocked ) {
         requestLocked = true;
         try {
-            let errorMessage = addGame( request.body.system, request.body.game, request.file, JSON.parse(request.body.parents), request.body.isFolder, request.body.isPlaylist, JSON.parse(request.body.playlistItems) );
+            let errorMessage = addGame( request.body.system, request.body.game, request.file ? request.file : request.body.file, JSON.parse(request.body.parents), request.body.isFolder, request.body.isPlaylist, JSON.parse(request.body.playlistItems) );
             getData(); // Reload data
             requestLocked = false;
             writeActionResponse( response, errorMessage );
@@ -468,7 +483,7 @@ app.put("/game", upload.single("file"), async function(request, response) {
     if( ! requestLocked ) {
         requestLocked = true;
         try {
-            let errorMessage = updateGame( request.body.oldSystem, request.body.oldGame, JSON.parse(request.body.oldParents), request.body.system, request.body.game, request.file, JSON.parse(request.body.parents), request.body.isFolder, request.body.isPlaylist, JSON.parse(request.body.playlistItems) );
+            let errorMessage = updateGame( request.body.oldSystem, request.body.oldGame, JSON.parse(request.body.oldParents), request.body.system, request.body.game, request.file ? request.file : request.body.file, JSON.parse(request.body.parents), request.body.isFolder, request.body.isPlaylist, JSON.parse(request.body.playlistItems) );
             getData(); // Reload data
             requestLocked = false;
             writeActionResponse( response, errorMessage );
@@ -728,7 +743,9 @@ app.get("/system/reboot", async function(request, response) {
 });
 
 // Create the fake microphone
-createFakeMicrophone();
+if(process.argv.indexOf(CHROMIUM_ARG) == -1) {
+    createFakeMicrophone();
+}
 
 // START PROGRAM (Launch Browser and Listen)
 server.listen(SOCKETS_PORT); // This is the screencast server
@@ -850,7 +867,7 @@ async function launchBrowser() {
         ],
         userDataDir: USER_DATA_DIR
     };
-    if(process.argv.indexOf("--chromium") == -1) {
+    if(process.argv.indexOf(CHROMIUM_ARG) == -1) {
         options.executablePath = LINUX_CHROME_PATH;
     }
     browser = await puppeteer.launch(options);
@@ -1206,6 +1223,7 @@ function generateGames(system, games, parents=[]) {
                     if( metadataFileContents.releaseDate ) gameData.releaseDate = metadataFileContents.releaseDate;
                     if( metadataFileContents.name ) gameData.name = metadataFileContents.name;
                     if( metadataFileContents.summary ) gameData.summary = metadataFileContents.summary;
+                    if( metadataFileContents.status ) gameData.status = metadataFileContents.status;
                 }
                 catch(err) { /*ok*/ }
             }
@@ -1462,6 +1480,12 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
             return Promise.resolve(isInvalid);
         }
         gameDictEntry = getGameDictEntry(system, game, parents);
+        if( gameDictEntry.status == STATUS_DOWNLOADING ) {
+            return Promise.resolve(ERROR_MESSAGES.romNotYetDownloaded);
+        }
+        else if( gameDictEntry.status == STATUS_ROM_FAILED ) {
+            return Promise.resolve(ERROR_MESSAGES.romFailedDownload);
+        }
         if( !fs.existsSync(generateRomLocation( system, game, gameDictEntry.rom, parents )) && system != BROWSER && !gameDictEntry.isPlaylist ) {
             return Promise.resolve(ERROR_MESSAGES.noRomFile);
         }
@@ -1649,7 +1673,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
     // mupen didnt always fullscreen again after refocus on screenshare only refocus
     // It also liked to minimize if started too ealy
     clearInterval(continueInterval);
-    if( systemsDict[system].fullScreenFailsafe && startedClientIds.length ) {
+    if( systemsDict[system].fullScreenFailsafe && startedClientIds.length && !noGame ) {
         let failsafeTries = 0;
         // this interval will be cleared if we go home or quit the game.
         // until that point, just keep forcing it open
@@ -2008,7 +2032,7 @@ function deleteSave(system, game, save, parents=[]) {
  * Add a game.
  * @param {string} system - The system to add the game on.
  * @param {string} game - The game name to add.
- * @param {object} [file] - The file object (from upload).
+ * @param {(object|string)} [file] - The file object (from upload) or a url path.
  * @param {Array<string>} [parents] - An array of parent folders for a game.
  * @param {boolean} [isFolder] - True if we are actually making a folder.
  * @param {boolean} [isPlaylist] - True if the game is a playlist (will function similarly to a folder).
@@ -2032,7 +2056,7 @@ function addGame( system, game, file, parents=[], isFolder, isPlaylist, playlist
         if( !game ) return ERROR_MESSAGES.gameNameRequired;
         var invalidName = isInvalidName( game );
         if( invalidName ) return invalidName;
-        if( (!file || !file.path || !file.originalname) && !isFolder && !isPlaylist && !isSymlink ) return ERROR_MESSAGES.romFileRequired;
+        if( (!file || (typeof file != STRING_TYPE && (!file.path || !file.originalname))) && !isFolder && !isPlaylist && !isSymlink ) return ERROR_MESSAGES.romFileRequired;
         if( isPlaylist && system != MEDIA ) return ERROR_MESSAGES.playlistsOnlyForMedia;
         if( (!playlistItems || !playlistItems.length) && isPlaylist ) return ERROR_MESSAGES.playlistItemsRequired;
         if( isPlaylist ) {
@@ -2042,6 +2066,17 @@ function addGame( system, game, file, parents=[], isFolder, isPlaylist, playlist
         if( isSymlink && !getGameDictEntry(symlink.system, symlink.game, symlink.parents)) return ERROR_MESSAGES.invalidSymlink;
     }
 
+    // This is the function to run once we are done and have the rom.
+    let runWhenDone = function() {
+        // Update the data (this will take care of making all the necessary directories for the game as well as updating the data)
+        if( !force ) getData();
+
+        if( !isFolder && !isPlaylist && !isSymlink ) {
+            // Do this AFTER running get data, so we know we are all set with the save directories
+            updateNandSymlinks(system, game, null, parents);
+        }
+    };
+
     // Make the directory for the game
     if( !isSymlink ) {
         let gameDir = generateGameDir( system, game, parents );
@@ -2050,7 +2085,13 @@ function addGame( system, game, file, parents=[], isFolder, isPlaylist, playlist
         // regular game
         if( !isFolder && !isPlaylist ) {
             // Move the rom into the directory
-            let errorMessage = saveUploadedRom( file, system, game, parents );  
+            let errorMessage;
+            // We don't need a promise for this one
+            // and the async failure has a different behavior than the sync one
+            // Async, we'll just note the ROM download failed to the user as opposed to deleting the game
+            // immediately.
+            if( typeof file == STRING_TYPE ) errorMessage = downloadRom( file, system, game, parents, runWhenDone );
+            else errorMessage = saveUploadedRom( file, system, game, parents );
             if( errorMessage ) {
                 // Delete the game directory
                 rimraf.sync( gameDir );
@@ -2067,13 +2108,7 @@ function addGame( system, game, file, parents=[], isFolder, isPlaylist, playlist
         fs.symlinkSync( generateGameDir( symlink.system, symlink.game, symlink.parents ), generateGameDir( system, game, parents ), 'dir' );
     }
 
-    // Update the data (this will take care of making all the necessary directories for the game as well as updating the data)
-    if( !force ) getData();
-
-    if( !isFolder && !isPlaylist && !isSymlink ) {
-        // Do this AFTER running get data, so we know we are all set with the save directories
-        updateNandSymlinks(system, game, null, parents);
-    }
+    if( typeof file != STRING_TYPE ) runWhenDone();
 
     return false;
 }
@@ -2326,6 +2361,137 @@ function saveUploadedRom( file, system, game, parents ) {
 }
 
 /**
+ * Download a rom.
+ * @param {string} url - The url of the ROM. 
+ * @param {string} system - The system to download the game for.
+ * @param {string} game - The game the ROM is for.
+ * @param {Array<string>} parents - An array of parent folders for a game.
+ * @param {Function} callback - A callback function to run when the ROM finishes downloading.
+ * @param {Promise} waitPromise - A promise to wait to resolve before calling callback.
+ * @returns {(boolean|string)} An error message if there was an error, false if there was not.
+ */
+function downloadRom( url, system, game, parents, callback, waitPromise ) {
+    if( !validUrl.isUri(url) ) {
+        return ERROR_MESSAGES.invalidUrl;
+    }
+    try {
+        getGameDictEntry(system, game, parents).status = STATUS_DOWNLOADING;
+        fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"status": STATUS_DOWNLOADING}));
+
+        downloadRomBackground( url, system, game, parents, callback, waitPromise );
+        return false;
+    }
+    catch(err) {
+        return ERROR_MESSAGES.downloadRomError;
+    }        
+
+}
+
+/**
+ * Continue to download a ROM in the background.
+ * Checks first if the url is a YouTube or video link, and if so uses that.
+ * If not, it will try to download the file. 
+ * If the file is a zip file, we will unzip it and look for the largest binary file
+ * and guess that is the ROM.
+ * @param {string} url - The url of the ROM. 
+ * @param {string} system - The system to download the game for.
+ * @param {string} game - The game the ROM is for.
+ * @param {Array<string>} parents - An array of parent folders for a game.
+ * @param {Function} callback - A callback function to run when the ROM finishes downloading.
+ * @param {Promise} waitPromise - A promise to wait to resolve before calling callback.
+ * @returns {boolean} Returns false upon completion.
+ */
+async function downloadRomBackground( url, system, game, parents, callback, waitPromise) {
+    // First, look for a good place to temporarily store the downloaded tile
+    let index = 0;
+    while( fs.existsSync(DOWNLOAD_ROM_PREFIX + index) ) {
+        index++;
+    }
+    let tmpFilePath = DOWNLOAD_ROM_PREFIX + index;
+    let tmpFileStream = fs.createWriteStream(tmpFilePath);
+    let filename = "";
+
+    // Then, try to get the file from YouTube DL
+    // Upon testing, this downloads the file even if it is not a YouTube video
+    let rom = youtubedl(url);
+        
+    rom.on("info", (info) => {
+        filename = info._filename;
+    } );
+
+    rom.on("error", () => {
+        tmpFileStream.close();
+        fs.unlinkSync(tmpFilePath); // Delete the file
+        getGameDictEntry(system, game, parents).status = STATUS_ROM_FAILED;
+        fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"status": STATUS_ROM_FAILED}));
+    });
+
+    rom.pipe(tmpFileStream);
+
+    // we've downloaded a YouTube video, so save it to the right location
+    rom.on("end", async function() {
+        tmpFileStream.end();
+
+        try {
+            let tmpFolderPath = tmpFilePath + TMP_FOLDER_EXTENSION;
+            let extractor = unzipper.Extract({ path: tmpFolderPath });
+            fs.createReadStream(tmpFilePath).pipe(extractor);
+
+            let extractPromise = new Promise( function(resolve, reject) {
+                extractor.on("error", function() {
+                    // The file is not a zip file
+                    resolve();
+                } );
+                extractor.on("close", function() {
+                    let largestBinaryPath = null;
+                    let largestBinarySize = 0;
+                    let tmpFiles = fs.readdirSync(tmpFolderPath);
+                    // Get the largest binary file
+                    for( let tmpFile of tmpFiles ) {
+                        let curPath = tmpFolderPath + SEPARATOR + tmpFile;
+                        let stats = fs.statSync(curPath); 
+                        if( isBinaryFileSync(curPath) && (!largestBinaryPath || stats["size"] > largestBinarySize) ) {
+                            largestBinaryEntry = curPath;
+                            largestBinarySize = stats["size"];
+                            filename = tmpFile;
+                        }
+                    }
+
+                    // Move the actual rom over the zip file
+                    if( largestBinaryPath ) {
+                        fs.renameSync( largestBinaryPath, tmpFilePath );
+                    }
+                    rimraf.sync(tmpFolderPath); // Delete the temp folder
+
+                    resolve();
+                });
+            } );
+            await extractPromise;
+        }
+        // not a zip file - we'll get an invalid signature error
+        catch(err) {
+            // ok
+        }
+
+        if( fs.existsSync(tmpFilePath) ) {
+            if( !filename ) {
+                filename = path.basename(urlLib.parse(url).pathname);
+            }
+            fs.renameSync( tmpFilePath, generateRomLocation(system, game, filename, parents) );
+            fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"rom": filename}));
+            // getData(); - should be in all the callbacks
+
+            if( callback ) {
+                if( waitPromise ) await waitPromise;
+                callback();
+            }
+        }
+
+    });
+    return false;
+}
+
+/**
  * Check if a track has any items to it being played.
  * @param {string} system - The system for the track.
  * @param {string} game - The track name.
@@ -2350,7 +2516,7 @@ function hasSymlinksBeingPlayed( system, game, parents ) {
  * @param {Array<string>} [oldParents] - The old array of parent folders for a game.
  * @param {string} [system] - The new system for the game - null if the same.
  * @param {string} [game] - The new name for the game - null if the same.
- * @param {Object} [file] - The new file object - null if the same.
+ * @param {(object|string)} [file] - The file object (from upload) or a url path.
  * @param {Array<string>} [parents] - An array of parent folders for a game.
  * @param {boolean} [isFolder] - True if this game is really a folder of other games.
  * @param {boolean} [isPlaylist] - True if the game is a playlist (will function similarly to a folder).
@@ -2411,6 +2577,10 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
             return ERROR_MESSAGES.convertGameToPlaylist;
         }
     }
+    // Don't allow updates while still trying to download
+    if( getGameDictEntry( oldSystem, oldGame, oldParents ).status == STATUS_DOWNLOADING ) {
+        return ERROR_MESSAGES.romNotYetDownloaded;
+    }
     // Can't change the save of a playing game
     if( isBeingPlayed( oldSystem, oldGame, oldParents ) ) {
         return ERROR_MESSAGES.gameBeingPlayed;
@@ -2455,6 +2625,27 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
         addSymlinksToPlaylist( oldSystem, oldGame, oldParents, playlistItems );
     }
 
+    // we need an extra promise here
+    let resolveDirsDone;
+    let dirsDonePromise = new Promise(function(resolve, reject) {
+        resolveDirsDone = resolve;
+    });
+
+    // This function will run once we are sure we have the ROM downloaded
+    let runWhenDone = function() {
+        // Update the data (this will take care of making all the necessary directories for the game as well as updating the data)
+        getData();
+
+        // Do this AFTER running get data, so we can pass the checked in addGame
+        // Do this AFTER running get data, so we know we are all set with the save directories
+        if( !isFolder && !isPlaylist ) {
+            updateNandSymlinks(system ? system : oldSystem, game ? game : oldGame, oldRomNandPath, parents ? parents : oldParents);
+        }
+        else if( isFolder ) { // Media doesn't have nand links
+            ensureNandSymlinks(system ? system : oldSystem, game ? game : oldGame, parents ? parents : oldParents, getGameDictEntry(system ? system : oldSystem, game ? game : oldGame, parents ? parents : oldParents) );
+        }
+    }
+
     // Update the rom file if necessary 
     if( file && !isFolder && !isPlaylist ) {
         // Get the current game file and its name. We will move it for now,
@@ -2467,9 +2658,15 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
         }
         
         // Try to upload the new file
-        errorMessage = saveUploadedRom( file, oldSystem, oldGame, oldParents );
+        // Note: an async error will continue unlike a sync error
+        // A sync error to get the file - we'll just revert
+        // An async error, we'll just have to alert the user that we failed.
+        if( typeof file == STRING_TYPE ) errorMessage = downloadRom( file, oldSystem, oldGame, oldParents, runWhenDone, dirsDonePromise );
+        else errorMessage = saveUploadedRom( file, oldSystem, oldGame, oldParents );
 
         // We failed
+        // Note, that there can be errors in the async download that won't get caught here.
+        // In that case, the async download simply does not overwrite any file.
         if( errorMessage ) {
             // Deleting the new rom is not necessary, since error message implies the save failed
             if( oldRomPath ) {
@@ -2519,18 +2716,9 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
     else if( isFolder ) { // Playlists don't have items that can be symlinked to
         ensurePlaylistSymlinks(parents ? parents : oldParents, game ? game : oldGame, oldParents, oldGame, getGameDictEntry(oldSystem, oldGame, oldParents) );
     }
-    
-    // Update the data (this will take care of making all the necessary directories for the game as well as updating the data)
-    getData();
 
-    // Do this AFTER running get data, so we can pass the checked in addGame
-    // Do this AFTER running get data, so we know we are all set with the save directories
-    if( !isFolder && !isPlaylist ) {
-        updateNandSymlinks(system ? system : oldSystem, game ? game : oldGame, oldRomNandPath, parents ? parents : oldParents);
-    }
-    else if( isFolder ) { // Media doesn't have nand links
-        ensureNandSymlinks(system ? system : oldSystem, game ? game : oldGame, parents ? parents : oldParents, getGameDictEntry(system ? system : oldSystem, game ? game : oldGame, parents ? parents : oldParents) );
-    }
+    resolveDirsDone();
+    if( typeof file != STRING_TYPE ) runWhenDone();
 
     return false;
 }
@@ -2703,6 +2891,10 @@ function deleteGame( system, game, parents=[], force, isPlaylist=false ) {
             if( gameDictEntry.isPlaylist ) {
                 isPlaylist = true;
             }
+        }
+        // Don't allow updates while still trying to download
+        if( getGameDictEntry( oldSystem, oldGame, oldParents ).status == STATUS_DOWNLOADING ) {
+            return ERROR_MESSAGES.romNotYetDownloaded;
         }
         // Can't change the save of a playing game
         if( isBeingPlayed( system, game, parents ) ) {
