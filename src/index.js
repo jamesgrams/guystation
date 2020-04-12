@@ -2375,7 +2375,8 @@ function downloadRom( url, system, game, parents, callback, waitPromise ) {
         return ERROR_MESSAGES.invalidUrl;
     }
     try {
-        getGameDictEntry(system, game, parents).status = STATUS_DOWNLOADING;
+        let gameDictEntry = getGameDictEntry(system, game, parents);
+        if( gameDictEntry ) gameDictEntry.status = STATUS_DOWNLOADING;
         fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"status": STATUS_DOWNLOADING}));
 
         downloadRomBackground( url, system, game, parents, callback, waitPromise );
@@ -2422,7 +2423,8 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
     rom.on("error", () => {
         tmpFileStream.close();
         fs.unlinkSync(tmpFilePath); // Delete the file
-        getGameDictEntry(system, game, parents).status = STATUS_ROM_FAILED;
+        let gameDictEntry = getGameDictEntry(system, game, parents);
+        if( gameDictEntry ) gameDictEntry.status = STATUS_ROM_FAILED;
         fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"status": STATUS_ROM_FAILED}));
     });
 
