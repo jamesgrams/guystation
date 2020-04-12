@@ -2895,7 +2895,7 @@ function deleteGame( system, game, parents=[], force, isPlaylist=false ) {
             }
         }
         // Don't allow updates while still trying to download
-        if( getGameDictEntry( oldSystem, oldGame, oldParents ).status == STATUS_DOWNLOADING ) {
+        if( getGameDictEntry( system, game, parents ).status == STATUS_DOWNLOADING ) {
             return ERROR_MESSAGES.romNotYetDownloaded;
         }
         // Can't change the save of a playing game
