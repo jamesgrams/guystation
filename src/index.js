@@ -159,6 +159,8 @@ const STATUS_ROM_FAILED = "failed";
 const STRING_TYPE = "string";
 const CHROMIUM_ARG = "--chromium";
 const TMP_FOLDER_EXTENSION = "_folder";
+const REQUEST_LOCKED_CHECK_TIME = 100;
+const UPDATE_PERCENT_MINIMUM = 1;
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -1210,6 +1212,7 @@ function generateGames(system, games, parents=[], startup) {
             gameData.rom = metadataFileContents.rom;
             gameData.isPlaylist = metadataFileContents.isPlaylist;
             if( metadataFileContents.status ) gameData.status = metadataFileContents.status;
+            if( metadataFileContents.percent ) gameData.percent = metadataFileContents.percent;
             if( gameData.isPlaylist ) {
                 var tempCurParents = curParents.slice(0);
                 tempCurParents.push(game);
@@ -1233,6 +1236,7 @@ function generateGames(system, games, parents=[], startup) {
             // this will only ever be for a real game - only things we want to save will be at this point
             if( startup && gameData.status == STATUS_DOWNLOADING ) {
                 gameData.status = STATUS_ROM_FAILED;
+                delete gameData["percent"];
                 fs.writeFileSync( generateGameMetaDataLocation(system, game, curParents), JSON.stringify(gameData) );
             }
         }
@@ -2390,7 +2394,7 @@ function downloadRom( url, system, game, parents, callback, waitPromise, oldSyst
     try {
         // Since this is synchronous, gameDictEntry will be updated when we call getData at the end of add/update.
         // At this point, we haven't called getData yet, so we need to use the old names
-        fs.writeFileSync(generateGameMetaDataLocation(oldSystem ? oldSystem : system, oldGame ? oldGame : game, oldParents ? oldParents : parents), JSON.stringify({"status": STATUS_DOWNLOADING}));
+        fs.writeFileSync(generateGameMetaDataLocation(oldSystem ? oldSystem : system, oldGame ? oldGame : game, oldParents ? oldParents : parents), JSON.stringify({"status": STATUS_DOWNLOADING, "percent": 0}));
 
         downloadRomBackground( url, system, game, parents, callback, waitPromise );
         return false;
@@ -2419,6 +2423,10 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
 
     // This will allow updateGame to finish moving around all the directories
     // We will be free to call getData and to use the new system, game and parents.
+    // Before calling getData though, we should make sure we're request locked
+    // so that the user isn't doing something else
+    // It's better not to have to wait for requestLocked until the end, so we can
+    // be done with the download when the request lock is available
     if( waitPromise ) await waitPromise;
 
     // First, look for a good place to temporarily store the downloaded tile
@@ -2433,19 +2441,51 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
     // Then, try to get the file from YouTube DL
     // Upon testing, this downloads the file even if it is not a YouTube video
     let rom = youtubedl(url);
-        
+    
+    let size = 0;
     rom.on("info", (info) => {
         filename = info._filename;
+        size = info.size;
     } );
 
-    let errorFunction = function() {
+    let pos = 0;
+    let prevPercent = 0;
+    rom.on('data', function data(chunk) {
+        // we aren't going to call getData here, because we don't want to wait for it
+        // we will however, update the data entry if there is one and file
+        // There should be a data entry fairly soon as addGame and updateGame call them
+        // once everything else is done.
+        pos += chunk.length
+        // 'size' should not be 0 here.
+        if (size) {
+            let percent = Math.round(pos / size * 100);
+            if( percent - UPDATE_PERCENT_MINIMUM > prevPercent ) {
+                prevPercent = percent;
+                let metadataContents = JSON.parse(fs.readFileSync(generateGameMetaDataLocation(system, game, parents)));
+                // still downloading
+                if( metadataContents.status == STATUS_DOWNLOADING ) {
+                    fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"status": STATUS_DOWNLOADING, "percent": percent}));
+                    let gameDictEntry = getGameDictEntry(system, game, parents);
+                    if( gameDictEntry ) {
+                        gameDictEntry.status = STATUS_DOWNLOADING;
+                        gameDictEntry.percent = percent;
+                    }
+                }
+            }
+        }
+    });
+
+    let errorFunction = async function() {
         tmpFileStream.close();
         fs.unlinkSync(tmpFilePath); // Delete the file
         fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"status": STATUS_ROM_FAILED}));
         // Note that although for addGame we usually would check for the force option before calling getData
         // we know that force is only ever true when adding a symlink, and a symlink will never have a download
         // so we can call getData here.
+        await requestLockedPromise();
+        requestLocked = true;
         getData();
+        requestLocked = false;
     }
 
     rom.on("error", errorFunction);
@@ -2507,7 +2547,10 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
                 // getData(); - should be in all the callbacks
 
                 if( callback ) {
+                    await requestLockedPromise();
+                    requestLocked = true;
                     callback();
+                    requestLocked = false;
                 }
             }
         }
@@ -2518,6 +2561,22 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
 
     });
     return false;
+}
+
+/**
+ * Create a promise that resolves once the request is unlocked.
+ * We need this, so we don't call getData in the downloadRomBackground function.
+ * While we might be adding another game.
+ */
+function requestLockedPromise() {
+    return new Promise(function( resolve, reject ) {
+        let checkInterval = setInterval( function() {
+            if( !requestLocked ) {
+                clearInterval(checkInterval);
+                resolve();
+            }
+        }, REQUEST_LOCKED_CHECK_TIME );
+    });
 }
 
 /**

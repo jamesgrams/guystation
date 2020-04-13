@@ -1053,6 +1053,22 @@ function populateGames(system, games, startSystem, gamesElement, hidden, parents
         gameTitleDiv.innerText = game.game;
         gameElement.appendChild(gameTitleDiv);
 
+        if(game.percent) {
+            var gamePercentage = document.createElement("canvas");
+            gamePercentage.setAttribute("width", 20);
+            gamePercentage.setAttribute("height", 20);
+            var context = gamePercentage.getContext("2d");
+            context.fillStyle = "#FFFFFF";
+            gameTitleDiv.appendChild(gamePercentage);
+            context.beginPath();
+            var radius = 10;
+            var x = radius;
+            var y = radius;
+            context.moveTo(x, y);
+            context.arc(x, y, radius, 0, 2 * Math.PI * game.percent /100);
+            context.fill();
+        }
+
         if( game.playing ) {
             gameElement.classList.add("playing");
         }
@@ -1074,6 +1090,9 @@ function populateGames(system, games, startSystem, gamesElement, hidden, parents
         }
         if( game.status ) {
             gameElement.setAttribute("data-status", game.status);
+        }
+        if( game.percent ) {
+            gameElement.setAttribute("data-percent", game.percent);
         }
         gamesElement.appendChild(gameElement);
 
@@ -1831,7 +1850,7 @@ function displayRemoteMedia(system, game, parents, serverLaunched) {
         form.setAttribute("data-is-server-launched", "true");
     }
 
-    var parentGameDictEntryGamesKeys = Object.keys(removePlaylists(filterGameTypes(getGamesInFolder(selected.parents, selected.system, true), false)));
+    var parentGameDictEntryGamesKeys = Object.keys(removeNotDownloaded(removePlaylists(filterGameTypes(getGamesInFolder(selected.parents, selected.system, true), false))));
     var elementIndex = parentGameDictEntryGamesKeys.indexOf( selected.game );
     form.appendChild(createPositionIndicator( elementIndex+1, parentGameDictEntryGamesKeys.length ));
     
@@ -1865,7 +1884,7 @@ function playNextMedia(offset) {
         var system = video.getAttribute("data-system");
         var game = decodeURIComponent(video.getAttribute("data-game"));
         var parents = parentsStringToArray(video.getAttribute("data-parents"));
-        var parentGameDictEntryGamesKeys = Object.keys(removePlaylists(filterGameTypes(getGamesInFolder(parents, system, true), false)));
+        var parentGameDictEntryGamesKeys = Object.keys(removeNotDownloaded(removePlaylists(filterGameTypes(getGamesInFolder(parents, system, true), false))));
         var elementIndex = parentGameDictEntryGamesKeys.indexOf( game );
         var newIndex = getIndex( elementIndex, parentGameDictEntryGamesKeys, offset );
         var newGame = parentGameDictEntryGamesKeys[newIndex];
@@ -3539,6 +3558,21 @@ function removePlaylists( games ) {
     var newObj = {};
     for( var game of Object.keys(games) ) {
         if( (!games[game].isPlaylist) ) {
+            newObj[game] = games[game];
+        }
+    }
+    return newObj;
+}
+
+/**
+ * Remove not downloaded (Filter out).
+ * @param {Object} games - A games object (e.g. systems[system].games).
+ * @returns {Object} The filtered games object.
+ */
+function removeNotDownloaded( games ) {
+    var newObj = {};
+    for( var game of Object.keys(games) ) {
+        if( (!games[game].status) ) {
             newObj[game] = games[game];
         }
     }

@@ -42,6 +42,7 @@ Note: You can press F11 to get GuyStation out of full screen mode at any time.
     * You can access media remotely by opening the menu and clicking the CD icon under "More".
     * You can also create playlists by selecting the playlist type when adding a game to media and selecting tracks that you want to include.
     * Note: if you accidently move a game under media, your save files are safe! Just move the game to the correct console, and your save files will be there.
+    * You can also specify a YouTube url as the ROM url to download a YouTube video.
 * Screenshots - you can view the screenshots for a game (or folder) by opening the menu and clicking the CD icon under "More".
 * Streaming - you can stream the screen to any web capable device.
     * Simply open Guystation in a web browser by going to the Guystation IP address on another device and click the monitor icon in the menu on the device you want to stream to.
@@ -172,6 +173,7 @@ Multiple monitors are not supported. Using multiple monitors will cause issues w
 * PCSX2 does not recognize the virtual controller.
 * Citra and Mupen64 flicker when hiding the screenshare message. As such, the message is not hidden when these emulators are in use and screenshare is started. It is made transparent, and click event are ignored on it.
 * A program restart is required if you change the screen resolution.
+* To get sound for Nintendo 64 through screenshare, you must already be sharing the screen when the game starts.
 
 ## Credits and Special Thanks
 * Game Boy Advance and DS Lite icons: [David Pérez](https://thenounproject.com/david730/)

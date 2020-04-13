@@ -120,6 +120,14 @@ h1 {
     display: none !important;
 }
 
+.game[data-status] {
+    opacity: 0.5;
+}
+
+.game-title canvas {
+    margin-left: 10px;
+}
+
 .game[data-is-playlist] .game-title::after {
     font-family: "Font Awesome 5 Free";
     content: "\f001";
@@ -757,6 +765,20 @@ h1 {
 @keyframes marquee-header {
     0% { transform: translate(0, -100%); }
     100% { transform: translate(calc(-100% - 10px), -100%); } /* End the animation after the element has traveled to the left its entire width and then 10 more px to put it past the padding */
+}
+
+@media only screen and (max-width: 835px) and (max-height: 500px) and (min-width: 500px) {
+    #functions {
+        width: 460px !important;
+    }
+    #search {
+        left: 10px;
+        transform: none;
+    }
+    h1 {
+        top: 10px !important;
+        transform: none;
+    }
 }
 
 @media only screen and (max-width: 1088px) {
