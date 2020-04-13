@@ -1125,7 +1125,7 @@ function saveMenuPosition() {
 function toggleButtons() {
 
     var selectedSystem = document.querySelector(".system.selected");
-    var selectedGame = selectedSystem.querySelector(".game.selected");
+    var selectedGame = selectedSystem.querySelector(".game.selected:not([data-status])");
     var launchGameButton = document.getElementById("launch-game");
     // Only allow a game to be launched if one is selected
     if( !selectedGame ) {

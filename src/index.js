@@ -1213,7 +1213,7 @@ function generateGames(system, games, parents=[], startup) {
             if( gameData.isPlaylist ) {
                 var tempCurParents = curParents.slice(0);
                 tempCurParents.push(game);
-                gameData.games = generateGames(system, gameDirContents.filter((name) => name != METADATA_FILENAME), tempCurParents);
+                gameData.games = generateGames(system, gameDirContents.filter((name) => name != METADATA_FILENAME), tempCurParents, startup);
                 if( Object.keys(gameData.games).length == 0 ) {
                     deleteGame( MEDIA, game, curParents, true, true ); // will not call getData
                     continue; // don't include in the json
@@ -1242,7 +1242,7 @@ function generateGames(system, games, parents=[], startup) {
                 var tempCurParents = curParents.slice(0);
                 tempCurParents.push(game);
                 gameData.isFolder = true;
-                gameData.games = generateGames(system, gameDirContents, tempCurParents);
+                gameData.games = generateGames(system, gameDirContents, tempCurParents, startup);
             }
         }
 
