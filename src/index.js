@@ -2745,11 +2745,11 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
         ensurePlaylistSymlinks(parents ? parents : oldParents, game ? game : oldGame, oldParents, oldGame, getGameDictEntry(oldSystem, oldGame, oldParents) );
     }
 
-    resolveDirsDone();
     // After dirs are done, we can run getData
     // Update the data (this will take care of making all the necessary directories for the game as well as updating the data)
     if( typeof file != STRING_TYPE ) runWhenDone();
     else getData(); // Run get data now, so we can have an updated gamesDict even if we haven't finished downloading yet
+    resolveDirsDone();
 
     return false;
 }
