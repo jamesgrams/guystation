@@ -3563,9 +3563,13 @@ function createGamepadEvent(event) {
 }
 
 // Listen for the "home" button to be pressed
-ioHook.on("keydown", event => {
+ioHook.on("keydown", async function(event) {
     if( event.keycode == ESCAPE_KEY ) {
-        goHome();
+        if( !requestLocked ) {
+            requestLocked = true;
+            await goHome();
+            requestLocked = false
+        }
     }
 });
 ioHook.start();
