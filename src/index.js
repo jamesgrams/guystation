@@ -253,7 +253,7 @@ let continueInterval = null;
 let messages = [];
 
 // Load the data on startup
-getData();
+getData( true );
 
 /**************** Express ****************/
 
@@ -1146,8 +1146,9 @@ async function switchBrowseTab(id) {
  * Generate data about available options to the user.
  * The result is cached.
  * This should be called again if the file structure is edited.
+ * @param {boolean} startup - True if called on startup.
  */
-function getData() {
+function getData( startup ) {
     // Reset the data
     systemsDict = {};
 
@@ -1170,7 +1171,7 @@ function getData() {
             fs.mkdirSync( gamesDir );
         }
         // Create the games dictionary - the key will be the name of the game
-        let gamesDict = generateGames( system, games );
+        let gamesDict = generateGames( system, games, [], startup );
         
         // Set the games for this system
         systemData.games = gamesDict;
@@ -1188,9 +1189,10 @@ function getData() {
  * @param {string} system - The system the games are on.
  * @param {Array<string>} games - The games we want to look at (likely just everything in the games folder).
  * @param {Array<string>} [parents] - An array of parent folders.
+ * @param {boolean} startup - True if called on startup.
  * @returns {Object} An object containing games for a system or for a a specific set of parents within a system.
  */
-function generateGames(system, games, parents=[]) {
+function generateGames(system, games, parents=[], startup) {
     let gamesDict = {};
     // For each of the games
     for( let game of games ) {
@@ -1207,6 +1209,7 @@ function generateGames(system, games, parents=[]) {
             var metadataFileContents = JSON.parse(fs.readFileSync(generateGameMetaDataLocation(system, game, curParents)));
             gameData.rom = metadataFileContents.rom;
             gameData.isPlaylist = metadataFileContents.isPlaylist;
+            if( metadataFileContents.status ) gameData.status = metadataFileContents.status;
             if( gameData.isPlaylist ) {
                 var tempCurParents = curParents.slice(0);
                 tempCurParents.push(game);
@@ -1223,9 +1226,14 @@ function generateGames(system, games, parents=[]) {
                     if( metadataFileContents.releaseDate ) gameData.releaseDate = metadataFileContents.releaseDate;
                     if( metadataFileContents.name ) gameData.name = metadataFileContents.name;
                     if( metadataFileContents.summary ) gameData.summary = metadataFileContents.summary;
-                    if( metadataFileContents.status ) gameData.status = metadataFileContents.status;
                 }
                 catch(err) { /*ok*/ }
+            }
+
+            // this will only ever be for a real game - only things we want to save will be at this point
+            if( startup && gameData.status == STATUS_DOWNLOADING ) {
+                gameData.status = STATUS_ROM_FAILED;
+                fs.writeFileSync( generateGameMetaDataLocation(system, game, curParents), gameData );
             }
         }
         catch(err) {
@@ -2108,7 +2116,9 @@ function addGame( system, game, file, parents=[], isFolder, isPlaylist, playlist
         fs.symlinkSync( generateGameDir( symlink.system, symlink.game, symlink.parents ), generateGameDir( system, game, parents ), 'dir' );
     }
 
+    // Update the data (this will take care of making all the necessary directories for the game as well as updating the data)
     if( typeof file != STRING_TYPE ) runWhenDone();
+    else if( !force ) getData(); // Run get data now, so we can have an updated gamesDict even if we haven't finished downloading yet
 
     return false;
 }
@@ -2367,17 +2377,20 @@ function saveUploadedRom( file, system, game, parents ) {
  * @param {string} game - The game the ROM is for.
  * @param {Array<string>} parents - An array of parent folders for a game.
  * @param {Function} callback - A callback function to run when the ROM finishes downloading.
- * @param {Promise} waitPromise - A promise to wait to resolve before calling callback.
+ * @param {Promise} waitPromise - A promise to wait to resolve before running async.
+ * @param {string} oldSystem - The old system name.
+ * @param {string} oldGame - The old game name.
+ * @param {Array<string>} parents - The old parents name.
  * @returns {(boolean|string)} An error message if there was an error, false if there was not.
  */
-function downloadRom( url, system, game, parents, callback, waitPromise ) {
+function downloadRom( url, system, game, parents, callback, waitPromise, oldSystem, oldGame, oldParents ) {
     if( !validUrl.isUri(url) ) {
         return ERROR_MESSAGES.invalidUrl;
     }
     try {
-        let gameDictEntry = getGameDictEntry(system, game, parents);
-        if( gameDictEntry ) gameDictEntry.status = STATUS_DOWNLOADING;
-        fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"status": STATUS_DOWNLOADING}));
+        // Since this is synchronous, gameDictEntry will be updated when we call getData at the end of add/update.
+        // At this point, we haven't called getData yet, so we need to use the old names
+        fs.writeFileSync(generateGameMetaDataLocation(oldSystem ? oldSystem : system, oldGame ? oldGame : game, oldParents ? oldParents : parents), JSON.stringify({"status": STATUS_DOWNLOADING}));
 
         downloadRomBackground( url, system, game, parents, callback, waitPromise );
         return false;
@@ -2399,10 +2412,15 @@ function downloadRom( url, system, game, parents, callback, waitPromise ) {
  * @param {string} game - The game the ROM is for.
  * @param {Array<string>} parents - An array of parent folders for a game.
  * @param {Function} callback - A callback function to run when the ROM finishes downloading.
- * @param {Promise} waitPromise - A promise to wait to resolve before calling callback.
+ * @param {Promise} waitPromise - A promise to wait to resolve before we can run.
  * @returns {boolean} Returns false upon completion.
  */
-async function downloadRomBackground( url, system, game, parents, callback, waitPromise) {
+async function downloadRomBackground( url, system, game, parents, callback, waitPromise ) {
+
+    // This will allow updateGame to finish moving around all the directories
+    // We will be free to call getData and to use the new system, game and parents.
+    if( waitPromise ) await waitPromise;
+
     // First, look for a good place to temporarily store the downloaded tile
     let index = 0;
     while( fs.existsSync(DOWNLOAD_ROM_PREFIX + index) ) {
@@ -2420,13 +2438,17 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
         filename = info._filename;
     } );
 
-    rom.on("error", () => {
+    let errorFunction = function() {
         tmpFileStream.close();
         fs.unlinkSync(tmpFilePath); // Delete the file
-        let gameDictEntry = getGameDictEntry(system, game, parents);
-        if( gameDictEntry ) gameDictEntry.status = STATUS_ROM_FAILED;
         fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"status": STATUS_ROM_FAILED}));
-    });
+        // Note that although for addGame we usually would check for the force option before calling getData
+        // we know that force is only ever true when adding a symlink, and a symlink will never have a download
+        // so we can call getData here.
+        getData();
+    }
+
+    rom.on("error", errorFunction);
 
     rom.pipe(tmpFileStream);
 
@@ -2453,7 +2475,7 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
                         let curPath = tmpFolderPath + SEPARATOR + tmpFile;
                         let stats = fs.statSync(curPath); 
                         if( isBinaryFileSync(curPath) && (!largestBinaryPath || stats["size"] > largestBinarySize) ) {
-                            largestBinaryEntry = curPath;
+                            largestBinaryPath = curPath;
                             largestBinarySize = stats["size"];
                             filename = tmpFile;
                         }
@@ -2475,18 +2497,23 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
             // ok
         }
 
-        if( fs.existsSync(tmpFilePath) ) {
-            if( !filename ) {
-                filename = path.basename(urlLib.parse(url).pathname);
-            }
-            fs.renameSync( tmpFilePath, generateRomLocation(system, game, filename, parents) );
-            fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"rom": filename}));
-            // getData(); - should be in all the callbacks
+        try {
+            if( fs.existsSync(tmpFilePath) ) {
+                if( !filename ) {
+                    filename = path.basename(urlLib.parse(url).pathname);
+                }
+                fs.renameSync( tmpFilePath, generateRomLocation(system, game, filename, parents) );
+                fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"rom": filename}));
+                // getData(); - should be in all the callbacks
 
-            if( callback ) {
-                if( waitPromise ) await waitPromise;
-                callback();
+                if( callback ) {
+                    callback();
+                }
             }
+        }
+        catch(err) {
+            console.log(err);
+            errorFunction(); // clean up
         }
 
     });
@@ -2635,7 +2662,6 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
 
     // This function will run once we are sure we have the ROM downloaded
     let runWhenDone = function() {
-        // Update the data (this will take care of making all the necessary directories for the game as well as updating the data)
         getData();
 
         // Do this AFTER running get data, so we can pass the checked in addGame
@@ -2663,7 +2689,7 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
         // Note: an async error will continue unlike a sync error
         // A sync error to get the file - we'll just revert
         // An async error, we'll just have to alert the user that we failed.
-        if( typeof file == STRING_TYPE ) errorMessage = downloadRom( file, oldSystem, oldGame, oldParents, runWhenDone, dirsDonePromise );
+        if( typeof file == STRING_TYPE ) errorMessage = downloadRom( file, system, game, parents, runWhenDone, dirsDonePromise, oldSystem, oldGame, oldParents );
         else errorMessage = saveUploadedRom( file, oldSystem, oldGame, oldParents );
 
         // We failed
@@ -2720,7 +2746,10 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
     }
 
     resolveDirsDone();
+    // After dirs are done, we can run getData
+    // Update the data (this will take care of making all the necessary directories for the game as well as updating the data)
     if( typeof file != STRING_TYPE ) runWhenDone();
+    else getData(); // Run get data now, so we can have an updated gamesDict even if we haven't finished downloading yet
 
     return false;
 }

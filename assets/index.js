@@ -1072,6 +1072,9 @@ function populateGames(system, games, startSystem, gamesElement, hidden, parents
         if( game.isPlaylist ) {
             gameElement.setAttribute("data-is-playlist", "true");
         }
+        if( game.status ) {
+            gameElement.setAttribute("data-status", game.status);
+        }
         gamesElement.appendChild(gameElement);
 
         if( game.isFolder ) {
@@ -1214,7 +1217,7 @@ function toggleButtons() {
 
     // Only allow media if we are "on" a playable file
     var remoteMediaButton = document.getElementById("remote-media");
-    if( selectedSystem.getAttribute("data-system") == "media" && selectedGame && !selectedGame.hasAttribute("data-is-folder") && !selectedGame.hasAttribute("data-is-playlist") ) {
+    if( selectedSystem.getAttribute("data-system") == "media" && selectedGame && !selectedGame.hasAttribute("data-is-folder") && !selectedGame.hasAttribute("data-is-playlist") && !selectedGame.hasAttribute("data-status") ) {
         remoteMediaButton.onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#remote-media-form") ) displayRemoteMedia(); };
         remoteMediaButton.classList.remove("inactive");
     }
@@ -3874,13 +3877,16 @@ function createTypeMenu( selected, options, required ) {
         if( this.options[this.selectedIndex].value == "Game" ) {
             document.querySelector(".modal #playlist-container").parentNode.classList.add("hidden");
             document.querySelector(".modal #rom-file-input").parentNode.classList.remove("hidden");
+            document.querySelector(".modal #rom-download-input").parentNode.classList.remove("hidden");
         }
         else if ( this.options[this.selectedIndex].value == "Folder" ) {
             document.querySelector(".modal #rom-file-input").parentNode.classList.add("hidden");
+            document.querySelector(".modal #rom-download-input").parentNode.classList.add("hidden");
             document.querySelector(".modal #playlist-container").parentNode.classList.add("hidden");
         }
         else { // Playlist
             document.querySelector(".modal #rom-file-input").parentNode.classList.add("hidden");
+            document.querySelector(".modal #rom-download-input").parentNode.classList.add("hidden");
             document.querySelector(".modal #playlist-container").parentNode.classList.remove("hidden");
         }
     }, required );
