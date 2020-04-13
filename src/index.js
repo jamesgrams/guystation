@@ -1233,7 +1233,7 @@ function generateGames(system, games, parents=[], startup) {
             // this will only ever be for a real game - only things we want to save will be at this point
             if( startup && gameData.status == STATUS_DOWNLOADING ) {
                 gameData.status = STATUS_ROM_FAILED;
-                fs.writeFileSync( generateGameMetaDataLocation(system, game, curParents), gameData );
+                fs.writeFileSync( generateGameMetaDataLocation(system, game, curParents), JSON.stringify(gameData) );
             }
         }
         catch(err) {
@@ -2546,7 +2546,7 @@ function hasSymlinksBeingPlayed( system, game, parents ) {
  * @param {string} [system] - The new system for the game - null if the same.
  * @param {string} [game] - The new name for the game - null if the same.
  * @param {(object|string)} [file] - The file object (from upload) or a url path.
- * @param {Array<string>} [parents] - An array of parent folders for a game.
+ * @param {Array<string>} [parents] - An array of parent folders for a game. Note that we expect this to be defined and identical if not changed, rather than blank like game and system.
  * @param {boolean} [isFolder] - True if this game is really a folder of other games.
  * @param {boolean} [isPlaylist] - True if the game is a playlist (will function similarly to a folder).
  * @param {Array<Array<string>>} [playlistItems] - The items in the playlist.
@@ -2689,7 +2689,7 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
         // Note: an async error will continue unlike a sync error
         // A sync error to get the file - we'll just revert
         // An async error, we'll just have to alert the user that we failed.
-        if( typeof file == STRING_TYPE ) errorMessage = downloadRom( file, system, game, parents, runWhenDone, dirsDonePromise, oldSystem, oldGame, oldParents );
+        if( typeof file == STRING_TYPE ) errorMessage = downloadRom( file, system ? system : oldSystem, game ? game : oldGame, parents ? parents : oldParents, runWhenDone, dirsDonePromise, oldSystem, oldGame, oldParents );
         else errorMessage = saveUploadedRom( file, oldSystem, oldGame, oldParents );
 
         // We failed
