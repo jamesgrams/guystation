@@ -167,13 +167,14 @@ There are a few important things to note with this. You won't be able to change 
 ## Additional Information
 Multiple monitors are not supported. Using multiple monitors will cause issues with ensuring the screen resolution is correct and streaming the screen.
 
-## Known issues
+## Known Issues
 * Citra maps buttons with respect to individual controller types, so you'll need separate control profiles for each control (and the vitual controller through screencast).
 * Dolphin does something similar where it keeps track of controllers by controller type.
 * PCSX2 does not recognize the virtual controller.
 * Citra and Mupen64 flicker when hiding the screenshare message. As such, the message is not hidden when these emulators are in use and screenshare is started. It is made transparent, and click event are ignored on it.
 * A program restart is required if you change the screen resolution.
 * To get sound for Nintendo 64 through screenshare, you must already be sharing the screen when the game starts.
+* NES sound does not work for screenshare.
 
 ## Credits and Special Thanks
 * Game Boy Advance and DS Lite icons: [David Pérez](https://thenounproject.com/david730/)

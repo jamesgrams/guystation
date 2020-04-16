@@ -1682,10 +1682,10 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
 
     // failsafe fullscreen and activate
     // keep trying in the background to activate and 
-    // mupen didnt always fullscreen again after refocus on screenshare only refocus
+    // mupen didnt always fullscreen again after refocus on screenshare refocus especially
     // It also liked to minimize if started too ealy
     clearInterval(continueInterval);
-    if( systemsDict[system].fullScreenFailsafe && startedClientIds.length && !noGame ) {
+    if( systemsDict[system].fullScreenFailsafe && !noGame ) {
         let failsafeTries = 0;
         // this interval will be cleared if we go home or quit the game.
         // until that point, just keep forcing it open
@@ -1782,6 +1782,8 @@ async function quitGame() {
  * Blank all the values from the current game.
  */
 function blankCurrentGame() {
+    clearInterval(continueInterval); // put this here just to be safe
+
     currentGame = null;
     currentSystem = null;
     currentParentsString = null;
