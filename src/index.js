@@ -234,6 +234,7 @@ const USERNAME_OPTIONS = ["🐵", "🐶", "🦊", "🐱", "🦁", "🐯", "🐮"
 
 // We will only allow for one request at a time for app
 let requestLocked = false;
+let hookLocked = false;
 
 let currentSystem = null;
 let currentGame = null;
@@ -3567,10 +3568,10 @@ function createGamepadEvent(event) {
 // Listen for the "home" button to be pressed
 ioHook.on("keydown", async function(event) {
     if( event.keycode == ESCAPE_KEY ) {
-        if( !requestLocked ) {
-            requestLocked = true;
+        if( !hookLocked ) {
+            hookLocked = true;
             await goHome();
-            requestLocked = false
+            hookLocked = false
         }
     }
 });
