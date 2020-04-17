@@ -37,7 +37,7 @@ sudo apt-get -y install $DEP_64
 git clone https://github.com/jamesgrams/fceux.git
 cd fceux
 scons
-scons install
+sudo scons install
 
 # Return to the home directory
 cd ~
