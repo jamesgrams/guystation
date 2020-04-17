@@ -120,7 +120,7 @@ h1 {
     display: none !important;
 }
 
-.game[data-status] {
+.game[data-status]:not(.above) {
     opacity: 0.5;
 }
 
