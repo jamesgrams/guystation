@@ -25,7 +25,7 @@ const keycode = require("keycode");
 const ioctl = require("ioctl");
 const uinput = require("./lib/uinput");
 const uinputStructs = require("./lib/uinput_structs");
-const unzipper = require('unzipper');
+const ua = require('all-unpacker');
 const youtubedl = require('youtube-dl');
 const urlLib = require('url');
 const isBinaryFileSync = require("isbinaryfile").isBinaryFileSync;
@@ -2501,43 +2501,45 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
 
         try {
             let tmpFolderPath = tmpFilePath + TMP_FOLDER_EXTENSION;
-            let extractor = unzipper.Extract({ path: tmpFolderPath });
-            fs.createReadStream(tmpFilePath).pipe(extractor);
 
             let extractPromise = new Promise( function(resolve, reject) {
-                extractor.on("error", function() {
-                    // The file is not a zip file
+
+                ua.unpack( tmpFilePath, {
+                    targetDir: tmpFolderPath
+                }, function(err, files, text) {
+                    if( err ) {
+                        // perfectly fine, we expect this for non archive files.
+                    }
+                    else if( files ) {
+                        let largestBinaryPath = null;
+                        let largestBinarySize = 0;
+                        let tmpFiles = fs.readdirSync(tmpFolderPath);
+                        // Get the largest binary file
+                        for( let tmpFile of tmpFiles ) {
+                            let curPath = tmpFolderPath + SEPARATOR + tmpFile;
+                            let stats = fs.statSync(curPath);
+                            if( isBinaryFileSync(curPath) && (!largestBinaryPath || stats["size"] > largestBinarySize) ) {
+                                largestBinaryPath = curPath;
+                                largestBinarySize = stats["size"];
+                                filename = tmpFile;
+                            }
+                        }
+
+                        // Move the actual rom over the zip file
+                        if( largestBinaryPath ) {
+                            fs.renameSync( largestBinaryPath, tmpFilePath );
+                        }
+                        rimraf.sync(tmpFolderPath); // Delete the temp folder
+                    }
                     resolve();
                 } );
-                extractor.on("close", function() {
-                    let largestBinaryPath = null;
-                    let largestBinarySize = 0;
-                    let tmpFiles = fs.readdirSync(tmpFolderPath);
-                    // Get the largest binary file
-                    for( let tmpFile of tmpFiles ) {
-                        let curPath = tmpFolderPath + SEPARATOR + tmpFile;
-                        let stats = fs.statSync(curPath); 
-                        if( isBinaryFileSync(curPath) && (!largestBinaryPath || stats["size"] > largestBinarySize) ) {
-                            largestBinaryPath = curPath;
-                            largestBinarySize = stats["size"];
-                            filename = tmpFile;
-                        }
-                    }
 
-                    // Move the actual rom over the zip file
-                    if( largestBinaryPath ) {
-                        fs.renameSync( largestBinaryPath, tmpFilePath );
-                    }
-                    rimraf.sync(tmpFolderPath); // Delete the temp folder
-
-                    resolve();
-                });
             } );
             await extractPromise;
         }
-        // not a zip file - we'll get an invalid signature error
         catch(err) {
             // ok
+            // the non-archive error should be caught in the unpack function, but leave this here for safety
         }
 
         try {
