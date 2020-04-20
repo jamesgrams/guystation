@@ -173,7 +173,6 @@ Multiple monitors are not supported. Using multiple monitors will cause issues w
 * PCSX2 does not recognize the virtual controller.
 * Citra and Mupen64 flicker when hiding the screenshare message. As such, the message is not hidden when these emulators are in use and screenshare is started. It is made transparent, and click event are ignored on it.
 * A program restart is required if you change the screen resolution.
-* To get sound for Nintendo 64 through screenshare, you must already be sharing the screen when the game starts.
 
 ## Credits and Special Thanks
 * Game Boy Advance and DS Lite icons: [David Pérez](https://thenounproject.com/david730/)

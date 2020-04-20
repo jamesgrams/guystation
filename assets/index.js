@@ -4924,7 +4924,7 @@ function startConnectionToPeer( isStreamer, id ) {
  */
 function renegotiate() {
     var oldLocalStream = localStream;
-    oldLocalStream.getTracks().forEach(track => track.stop())
+    oldLocalStream.getVideoTracks().forEach(track => track.stop())
     navigator.mediaDevices.getDisplayMedia({"video": { "cursor": "never" }, "audio": true}).then(function(stream) {
         localStream = stream;
         for( let peerConnection of peerConnections ) {
