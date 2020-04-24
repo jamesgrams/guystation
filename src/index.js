@@ -866,6 +866,7 @@ async function launchBrowser() {
         args: [
             '--start-fullscreen',
             '--no-sandbox',
+            '--disable-infobars',
             `--auto-select-desktop-capture-source=${ENTIRE_SCREEN}` // this has to be like this otherwise the launcher will not read the argument. It has to do with node.js processes and how they handle quotes with shell=true. 
         ],
         userDataDir: USER_DATA_DIR
