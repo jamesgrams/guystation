@@ -158,6 +158,7 @@ const STATUS_DOWNLOADING = "downloading";
 const STATUS_ROM_FAILED = "failed";
 const STRING_TYPE = "string";
 const CHROMIUM_ARG = "--chromium";
+const SAMBA_FLAG = "--smb";
 const TMP_FOLDER_EXTENSION = "_folder";
 const REQUEST_LOCKED_CHECK_TIME = 100;
 const UPDATE_PERCENT_MINIMUM = 1;
@@ -879,7 +880,14 @@ async function launchBrowser() {
     context.overridePermissions("http://" + LOCALHOST, ['microphone']);
     let pages = await browser.pages();
     menuPage = await pages[0];
-    await menuPage.goto(LOCALHOST + ":" + STATIC_PORT + "?" + IS_SERVER_PARAM);
+
+    let sambaString = "";
+    let sambaIndex = process.argv.indexOf(SAMBA_FLAG);
+    if( sambaIndex != -1 ) {
+        sambaString = "&smb=" + process.argv[sambaIndex+1];
+    }
+
+    await menuPage.goto(LOCALHOST + ":" + STATIC_PORT + "?" + IS_SERVER_PARAM + sambaString);
     ks.sendKey('tab');
 
     browser.on("targetdestroyed", async function() {

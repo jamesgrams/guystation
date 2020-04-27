@@ -148,7 +148,7 @@ On the client, install (`sudo apt-get`) samba and cfs-utils. Then, update `/etc/
 ```
 //192.168.1.2/systems   /home/<your_home_name>/guystation/systems  cifs    sfu,rw,username=root,password=<root_password>,vers=1.0       00
 ```
-There are a few important things to note with this. You won't be able to change saves on the client machine. This is simply because you can't update symlinks on a mounted drive. Additionally, you can't use colons or pipes in your game or save names. Samba doesn't like files that have these names, so it is best to avoid them.
+There are a few important things to note with this. You won't be able to change saves on the client machine. This is simply because you can't update symlinks on a mounted drive. Additionally, you can't use colons or pipes in your game or save names. Samba doesn't like files that have these names, so it is best to avoid them. However, you can tell GuyStation to send save change requests that wouldn't work typically to the GuyStation that you are mounting by starting the client GuyStation with the command `node src/index.js --smb <server GuyStation ip>`.
 
 ## File Structure for Systems Directory
 * `systems`

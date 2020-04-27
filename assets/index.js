@@ -191,6 +191,7 @@ var screencastButtonsPressed = {};
 var screencastAxisLastValues = {};
 // keys are server values, values are client values
 var screencastControllerMap = {}; // allow the user to map button inputs on the client to buttons on the virtual controller (button 5 on the client xbox contrller goes to button 9 on the virtual controller)
+var sambaUrl;
 
 // Hold escape for 5 seconds to quit
 // Note this variable contains a function interval, not a boolean value
@@ -545,6 +546,9 @@ function load() {
     var urlParams = new URLSearchParams(window.location.search);
     if( urlParams.has("is_server") ) {
         isServer = true;
+    }
+    if( urlParams.has("smb") ) {
+        sambaUrl = urlParams.get("smb");
     }
 
     // register service worker
@@ -4251,7 +4255,7 @@ function goHome() {
 function addGame( system, game, file, parents, isFolder, isPlaylist, playlistItems ) {
     makeRequest( "POST", "/game", { "system": system, "game": game, "file": file ? file : "", "parents": JSON.stringify(parents), "isFolder": isFolder ? isFolder : "", "isPlaylist": isPlaylist ? isPlaylist : "", "playlistItems": JSON.stringify(playlistItems) }, 
     function( responseText ) { standardSuccess(responseText, "Game successfully added") },
-    function( responseText ) { standardFailure( responseText ) }, true );
+    function( responseText ) { standardFailure( responseText ) }, true, true );
 }
 
 /**
@@ -4270,7 +4274,7 @@ function addGame( system, game, file, parents, isFolder, isPlaylist, playlistIte
 function updateGame( oldSystem, oldGame, oldParents, system, game, file, parents, isFolder, isPlaylist, playlistItems ) {
     makeRequest( "PUT", "/game", { "oldSystem": oldSystem, "oldGame": oldGame, "oldParents": JSON.stringify(oldParents), "system": system, "game": game, "file": file ? file : "", "parents": JSON.stringify(parents), "isFolder": isFolder ? isFolder : "", "isPlaylist": isPlaylist ? isPlaylist : "", "playlistItems": JSON.stringify(playlistItems) }, 
     function( responseText ) { standardSuccess(responseText, "Game successfully updated", oldSystem, system ? system : oldSystem, oldGame, game ? game: oldGame, oldParents, parents) },
-    function( responseText ) { standardFailure( responseText ) }, true );
+    function( responseText ) { standardFailure( responseText ) }, true, true );
 }
 
 /**
@@ -4282,7 +4286,7 @@ function updateGame( oldSystem, oldGame, oldParents, system, game, file, parents
 function deleteGame( system, game, parents ) {
     makeRequest( "DELETE", "/game", { "system": system, "game": game, "parents": parents }, 
     function( responseText ) { standardSuccess(responseText, "Game successfully deleted", system, null, game, null, parents, null) },
-    function( responseText ) { standardFailure( responseText ) } );
+    function( responseText ) { standardFailure( responseText ) }, false, true );
 }
 
 /**
@@ -4295,7 +4299,7 @@ function deleteGame( system, game, parents ) {
 function addSave( system, game, save, parents ) {
     makeRequest( "POST", "/save", { "system": system, "game": game, "save": save, "parents": parents }, 
     function( responseText ) { standardSuccess(responseText, "Save successfully added") },
-    function( responseText ) { standardFailure( responseText ) } );
+    function( responseText ) { standardFailure( responseText ) }, false, true );
 }
 
 /**
@@ -4309,7 +4313,7 @@ function addSave( system, game, save, parents ) {
 function updateSave( system, game, parents, oldSave, save ) {
     makeRequest( "PUT", "/save", { "system": system, "game": game, "save": save, "parents": parents, "oldSave": oldSave }, 
     function( responseText ) { standardSuccess(responseText, "Save successfully updated") },
-    function( responseText ) { standardFailure( responseText ) } );
+    function( responseText ) { standardFailure( responseText ) }, false, true );
 }
 
 /**
@@ -4322,7 +4326,7 @@ function updateSave( system, game, parents, oldSave, save ) {
 function changeSave( system, game, save, parents ) {
     makeRequest( "PATCH", "/save", { "system": system, "game": game, "save": save, "parents": parents }, 
     function( responseText ) { standardSuccess(responseText, "Save successfully changed") },
-    function( responseText ) { standardFailure( responseText ) } );
+    function( responseText ) { standardFailure( responseText ) }, false, true );
 }
 
 /**
@@ -4335,7 +4339,7 @@ function changeSave( system, game, save, parents ) {
 function deleteSave( system, game, save, parents ) {
     makeRequest( "DELETE", "/save", { "system": system, "game": game, "save": save, "parents": parents }, 
     function( responseText ) { standardSuccess(responseText, "Save successfully deleted") },
-    function( responseText ) { standardFailure( responseText ) } );
+    function( responseText ) { standardFailure( responseText ) }, false, true );
 }
 
 /**
@@ -4412,11 +4416,13 @@ function endRequest() {
  * @param {object} parameters - An object with keys being parameter keys and values being parameter values to send with the request.
  * @param {function} callback - Callback function to run upon request completion.
  * @param {boolean} useFormData - True if we should use form data instead of json.
+ * @param {boolean} sambaMode - True if we should make the request to the GuyStation that this GuyStation has mounted the system directoy of (can't update symlinks on a samba mount).
  */
-function makeRequest(type, url, parameters, callback, errorCallback, useFormData) {
+function makeRequest(type, url, parameters, callback, errorCallback, useFormData, sambaMode) {
     var parameterKeys = Object.keys(parameters);
 
-    url = "http://" + window.location.hostname + ":8080" + url;
+    var hostname = (sambaMode && sambaUrl) ? sambaUrl : window.location.hostname;
+    url = "http://" + hostname + ":8080" + url;
     if( type == "GET" && parameterKeys.length ) {
         var parameterArray = [];
         for( var i=0; i<parameterKeys.length; i++ ) {
