@@ -28,6 +28,7 @@ var RELOAD_MESSAGES_INTERVAL = 5000;
 var CHATTING_MESSAGES_INTERVAL = 1000;
 var AXIS_FUZZINESS = 15;
 var MAX_JOYSTICK_VALUE = 128;
+var MOUSE_MOVE_SEND_INTERVAL = 100;
 var KEYCODES = {
     '0': 48,
     '1': 49,
@@ -2690,12 +2691,16 @@ function createInteractiveScreencast() {
         event.preventDefault(); // prevent pausing the video onclick
     }
     var lastTouchEvent;
+    var mouseDown = false;
+    var lastMoveSent;
     video.onmousedown = function(event) {
         if( !document.querySelector(".black-background #edit-button .fa-check") ) { // dont record clicks if editing the interface
             var mousePercentLocation = getMousePercentLocation(event);
             var xPercent = mousePercentLocation.xPercent;
             var yPercent = mousePercentLocation.yPercent;
             if( xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
+                mouseDown = true;
+                lastMoveSent = Date.now();
                 socket.emit( "/screencast/mouse", { "down": true, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 2 ? "right" : "middle" } );
             }
             try {
@@ -2716,12 +2721,31 @@ function createInteractiveScreencast() {
             event.preventDefault();
         }
     }
+    video.onmousemove = function(event) {
+        if( !document.querySelector(".black-background #edit-button .fa-check") ) { // dont record clicks if editing the interface
+            var now = Date.now();
+            if( now - lastMoveSent > MOUSE_MOVE_SEND_INTERVAL ) {
+                var mousePercentLocation = getMousePercentLocation(event);
+                var xPercent = mousePercentLocation.xPercent;
+                var yPercent = mousePercentLocation.yPercent;
+                if( xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
+                    lastMoveSent = now;
+                    socket.emit( "/screencast/mouse", { "down": mouseDown, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 2 ? "right" : "middle" } );
+                }
+                try {
+                    event.preventDefault();
+                }
+                catch(err) {}
+            }
+        }
+    }
     video.onmouseup = function(event) {
         if( !document.querySelector(".black-background #edit-button .fa-check") ) { // dont record clicks if editing the interface
             var mousePercentLocation = getMousePercentLocation(event);
             var xPercent = mousePercentLocation.xPercent;
             var yPercent = mousePercentLocation.yPercent;
             if( xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
+                mouseDown = false;
                 socket.emit( "/screencast/mouse", { "down": false, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 2 ? "right" : "middle" } );
             }
             try {

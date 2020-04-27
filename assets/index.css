@@ -767,6 +767,11 @@ h1 {
     100% { transform: translate(calc(-100% - 10px), -100%); } /* End the animation after the element has traveled to the left its entire width and then 10 more px to put it past the padding */
 }
 
+@keyframes marquee-header-no-y-transform {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(0); } /* End the animation after the element has traveled to the left its entire width and then 10 more px to put it past the padding */
+}
+
 @media only screen and (max-width: 835px) and (max-height: 500px) and (min-width: 500px) {
     #functions {
         width: 460px !important;
@@ -777,7 +782,10 @@ h1 {
     }
     h1 {
         top: 10px !important;
-        transform: none;
+        transform: none !important;
+    }
+    .game-marquee-header {
+        animation: marquee-header-no-y-transform linear infinite;
     }
 }
 
