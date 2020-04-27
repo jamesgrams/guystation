@@ -2692,7 +2692,7 @@ function createInteractiveScreencast() {
     }
     var lastTouchEvent;
     var mouseDown = false;
-    var lastMoveSent;
+    var lastMoveSent = 0;
     video.onmousedown = function(event) {
         if( !document.querySelector(".black-background #edit-button .fa-check") ) { // dont record clicks if editing the interface
             var mousePercentLocation = getMousePercentLocation(event);
