@@ -34,19 +34,19 @@
         "keys": ["JOYKEYS","R"],
         "keyboardKeys": ["KEYS","R"]
       },
-      "Up": {
+      "Axis Y-": {
         "keys": ["JOYKEYS","Up"],
         "keyboardKeys": ["KEYS","Up"]
       },
-      "Down": {
+      "Axis Y+": {
         "keys": ["JOYKEYS","Down"],
         "keyboardKeys": ["KEYS","Down"]
       },
-      "Left": {
+      "Axis X-": {
         "keys": ["JOYKEYS","Left"],
         "keyboardKeys": ["KEYS","Left"]
       },
-      "Right": {
+      "Axis X+": {
         "keys": ["JOYKEYS","Right"],
         "keyboardKeys": ["KEYS","Right"]
       },

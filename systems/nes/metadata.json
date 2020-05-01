@@ -16,16 +16,16 @@
       "B": {
         "keys": ["SDL.Input.GamePad.0B"]
       },
-      "Up": {
+      "Axis Y-": {
         "keys": ["SDL.Input.GamePad.0Up"]
       },
-      "Down": {
+      "Axis Y+": {
         "keys": ["SDL.Input.GamePad.0Down"]
       },
-      "Left": {
+      "Axis X-": {
         "keys": ["SDL.Input.GamePad.0Left"]
       },
-      "Right": {
+      "Axis X+": {
         "keys": ["SDL.Input.GamePad.0Right"]
       },
       "Start": {

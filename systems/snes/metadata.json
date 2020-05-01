@@ -28,16 +28,16 @@
       "R2": {
         "keys": ["Joypad 0","R"]
       },
-      "Up": {
+      "Axis Y-": {
         "keys": ["Joypad 0","Up"]
       },
-      "Down": {
+      "Axis Y+": {
         "keys": ["Joypad 0","Down"]
       },
-      "Left": {
+      "Axis X-": {
         "keys": ["Joypad 0","Left"]
       },
-      "Right": {
+      "Axis X+": {
         "keys": ["Joypad 0","Right"]
       },
       "Start": {
