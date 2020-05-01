@@ -3557,7 +3557,7 @@ function setControls( systems, values ) {
                 }
                 else if(key.match(/profiles\\.*="/)) {
                     config.Controls[key] = '"' + config.Controls[key] + '"';
-                })
+                }
             }
         }
 
