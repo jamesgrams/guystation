@@ -266,8 +266,19 @@ h1 {
     padding: 5px;
 }
 
+.modal label.inline, .dying-modal label.inline {
+    display: inline-block;
+    margin-right: 20px;
+}
+
 .modal > * > label > span, .dying-modal > * > label > span {
     width: 205px;
+    display: inline-block;
+}
+
+.modal label.inline > span, .dying-modal label.inline > span {
+    width: initial;
+    margin-right: 10px;
     display: inline-block;
 }
 
@@ -299,6 +310,21 @@ h1 {
     border: none;
     user-select: none;
     -webkit-user-select: none;
+}
+
+.modal label > input[type='checkbox'], .dying-modal label > input[type='checkbox'] {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    cursor: pointer;
+}
+
+.modal label > input[type='checkbox']:checked, .dying-modal label > input[type='checkbox']:checked {
+    background-color: green;
+}
+
+.modal .systems-checkboxes, .dying-modal .systems-checkboxes {
+    width: 460px;
 }
 
 #power-options-form button {
@@ -361,6 +387,11 @@ h1 {
     padding: 5px;
     font-size: 80%;
     margin-top: 10px;
+}
+
+.modal .warning.break, .dying-modal .warning.break {
+    clear: both;
+    margin-top: 70px;
 }
 
 .toast {

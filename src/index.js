@@ -30,6 +30,11 @@ const youtubedl = require('youtube-dl');
 const urlLib = require('url');
 const isBinaryFileSync = require("isbinaryfile").isBinaryFileSync;
 const validUrl = require("valid-url");
+const ini = require("ini");
+const gdkMap = require("./lib/gdkmap");
+const sdlMap = require("./lib/sdlmap");
+const x11Map = require("./lib/x11map");
+const vbamMap = require("./lib/vbammap");
 
 const PORT = 8080;
 const SOCKETS_PORT = 3000;
@@ -135,6 +140,14 @@ const SHARING_PROMPT_DELAY_TIME = 100;
 const SHARING_PROMPT_MAX_TRIES = 5;
 const SYSTEM_3DS = '3ds';
 const SYSTEM_N64 = 'n64';
+const SYSTEM_GBA = 'gba';
+const SYSTEM_NDS = "nds";
+const SYSTEM_SNES = "snes";
+const SYSTEM_NES = "nes";
+const SYSTEM_NGC = "ngc";
+const SYSTEM_PS2 = "ps2";
+const SYSTEM_PSP = "psp";
+const SYSTEM_WII = "wii";
 const UINPUT_PATH = "/dev/uinput";
 const UINPUT_MODE = "w+";
 const VIRTUAL_GAMEPAD_NAME = "GuyStation Gamepad";
@@ -157,11 +170,25 @@ const DOWNLOAD_ROM_PREFIX = "/tmp/download_rom_";
 const STATUS_DOWNLOADING = "downloading";
 const STATUS_ROM_FAILED = "failed";
 const STRING_TYPE = "string";
+const OBJECT_TYPE = "object";
 const CHROMIUM_ARG = "--chromium";
 const SAMBA_FLAG = "--smb";
 const TMP_FOLDER_EXTENSION = "_folder";
 const REQUEST_LOCKED_CHECK_TIME = 100;
 const UPDATE_PERCENT_MINIMUM = 1;
+
+const CONFIG_JOINER = ",";
+const CONTROL_STRING = "$CONTROL";
+const KEY_CONTROL_TYPE = "key";
+const AXIS_CONTROL_TYPE = "axis";
+const BUTTON_CONTROL_TYPE = "button";
+const DIRECTION_PLUS = "+";
+const NES_JOYSTICK = "Joystick";
+const NES_KEYBOARD = "Keyboard";
+const NES_DEVICE_TYPE_KEY = "SDL.Input.GamePad.0DeviceType";
+const DIRECTION_MODIFIER_3DS = ",direction:";
+const GET_USER_COMMAND = "logname";
+const USER_PLACEHOLDER = "james";
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -223,8 +250,11 @@ const ERROR_MESSAGES = {
     "downloadRomError": "An error ocurred downloading the ROM",
     "invalidUrl": "Invalid URL",
     "romNotYetDownloaded": "ROM still downloading",
-    "romFailedDownload": "This ROM failed to download. Please try again."
+    "romFailedDownload": "This ROM failed to download. Please try again.",
+    "configNotAvailable": "This emulator is unavailable for configuration."
 }
+// http://jsfiddle.net/vWx8V/ - keycode
+// http://robotjs.io/docs/syntax - robotjs
 const KEYCODE_TO_ROBOT_JS = {
     "esc": "escape",
     "page up": "pageup",
@@ -253,6 +283,8 @@ let needToRefocusGame = false;
 let gamepadFileDescriptor = null;
 let properEmulatorResolution = null;
 let continueInterval = null;
+
+let desktopUser = proc.execSync(GET_USER_COMMAND).toString().trim();
 
 let messages = [];
 
@@ -746,6 +778,27 @@ app.get("/system/reboot", async function(request, response) {
     }
 });
 
+// Change the controls for a system
+app.post("/controls", async function(request, response) {
+    console.log("app serving /controls with body: " + JSON.stringify(request.body));
+    if( ! requestLocked ) {
+        requestLocked = true;
+        try {
+            let errorMessage = setControls( request.body.systems, request.body.values );
+            requestLocked = false;
+            writeActionResponse( response, errorMessage );
+        }
+        catch(err) {
+            console.log(err);
+            requestLocked = false;
+            writeActionResponse( response, ERROR_MESSAGES.genericError );
+        }
+    }
+    else {
+        writeLockedResponse( response );
+    }
+});
+
 // Create the fake microphone
 if(process.argv.indexOf(CHROMIUM_ARG) == -1) {
     createFakeMicrophone();
@@ -1169,7 +1222,7 @@ function getData( startup ) {
     // For each system
     for( let system of systems ) {
         // Read the metadata
-        let systemData = JSON.parse(fs.readFileSync(generateMetaDataLocation(system)));
+        let systemData = JSON.parse( fs.readFileSync( generateMetaDataLocation(system) ).toString().replace(new RegExp(USER_PLACEHOLDER, "g"), desktopUser) );
         // The key is the name of the system
         systemData.system = system;
 
@@ -3451,6 +3504,266 @@ function generateMessageUserName( id ) {
     }
     
     return USERNAME_OPTIONS[Math.floor(Math.random() * USERNAME_OPTIONS.length)];
+}
+
+/**
+ * Set the controls for a system.
+ * Note: We have a limited number of controls available, this is supposed to be a quick method to try
+ * to set as many as possible.
+ * For buttons a key will simply be the keycode, a gamepad button will be the button number, and the axis will be a number followed by a plus or minus sign.
+ * example:
+ * setControls( "n64", {
+ *   {
+ *     "A": [
+ *       {
+ *         "button": 1,
+ *         "type": "button"
+ *       },
+ *       {
+ *         "button": [118],
+ *         "type": "key"
+ *       }
+ *     ],
+ *     "Axis X-": [
+ *       {
+ *         "button": ["0-"],
+ *         "type": "axis"
+ *       }
+ *     ]
+ *   }
+ * } );
+ * @param {Array<string>} system - The systems to set controls for.
+ * @param {Object} values - An object with keys being GuyStation buttons and values being an array of objects (each item is another control) containing a key for type and the button (can be axis+-/key) to set them to, or an array for multiple values (will be inserted for each $CONTROL in the control format) relating to a single control (note: we really only should ever receive one value, and we'll only use the first value).
+ * @returns {boolean|string} An error message if there is an error, false if not.
+ */
+function setControls( systems, values ) {
+
+    for( let system of systems ) {
+
+        if( !systemsDict[system] ) return ERROR_MESSAGES.noSystem;
+        if( !systemsDict[system].config ) return ERROR_MESSAGES.configNotAvailable;
+
+        let config = ini.parse(fs.readFileSync(systemsDict[system].config.file).toString());
+        let controls = systemsDict[system].config.controls;
+        // control formats will map the common user expect values of "key", "button", and "axis" to whatever they are listed as in the ini file (e.g. "Keyboard")
+        let controlFormat = systemsDict[system].config.controlFormat;
+
+        // for each of the controls listed
+        for( let control in controls ) {
+            // get the value of the control from the values object
+            // this is what we will set the value to
+            // we have two seperate objects, the usercontrol object provided by the user telling us what to enter
+            // and the controlInfo object from the system metadata guiding us on how to enter it
+            let userControls = values[control];
+            if( userControls ) {
+                let controlParts = [];
+                let keyControlParts = [];
+                let controlInfo = controls[control];
+                for( let userControl of userControls ) {
+
+                    // we might have sections for both keyboard keys and gamepad keys
+                    // the default keys are always gamepad
+                    // note that this is different to when we can set multiple controls, both keyboard and gamepad,
+                    // to a button. This is when in the config, they are actually in two seperate places.
+                    let keys = controlInfo.keys;
+                    let curControlParts = controlParts;
+                    if( userControl.type == KEY_CONTROL_TYPE && controlInfo.keyboardKeys ) {
+                        keys = controlInfo.keyboardKeys;
+                        curControlParts = keyControlParts;
+                    }
+
+                    // we are going to get the innermost nested object and set it's value
+                    let configSetting = config;
+                    for( let i=0; i<controlInfo.keys.length - 1; i++) {
+                        configSetting = configSetting[keys[i]];
+                    }
+
+                    // Note that a control can require multiple components (e.g. an axis with X plus and X minus) which thus userControl.button is an array
+                    // This is different to when there are multiple controls mapped to a button (e.g. Dpad left and arrow key left) in which case both need to be run through translateButton
+                    // however, we actually seperate out everything, so the user should only ever pass a single array. we'll add to it from pre-exising as need be.
+                    curControlParts.push( translateButton( system, userControl, controlInfo, controlFormat, configSetting[keys[keys.length-1]], config ) );
+
+                    // we only allow one control for systems except vba-m
+                    if( system != SYSTEM_GBA ) {
+                        curControlParts = [curControlParts[0]];
+                    }
+
+                    // We'll just update each time
+                    configSetting[keys[keys.length-1]] = curControlParts.join(CONFIG_JOINER);
+                }
+            }
+        }
+
+        fs.writeFileSync(systemsDict[system].config.file, ini.stringify(config));
+
+    }
+    return false;
+}
+
+/**
+ * Translate a control from the user to what the emulator expects.
+ * The user will send us a key code, a button number, or an axis+-. These then, will be mapped
+ * to what the emulator expects.
+ * @param {string} system - The system the controls are for.
+ * @param {Object} userControl - The control information set by the user including a type key and an array of, or just a string for the button key.
+ * @param {Object} controlInfo - The control info guide for how to put the result in the config file.
+ * @param {string} controlFormat - The format for the control.
+ * @param {string} currentControlValue - The current control value for the config setting. We might need to include some of it in the new value.
+ * @param {Object} config - The root config object.
+ * @returns {string} The translated value for the emulator.
+ */
+function translateButton( system, userControl, controlInfo, controlFormat, currentControlValue, config ) {
+    let controlButtons = userControl.button;
+    if( typeof controlButtons != OBJECT_TYPE ) controlButtons = [controlButtons];
+
+    // we can have different format's for different types for more flexibility if need be
+    if( typeof controlFormat == OBJECT_TYPE ) controlFormat = controlFormat[userControl.type];
+    // we can have different formats for the type of button
+    // for example, if we are mapping an axis on the user controller to an axis on the emulator controller
+    // we may have a different format than if we are mapping an axis on the user controller to a button on the emalator controller
+    if( typeof controlFormat == OBJECT_TYPE ) controlFormat = controlFormat[controlInfo.type ? controlInfo.type : BUTTON_CONTROL_TYPE];
+
+    // we can read controls from a regex if each line has multiple controls
+
+    controlButtons = [controlButtons[0]];
+    if( controlInfo.controlsRegex ) {
+        let controlsRegex = controlInfo.controlsRegex;
+        let selfPosition = controlInfo.selfPosition;
+        // the controlsRegex can be an object and we can use a different regex based on what the USER is setting
+        // the reason we need this is because an emulator may have different formats for different types, and we
+        // need to be able to read those formats
+        // so for regex, it's like the controlFormat object, except the inner value in that is implied (emulator type = axis),
+        // and the outer value (user type) is specified.
+        if( typeof controlsRegex == OBJECT_TYPE ) controlsRegex = controlsRegex[userControl.type];
+        if( typeof selfPosition == OBJECT_TYPE ) selfPosition = selfPosition[userControl.type];
+
+        // basically if the current type (axis, buttons, key) matches the type we are setting, we'll pull current values from it,
+        // otherwise, we just reset the string
+        // when we don't have typed controls regexs like for mupen, we'll make whatever's there. So if the user is mapping
+        // a keyboard key to an axis, but only one direction, the other direction might really correspond to
+        // an axis, so we might have key(65,1+) until they change it.
+
+        let match = currentControlValue.match(new RegExp(controlsRegex));
+        let newControl = controlButtons[0];
+        if( match ) {
+            // only get the matches
+            controlButtons = match.slice(1);
+        }
+        else {
+            // create an empty array long enough to properly fill all the $CONTROL values in the format
+            controlButtonsLength = (controlFormat.match(new RegExp(CONTROL_STRING.replace("$","\\$"), "g")) || []).length;
+            controlButtons = [];
+            for( let i=0; i<controlButtonsLength; i++ ) {
+                controlButtons.push("");
+            }
+        }
+        controlButtons[selfPosition] = newControl;
+    }
+
+    // For n64, we use key(keycode)
+    if( system == SYSTEM_N64 && userControl.type == KEY_CONTROL_TYPE ) {
+        // mupen expects the lowercase keycodes
+        controlButtons = controlButtons.map( el => el ? keycode(keycode(parseInt(el)).toLowerCase()) : el );
+    }
+    // gba expects uppercase key names
+    else if( system == SYSTEM_GBA && userControl.type == KEY_CONTROL_TYPE ) {
+        // vbam expects a certain mapping
+        controlButtons = controlButtons.map( el => el ? vbamMap[el] : el );
+    }
+    // desmume is custom
+    else if( system == SYSTEM_NDS ) {
+        if( userControl.type == KEY_CONTROL_TYPE ) {
+            controlButtons = controlButtons.map( el => el ? gdkMap[el] : el );
+        }
+        else {
+            controlButtons = controlButtons.map( el => codeToDesmumeJoystick(userControl.type, el) );
+        }
+    }
+    // snes expects x11 key names and a space between the axis and direction
+    else if( system == SYSTEM_SNES ) {
+        if( userControl.type == KEY_CONTROL_TYPE ) {
+            controlButtons = controlButtons.map( el => el ? x11Map[el] : el );
+        }
+        else if( userControl.type == AXIS_CONTROL_TYPE ) {
+            controlButtons = controlButtons.map( function(button) {
+                let axis = button.substring(0, button.length-1);
+                let direction = button.substring(button.length-1);
+                return axis + " " + direction;
+            } );
+        }
+    }
+    // For 3ds
+    else if( system == SYSTEM_3DS ) {
+        if( userControl.type == KEY_CONTROL_TYPE ) {
+            // citra expects the keycodes of lowercase keys
+            controlButtons = controlButtons.map( el => el ? keycode(keycode(parseInt(el)).toLowerCase()) : el );
+        }
+        // for mapping a user axis to a button
+        else if ( userControl.type == AXIS_CONTROL_TYPE && (!controlInfo.type || controlInfo.type == BUTTON_CONTROL_TYPE) ) {
+            // add the direction
+            controlButtons = controlButtons.map( function(button) {
+                let axis = button.substring(0, button.length-1);
+                let direction = button.substring(button.length-1);
+                return axis + DIRECTION_MODIFIER_3DS + direction;
+            } );
+        }
+        // for mapping an axis to an axis
+        else if ( userControl.type == AXIS_CONTROL_TYPE && (controlInfo.type == AXIS_CONTROL_TYPE) ) {
+            // remove the direction
+            controlButtons = controlButtons.map( function(button) {
+                let axis = button;
+                if( button.length > 1 ) axis = button.substring(0, button.length-1);
+                return axis;
+            } );
+        }
+    }
+    // For NES
+    else if( system == SYSTEM_NES ) {
+        config[NES_DEVICE_TYPE_KEY] = NES_JOYSTICK;
+        if( userControl.type == AXIS_CONTROL_TYPE ) {
+            // https://github.com/TASVideos/fceux/blob/5be92d3ee50fcdc04ec4d727cef5201fa8fba378/src/attic/pc/sdl.c#L354
+            controlButtons = controlButtons.map( function(button) {
+                let axis = button.substring(0, button.length-1);
+                let direction = button.substring(button.length-1);
+                return 0x8000|axis|(direction == DIRECTION_PLUS ? 0 : 0x4000);
+            } );
+        }
+        else if( userControl.type == KEY_CONTROL_TYPE ) {
+            controlButtons = controlButtons.map( el => el ? sdlMap[el] : el );
+            config[NES_DEVICE_TYPE_KEY] = NES_KEYBOARD;
+        }
+    }
+
+
+    // replace each instance of control string
+    for( let controlButton of controlButtons ) {
+        controlFormat = controlFormat.replace(CONTROL_STRING, controlButton);
+    }
+    // get rid of any extra control strings
+    // we shouldn't need this. but it is a failsafe
+    while( controlFormat.indexOf(CONTROL_STRING) != -1 ) controlFormat = controlFormat.replace(CONTROL_STRING,"");
+
+    return controlFormat;
+}
+
+/**
+ * Convert a joystick button.
+ * See here: https://github.com/TASVideos/desmume/blob/23f4dcc0094e9dcb77494593831b6aef9aaf3b5b/desmume/src/frontend/posix/shared/ctrlssdl.cpp#L50
+ * @param {string} type - The type of button (button or axis)
+ * @param {string} button - The button value (e.g. 2 or 1+)
+ * @returns {number} The Desmume joypad code. 
+ */
+function codeToDesmumeJoystick( type, button ) {
+    if( type == BUTTON_CONTROL_TYPE ) {
+        // player 1 controller
+        return 0x200 + parseInt(button);
+    }
+    // this is an axis
+    else {
+        let axis = button.substring(0, button.length-1);
+        let direction = button.substring(button.length-1);
+        return 2 * parseInt(axis) + (direction == DIRECTION_PLUS ? 1 : 0);
+    }
 }
 
 /**

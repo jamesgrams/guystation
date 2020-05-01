@@ -8,5 +8,45 @@
     "preferences/pauseWhenInactive=0",
     "-f"
    ],
-   "activateCommand": "wmctrl -a \"VisualBoyAdvance\""
+   "activateCommand": "wmctrl -a \"VisualBoyAdvance\"",
+   "config": {
+    "file": "/home/james/.config/visualboyadvance-m/vbam.ini",
+    "controls": {
+      "A": {
+        "keys": ["Joypad/1","A"]
+      },
+      "B": {
+        "keys": ["Joypad/1","B"]
+      },
+      "L2": {
+        "keys": ["Joypad/1","L"]
+      },
+      "R2": {
+        "keys": ["Joypad/1","R"]
+      },
+      "Up": {
+        "keys": ["Joypad/1","Up"]
+      },
+      "Down": {
+        "keys": ["Joypad/1","Down"]
+      },
+      "Left": {
+        "keys": ["Joypad/1","Up"]
+      },
+      "Right": {
+        "keys": ["Joypad/1","Right"]
+      },
+      "Start": {
+        "keys": ["Joypad/1","Start"]
+      },
+      "Select": {
+        "keys": ["Joypad/1","Select"]
+      }
+    },
+    "controlFormat": {
+      "axis": "Joy1-Axis$CONTROL",
+      "button": "Joy1-Button$CONTROL",
+      "key": "$CONTROL"
+    }
+  }
 }

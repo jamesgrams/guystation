@@ -84,6 +84,8 @@ Here are some recommendedations to make your experience better on Ubuntu.
 ## Emulator Specific Setup
 For all emulators, you will have to setup your controller(s). You can do this by opening emulator GUIs by clicking a system image when it is the selected system. This will launch the emulator without any game allowing you to choose options.
 
+Note: there is also limited support for setting up controls for each emulator all at once by using the EZ Controller Configuration section of the Joypad Configuration (available by clicking the gamepad icon in the menu).
+
 ### VBA-M (Game Boy Advance)
 This emulator doesn't change the default screenshot key to be Ctrl+S like most others, mainly because you can set the screenshot key to a joystick button. Feel free to set it accordingly when you set up your controller.
 Personally, I use the same controller button that I have mappend to Ctrl+S in Antimicro, so the same button takes screenshots in all emulators.
@@ -108,7 +110,7 @@ The version of PCSX2 changes the default screenshot key to Ctrl+S. It also chang
 The configuration options for PCSX2 are extensive. You might want to play around with them to try to get as little lag as possible.
 
 ### Citra (3DS)
-The version of Citra changes the default screenshot key to Ctrl+S, the default toggle status bar key to Ctrl+P, and the default exit full screen key to F12. In addition, this version removes the prompt that asks you for a screenshot file name and simply uses the current timestamp as the name. When Citra first starts up, it will ask if you want to send data to the Citra team for debugging. Finally, there are some points within games where you might have to do something that usually would interact with shared 3DS data such as select a Mii. Citra handles this nicely and shows a dialog box. You'll likely have to use a mouse to navigate these, however. 
+The version of Citra changes the default screenshot key to Ctrl+S, the default toggle status bar key to Ctrl+P, and the default exit full screen key to F12. In addition, this version removes the prompt that asks you for a screenshot file name and simply uses the current timestamp as the name. When Citra first starts up, it will ask if you want to send data to the Citra team for debugging. Finally, there are some points within games where you might have to do something that usually would interact with shared 3DS data such as select a Mii. Citra handles this nicely and shows a dialog box. You'll likely have to use a mouse to navigate these, however. Additionally, this version of Citra does not include controller GUIDs in the input mapping. Therefore, you can use any controller to send an input. This is set up so you can switch between your regular controller and the GuyStation virtual controller easily.
 
 ### PPSSPP (PSP)
 Make sure set to set a key for taking screenshots if you want to (probably Ctrl+S). By default, PPSSPP uses Escape to pause the game meaning returning to the menu will pause the game. Feel free to change this if you do not want this to occur.
@@ -172,11 +174,11 @@ There are a few important things to note with this. You won't be able to change 
 Multiple monitors are not supported. Using multiple monitors will cause issues with ensuring the screen resolution is correct and streaming the screen.
 
 ## Known Issues
-* Citra maps buttons with respect to individual controller types, so you'll need separate control profiles for each control (and the vitual controller through screencast).
 * Dolphin does something similar where it keeps track of controllers by controller type.
 * PCSX2 does not recognize the virtual controller.
 * Citra and Mupen64 flicker when hiding the screenshare message. As such, the message is not hidden when these emulators are in use and screenshare is started. It is made transparent, and click event are ignored on it.
 * A program restart is required if you change the screen resolution.
+* PS2, PSP, and NGC can't have their controls set with EZ Controller Configuration.
 
 ## Credits and Special Thanks
 * Game Boy Advance and DS Lite icons: [David Pérez](https://thenounproject.com/david730/)

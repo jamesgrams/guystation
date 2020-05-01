@@ -11,5 +11,90 @@
   "argsFirst": true,
   "fullScreenFailsafe": "wmctrl -i -r $(wmctrl -l | grep -E \"Glide64|Mupen64Plus\" | cut -d ' ' -f 1) -b add,fullscreen",
   "getResolutionCommand": "wmctrl -lG | grep -E \"Glide64|Mupen64Plus\" | tr -s ' ' | cut -f 5,6 -d ' ' | tr ' ' x",
-  "failsafeStateCheck": "xprop -id $(wmctrl -l | grep -E \"Glide64|Mupen64Plus\" | cut -d ' ' -f 1) | grep _NET_WM_STATE"
+  "failsafeStateCheck": "xprop -id $(wmctrl -l | grep -E \"Glide64|Mupen64Plus\" | cut -d ' ' -f 1) | grep _NET_WM_STATE",
+  "config": {
+    "file": "/home/james/.config/mupen64plus/mupen64plus.cfg",
+    "controls": {
+      "A": {
+        "keys": ["Input-SDL-Control1","A Button"]
+      },
+      "B": {
+        "keys": ["Input-SDL-Control1","B Button"]
+      },
+      "R1": {
+        "keys": ["Input-SDL-Control1","Z Trig"]
+      },
+      "L2": {
+        "keys": ["Input-SDL-Control1","L Trig"]
+      },
+      "R2": {
+        "keys": ["Input-SDL-Control1","R Trig"]
+      },
+      "Up": {
+        "keys": ["Input-SDL-Control1","DPad U"]
+      },
+      "Down": {
+        "keys": ["Input-SDL-Control1","DPad D"]
+      },
+      "Left": {
+        "keys": ["Input-SDL-Control1","DPad L"]
+      },
+      "Right": {
+        "keys": ["Input-SDL-Control1","DPad R"]
+      },
+      "Start": {
+        "keys": ["Input-SDL-Control1","Start"]
+      },
+      "Axis X-": {
+        "keys": ["Input-SDL-Control1","X Axis"],
+        "controlsRegex": "\\(([^,]*),([^\\)]*)",
+        "selfPosition": 0,
+        "type": "axis"
+      },
+      "Axis X+": {
+        "keys": ["Input-SDL-Control1","X Axis"],
+        "controlsRegex": "\\(([^,]*),([^\\)]*)",
+        "selfPosition": 1,
+        "type": "axis"
+      },
+      "Axis Y-": {
+        "keys": ["Input-SDL-Control1","Y Axis"],
+        "controlsRegex": "\\(([^,]*),([^\\)]*)",
+        "selfPosition": 0,
+        "type": "axis"
+      },
+      "Axis Y+": {
+        "keys": ["Input-SDL-Control1","Y Axis"],
+        "controlsRegex": "\\(([^,]*),([^\\)]*)",
+        "selfPosition": 1,
+        "type": "axis"
+      },
+      "Axis X2-": {
+        "keys": ["Input-SDL-Control1","C Button L"]
+      },
+      "Axis X2+": {
+        "keys": ["Input-SDL-Control1","C Button R"]
+      },
+      "Axis Y2-": {
+        "keys": ["Input-SDL-Control1","C Button U"]
+      },
+      "Axis Y2+": {
+        "keys": ["Input-SDL-Control1","C Button D"]
+      }
+    },
+    "controlFormat": {
+      "axis": {
+        "axis": "axis($CONTROL,$CONTROL)",
+        "button": "axis($CONTROL)"
+      },
+      "button": {
+        "axis": "button($CONTROL,$CONTROL)",
+        "button": "button($CONTROL)"
+      },
+      "key": {
+        "axis": "key($CONTROL,$CONTROL)",
+        "button": "key($CONTROL)"
+      }
+    }
+  }
 }

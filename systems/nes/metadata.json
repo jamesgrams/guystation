@@ -6,5 +6,39 @@
   "screenshotsDirArgType": " ",
   "extraFlags": [],
   "fullScreenButtons": ["alt", "enter"],
-  "activateCommand": "wmctrl -a 'FCEUX'"
+  "activateCommand": "wmctrl -a 'FCEUX'",
+  "config": {
+    "file": "/home/james/.fceux/fceux.cfg",
+    "controls": {
+      "A": {
+        "keys": ["SDL.Input.GamePad.0A"]
+      },
+      "B": {
+        "keys": ["SDL.Input.GamePad.0B"]
+      },
+      "Up": {
+        "keys": ["SDL.Input.GamePad.0Up"]
+      },
+      "Down": {
+        "keys": ["SDL.Input.GamePad.0Down"]
+      },
+      "Left": {
+        "keys": ["SDL.Input.GamePad.0Left"]
+      },
+      "Right": {
+        "keys": ["SDL.Input.GamePad.0Right"]
+      },
+      "Start": {
+        "keys": ["SDL.Input.GamePad.0Start"]
+      },
+      "Select": {
+        "keys": ["SDL.Input.GamePad.0Select"]
+      }
+    },
+    "controlFormat": {
+      "axis": "$CONTROL",
+      "button": "$CONTROL",
+      "key": "$CONTROL"
+    }
+  }
 }

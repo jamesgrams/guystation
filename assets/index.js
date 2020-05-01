@@ -26,9 +26,11 @@ var SCROLL_TIMEOUT_TIME = 500;
 var SCROLL_NEEDED = 1250;
 var RELOAD_MESSAGES_INTERVAL = 5000;
 var CHATTING_MESSAGES_INTERVAL = 1000;
-var AXIS_FUZZINESS = 15;
+var SCREENCAST_AXIS_FUZZINESS = 15;
 var MAX_JOYSTICK_VALUE = 128;
 var MOUSE_MOVE_SEND_INTERVAL = 100;
+var EZ_AXIS_MIN_TO_SET = 0.5; // we have to be at least 0.5 beyond the last value to set
+var EZ_AXIS_ALLOW_FOR_NEXT_INPUT = 0.2; // we will set the last value within this much (allowing for another set), or when we set
 var KEYCODES = {
     '0': 48,
     '1': 49,
@@ -151,6 +153,41 @@ var PADCODES = {
     '🕹️L': 1, // there's special logic for these analog pads based on their names, so be careful when changing them
     '🕹️R': 2
 }
+// These are the buttons that will be used
+var EZ_EMULATOR_CONFIG_BUTTONS = [
+    'A',
+    'B',
+    'X',
+    'Y',
+    'L',
+    'R',
+    'L2',
+    'R2',
+    'L3',
+    'R3',
+    'Select',
+    'Start',
+    'Up',
+    'Down',
+    'Left',
+    'Right',
+    'Axis X-',
+    'Axis X+',
+    'Axis Y-',
+    'Axis Y+',
+    'Axis X2-',
+    'Axis X2+',
+    'Axis Y2-',
+    'Axis Y2+',
+];
+var EZ_SYSTEMS = [
+    "3ds",
+    "gba",
+    "n64",
+    "nds",
+    "nes",
+    "snes"
+];
 
 var expandCountLeft; // We always need to have a complete list of systems, repeated however many times we want, so the loop works properly
 var expandCountRight;
@@ -187,10 +224,12 @@ var scrollAddTimeout;
 var messages = [];
 var fetchedMessages = false;
 var swRegistration;
+
 var screencastButtonsPressed = {};
 var screencastAxisLastValues = {};
 // keys are server values, values are client values
 var screencastControllerMap = {}; // allow the user to map button inputs on the client to buttons on the virtual controller (button 5 on the client xbox contrller goes to button 9 on the virtual controller)
+
 var sambaUrl;
 
 // Hold escape for 5 seconds to quit
@@ -210,6 +249,7 @@ var joyMapping = {
     "D-pad Right": 16
 }
 // This will be used for buttons that we need to be up again before calling what they do again
+// This is specifically for the local GuyStation - the screencast keeps track in a different way (screencastButtonsPressed)
 var buttonsUp = {
     "gamepad": {},
     "keyboard": {
@@ -2180,7 +2220,107 @@ function displayJoypadConfig() {
         window.localStorage.guystationScreencastControllerMap = JSON.stringify(screencastControllerMap);
         closeModal();
     } ) );
+
+    warning = createWarning("EZ Emulator Controller Configuration");
+    warning.classList.add("break");
+    warning.setAttribute("title", "This section can be used to set controls for multiple emulators at once. For example, you might map \"A\" to button 1 on your controller. GuyStation would then map button 1 to A for GBA, A for N64, Circle for PSP, etc. if those emulators are selected.");
+    form.appendChild(warning);
+    for( var i=0; i<EZ_EMULATOR_CONFIG_BUTTONS.length; i++ ) {
+        var label = createInput( "", "ez-input-" + i, EZ_EMULATOR_CONFIG_BUTTONS[i], "search", true );
+        label.setAttribute("data-ez-button", i);
+        var input = label.querySelector("input");
+
+        input.onkeydown = (function(index) { 
+            return function(e) {
+                appendEzInput( this, e.which, "key" );
+                e.preventDefault();
+                e.stopPropagation();
+                focusNextInput( document.querySelector("#ez-input-" + (index+1)) );
+            } 
+        })(i);
+
+        form.appendChild( label ); 
+    }
+
+    var systemsSection = document.createElement("div");
+    systemsSection.classList.add("systems-checkboxes");
+    for( var i=0; i<EZ_SYSTEMS.length; i++ ) {
+        var checkbox = createInput("", "ez-checkbox-" + i, EZ_SYSTEMS[i], "checkbox", true);
+        checkbox.classList.add("inline");
+        systemsSection.appendChild(checkbox);
+    }
+    form.appendChild(systemsSection);
+
+    form.appendChild( createButton( "Apply EZ Config", function() {
+        var inputs = document.querySelectorAll("#joypad-config-form label[data-ez-button] input");
+
+        var values = {};
+        // comma separated list in the form of key/axis/button(control)
+        for( var i=0; i<inputs.length; i++ ) {
+            var guystationButton = EZ_EMULATOR_CONFIG_BUTTONS[inputs[i].parentNode.getAttribute("data-ez-button")];
+            
+            // Get the list of buttons that have been set for each input
+            var buttons = inputs[i].value.split(","); // we have to split by pipe here
+            var buttonsToSet = [];
+            // For each of the buttons
+            for( var j=0; j<buttons.length; j++ ) {
+                // Get the type and the control (e.g. keycode, axis+, etc) - we don't ever expect and array
+                var match = buttons[j].match(/([^\(]+)\(([^\)]+)\)/);
+                if( match ) {
+                    buttonsToSet.push( {
+                        type: match[1],
+                        button: match[2]
+                    } );
+                }
+            }
+
+            if( buttonsToSet.length ) {
+                values[guystationButton] = buttonsToSet;
+            }
+        }
+
+        // figure out for which systems we need to send values
+        var systems = [];
+        var checkboxes = document.querySelectorAll("#joypad-config-form input[type='checkbox']");
+        for( var i=0; i<checkboxes.length; i++) {
+            if( checkboxes[i].checked ) {
+                systems.push( checkboxes[i].parentNode.querySelector("span").innerText );
+            }
+        }
+
+        var sendObject = { "systems": systems, "values": values };
+        makeRequest("POST", "/controls", sendObject, function() {
+            createToast("Controls set");
+        }, function(data) {
+            try {
+                var message = JSON.parse(data).message;
+                createToast(message);
+            }
+            catch(err) {
+                createToast("Could not set controls.");
+            }
+        });
+
+    } ) );
+
     launchModal( form );
+}
+
+/**
+ * Append a value to an EZ Input element
+ * @param {HTMLElement} inputElement - The input element.
+ * @param {string} value - The value to add.
+ * @param {string} type - The type of element
+ */
+function appendEzInput(inputElement, value, type) {
+    var newValue = "";
+    newValue += type + "(" + value + ")";
+
+    // no repeats
+    if( !inputElement.value.includes(newValue) ) {
+        if(inputElement.value) inputElement.value += ",";
+        inputElement.value += newValue;
+    }
 }
 
 /**
@@ -2473,7 +2613,7 @@ function createKeyButton( selected, x, y ) {
         var yValueForServer = distanceYFromCenter/maxDistanceTraveled * MAX_JOYSTICK_VALUE;
 
         // always send the stop event (!e)
-        if( !lastJoystickValues.length || (Math.abs(lastJoystickValues[0] - xValueForServer)) > AXIS_FUZZINESS || (Math.abs(lastJoystickValues[1] - yValueForServer)) > AXIS_FUZZINESS || (!e) ) {
+        if( !lastJoystickValues.length || (Math.abs(lastJoystickValues[0] - xValueForServer)) > SCREENCAST_AXIS_FUZZINESS || (Math.abs(lastJoystickValues[1] - yValueForServer)) > SCREENCAST_AXIS_FUZZINESS || (!e) ) {
             lastJoystickValues = [xValueForServer, yValueForServer];
 
             // The right axis are 2 & 3
@@ -4506,6 +4646,8 @@ function manageGamepadInput() {
     try {
         for (var i=0; i<gamepads.length; i++) {
             var gp = gamepads[i];
+            if( !gp ) continue;
+
             if( !disableMenuControls && document.hasFocus() && gp && gp.buttons ) {
 
                 // See this helpful image for mappings: https://www.html5rocks.com/en/tutorials/doodles/gamepad/gamepad_diagram.png
@@ -4582,23 +4724,45 @@ function manageGamepadInput() {
                 var inputs = document.querySelectorAll("#joypad-config-form input");
                 // Check if an input is focused
                 if( !focusInterval ) {
-                    for( var i=0; i<inputs.length; i++ ) {
-                        if( inputs[i] === document.activeElement ) {
+                    for( var j=0; j<inputs.length; j++ ) {
+                        if( inputs[j] === document.activeElement ) {
+                            var isEz = inputs[j].getAttribute("type") == "search";
+
                             // If so, check if any buttons are pressed
-                            for( var j=0; j<gp.buttons.length; j++ ) {
+                            for( var k=0; k<gp.buttons.length; k++ ) {
                                 // If so, set the input's value to be that of the pressed button
-                                if(buttonPressed(gp.buttons[j])) {
-                                    inputs[i].value = j;
-                                    if( inputs[i+1] ) {
-                                        if( focusInterval ) {
-                                            clearTimeout(focusInterval);
-                                            focusInterval = null;
-                                        }
-                                        focusInterval = setTimeout( function(index) { return function() { inputs[index+1].focus(); focusInterval=null; } }(i), FOCUS_NEXT_INTERVAL );
-                                    } 
+                                if(buttonPressed(gp.buttons[k])) {
+
+                                    // we have a special syntax for ez buttons
+                                    if( isEz )
+                                        appendEzInput(inputs[j], k, "button");
+                                    else
+                                        inputs[j].value = k;
+
+                                    focusNextInput(inputs[j + 1]);
                                     break;
                                 }
                             }
+
+                            if( isEz ) {
+                                for( var k=0; k<gp.axes.length; k++ ) {                                    
+                                    var value = gp.axes[k];
+
+                                    // trigger buttons
+                                    if( gp.axes.length == 6 ) {
+                                        if( k == 2 || k == 5 ) value = (value + 1)/2;
+                                    }
+
+                                    // we have to have enough change set set this value
+                                    if( Math.abs(value) > EZ_AXIS_MIN_TO_SET ) {
+                                        appendEzInput(inputs[j], k + (value < 0 ? "-" : "+"), "axis");
+
+                                        focusNextInput(inputs[j + 1]);
+                                        break;
+                                    }
+                                }
+                            }
+
                             break;
                         }
                     }
@@ -4606,55 +4770,55 @@ function manageGamepadInput() {
             }
             // Check if we are on a screencast - forward buttons
             else if( document.hasFocus() && document.querySelector(".screencast-wrapper") ) {
-                for( var i=0; i<gp.buttons.length; i++ ) {
-                    if( ( !screencastButtonsPressed[i] && buttonPressed(gp.buttons[i]) ) || ( screencastButtonsPressed[i] && !buttonPressed(gp.buttons[i]) ) ) {
-                        if( !screencastButtonsPressed[i] ) {
-                            screencastButtonsPressed[i] = true;
+                for( var j=0; j<gp.buttons.length; j++ ) {
+                    if( ( !screencastButtonsPressed[j] && buttonPressed(gp.buttons[j]) ) || ( screencastButtonsPressed[j] && !buttonPressed(gp.buttons[j]) ) ) {
+                        if( !screencastButtonsPressed[j] ) {
+                            screencastButtonsPressed[j] = true;
                         }
                         else {
-                            screencastButtonsPressed[i] = false;
+                            screencastButtonsPressed[j] = false;
                         }
                         // we send the codes that correspond with the buttons numbers. So padcodes have A as button 0, so when
                         // the client controller presses button 0, we send A, which means button 0 on the server unless a mapping specifies otherwise
                         // i is the client controller button
                         var scMapKeys = Object.keys(screencastControllerMap);
-                        var valuesForClientButton = scMapKeys.filter( el => screencastControllerMap[el] == i );
-                        if( !screencastControllerMap[i] ) valuesForClientButton.push(i); // if nothing is mapped for this button on the server, send this button. this means 2 == 2 as we intentionally left that blank.
-                        for( var j=0; j<valuesForClientButton.length; j++ ) {
-                            var buttonCode = Object.values(PADCODES)[valuesForClientButton[j]];
-                            socket.emit("/screencast/gamepad", { "event": { "type": 0x01, "code": buttonCode, "value": screencastButtonsPressed[i] } } );
+                        var valuesForClientButton = scMapKeys.filter( el => screencastControllerMap[el] == j );
+                        if( !screencastControllerMap[j] ) valuesForClientButton.push(j); // if nothing is mapped for this button on the server, send this button. this means 2 == 2 as we intentionally left that blank.
+                        for( var k=0; k<valuesForClientButton.length; k++ ) {
+                            var buttonCode = Object.values(PADCODES)[valuesForClientButton[k]];
+                            socket.emit("/screencast/gamepad", { "event": { "type": 0x01, "code": buttonCode, "value": screencastButtonsPressed[j] } } );
                             // send trigger axis changes if these are trigger buttons
                             if( buttonCode == 0x138 || buttonCode == 0x139 ) {
                                 var newCode = buttonCode == 0x138 ? 0x10 : 0x11;
-                                socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": newCode, "value": screencastButtonsPressed[i] ? MAX_JOYSTICK_VALUE : -MAX_JOYSTICK_VALUE } } );
+                                socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": newCode, "value": screencastButtonsPressed[j] ? MAX_JOYSTICK_VALUE : -MAX_JOYSTICK_VALUE } } );
                             }
                         }
                     }
                 }
 
 
-                for( var i=0; i<gp.axes.length; i++ ) {
-                    var serverAxisValue = Math.round(gp.axes[i] * MAX_JOYSTICK_VALUE);
+                for( var j=0; j<gp.axes.length; j++ ) {
+                    var serverAxisValue = Math.round(gp.axes[j] * MAX_JOYSTICK_VALUE);
                     // if within 1, its ok, unless it is 0
-                    if( !screencastAxisLastValues[i] || Math.abs(serverAxisValue - screencastAxisLastValues[i]) > AXIS_FUZZINESS || (serverAxisValue == 0 && screencastAxisLastValues[i] != 0) ) {
-                        screencastAxisLastValues[i] = serverAxisValue;
+                    if( !screencastAxisLastValues[j] || Math.abs(serverAxisValue - screencastAxisLastValues[j]) > SCREENCAST_AXIS_FUZZINESS || (serverAxisValue == 0 && screencastAxisLastValues[j] != 0) ) {
+                        screencastAxisLastValues[j] = serverAxisValue;
                         // a wii u pro controller uses axes 0,1 for left stick and 3,4 for right stick
                         // an xbox 360 controller does this too. but there are also axes 2 and 5 for the left and right triggers respectively.
                         // however, since the js gamepad api returns arrays, for wii u, axis 2 and 3 in the gamepad api are 3 and 4.
                         var axisAdder = 0;
-                        if( gp.axes.length == 4 && i > 1 ) {
+                        if( gp.axes.length == 4 && j > 1 ) {
                             axisAdder = 1;
                         }
                         if( gp.axes.length == 6 ) {
-                            if( i == 2 ) axisAdder = 14;
-                            if( i == 5 ) axisAdder = 12;
+                            if( j == 2 ) axisAdder = 14;
+                            if( j == 5 ) axisAdder = 12;
                         }
-                        socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": i + axisAdder, "value": serverAxisValue } });
+                        socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": j + axisAdder, "value": serverAxisValue } });
                         // if we press a trigger axis, also send a trigger button
                         if( gp.axes.length == 6 ) {
                             var buttonCode;
-                            if( i == 2 ) buttonCode = 0x138;
-                            else if( i == 5 ) buttonCode = 0x139;
+                            if( j == 2 ) buttonCode = 0x138;
+                            else if( j == 5 ) buttonCode = 0x139;
                             socket.emit("/screencast/gamepad", { "event": { "type": 0x01, "code": buttonCode, "value": serverAxisValue > 0 ? 1 : 0 } } );
                         }
                     }
@@ -4726,10 +4890,25 @@ function manageGamepadInput() {
         }
     }
     catch( err ) {
+        console.log(err);
         gamePadInterval = setInterval(pollGamepads, GAMEPAD_INTERVAL);
         return;
     }
     setTimeout(manageGamepadInput, GAMEPAD_INPUT_INTERVAL);
+}
+
+/**
+ * Focus on the next input.
+ * @param {HTMLElement} nextInput - The next input to focus on.
+ */
+function focusNextInput( nextInput ) {
+    if( nextInput ) {
+        if( focusInterval ) {
+            clearTimeout(focusInterval);
+            focusInterval = null;
+        }
+        focusInterval = setTimeout( function() { nextInput.focus(); focusInterval=null; }, FOCUS_NEXT_INTERVAL );
+    } 
 }
 
 /**

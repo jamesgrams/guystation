@@ -6,5 +6,51 @@
   "screenshotsDirArgType": " ",
   "extraFlags": ["-fullscreen"],
   "activateCommand": "wmctrl -a 'Snes9X'",
-  "argsFirst": true
+  "argsFirst": true,
+  "config": {
+    "file": "/home/james/.config/snes9x/snes9x.conf",
+    "controls": {
+      "A": {
+        "keys": ["Joypad 0","A"]
+      },
+      "B": {
+        "keys": ["Joypad 0","B"]
+      },
+      "X": {
+        "keys": ["Joypad 0","X"]
+      },
+      "Y": {
+        "keys": ["Joypad 0","Y"]
+      },
+      "L2": {
+        "keys": ["Joypad 0","L"]
+      },
+      "R2": {
+        "keys": ["Joypad 0","R"]
+      },
+      "Up": {
+        "keys": ["Joypad 0","Up"]
+      },
+      "Down": {
+        "keys": ["Joypad 0","Down"]
+      },
+      "Left": {
+        "keys": ["Joypad 0","Left"]
+      },
+      "Right": {
+        "keys": ["Joypad 0","Right"]
+      },
+      "Start": {
+        "keys": ["Joypad 0","Start"]
+      },
+      "Select": {
+        "keys": ["Joypad 0","Select"]
+      }
+    },
+    "controlFormat": {
+      "axis": "Joystick 1 Axis $CONTROL 40%",
+      "button": "Joystick 1 Button $CONTROL",
+      "key": "Keyboard $CONTROL"
+    }
+  }
 }

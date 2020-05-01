@@ -6,5 +6,63 @@
   "screenshotsDirArgType": " ",
   "extraFlags": [],
   "fullScreenButtons": ["f11"],
-  "activateCommand": "wmctrl -a 'DeSmuME'"
+  "activateCommand": "wmctrl -a 'DeSmuME'",
+  "config": {
+    "file": "/home/james/.config/desmume/config",
+    "controls": {
+      "A": {
+        "keys": ["JOYKEYS","A"],
+        "keyboardKeys": ["KEYS","A"]
+      },
+      "B": {
+        "keys": ["JOYKEYS","B"],
+        "keyboardKeys": ["KEYS","B"]
+      },
+      "X": {
+        "keys": ["JOYKEYS","X"],
+        "keyboardKeys": ["KEYS","X"]
+      },
+      "Y": {
+        "keys": ["JOYKEYS","Y"],
+        "keyboardKeys": ["KEYS","Y"]
+      },
+      "L2": {
+        "keys": ["JOYKEYS","L"],
+        "keyboardKeys": ["KEYS","L"]
+      },
+      "R2": {
+        "keys": ["JOYKEYS","R"],
+        "keyboardKeys": ["KEYS","R"]
+      },
+      "Up": {
+        "keys": ["JOYKEYS","Up"],
+        "keyboardKeys": ["KEYS","Up"]
+      },
+      "Down": {
+        "keys": ["JOYKEYS","Down"],
+        "keyboardKeys": ["KEYS","Down"]
+      },
+      "Left": {
+        "keys": ["JOYKEYS","Left"],
+        "keyboardKeys": ["KEYS","Left"]
+      },
+      "Right": {
+        "keys": ["JOYKEYS","Right"],
+        "keyboardKeys": ["KEYS","Right"]
+      },
+      "Start": {
+        "keys": ["JOYKEYS","Start"],
+        "keyboardKeys": ["KEYS","Start"]
+      },
+      "Select": {
+        "keys": ["JOYKEYS","Select"],
+        "keyboardKeys": ["KEYS","Select"]
+      }
+    },
+    "controlFormat": {
+      "axis": "$CONTROL",
+      "button": "$CONTROL",
+      "key": "$CONTROL"
+    }
+  }
 }

@@ -4,5 +4,172 @@
   "screenshotsDirArgType": "=",
   "extraFlags": ["--fullscreen"],
   "activateCommand": "wmctrl -a 'Citra'",
-  "nandPathCommand": "citra --save-path='ROM_FILE_PLACEHOLDER'"
+  "nandPathCommand": "citra --save-path='ROM_FILE_PLACEHOLDER'",
+  "config": {
+    "file": "/home/james/.config/citra-emu/qt-config.ini",
+    "controls": {
+      "A": {
+        "keys": ["Controls","profiles\\1\\button_a"]
+      },
+      "B": {
+        "keys": ["Controls","profiles\\1\\button_b"]
+      },
+      "X": {
+        "keys": ["Controls","profiles\\1\\button_x"]
+      },
+      "Y": {
+        "keys": ["Controls","profiles\\1\\button_y"]
+      },
+      "L2": {
+        "keys": ["Controls","profiles\\1\\button_l"]
+      },
+      "R2": {
+        "keys": ["Controls","profiles\\1\\button_r"]
+      },
+      "Up": {
+        "keys": ["Controls","profiles\\1\\button_up"]
+      },
+      "Down": {
+        "keys": ["Controls","profiles\\1\\button_down"]
+      },
+      "Left": {
+        "keys": ["Controls","profiles\\1\\button_left"]
+      },
+      "Right": {
+        "keys": ["Controls","profiles\\1\\button_right"]
+      },
+      "Start": {
+        "keys": ["Controls","profiles\\1\\button_start"]
+      },
+      "Select": {
+        "keys": ["Controls","profiles\\1\\button_select"]
+      },
+      "Axis X-": {
+        "keys": ["Controls","profiles\\1\\circle_pad"],
+        "controlsRegex": {
+          "axis": "axis_x:([^,]*),axis_y:([^,]*)",
+          "key": "down:engine\\$0keyboard\\$1code\\$0([^,\\$]*)[^,]*,engine:analog_from_button,left:engine\\$0keyboard\\$1code\\$0([^,\\$]*)[^,]*,modifier_scale:0.5,right:engine\\$0keyboard\\$1code\\$0([^,\\$]*)[^,]*,up:engine\\$0keyboard\\$1code\\$0([^,\\$]*)[^,]*",
+          "button": "down:engine\\$0sdl\\$1button\\$0([^,\\$]*)[^,]*,engine:analog_from_button,left:engine\\$0sdl\\$1button\\$0([^,\\$]*)[^,]*,modifier_scale:0.5,right:engine\\$0sdl\\$1button\\$0([^,\\$]*)[^,]*,up:engine\\$0sdl\\$1button\\$0([^,\\$]*)[^,]*"
+        },
+        "selfPosition": {
+          "axis": 0,
+          "key": 1,
+          "button": 1
+        },
+        "type": "axis"
+      },
+      "Axis X+": {
+        "keys": ["Controls","profiles\\1\\circle_pad"],
+        "controlsRegex": {
+          "axis": "axis_x:([^,]*),axis_y:([^,]*)",
+          "key": "down:engine\\$0keyboard\\$1code\\$0([^,\\$]*)[^,]*,engine:analog_from_button,left:engine\\$0keyboard\\$1code\\$0([^,\\$]*)[^,]*,modifier_scale:0.5,right:engine\\$0keyboard\\$1code\\$0([^,\\$]*)[^,]*,up:engine\\$0keyboard\\$1code\\$0([^,\\$]*)[^,]*",
+          "button": "down:engine\\$0sdl\\$1button\\$0([^,\\$]*)[^,]*,engine:analog_from_button,left:engine\\$0sdl\\$1button\\$0([^,\\$]*)[^,]*,modifier_scale:0.5,right:engine\\$0sdl\\$1button\\$0([^,\\$]*)[^,]*,up:engine\\$0sdl\\$1button\\$0([^,\\$]*)[^,]*"
+        },
+        "selfPosition": {
+          "axis": 0,
+          "key": 2,
+          "button": 2
+        },
+        "type": "axis"
+      },
+      "Axis Y-": {
+        "keys": ["Controls","profiles\\1\\circle_pad"],
+        "controlsRegex": {
+          "axis": "axis_x:([^,]*),axis_y:([^,]*)",
+          "key": "down:engine\\$0keyboard\\$1code\\$0([^,\\$]*)[^,]*,engine:analog_from_button,left:engine\\$0keyboard\\$1code\\$0([^,\\$]*)[^,]*,modifier_scale:0.5,right:engine\\$0keyboard\\$1code\\$0([^,\\$]*)[^,]*,up:engine\\$0keyboard\\$1code\\$0([^,\\$]*)[^,]*",
+          "button": "down:engine\\$0sdl\\$1button\\$0([^,\\$]*)[^,]*,engine:analog_from_button,left:engine\\$0sdl\\$1button\\$0([^,\\$]*)[^,]*,modifier_scale:0.5,right:engine\\$0sdl\\$1button\\$0([^,\\$]*)[^,]*,up:engine\\$0sdl\\$1button\\$0([^,\\$]*)[^,]*"
+        },
+        "selfPosition": {
+          "axis": 1,
+          "key": 3,
+          "button": 3
+        },
+        "type": "axis"
+      },
+      "Axis Y+": {
+        "keys": ["Controls","profiles\\1\\circle_pad"],
+        "controlsRegex": {
+          "axis": "axis_x:([^,]*),axis_y:([^,]*)",
+          "key": "down:engine\\$0keyboard\\$1code\\$0([^,\\$]*)[^,]*,engine:analog_from_button,left:engine\\$0keyboard\\$1code\\$0([^,\\$]*)[^,]*,modifier_scale:0.5,right:engine\\$0keyboard\\$1code\\$0([^,\\$]*)[^,]*,up:engine\\$0keyboard\\$1code\\$0([^,\\$]*)[^,]*",
+          "button": "down:engine\\$0sdl\\$1button\\$0([^,\\$]*)[^,]*,engine:analog_from_button,left:engine\\$0sdl\\$1button\\$0([^,\\$]*)[^,]*,modifier_scale:0.5,right:engine\\$0sdl\\$1button\\$0([^,\\$]*)[^,]*,up:engine\\$0sdl\\$1button\\$0([^,\\$]*)[^,]*"
+        },
+        "selfPosition": {
+          "axis": 1,
+          "key": 0,
+          "button": 0
+        },
+        "type": "axis"
+      },
+      "Axis X2-": {
+        "keys": ["Controls","profiles\\1\\c_stick"],
+        "controlsRegex": {
+          "axis": "axis_x:([^,]*),axis_y:([^,]*)",
+          "key": "down:engine\\$0keyboard\\$1code\\$0([^,\\$]*)[^,]*,engine:analog_from_button,left:engine\\$0keyboard\\$1code\\$0([^,\\$]*)[^,]*,modifier_scale:0.5,right:engine\\$0keyboard\\$1code\\$0([^,\\$]*)[^,]*,up:engine\\$0keyboard\\$1code\\$0([^,\\$]*)[^,]*",
+          "button": "down:engine\\$0sdl\\$1button\\$0([^,\\$]*)[^,]*,engine:analog_from_button,left:engine\\$0sdl\\$1button\\$0([^,\\$]*)[^,]*,modifier_scale:0.5,right:engine\\$0sdl\\$1button\\$0([^,\\$]*)[^,]*,up:engine\\$0sdl\\$1button\\$0([^,\\$]*)[^,]*"
+        },
+        "selfPosition": {
+          "axis": 0,
+          "key": 1,
+          "button": 1
+        },
+        "type": "axis"
+      },
+      "Axis X2+": {
+        "keys": ["Controls","profiles\\1\\c_stick"],
+        "controlsRegex": {
+          "axis": "axis_x:([^,]*),axis_y:([^,]*)",
+          "key": "down:engine\\$0keyboard\\$1code\\$0([^,\\$]*)[^,]*,engine:analog_from_button,left:engine\\$0keyboard\\$1code\\$0([^,\\$]*)[^,]*,modifier_scale:0.5,right:engine\\$0keyboard\\$1code\\$0([^,\\$]*)[^,]*,up:engine\\$0keyboard\\$1code\\$0([^,\\$]*)[^,]*",
+          "button": "down:engine\\$0sdl\\$1button\\$0([^,\\$]*)[^,]*,engine:analog_from_button,left:engine\\$0sdl\\$1button\\$0([^,\\$]*)[^,]*,modifier_scale:0.5,right:engine\\$0sdl\\$1button\\$0([^,\\$]*)[^,]*,up:engine\\$0sdl\\$1button\\$0([^,\\$]*)[^,]*"
+        },
+        "selfPosition": {
+          "axis": 0,
+          "key": 2,
+          "button": 2
+        },
+        "type": "axis"
+      },
+      "Axis Y2-": {
+        "keys": ["Controls","profiles\\1\\c_stick"],
+        "controlsRegex": {
+          "axis": "axis_x:([^,]*),axis_y:([^,]*)",
+          "key": "down:engine\\$0keyboard\\$1code\\$0([^,\\$]*)[^,]*,engine:analog_from_button,left:engine\\$0keyboard\\$1code\\$0([^,\\$]*)[^,]*,modifier_scale:0.5,right:engine\\$0keyboard\\$1code\\$0([^,\\$]*)[^,]*,up:engine\\$0keyboard\\$1code\\$0([^,\\$]*)[^,]*",
+          "button": "down:engine\\$0sdl\\$1button\\$0([^,\\$]*)[^,]*,engine:analog_from_button,left:engine\\$0sdl\\$1button\\$0([^,\\$]*)[^,]*,modifier_scale:0.5,right:engine\\$0sdl\\$1button\\$0([^,\\$]*)[^,]*,up:engine\\$0sdl\\$1button\\$0([^,\\$]*)[^,]*"
+        },
+        "selfPosition": {
+          "axis": 1,
+          "key": 3,
+          "button": 3
+        },
+        "type": "axis"
+      },
+      "Axis Y2+": {
+        "keys": ["Controls","profiles\\1\\c_stick"],
+        "controlsRegex": {
+          "axis": "axis_x:([^,]*),axis_y:([^,]*)",
+          "key": "down:engine\\$0keyboard\\$1code\\$0([^,\\$]*)[^,]*,engine:analog_from_button,left:engine\\$0keyboard\\$1code\\$0([^,\\$]*)[^,]*,modifier_scale:0.5,right:engine\\$0keyboard\\$1code\\$0([^,\\$]*)[^,]*,up:engine\\$0keyboard\\$1code\\$0([^,\\$]*)[^,]*",
+          "button": "down:engine\\$0sdl\\$1button\\$0([^,\\$]*)[^,]*,engine:analog_from_button,left:engine\\$0sdl\\$1button\\$0([^,\\$]*)[^,]*,modifier_scale:0.5,right:engine\\$0sdl\\$1button\\$0([^,\\$]*)[^,]*,up:engine\\$0sdl\\$1button\\$0([^,\\$]*)[^,]*"
+        },
+        "selfPosition": {
+          "axis": 1,
+          "key": 0,
+          "button": 0
+        },
+        "type": "axis"
+      }
+    },
+    "controlFormat": {
+      "axis": {
+        "axis": "axis_x:$CONTROL,axis_y:$CONTROL,engine:sdl,guid:0,port:0",
+        "button": "axis:$CONTROL,engine:sdl,guid:0,port:0"
+      },
+      "button": {
+        "axis": "down:engine$0sdl$1button$0$CONTROL$1guid$00$1port$00,engine:analog_from_button,left:engine$0sdl$1button$0$CONTROL$1guid$00$1port$00,modifier_scale:0.5,right:engine$0sdl$1button$0$CONTROL$1guid$00$1port$00,up:engine$0sdl$1button$0$CONTROL$1guid$00$1port$00",
+        "button": "button:$CONTROL,engine:sdl,guid:0,port:0"
+      },
+      "key": {
+        "axis": "down:engine$0keyboard$1code$0$CONTROL,engine:analog_from_button,left:engine$0keyboard$1code$0$CONTROL,modifier_scale:0.5,right:engine$0keyboard$1code$0$CONTROL,up:engine$0keyboard$1code$0$CONTROL",
+        "button": "code:$CONTROL,engine:keyboard"
+      }
+    }
+  }
 }
