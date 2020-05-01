@@ -3548,6 +3548,16 @@ function setControls( systems, values ) {
         // control formats will map the common user expect values of "key", "button", and "axis" to whatever they are listed as in the ini file (e.g. "Keyboard")
         let controlFormat = systemsDict[system].config.controlFormat;
 
+        // disable default for 3ds
+        if( system == SYSTEM_3DS ) {
+            let controlsKeys = Object.keys(config.Controls);
+            for( let key of controlsKeys ) {
+                if(key.match(/profiles\\1\\.*\\default/)) {
+                    config.Controls[key] = false;
+                }
+            }
+        }
+
         // for each of the controls listed
         for( let control in controls ) {
             // get the value of the control from the values object
