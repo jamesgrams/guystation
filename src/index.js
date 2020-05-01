@@ -3555,6 +3555,9 @@ function setControls( systems, values ) {
                 if(key.match(/profiles\\1\\.*\\default/)) {
                     config.Controls[key] = false;
                 }
+                if(key.match(/profiles\\.*="/)) {
+                    config.Controls[key] = '"' + config.Controls[key] + '"';
+                }
             }
         }
 
