@@ -3555,9 +3555,6 @@ function setControls( systems, values ) {
                 if(key.match(/profiles\\1\\.*\\default/)) {
                     config.Controls[key] = false;
                 }
-                else if(key.match(/profiles\\.*="/)) {
-                    config.Controls[key] = '"' + config.Controls[key] + '"';
-                }
             }
         }
 
@@ -3607,7 +3604,12 @@ function setControls( systems, values ) {
             }
         }
 
-        fs.writeFileSync(systemsDict[system].config.file, ini.stringify(config));
+        let writeValue = ini.stringify(config);
+
+        // the ini file tries to escape the wrapped quotes, but citra doesn't like that.
+        if( system == SYSTEM_3DS ) writeValue = writeValue.replace( /"\\"|\\""/g, '"');
+
+        fs.writeFileSync(systemsDict[system].config.file, writeValue);
 
     }
     return false;
