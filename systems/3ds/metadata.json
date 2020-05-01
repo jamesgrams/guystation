@@ -159,16 +159,16 @@
     },
     "controlFormat": {
       "axis": {
-        "axis": "\"axis_x:$CONTROL,axis_y:$CONTROL,engine:sdl,guid:0,port:0\"",
-        "button": "\"axis:$CONTROL,engine:sdl,guid:0,port:0\""
+        "axis": "axis_x:$CONTROL,axis_y:$CONTROL,engine:sdl,guid:0,port:0",
+        "button": "axis:$CONTROL,engine:sdl,guid:0,port:0"
       },
       "button": {
-        "axis": "\"down:engine$0sdl$1button$0$CONTROL$1guid$00$1port$00,engine:analog_from_button,left:engine$0sdl$1button$0$CONTROL$1guid$00$1port$00,modifier_scale:0.5,right:engine$0sdl$1button$0$CONTROL$1guid$00$1port$00,up:engine$0sdl$1button$0$CONTROL$1guid$00$1port$00\"",
-        "button": "\"button:$CONTROL,engine:sdl,guid:0,port:0\""
+        "axis": "down:engine$0sdl$1button$0$CONTROL$1guid$00$1port$00,engine:analog_from_button,left:engine$0sdl$1button$0$CONTROL$1guid$00$1port$00,modifier_scale:0.5,right:engine$0sdl$1button$0$CONTROL$1guid$00$1port$00,up:engine$0sdl$1button$0$CONTROL$1guid$00$1port$00",
+        "button": "button:$CONTROL,engine:sdl,guid:0,port:0"
       },
       "key": {
-        "axis": "\"down:engine$0keyboard$1code$0$CONTROL,engine:analog_from_button,left:engine$0keyboard$1code$0$CONTROL,modifier_scale:0.5,right:engine$0keyboard$1code$0$CONTROL,up:engine$0keyboard$1code$0$CONTROL\"",
-        "button": "\"code:$CONTROL,engine:keyboard\""
+        "axis": "down:engine$0keyboard$1code$0$CONTROL,engine:analog_from_button,left:engine$0keyboard$1code$0$CONTROL,modifier_scale:0.5,right:engine$0keyboard$1code$0$CONTROL,up:engine$0keyboard$1code$0$CONTROL",
+        "button": "code:$CONTROL,engine:keyboard"
       }
     }
   }
