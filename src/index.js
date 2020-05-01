@@ -3555,9 +3555,13 @@ function setControls( systems, values ) {
                 if(key.match(/profiles\\1\\.*\\default/)) {
                     config.Controls[key] = false;
                 }
-                if(key.match(/profiles\\.*="/)) {
-                    config.Controls[key] = '"' + config.Controls[key] + '"';
+                // citra expects these values wrapped in quotes, which the ini reader removes
+                try {
+                    if(config.Controls[key].match(/engine:/)) {
+                        config.Controls[key] = '"' + config.Controls[key] + '"';
+                    }
                 }
+                catch(err) {/*ok*/}
             }
         }
 
