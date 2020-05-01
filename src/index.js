@@ -35,6 +35,7 @@ const gdkMap = require("./lib/gdkmap");
 const sdlMap = require("./lib/sdlmap");
 const x11Map = require("./lib/x11map");
 const vbamMap = require("./lib/vbammap");
+const qtMap = require("./lib/qtmap");
 
 const PORT = 8080;
 const SOCKETS_PORT = 3000;
@@ -3718,7 +3719,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
     else if( system == SYSTEM_3DS ) {
         if( userControl.type == KEY_CONTROL_TYPE ) {
             // citra expects the keycodes of lowercase keys
-            controlButtons = controlButtons.map( el => el && sdlMap[el] ? sdlMap[el] : el );
+            controlButtons = controlButtons.map( el => el && qtMap[el] ? qtMap[el] : el );
         }
         // for mapping a user axis to a button
         else if ( userControl.type == AXIS_CONTROL_TYPE && (!controlInfo.type || controlInfo.type == BUTTON_CONTROL_TYPE) ) {
