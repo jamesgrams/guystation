@@ -3555,6 +3555,9 @@ function setControls( systems, values ) {
                 if(key.match(/profiles\\1\\.*\\default/)) {
                     config.Controls[key] = false;
                 }
+                else if(key.match(/profiles\\.*="/)) {
+                    config.Controls[key] = '"' + config.Controls[key] + '"';
+                })
             }
         }
 
@@ -3752,6 +3755,9 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
     // get rid of any extra control strings
     // we shouldn't need this. but it is a failsafe
     while( controlFormat.indexOf(CONTROL_STRING) != -1 ) controlFormat = controlFormat.replace(CONTROL_STRING,"");
+
+    // 3DS needs them wrapped in quotes
+    if( system == SYSTEM_3DS ) controlFormat = '"' + controlFormat + '"';
 
     return controlFormat;
 }
