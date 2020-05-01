@@ -2845,7 +2845,7 @@ function createInteractiveScreencast() {
             if( xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
                 mouseDown = true;
                 lastMoveSent = Date.now();
-                socket.emit( "/screencast/mouse", { "down": true, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 2 ? "right" : "middle" } );
+                socket.emit( "/screencast/mouse", { "down": true, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 3 ? "right" : "middle" } );
             }
             try {
                 event.preventDefault();
@@ -2874,7 +2874,7 @@ function createInteractiveScreencast() {
                 var yPercent = mousePercentLocation.yPercent;
                 if( xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
                     lastMoveSent = now;
-                    socket.emit( "/screencast/mouse", { "down": mouseDown, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 2 ? "right" : "middle" } );
+                    socket.emit( "/screencast/mouse", { "down": mouseDown, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 3 ? "right" : "middle" } );
                 }
                 try {
                     event.preventDefault();
@@ -2890,7 +2890,7 @@ function createInteractiveScreencast() {
             var yPercent = mousePercentLocation.yPercent;
             if( xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
                 mouseDown = false;
-                socket.emit( "/screencast/mouse", { "down": false, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 2 ? "right" : "middle" } );
+                socket.emit( "/screencast/mouse", { "down": false, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 3 ? "right" : "middle" } );
             }
             try {
                 event.preventDefault();
@@ -2906,6 +2906,10 @@ function createInteractiveScreencast() {
             event.preventDefault();
         }
     }
+    video.oncontextmenu = function(event) {
+        event.preventDefault();
+        return false;
+    };
     var wrapper = document.createElement("div");
     wrapper.classList.add("screencast-wrapper");
     wrapper.appendChild(video);
