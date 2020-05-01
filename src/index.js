@@ -3612,7 +3612,7 @@ function setControls( systems, values ) {
             }
         }
 
-        let writeValue = ini.stringify(config);
+        let writeValue = ini.stringify(config, {'whitespace': system == SYSTEM_NES ? true : false});
 
         // the ini file tries to escape the wrapped quotes, but citra doesn't like that.
         if( system == SYSTEM_3DS ) writeValue = writeValue.replace( /"\\"|\\""/g, '"');
