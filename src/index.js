@@ -3684,8 +3684,8 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
 
     // For n64, we use key(keycode)
     if( system == SYSTEM_N64 && userControl.type == KEY_CONTROL_TYPE ) {
-        // mupen expects the lowercase keycodes
-        controlButtons = controlButtons.map( el => el ? keycode(keycode(parseInt(el)).toLowerCase()) : el );
+        // mupen expects the sdl keycodes
+        controlButtons = controlButtons.map( el => el && sdlMap[el] ? sdlMap[el] : el );
     }
     // gba expects uppercase key names
     else if( system == SYSTEM_GBA && userControl.type == KEY_CONTROL_TYPE ) {
@@ -3718,7 +3718,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
     else if( system == SYSTEM_3DS ) {
         if( userControl.type == KEY_CONTROL_TYPE ) {
             // citra expects the keycodes of lowercase keys
-            controlButtons = controlButtons.map( el => el ? keycode(keycode(parseInt(el)).toLowerCase()) : el );
+            controlButtons = controlButtons.map( el => el && sdlMap[el] ? sdlMap[el] : el );
         }
         // for mapping a user axis to a button
         else if ( userControl.type == AXIS_CONTROL_TYPE && (!controlInfo.type || controlInfo.type == BUTTON_CONTROL_TYPE) ) {
