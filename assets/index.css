@@ -323,10 +323,6 @@ h1 {
     background-color: green;
 }
 
-.modal .systems-checkboxes, .dying-modal .systems-checkboxes {
-    width: 460px;
-}
-
 #power-options-form button {
     width: 100%;
     margin-left: 0;
@@ -774,6 +770,20 @@ h1 {
 
 #messaging-box .message .message-name {
     opacity: 0.6;
+}
+
+#joypad-config-form label[for="ez-profile-select"] {
+    clear: both;
+}
+
+#joypad-config-form label[for="ez-profile-input"] {
+    clear: both;
+    margin-top: 70px;
+}
+
+#joypad-config-form .systems-checkboxes {
+    width: 460px;
+    clear: both;
 }
 
 @keyframes fade {

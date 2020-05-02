@@ -2221,12 +2221,13 @@ function displayJoypadConfig() {
         closeModal();
     } ) );
 
+    // EZ config section
     warning = createWarning("EZ Emulator Controller Configuration");
     warning.classList.add("break");
     warning.setAttribute("title", "This section can be used to set controls for multiple emulators at once. For example, you might map \"A\" to button 1 on your controller. GuyStation would then map button 1 to A for GBA, A for N64, Circle for PSP, etc. if those emulators are selected.");
     form.appendChild(warning);
     for( var i=0; i<EZ_EMULATOR_CONFIG_BUTTONS.length; i++ ) {
-        var label = createInput( "", "ez-input-" + i, EZ_EMULATOR_CONFIG_BUTTONS[i], "search", true );
+        var label = createInput( "", "ez-input-" + i, EZ_EMULATOR_CONFIG_BUTTONS[i] + ":", "search", false );
         label.setAttribute("data-ez-button", i);
         var input = label.querySelector("input");
 
@@ -2242,10 +2243,11 @@ function displayJoypadConfig() {
         form.appendChild( label ); 
     }
 
+    // Create the systems section
     var systemsSection = document.createElement("div");
     systemsSection.classList.add("systems-checkboxes");
     for( var i=0; i<EZ_SYSTEMS.length; i++ ) {
-        var checkbox = createInput("", "ez-checkbox-" + i, EZ_SYSTEMS[i], "checkbox", true);
+        var checkbox = createInput("", "ez-checkbox-" + i, EZ_SYSTEMS[i], "checkbox", false );
         checkbox.classList.add("inline");
         systemsSection.appendChild(checkbox);
     }
@@ -2278,7 +2280,7 @@ function displayJoypadConfig() {
                 values[guystationButton] = buttonsToSet;
             }
         }
-
+    
         // figure out for which systems we need to send values
         var systems = [];
         var checkboxes = document.querySelectorAll("#joypad-config-form input[type='checkbox']");
@@ -2303,6 +2305,25 @@ function displayJoypadConfig() {
 
     } ) );
 
+    // create the profiles section
+    var profileInput = createInput( "", "ez-profile-input", "Profile Name:", "text", true );
+    var saveProfileButton = createButton( "Save Profile", saveEzProfile, [profileInput.querySelector("input")] );
+    var profileOptions = Object.keys(loadEzProfiles());
+    profileOptions.unshift("");
+    var profilesMenu = createMenu( "", profileOptions, "ez-profile-select", "Profiles:", loadEzProfile, true );
+    var deleteProfileButton = createButton( "Delete Profile", deleteEzProfile, [profilesMenu.querySelector("select")] );
+    // the required button will change the onchange, so we have to combine the two here
+    var currentOnChange = profilesMenu.querySelector("select").onchange;
+    profilesMenu.querySelector("select").onchange = function() {
+        currentOnChange();
+        loadEzProfile();
+    }
+
+    form.appendChild(profileInput);
+    form.appendChild(saveProfileButton);
+    form.appendChild(profilesMenu);
+    form.appendChild(deleteProfileButton);
+
     launchModal( form );
 }
 
@@ -2320,6 +2341,83 @@ function appendEzInput(inputElement, value, type) {
     if( !inputElement.value.includes(newValue) ) {
         if(inputElement.value) inputElement.value += ",";
         inputElement.value += newValue;
+    }
+}
+
+/**
+ * Load all EZ Profiles.
+ */
+function loadEzProfiles() {
+    if( !window.localStorage.guystationEZProfiles ) window.localStorage.guystationEZProfiles = JSON.stringify({});
+    return JSON.parse(window.localStorage.guystationEZProfiles);
+}
+
+/**
+ * Update the EZ Profile Select
+ */
+function updateEzProfileList() {
+    var selectElement = document.querySelector("#joypad-config-form #ez-profile-select");
+    if( selectElement ) {
+        var currentValue = selectElement.options[selectElement.selectedIndex].value;
+        var ezProfiles = loadEzProfiles();
+        var curLabel = selectElement.parentNode.querySelector("span").innerText;
+        var profileOptions = Object.keys(ezProfiles);
+        profileOptions.unshift("");
+        selectElement.parentNode.replaceWith( createMenu( currentValue, profileOptions, selectElement.getAttribute("id"), curLabel, selectElement.onchange, selectElement.getAttribute("required") ) );
+    }
+}
+
+/**
+ * Load an EZ Profile
+ */
+function loadEzProfile() {
+    var selectElement = document.querySelector("#joypad-config-form #ez-profile-select");
+    var name = selectElement.options[selectElement.selectedIndex].value;
+    if( name ) {
+        var ezProfiles = loadEzProfiles();
+        var profile = ezProfiles[name];
+        if( profile ) {
+            for( var i=0; i<EZ_EMULATOR_CONFIG_BUTTONS.length; i++ ) {
+                document.querySelector("#ez-input-" + i).value = profile[EZ_EMULATOR_CONFIG_BUTTONS[i]];
+            }
+            var inputElement = document.querySelector("#joypad-config-form #ez-profile-input");
+            inputElement.value = name;
+            inputElement.oninput();
+        }
+    }
+}
+
+/**
+ * Save an EZ Profile.
+ */
+function saveEzProfile() {
+    var name = document.querySelector("#joypad-config-form #ez-profile-input").value;
+    if( name ) {
+        var ezProfiles = loadEzProfiles();
+        var profile = {};
+        for( var i=0; i<EZ_EMULATOR_CONFIG_BUTTONS.length; i++ ) {
+            profile[ EZ_EMULATOR_CONFIG_BUTTONS[i] ] = document.querySelector("#ez-input-" + i).value;
+        }
+        ezProfiles[name] = profile;
+        window.localStorage.guystationEZProfiles = JSON.stringify(ezProfiles);
+        updateEzProfileList();
+    }
+}
+
+/**
+ * Delete an EZ Controller Configuration Profile.
+ */
+function deleteEzProfile() {
+    var selectElement = document.querySelector("#joypad-config-form #ez-profile-select");
+    var name = selectElement.options[selectElement.selectedIndex].value;
+    if( name ) {
+        var ezProfiles = loadEzProfiles();
+        var profile = ezProfiles[name];
+        if( profile ) {
+            delete ezProfiles[name];
+            window.localStorage.guystationEZProfiles = JSON.stringify(ezProfiles);
+            updateEzProfileList();
+        }
     }
 }
 
@@ -4725,7 +4823,7 @@ function manageGamepadInput() {
             }
             // Check if we are setting a key, and register the current gamepad key down
             else if( document.hasFocus() && document.querySelector("#joypad-config-form") ) {
-                var inputs = document.querySelectorAll("#joypad-config-form input");
+                var inputs = document.querySelectorAll("#joypad-config-form input:not(#ez-profile-input):not([type='checkbox'])");
                 // Check if an input is focused
                 if( !focusInterval ) {
                     for( var j=0; j<inputs.length; j++ ) {
