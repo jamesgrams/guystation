@@ -186,6 +186,7 @@ var EZ_SYSTEMS = [
     "n64",
     "nds",
     "nes",
+    "psp",
     "snes"
 ];
 

@@ -5,5 +5,63 @@
   "extraFlags": ["--fullscreen"],
   "activateCommand": "wmctrl -a 'PPSSPP'",
   "nandPathCommand": "echo \"$(eval echo '~')/.config/ppsspp/PSP/SAVEDATA\"",
-  "allGamesShareNand": true
+  "allGamesShareNand": true,
+  "config": {
+    "file": "/Users/james/.config/ppsspp/PSP/SYSTEM/controls.ini",
+    "controls": {
+      "A": {
+        "keys": ["ControlMapping","Circle"]
+      },
+      "B": {
+        "keys": ["ControlMapping","Cross"]
+      },
+      "X": {
+        "keys": ["ControlMapping","Triangle"]
+      },
+      "Y": {
+        "keys": ["ControlMapping","Square"]
+      },
+      "L2": {
+        "keys": ["ControlMapping","L"]
+      },
+      "R2": {
+        "keys": ["ControlMapping","R"]
+      },
+      "Axis Y-": {
+        "keys": ["ControlMapping","An.Up"]
+      },
+      "Axis Y+": {
+        "keys": ["ControlMapping","An.Down"]
+      },
+      "Axis X-": {
+        "keys": ["ControlMapping","An.Left"]
+      },
+      "Axis X+": {
+        "keys": ["ControlMapping","An.Right"]
+      },
+      "Up": {
+        "keys": ["ControlMapping","Up"]
+      },
+      "Down": {
+        "keys": ["ControlMapping","Down"]
+      },
+      "Left": {
+        "keys": ["ControlMapping","Left"]
+      },
+      "Right": {
+        "keys": ["ControlMapping","Right"]
+      },
+      "Start": {
+        "keys": ["ControlMapping","Start"]
+      },
+      "Select": {
+        "keys": ["ControlMapping","Select"]
+      }
+    },
+    "controlFormat": {
+      "axis": "10-$CONTROL",
+      "button": "10-$CONTROL",
+      "key": "1-$CONTROL"
+    }
+  }
 }

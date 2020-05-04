@@ -36,6 +36,8 @@ const sdlMap = require("./lib/sdlmap");
 const x11Map = require("./lib/x11map");
 const vbamMap = require("./lib/vbammap");
 const qtMap = require("./lib/qtmap");
+const ppssppMap = require("./lib/ppssppmap").keys;
+const ppssppButtonsMap = require("./lib/ppssppmap").buttons;
 
 const PORT = 8080;
 const SOCKETS_PORT = 3000;
@@ -190,6 +192,7 @@ const NES_DEVICE_TYPE_KEY = "SDL.Input.GamePad.0DeviceType";
 const DIRECTION_MODIFIER_3DS = ",direction:";
 const GET_USER_COMMAND = "logname";
 const USER_PLACEHOLDER = "james";
+const AXIS_BIND_NKCODE_START = 4000;
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -3598,11 +3601,11 @@ function setControls( systems, values ) {
 
                     // Note that a control can require multiple components (e.g. an axis with X plus and X minus) which thus userControl.button is an array
                     // This is different to when there are multiple controls mapped to a button (e.g. Dpad left and arrow key left) in which case both need to be run through translateButton
-                    // however, we actually seperate out everything, so the user should only ever pass a single array. we'll add to it from pre-exising as need be.
+                    // however, we actually seperate out everything, so the user should only ever pass a single item in an array. we'll add to it from pre-exising as need be.
                     curControlParts.push( translateButton( system, userControl, controlInfo, controlFormat, configSetting[keys[keys.length-1]], config ) );
 
-                    // we only allow one control for systems except vba-m
-                    if( system != SYSTEM_GBA ) {
+                    // we only allow one control for systems except vba-m and ppsspp
+                    if( system != SYSTEM_GBA && system != SYSTEM_PSP ) {
                         curControlParts = [curControlParts[0]];
                     }
 
@@ -3612,7 +3615,7 @@ function setControls( systems, values ) {
             }
         }
 
-        let writeValue = ini.stringify(config, {'whitespace': system == SYSTEM_NES ? true : false});
+        let writeValue = ini.stringify(config, {'whitespace': system == SYSTEM_NES || system == SYSTEM_PSP ? true : false});
 
         // the ini file tries to escape the wrapped quotes, but citra doesn't like that.
         if( system == SYSTEM_3DS ) writeValue = writeValue.replace( /"\\"|\\""/g, '"');
@@ -3661,7 +3664,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
         if( typeof selfPosition == OBJECT_TYPE ) selfPosition = selfPosition[userControl.type];
 
         // basically if the current type (axis, buttons, key) matches the type we are setting, we'll pull current values from it,
-        // otherwise, we just reset the string
+        // otherwise, we just reset/clear out the string
         // when we don't have typed controls regexs like for mupen, we'll make whatever's there. So if the user is mapping
         // a keyboard key to an axis, but only one direction, the other direction might really correspond to
         // an axis, so we might have key(65,1+) until they change it.
@@ -3756,6 +3759,22 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
             config[NES_DEVICE_TYPE_KEY] = NES_KEYBOARD;
         }
     }
+    else if( system == SYSTEM_PSP ) {
+        if( userControl.type == AXIS_CONTROL_TYPE || userControl.type == BUTTON_CONTROL_TYPE ) {
+            // prepend with generic joypad code - https://github.com/hrydgard/ppsspp/blob/aa927e0681ed76fec3b540218981a2c407a78e47/ext/native/input/input_state.h#L16
+            if( userControl.type == AXIS_CONTROL_TYPE ) {
+                controlButtons = controlButtons.map( el => el ? codeToPpssppJoystick(el) : el );
+            }
+            else {
+                // prepend with the button code
+                controlButtons = controlButtons.map( el => el ? ppssppButtonsMap[el] : el );
+            }
+        }
+        else {
+            // prepend with the keyboard code
+            controlButtons = controlButtons.map( el => el ? ppssppMap[el] : el );
+        }
+    }
 
 
     // replace each instance of control string
@@ -3790,6 +3809,18 @@ function codeToDesmumeJoystick( type, button ) {
         let direction = button.substring(button.length-1);
         return 2 * parseInt(axis) + (direction == DIRECTION_PLUS ? 1 : 0);
     }
+}
+
+/**
+ * Convert a PPSSSPP axis to it's value.
+ * https://github.com/hrydgard/ppsspp/blob/9cd8d216d88e48a11b622b645c638ab0bf29acfd/Common/KeyMap.cpp#L770
+ * @param {string} button - The axis value (e.g. 1+).
+ * @returns {number} The PPSSPP joypad code. 
+ */
+function codeToPpssppJoystick( button ) {
+    let axis = button.substring(0, button.length-1);
+    let direction = button.substring(button.length-1);
+    return AXIS_BIND_NKCODE_START + axis * 2 + (direction == DIRECTION_PLUS ? 0 : 1);
 }
 
 /**
