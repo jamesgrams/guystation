@@ -3547,7 +3547,12 @@ function setControls( systems, values ) {
         if( !systemsDict[system] ) return ERROR_MESSAGES.noSystem;
         if( !systemsDict[system].config ) return ERROR_MESSAGES.configNotAvailable;
 
-        let config = ini.parse(fs.readFileSync(systemsDict[system].config.file).toString());
+        let configFile = fs.readFileSync(systemsDict[system].config.file).toString();
+        // PSP has some strange characters at the start of the file not even printed by linux
+        if( system == SYSTEM_PSP ) {
+            configFile = configFile.replace(/\s\[/,"[");
+        }
+        let config = ini.parse(configFile);
         let controls = systemsDict[system].config.controls;
         // control formats will map the common user expect values of "key", "button", and "axis" to whatever they are listed as in the ini file (e.g. "Keyboard")
         let controlFormat = systemsDict[system].config.controlFormat;
