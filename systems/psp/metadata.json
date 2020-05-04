@@ -7,7 +7,7 @@
   "nandPathCommand": "echo \"$(eval echo '~')/.config/ppsspp/PSP/SAVEDATA\"",
   "allGamesShareNand": true,
   "config": {
-    "file": "/Users/james/.config/ppsspp/PSP/SYSTEM/controls.ini",
+    "file": "/home/james/.config/ppsspp/PSP/SYSTEM/controls.ini",
     "controls": {
       "A": {
         "keys": ["ControlMapping","Circle"]
