@@ -178,8 +178,8 @@ Multiple monitors are not supported. Using multiple monitors will cause issues w
 * PCSX2 does not recognize the virtual controller.
 * Citra and Mupen64 flicker when hiding the screenshare message. As such, the message is not hidden when these emulators are in use and screenshare is started. It is made transparent, and click event are ignored on it.
 * A program restart is required if you change the screen resolution.
-* PS2, PSP, and NGC can't have their controls set with EZ Controller Configuration.
-* EZ Controller Configuration only allows the left version of buttons (control, alt, shift, etc.)
+* PS2 and NGC can't have their controls set with EZ Controller Configuration.
+* EZ Controller Configuration only allows the left version of buttons (control, alt, shift, etc.) and for player 1
 
 ## Credits and Special Thanks
 * Game Boy Advance and DS Lite icons: [David Pérez](https://thenounproject.com/david730/)

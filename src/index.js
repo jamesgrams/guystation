@@ -193,8 +193,8 @@ const NES_DEVICE_TYPE_KEY = "SDL.Input.GamePad.0DeviceType";
 const DIRECTION_MODIFIER_3DS = ",direction:";
 const GET_USER_COMMAND = "logname";
 const USER_PLACEHOLDER = "james";
-const AXIS_BIND_NKCODE_START = 4000;
 const PS3_CONTROLLER_ID = "4c05-6802";
+const PSP_AXIS_PREPEND = "a";
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -3769,27 +3769,34 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
     // for psp
     else if( system == SYSTEM_PSP ) {
         if( userControl.type == AXIS_CONTROL_TYPE || userControl.type == BUTTON_CONTROL_TYPE ) {
-            // prepend with generic joypad code - https://github.com/hrydgard/ppsspp/blob/aa927e0681ed76fec3b540218981a2c407a78e47/ext/native/input/input_state.h#L16
+
+            let controller = ppssppControllersMap[ PS3_CONTROLLER_ID ];
+            // perform the similar functions to get an sdl-like guid
+            if( userControl.vendor && userControl.product ) {
+                // the values are hex values, we need them to be denoted as such internally
+                let vendorId = parseInt("0x" + userControl.vendor);
+                let productId = parseInt("0x" + userControl.product);
+                let lookupString = 
+                    padZeros( (vendorId & 0xFF).toString(16), 2 ) + 
+                    padZeros( (vendorId >> 8).toString(16), 2 ) + "-" +
+                    padZeros( (productId & 0xFF).toString(16), 2 ) + 
+                    padZeros( (productId >> 8).toString(16), 2 );
+                if( ppssppControllersMap[lookupString] ) {
+                    controller = ppssppControllersMap[ lookupString ];
+                }
+            }
+
             if( userControl.type == AXIS_CONTROL_TYPE ) {
-                controlButtons = controlButtons.map( el => el ? codeToPpssppJoystick(el) : el );
+                // prepend with the axis code
+                controlButtons = controlButtons.map( el => {
+                    // if we don't have a controller or it doesn't exist in the map, just use the first controller
+                    // in the map
+                    let axis = button.substring(0, button.length-1);
+                    let direction = button.substring(button.length-1);
+                    return el ? ppssppButtonsMap[ controller[PSP_AXIS_PREPEND+axis] ] + (direction == DIRECTION_PLUS ? 0 : 1) : el
+                } );
             }
             else {
-                let controller = ppssppControllersMap[ PS3_CONTROLLER_ID ];
-                // perform the similar functions to get an sdl-like guid
-                if( userControl.vendor && userControl.product ) {
-                    // the values are hex values, we need them to be denoted as such internally
-                    let vendorId = parseInt("0x" + userControl.vendor);
-                    let productId = parseInt("0x" + userControl.product);
-                    let lookupString = 
-                        padZeros( (vendorId & 0xFF).toString(16), 2 ) + 
-                        padZeros( (vendorId >> 8).toString(16), 2 ) + "-" +
-                        padZeros( (productId & 0xFF).toString(16), 2 ) + 
-                        padZeros( (productId >> 8).toString(16), 2 );
-                    if( ppssppControllersMap[lookupString] ) {
-                        controller = ppssppControllersMap[ lookupString ];
-                    }
-                }
-
                 // prepend with the button code
                 controlButtons = controlButtons.map( el => {
                     // if we don't have a controller or it doesn't exist in the map, just use the first controller
@@ -3851,18 +3858,6 @@ function codeToDesmumeJoystick( type, button ) {
         let direction = button.substring(button.length-1);
         return 2 * parseInt(axis) + (direction == DIRECTION_PLUS ? 1 : 0);
     }
-}
-
-/**
- * Convert a PPSSSPP axis to it's value.
- * https://github.com/hrydgard/ppsspp/blob/9cd8d216d88e48a11b622b645c638ab0bf29acfd/Common/KeyMap.cpp#L770
- * @param {string} button - The axis value (e.g. 1+).
- * @returns {number} The PPSSPP joypad code. 
- */
-function codeToPpssppJoystick( button ) {
-    let axis = button.substring(0, button.length-1);
-    let direction = button.substring(button.length-1);
-    return AXIS_BIND_NKCODE_START + axis * 2 + (direction == DIRECTION_PLUS ? 0 : 1);
 }
 
 /**
