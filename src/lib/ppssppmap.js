@@ -168,7 +168,7 @@ let ppssppControllerMap = {
         "7": "leftstick",
         "12": "rightstick",
         "a0": "leftx",
-        "a1": "lefyy",
+        "a1": "lefty",
         "a3": "rightx",
         "a4": "righty"
     },
