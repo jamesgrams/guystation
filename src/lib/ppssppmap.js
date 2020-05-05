@@ -122,7 +122,7 @@ let ppssppButtonMap = {
     "dpright": 22, // SDL_CONTROLLER_BUTTON_DPAD_RIGHT -> NKCODE_DPAD_RIGHT
 
     "lefttrigger": 4008, // if we try to map a button that is a button on our controller, but considered a trigger by the sdl standardized controller
-    "rightrigger": 4010 // these two are derived from experimentation
+    "righttrigger": 4010 // these two are derived from experimentation
 };
 // With PPSSPP, you don't map controller button numbers to PSP controls.
 // You map controller button NAMES to PSP controls. What each number's name is depends on the controller.

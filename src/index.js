@@ -3794,7 +3794,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
                 controlButtons = controlButtons.map( el => {
                     // if we don't have a controller or it doesn't exist in the map, just use the first controller
                     // in the map
-                    el ? ppssppButtonsMap[ controller[el.toString()] ] : el
+                    return el ? ppssppButtonsMap[ controller[el.toString()] ] : el
                 } );
             }
         }
