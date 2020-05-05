@@ -2268,12 +2268,17 @@ function displayJoypadConfig() {
             // For each of the buttons
             for( var j=0; j<buttons.length; j++ ) {
                 // Get the type and the control (e.g. keycode, axis+, etc) - we don't ever expect and array
-                var match = buttons[j].match(/([^\(]+)\(([^\)]+)\)/);
+                var match = buttons[j].match(/([^\(]+)\(([^\)]+)\)(-([^\-]+)-(.*))?/);
                 if( match ) {
-                    buttonsToSet.push( {
+                    var obj = {
                         type: match[1],
                         button: match[2]
-                    } );
+                    }
+                    if( match[3] ) {
+                        obj.vendor = match[4];
+                        obj.product = match[5];
+                    }
+                    buttonsToSet.push( obj );
                 }
             }
 
@@ -2332,15 +2337,26 @@ function displayJoypadConfig() {
  * Append a value to an EZ Input element
  * @param {HTMLElement} inputElement - The input element.
  * @param {string} value - The value to add.
- * @param {string} type - The type of element
+ * @param {string} type - The type of element.
+ * @param {string} [controller] - Info about the controller used to set the button.
  */
-function appendEzInput(inputElement, value, type) {
+function appendEzInput(inputElement, value, type, controller) {
     var newValue = "";
     newValue += type + "(" + value + ")";
+
+    // append the real value that we will use
+    if( controller ) {
+        let match = controller.match( /Vendor:\s([^\s]+)\sProduct:\s([^\)]+)/ );
+        // -vendor-product
+        if( match ) {
+            newValue += "-" + match[1] + "-" + match[2];
+        }
+    }
 
     // no repeats
     if( !inputElement.value.includes(newValue) ) {
         if(inputElement.value) inputElement.value += ",";
+
         inputElement.value += newValue;
     }
 }
@@ -2354,7 +2370,7 @@ function loadEzProfiles() {
 }
 
 /**
- * Update the EZ Profile Select
+ * Update the EZ Profile Select.
  */
 function updateEzProfileList() {
     var selectElement = document.querySelector("#joypad-config-form #ez-profile-select");
@@ -2369,7 +2385,7 @@ function updateEzProfileList() {
 }
 
 /**
- * Load an EZ Profile
+ * Load an EZ Profile.
  */
 function loadEzProfile() {
     var selectElement = document.querySelector("#joypad-config-form #ez-profile-select");
@@ -4838,7 +4854,7 @@ function manageGamepadInput() {
 
                                     // we have a special syntax for ez buttons
                                     if( isEz )
-                                        appendEzInput(inputs[j], k, "button");
+                                        appendEzInput(inputs[j], k, "button", gp.id);
                                     else
                                         inputs[j].value = k;
 
@@ -4858,7 +4874,7 @@ function manageGamepadInput() {
 
                                     // we have to have enough change set set this value
                                     if( Math.abs(value) > EZ_AXIS_MIN_TO_SET ) {
-                                        appendEzInput(inputs[j], k + (value < 0 ? "-" : "+"), "axis");
+                                        appendEzInput(inputs[j], k + (value < 0 ? "-" : "+"), "axis", gp.id);
 
                                         focusNextInput(inputs[j + 1]);
                                         break;

@@ -38,6 +38,7 @@ const vbamMap = require("./lib/vbammap");
 const qtMap = require("./lib/qtmap");
 const ppssppMap = require("./lib/ppssppmap").keys;
 const ppssppButtonsMap = require("./lib/ppssppmap").buttons;
+const ppssppControllersMap = require("./lib/ppssppmap").controllers;
 
 const PORT = 8080;
 const SOCKETS_PORT = 3000;
@@ -193,6 +194,7 @@ const DIRECTION_MODIFIER_3DS = ",direction:";
 const GET_USER_COMMAND = "logname";
 const USER_PLACEHOLDER = "james";
 const AXIS_BIND_NKCODE_START = 4000;
+const PS3_CONTROLLER_ID = "4c05-6802";
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -3636,7 +3638,7 @@ function setControls( systems, values ) {
  * The user will send us a key code, a button number, or an axis+-. These then, will be mapped
  * to what the emulator expects.
  * @param {string} system - The system the controls are for.
- * @param {Object} userControl - The control information set by the user including a type key and an array of, or just a string for the button key.
+ * @param {Object} userControl - The control information set by the user including a type key and an array of, or just a string for the button key. It can also include keys for vendor and product code for the controller.
  * @param {Object} controlInfo - The control info guide for how to put the result in the config file.
  * @param {string} controlFormat - The format for the control.
  * @param {string} currentControlValue - The current control value for the config setting. We might need to include some of it in the new value.
@@ -3764,6 +3766,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
             config[NES_DEVICE_TYPE_KEY] = NES_KEYBOARD;
         }
     }
+    // for psp
     else if( system == SYSTEM_PSP ) {
         if( userControl.type == AXIS_CONTROL_TYPE || userControl.type == BUTTON_CONTROL_TYPE ) {
             // prepend with generic joypad code - https://github.com/hrydgard/ppsspp/blob/aa927e0681ed76fec3b540218981a2c407a78e47/ext/native/input/input_state.h#L16
@@ -3771,8 +3774,28 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
                 controlButtons = controlButtons.map( el => el ? codeToPpssppJoystick(el) : el );
             }
             else {
+                let controller = ppssppControllersMap[ PS3_CONTROLLER_ID ];
+                // perform the similar functions to get an sdl-like guid
+                if( userControl.vendor && userControl.product ) {
+                    // the values are hex values, we need them to be denoted as such internally
+                    let vendorId = parseInt("0x" + userControl.vendor);
+                    let productId = parseInt("0x" + userControl.product);
+                    let lookupString = 
+                        padZeros( (vendorId & 0xFF).toString(16), 2 ) + 
+                        padZeros( (vendorId >> 8).toString(16), 2 ) + "-" +
+                        padZeros( (productId & 0xFF).toString(16), 2 ) + 
+                        padZeros( (productId >> 8).toString(16), 2 );
+                    if( ppssppControllersMap[lookupString] ) {
+                        controller = ppssppControllersMap[ lookupString ];
+                    }
+                }
+
                 // prepend with the button code
-                controlButtons = controlButtons.map( el => el ? ppssppButtonsMap[el] : el );
+                controlButtons = controlButtons.map( el => {
+                    // if we don't have a controller or it doesn't exist in the map, just use the first controller
+                    // in the map
+                    el ? ppssppButtonsMap[ controller[el.toString()] ] : el
+                } );
             }
         }
         else {
@@ -3794,6 +3817,20 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
     if( system == SYSTEM_3DS ) controlFormat = '"' + controlFormat + '"';
 
     return controlFormat;
+}
+
+/**
+ * Pad a number with the specified number of zeros.
+ * @param {number} number - The number to pad.
+ * @param {number} totalDigits - The number of digits the number should have.
+ * @returns {string} - The padded number
+ */
+function padZeros( number, totalDigits ) {
+    for( let i=0; i<totalDigits; i++ ) {
+        number = "0" + number.toString();
+    }
+    number = number.slice(-totalDigits);
+    return number;
 }
 
 /**
