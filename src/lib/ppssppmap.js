@@ -2089,7 +2089,6 @@ let ppssppControllerMap = {
         "13": "dpdown",
         "14": "dpleft",
         "15": "dpright",
-        "12": "guide",
         "4": "leftshoulder",
         "10": "leftstick",
         "6": "lefttrigger",
