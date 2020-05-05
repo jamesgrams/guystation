@@ -195,6 +195,7 @@ const GET_USER_COMMAND = "logname";
 const USER_PLACEHOLDER = "james";
 const DEFAULT_PSP_CONTROLLER_ID = "default";
 const PSP_AXIS_PREPEND = "a";
+const EZ_CONTROL_PATH = "profiles.json";
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -257,7 +258,8 @@ const ERROR_MESSAGES = {
     "invalidUrl": "Invalid URL",
     "romNotYetDownloaded": "ROM still downloading",
     "romFailedDownload": "This ROM failed to download. Please try again.",
-    "configNotAvailable": "This emulator is unavailable for configuration."
+    "configNotAvailable": "This emulator is unavailable for configuration.",
+    "invalidProfile": "Invalid profile"
 }
 // http://jsfiddle.net/vWx8V/ - keycode
 // http://robotjs.io/docs/syntax - robotjs
@@ -279,6 +281,7 @@ let currentParentsString = null;
 let currentEmulator = null;
 
 let systemsDict = {};
+let profilesDict = {};
 
 let browser = null;
 let menuPage = null;
@@ -804,6 +807,62 @@ app.post("/controls", async function(request, response) {
         writeLockedResponse( response );
     }
 });
+
+// add an ez control profile
+app.post("/profile", async function(request, response) {
+    console.log("app serving /profile with body: " + JSON.stringify(request.body));
+    if( ! requestLocked ) {
+        requestLocked = true;
+        try {
+            let errorMessage = addEzControlProfile( request.body.name, request.body.profile );
+            requestLocked = false;
+            writeActionResponse( response, errorMessage );
+        }
+        catch(err) {
+            console.log(err);
+            requestLocked = false;
+            writeActionResponse( response, ERROR_MESSAGES.genericError );
+        }
+    }
+    else {
+        writeLockedResponse( response );
+    }
+});
+
+// delete an ez control profile
+app.delete("/profile", async function(request, response) {
+    console.log("app serving /profile with body: " + JSON.stringify(request.body));
+    if( ! requestLocked ) {
+        requestLocked = true;
+        try {
+            let errorMessage = deleteEzControlProfile( request.body.name );
+            requestLocked = false;
+            writeActionResponse( response, errorMessage );
+        }
+        catch(err) {
+            console.log(err);
+            requestLocked = false;
+            writeActionResponse( response, ERROR_MESSAGES.genericError );
+        }
+    }
+    else {
+        writeLockedResponse( response );
+    }
+});
+
+// get all ez control profiles
+app.get("/profiles", async function(request, response) {
+    console.log("app serving /profiles");
+    try {
+        loadEzControlsProfiles();
+        writeResponse( response, HTTP_OK, { "profiles": profilesDict } );
+    }
+    catch(err) {
+        console.log(err);
+        writeActionResponse( response, ERROR_MESSAGES.genericError );
+    }
+});
+
 
 // Create the fake microphone
 if(process.argv.indexOf(CHROMIUM_ARG) == -1) {
@@ -3984,6 +4043,48 @@ function createGamepadEvent(event) {
         }
         catch(err) {}
     }
+}
+
+/**
+ * Add an EZ Control Profile.
+ * @param {string} name - The name of the profile.
+ * @param {Object} profile - The profile info.
+ * @returns {(boolean|string)} An error message if there is one or false if there is not.
+ */
+function addEzControlProfile( name, profile ) {
+    if( !name || !profile ) return ERROR_MESSAGES.invalidProfile;
+    loadEzControlsProfiles();
+    profilesDict[name] = profile;
+    saveEzControlsProfiles();
+    return false;
+}
+
+/**
+ * Delete an EZ Control Profile.
+ * @param {string} name - The name of the profile.
+ * @returns {(boolean|string)} An error message if there is one or false if there is not.
+ */
+function deleteEzControlProfile( name ) {
+    if( !name ) return ERROR_MESSAGES.invalidProfile;
+    loadEzControlsProfiles();
+    delete profilesDict[name];
+    saveEzControlsProfiles();
+    return false;
+}
+
+/**
+ * Load EZ Controls Profiles.
+ */
+function loadEzControlsProfiles() {
+    if( !fs.existsSync( EZ_CONTROL_PATH ) ) fs.writeFileSync( EZ_CONTROL_PATH, JSON.stringify(profilesDict) );
+    profilesDict = JSON.parse( fs.readFileSync( EZ_CONTROL_PATH ) );
+}
+
+/**
+ * Save EZ Controls Profiles.
+ */
+function saveEzControlsProfiles() {
+    fs.writeFileSync( EZ_CONTROL_PATH, JSON.stringify(profilesDict) );
 }
 
 // Listen for the "home" button to be pressed

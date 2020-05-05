@@ -193,6 +193,7 @@ var EZ_SYSTEMS = [
 var expandCountLeft; // We always need to have a complete list of systems, repeated however many times we want, so the loop works properly
 var expandCountRight;
 var systemsDict;
+var profilesDict;
 var ip;
 var disableMenuControls;
 var enableModalControls;
@@ -2241,6 +2242,20 @@ function displayJoypadConfig() {
             } 
         })(i);
 
+        // Include a title to try to interpret what each button maps to
+        var buttonTitle = [];
+        var systemsKeys = Object.keys(systemsDict);
+        for( var j=0; j<systemsKeys.length; j++ ) {
+            var curSystem = systemsKeys[j];
+            var curSystemInfo = systemsDict[curSystem];
+            if( curSystemInfo.config && curSystemInfo.config.controls[ EZ_EMULATOR_CONFIG_BUTTONS[i] ] ) {
+                var buttonInfo = curSystemInfo.config.controls[ EZ_EMULATOR_CONFIG_BUTTONS[i] ];
+                var buttonValue = buttonInfo.keys[ buttonInfo.keys.length - 1 ];
+                buttonTitle.push( curSystem + ": " + buttonValue );
+            }
+        }
+        label.setAttribute("title", buttonTitle.join("\n"));
+
         form.appendChild( label ); 
     }
 
@@ -2314,22 +2329,24 @@ function displayJoypadConfig() {
     // create the profiles section
     var profileInput = createInput( "", "ez-profile-input", "Profile Name:", "text", true );
     var saveProfileButton = createButton( "Save Profile", saveEzProfile, [profileInput.querySelector("input")] );
-    var profileOptions = Object.keys(loadEzProfiles());
-    profileOptions.unshift("");
-    var profilesMenu = createMenu( "", profileOptions, "ez-profile-select", "Profiles:", loadEzProfile, true );
-    var deleteProfileButton = createButton( "Delete Profile", deleteEzProfile, [profilesMenu.querySelector("select")] );
-    // the required button will change the onchange, so we have to combine the two here
-    var currentOnChange = profilesMenu.querySelector("select").onchange;
-    profilesMenu.querySelector("select").onchange = function() {
-        currentOnChange();
-        loadEzProfile();
-    }
-
-    form.appendChild(profileInput);
-    form.appendChild(saveProfileButton);
-    form.appendChild(profilesMenu);
-    form.appendChild(deleteProfileButton);
-
+    loadEzProfiles( function() {
+        var profileOptions = Object.keys(profilesDict);
+        profileOptions.unshift("");
+        var profilesMenu = createMenu( "", profileOptions, "ez-profile-select", "Profiles:", loadEzProfile, true );
+        var deleteProfileButton = createButton( "Delete Profile", deleteEzProfile, [profilesMenu.querySelector("select")] );
+        // the required button will change the onchange, so we have to combine the two here
+        var currentOnChange = profilesMenu.querySelector("select").onchange;
+        profilesMenu.querySelector("select").onchange = function() {
+            currentOnChange();
+            loadEzProfile();
+        }
+    
+        form.appendChild(profileInput);
+        form.appendChild(saveProfileButton);
+        form.appendChild(profilesMenu);
+        form.appendChild(deleteProfileButton);
+    } );
+    
     launchModal( form );
 }
 
@@ -2363,10 +2380,18 @@ function appendEzInput(inputElement, value, type, controller) {
 
 /**
  * Load all EZ Profiles.
+ * @param {function} callback - The callback to run once the profiles are fetched.
  */
-function loadEzProfiles() {
-    if( !window.localStorage.guystationEZProfiles ) window.localStorage.guystationEZProfiles = JSON.stringify({});
-    return JSON.parse(window.localStorage.guystationEZProfiles);
+function loadEzProfiles( callback ) {
+    makeRequest( "GET", "/profiles", {}, function(responseText) {
+        try {
+            profilesDict = JSON.parse(responseText).profiles;
+            callback();
+        }
+        catch(err) {
+            // silent fail
+        }
+    } );
 }
 
 /**
@@ -2376,9 +2401,8 @@ function updateEzProfileList() {
     var selectElement = document.querySelector("#joypad-config-form #ez-profile-select");
     if( selectElement ) {
         var currentValue = selectElement.options[selectElement.selectedIndex].value;
-        var ezProfiles = loadEzProfiles();
         var curLabel = selectElement.parentNode.querySelector("span").innerText;
-        var profileOptions = Object.keys(ezProfiles);
+        var profileOptions = Object.keys(profilesDict);
         profileOptions.unshift("");
         selectElement.parentNode.replaceWith( createMenu( currentValue, profileOptions, selectElement.getAttribute("id"), curLabel, selectElement.onchange, selectElement.getAttribute("required") ) );
     }
@@ -2391,8 +2415,7 @@ function loadEzProfile() {
     var selectElement = document.querySelector("#joypad-config-form #ez-profile-select");
     var name = selectElement.options[selectElement.selectedIndex].value;
     if( name ) {
-        var ezProfiles = loadEzProfiles();
-        var profile = ezProfiles[name];
+        var profile = profilesDict[name];
         if( profile ) {
             for( var i=0; i<EZ_EMULATOR_CONFIG_BUTTONS.length; i++ ) {
                 document.querySelector("#ez-input-" + i).value = profile[EZ_EMULATOR_CONFIG_BUTTONS[i]];
@@ -2410,14 +2433,13 @@ function loadEzProfile() {
 function saveEzProfile() {
     var name = document.querySelector("#joypad-config-form #ez-profile-input").value;
     if( name ) {
-        var ezProfiles = loadEzProfiles();
         var profile = {};
         for( var i=0; i<EZ_EMULATOR_CONFIG_BUTTONS.length; i++ ) {
             profile[ EZ_EMULATOR_CONFIG_BUTTONS[i] ] = document.querySelector("#ez-input-" + i).value;
         }
-        ezProfiles[name] = profile;
-        window.localStorage.guystationEZProfiles = JSON.stringify(ezProfiles);
+        profilesDict[name] = profile;
         updateEzProfileList();
+        makeRequest( "POST", "/profile", { "name": name, "profile": profile } );
     }
 }
 
@@ -2428,12 +2450,11 @@ function deleteEzProfile() {
     var selectElement = document.querySelector("#joypad-config-form #ez-profile-select");
     var name = selectElement.options[selectElement.selectedIndex].value;
     if( name ) {
-        var ezProfiles = loadEzProfiles();
-        var profile = ezProfiles[name];
+        var profile = profilesDict[name];
         if( profile ) {
-            delete ezProfiles[name];
-            window.localStorage.guystationEZProfiles = JSON.stringify(ezProfiles);
+            delete profilesDict[name];
             updateEzProfileList();
+            makeRequest( "DELETE", "/profile", { "name": name } );
         }
     }
 }
