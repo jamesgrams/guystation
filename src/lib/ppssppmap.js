@@ -2080,6 +2080,29 @@ let ppssppControllerMap = {
         "h0.4": "+lefty",
         "6": "lefttrigger",
         "7": "righttrigger"
+    },
+    "7e05-0920": {
+        "0": "a",
+        "1": "b",
+        "8": "back",
+        "12": "dpup",
+        "13": "dpdown",
+        "14": "dpleft",
+        "15": "dpright",
+        "12": "guide",
+        "4": "leftshoulder",
+        "10": "leftstick",
+        "6": "lefttrigger",
+        "a0": "leftx",
+        "a1": "lefty",
+        "5": "rightshoulder",
+        "11": "rightstick",
+        "7": "righttrigger",
+        "a2": "rightx",
+        "a3": "righty",
+        "9": "start",
+        "2": "x",
+        "3": "y"
     }
 }
 module.exports = {
