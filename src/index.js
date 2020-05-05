@@ -3791,9 +3791,12 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
                 controlButtons = controlButtons.map( el => {
                     // if we don't have a controller or it doesn't exist in the map, just use the first controller
                     // in the map
-                    let axis = button.substring(0, button.length-1);
-                    let direction = button.substring(button.length-1);
-                    return el ? ppssppButtonsMap[ controller[PSP_AXIS_PREPEND+axis] ] + (direction == DIRECTION_PLUS ? 0 : 1) : el
+                    if( el ) {
+                        let axis = el.substring(0, el.length-1);
+                        let direction = el.substring(el.length-1);
+                        return ppssppButtonsMap[ controller[PSP_AXIS_PREPEND+axis] ] + (direction == DIRECTION_PLUS ? 0 : 1);
+                    }
+                    return el;
                 } );
             }
             else {
