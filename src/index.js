@@ -193,7 +193,7 @@ const NES_DEVICE_TYPE_KEY = "SDL.Input.GamePad.0DeviceType";
 const DIRECTION_MODIFIER_3DS = ",direction:";
 const GET_USER_COMMAND = "logname";
 const USER_PLACEHOLDER = "james";
-const PS3_CONTROLLER_ID = "4c05-6802";
+const DEFAULT_PSP_CONTROLLER_ID = "default";
 const PSP_AXIS_PREPEND = "a";
 
 const ERROR_MESSAGES = {
@@ -3770,7 +3770,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
     else if( system == SYSTEM_PSP ) {
         if( userControl.type == AXIS_CONTROL_TYPE || userControl.type == BUTTON_CONTROL_TYPE ) {
 
-            let controller = ppssppControllersMap[ PS3_CONTROLLER_ID ];
+            let controller = ppssppControllersMap[ DEFAULT_PSP_CONTROLLER_ID ];
             // perform the similar functions to get an sdl-like guid
             if( userControl.vendor && userControl.product ) {
                 // the values are hex values, we need them to be denoted as such internally

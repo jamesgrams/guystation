@@ -147,8 +147,31 @@ let ppssppButtonMap = {
 // We wouldn't need all this if we emptied the controller database to just have the generic controller
 // in that case, we'd always know how to get the NKCODE just from a controller button (we map NKCODEs to psp buttons)
 // but we are trying to keep PPSSPP's nice functions which translate across controllers
-// the first one is PS3 controller which is also the default
+// the first one is default: https://github.com/hrydgard/ppsspp/blob/aa927e0681ed76fec3b540218981a2c407a78e47/SDL/SDLJoystick.cpp#L60
 let ppssppControllerMap = {
+    "default": {
+        "3": "x",
+        "0": "a",
+        "1": "b",
+        "2": "y",
+        "8": "back",
+        "10": "guide",
+        "9": "start",
+        "15": "dpleft",
+        "14": "dpdown",
+        "16": "dpright",
+        "13": "dpup",
+        "4": "leftshoulder",
+        "a2": "lefttrigger",
+        "6": "rightshoulder",
+        "a5": "righttrigger",
+        "7": "leftstick",
+        "12": "rightstick",
+        "a0": "leftx",
+        "a1": "lefyy",
+        "a3": "rightx",
+        "a4": "righty"
+    },
     "4c05-6802": {
         "14": "a",
         "13": "b",
