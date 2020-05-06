@@ -29,7 +29,7 @@ var CHATTING_MESSAGES_INTERVAL = 1000;
 var SCREENCAST_AXIS_FUZZINESS = 15;
 var MAX_JOYSTICK_VALUE = 128;
 var MOUSE_MOVE_SEND_INTERVAL = 100;
-var EZ_AXIS_MIN_TO_SET = 0.5; // we have to be at least 0.5 beyond the last value to set
+var AXIS_MIN_TO_BE_BUTTON = 0.5; // we have to be at least 0.5 beyond the last value to set
 var EZ_AXIS_ALLOW_FOR_NEXT_INPUT = 0.2; // we will set the last value within this much (allowing for another set), or when we set
 var KEYCODES = {
     '0': 48,
@@ -230,6 +230,8 @@ var swRegistration;
 var screencastButtonsPressed = {};
 var screencastAxisLastValues = {};
 // keys are server values, values are client values
+// it's a map of numbers so 0:2, 3:3:, etc. PADCODES index to controller button number.
+// these are only used for the client's controller. No mapping is used for the virtual joypad created on phones. A sends button 0 and that's that.
 var screencastControllerMap = {}; // allow the user to map button inputs on the client to buttons on the virtual controller (button 5 on the client xbox contrller goes to button 9 on the virtual controller)
 
 var sambaUrl;
@@ -2197,7 +2199,7 @@ function displayJoypadConfig() {
     form.appendChild(warning);
     var padcodeKeys = Object.keys(PADCODES);
     for( var i=0; i<padcodeKeys.length-2; i++ ) {
-        var label = createInput( screencastControllerMap[i] ? screencastControllerMap[i].toString() : i.toString(), "virtual-input-" + i, padcodeKeys[i] + " (button " + i + "): ", "number", true );
+        var label = createInput( screencastControllerMap[i] ? screencastControllerMap[i].toString() : i.toString(), "virtual-input-" + i, padcodeKeys[i] + " (button " + i + "): ", "string", true );
         label.setAttribute("data-virtual-button", i);
         form.appendChild( label ); 
     }
@@ -2828,13 +2830,6 @@ function handleKeyButton(keyButton, down, callback) {
     if( PADCODES[displayValue] ) {
         socket.emit("/screencast/gamepad", { "event": { "type": 0x01, "code": PADCODES[displayValue], "value": down ? 1 : 0 } },
         function() { if(callback) callback(); } );
-        // if the user is sending a trigger event, also send an event for the trigger axis
-        // it is very unlikely the user has button trigger buttons and axis, so they likely won't
-        // have both mapped to buttons
-        if( PADCODES[displayValue] == 0x138 || PADCODES[displayValue] == 0x139 ) {
-            var newCode = PADCODES[displayValue] == 0x138 ? 0x10 : 0x11;
-            socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": newCode, "value": down ? MAX_JOYSTICK_VALUE : -MAX_JOYSTICK_VALUE } } );
-        }
     }
     // it's a keyboard key
     else {
@@ -4757,6 +4752,25 @@ function makeRequest(type, url, parameters, callback, errorCallback, useFormData
 }
 
 /**
+ * Send screencast buttons to a server from a client gamepad (not the virtual gamepad).
+ * This function translates the client gamepad button with the button mapping.
+ * @param {string} clientButton - Either the button number or the axis number and a direction.
+ * @param {boolean} [down] - Optional parameter to force a direction (used for axis whose states aren't tracked in screencastButtonsPressed)
+ */
+function sendButtonsToServer( clientButton, down ) {
+    // we send the codes that correspond with the buttons numbers. So padcodes have A as button 0, so when
+    // the client controller presses button 0, we send A, which means button 0 on the server unless a mapping specifies otherwise
+    // i is the client controller button
+    var scMapKeys = Object.keys(screencastControllerMap);
+    var valuesForClientButton = scMapKeys.filter( el => screencastControllerMap[el] == clientButton );
+    if( !screencastControllerMap[clientButton] ) valuesForClientButton.push(j); // if nothing is mapped for this button on the server, send this button. this means 2 == 2 as we intentionally left that blank.
+    for( var k=0; k<valuesForClientButton.length; k++ ) {
+        var buttonCode = Object.values(PADCODES)[valuesForClientButton[k]];
+        socket.emit("/screencast/gamepad", { "event": { "type": 0x01, "code": buttonCode, "value": down !== undefined ? down : screencastButtonsPressed[clientButton] } } );
+    }
+}
+
+/**
  * Poll for gamepads. 
  * Used for Chrome support
  * See here: https://developer.mozilla.org/en-US/docs/Web/API/Gamepad_API/Using_the_Gamepad_API
@@ -4867,6 +4881,7 @@ function manageGamepadInput() {
                     for( var j=0; j<inputs.length; j++ ) {
                         if( inputs[j] === document.activeElement ) {
                             var isEz = inputs[j].getAttribute("type") == "search";
+                            var isVirtualConfig = inputs[j].parentElement.getAttribute("data-virtual-button") ? true : false;
 
                             // If so, check if any buttons are pressed
                             for( var k=0; k<gp.buttons.length; k++ ) {
@@ -4884,7 +4899,7 @@ function manageGamepadInput() {
                                 }
                             }
 
-                            if( isEz ) {
+                            if( isEz || isVirtualConfig ) {
                                 for( var k=0; k<gp.axes.length; k++ ) {                                    
                                     var value = gp.axes[k];
 
@@ -4894,8 +4909,14 @@ function manageGamepadInput() {
                                     }
 
                                     // we have to have enough change set set this value
-                                    if( Math.abs(value) > EZ_AXIS_MIN_TO_SET ) {
-                                        appendEzInput(inputs[j], k + (value < 0 ? "-" : "+"), "axis", gp.id);
+                                    if( Math.abs(value) >= AXIS_MIN_TO_BE_BUTTON ) {
+                                        var direction = value < 0 ? "-" : "+";
+                                        if( isEz ) {
+                                            appendEzInput(inputs[j], k + direction, "axis", gp.id);
+                                        }
+                                        else {
+                                            inputs[j].value = k + direction;
+                                        }
 
                                         focusNextInput(inputs[j + 1]);
                                         break;
@@ -4918,26 +4939,25 @@ function manageGamepadInput() {
                         else {
                             screencastButtonsPressed[j] = false;
                         }
-                        // we send the codes that correspond with the buttons numbers. So padcodes have A as button 0, so when
-                        // the client controller presses button 0, we send A, which means button 0 on the server unless a mapping specifies otherwise
-                        // i is the client controller button
-                        var scMapKeys = Object.keys(screencastControllerMap);
-                        var valuesForClientButton = scMapKeys.filter( el => screencastControllerMap[el] == j );
-                        if( !screencastControllerMap[j] ) valuesForClientButton.push(j); // if nothing is mapped for this button on the server, send this button. this means 2 == 2 as we intentionally left that blank.
-                        for( var k=0; k<valuesForClientButton.length; k++ ) {
-                            var buttonCode = Object.values(PADCODES)[valuesForClientButton[k]];
-                            socket.emit("/screencast/gamepad", { "event": { "type": 0x01, "code": buttonCode, "value": screencastButtonsPressed[j] } } );
-                            // send trigger axis changes if these are trigger buttons
-                            if( buttonCode == 0x138 || buttonCode == 0x139 ) {
-                                var newCode = buttonCode == 0x138 ? 0x10 : 0x11;
-                                socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": newCode, "value": screencastButtonsPressed[j] ? MAX_JOYSTICK_VALUE : -MAX_JOYSTICK_VALUE } } );
-                            }
-                        }
+                        sendButtonsToServer( j );
                     }
                 }
 
-
                 for( var j=0; j<gp.axes.length; j++ ) {
+
+                    // the axis is mapped to a button
+                    var direction = gp.axes[j] >= 0 ? "+" : "-";
+                    var previousDirection = screencastAxisLastValues[j] >= 0 ? "+" : "-";
+                    if( Math.abs(gp.axes[j]) >= AXIS_MIN_TO_BE_BUTTON && ( Math.abs(screencastAxisLastValues[j]/MAX_JOYSTICK_VALUE) < AXIS_MIN_TO_BE_BUTTON || previousDirection != direction ) ) {
+                        sendButtonsToServer( j + direction, true );
+                        // in case we rapidly switched directions and it didn't get cleared out
+                        sendButtonsToServer( j + direction, false );
+                    }
+                    else if( Math.abs(gp.axes[j]) < AXIS_MIN_TO_BE_BUTTON && Math.abs(screencastAxisLastValues[j]/MAX_JOYSTICK_VALUE) >= AXIS_MIN_TO_BE_BUTTON ) {
+                        sendButtonsToServer( j + "+", false );
+                        sendButtonsToServer( j + "-", false );
+                    }
+
                     var serverAxisValue = Math.round(gp.axes[j] * MAX_JOYSTICK_VALUE);
                     // if within 1, its ok, unless it is 0
                     if( !screencastAxisLastValues[j] || Math.abs(serverAxisValue - screencastAxisLastValues[j]) > SCREENCAST_AXIS_FUZZINESS || (serverAxisValue == 0 && screencastAxisLastValues[j] != 0) ) {
