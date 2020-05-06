@@ -859,9 +859,12 @@ h1 {
     #time, #ip {
         display: none
     }
-    .modal input, .dying-modal input {
+    .modal input:not([type='checkbox']), .dying-modal input:not([type='checkbox']) {
         min-width: 280px;
         width: 100%;
+    }
+    #joypad-config-form .systems-checkboxes {
+        width: initial;
     }
     .modal > * > label > span, .dying-modal > * > label > span {
         display: block;
