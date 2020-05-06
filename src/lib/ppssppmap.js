@@ -1,4 +1,5 @@
 // https://github.com/hrydgard/ppsspp/blob/aa927e0681ed76fec3b540218981a2c407a78e47/ext/native/input/keycodes.h
+const fs = require('fs');
 
 // map from js key code to ppsspp number
 let ppssppMap = {
@@ -192,7 +193,7 @@ function generateControllerMap( controllerDbLocation ) {
                     let controllerMap = {};
                     for( let part of lineParts ) {
                         // get the controls
-                        if( part.contains(":") && !part.contains("platform") ) {
+                        if( part.match(":") && !part.match("platform") ) {
                             let partPair = part.split(":");
                             let pspButton = partPair[0];
                             let userButton = partPair[1];
