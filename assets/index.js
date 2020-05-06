@@ -4763,7 +4763,7 @@ function sendButtonsToServer( clientButton, down ) {
     // i is the client controller button
     var scMapKeys = Object.keys(screencastControllerMap);
     var valuesForClientButton = scMapKeys.filter( el => screencastControllerMap[el] == clientButton );
-    if( !screencastControllerMap[clientButton] ) valuesForClientButton.push(j); // if nothing is mapped for this button on the server, send this button. this means 2 == 2 as we intentionally left that blank.
+    if( !screencastControllerMap[clientButton] && !clientButton.match(/\+|\-/) ) valuesForClientButton.push( clientButton ); // if nothing is mapped for this button on the server, send this button. this means 2 == 2 as we intentionally left that blank.
     for( var k=0; k<valuesForClientButton.length; k++ ) {
         var buttonCode = Object.values(PADCODES)[valuesForClientButton[k]];
         socket.emit("/screencast/gamepad", { "event": { "type": 0x01, "code": buttonCode, "value": down !== undefined ? down : screencastButtonsPressed[clientButton] } } );
