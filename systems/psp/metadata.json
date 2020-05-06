@@ -6,6 +6,7 @@
   "activateCommand": "wmctrl -a 'PPSSPP'",
   "nandPathCommand": "echo \"$(eval echo '~')/.config/ppsspp/PSP/SAVEDATA\"",
   "allGamesShareNand": true,
+  "controllerDbLocation": "/home/james/ppsspp/assets/gamecontrollerdb.txt",
   "config": {
     "file": "/home/james/.config/ppsspp/PSP/SYSTEM/controls.ini",
     "controls": {

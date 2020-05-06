@@ -38,7 +38,7 @@ const vbamMap = require("./lib/vbammap");
 const qtMap = require("./lib/qtmap");
 const ppssppMap = require("./lib/ppssppmap").keys;
 const ppssppButtonsMap = require("./lib/ppssppmap").buttons;
-const ppssppControllersMap = require("./lib/ppssppmap").controllers;
+const generatePpssppControllersMap = require("./lib/ppssppmap").generateControllerMap;
 
 const PORT = 8080;
 const SOCKETS_PORT = 3000;
@@ -296,6 +296,8 @@ let continueInterval = null;
 let desktopUser = proc.execSync(GET_USER_COMMAND).toString().trim();
 
 let messages = [];
+
+let ppssppControllersMap;
 
 // Load the data on startup
 getData( true );
@@ -3828,6 +3830,8 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
     // for psp
     else if( system == SYSTEM_PSP ) {
         if( userControl.type == AXIS_CONTROL_TYPE || userControl.type == BUTTON_CONTROL_TYPE ) {
+
+            if( !ppssppControllersMap ) ppssppControllersMap = generatePpssppControllersMap( systemsDict[SYSTEM_PSP].controllerDbLocation );
 
             let controller = ppssppControllersMap[ DEFAULT_PSP_CONTROLLER_ID ];
             // perform the similar functions to get an sdl-like guid
