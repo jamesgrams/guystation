@@ -4763,7 +4763,7 @@ function sendButtonsToServer( clientButton, down ) {
     // i is the client controller button
     var scMapKeys = Object.keys(screencastControllerMap);
     var valuesForClientButton = scMapKeys.filter( el => screencastControllerMap[el] == clientButton );
-    if( !screencastControllerMap[clientButton] && !clientButton.match(/\+|\-/) ) valuesForClientButton.push( clientButton ); // if nothing is mapped for this button on the server, send this button. this means 2 == 2 as we intentionally left that blank.
+    if( !screencastControllerMap[clientButton] && !clientButton.toString().match(/\+|\-/) ) valuesForClientButton.push( clientButton ); // if nothing is mapped for this button on the server, send this button. this means 2 == 2 as we intentionally left that blank so long as it is not an axis.
     for( var k=0; k<valuesForClientButton.length; k++ ) {
         var buttonCode = Object.values(PADCODES)[valuesForClientButton[k]];
         socket.emit("/screencast/gamepad", { "event": { "type": 0x01, "code": buttonCode, "value": down !== undefined ? down : screencastButtonsPressed[clientButton] } } );
@@ -4951,7 +4951,7 @@ function manageGamepadInput() {
                     if( Math.abs(gp.axes[j]) >= AXIS_MIN_TO_BE_BUTTON && ( Math.abs(screencastAxisLastValues[j]/MAX_JOYSTICK_VALUE) < AXIS_MIN_TO_BE_BUTTON || previousDirection != direction ) ) {
                         sendButtonsToServer( j + direction, true );
                         // in case we rapidly switched directions and it didn't get cleared out
-                        sendButtonsToServer( j + direction, false );
+                        sendButtonsToServer( j + (direction == "+" ? "-" : "+"), false );
                     }
                     else if( Math.abs(gp.axes[j]) < AXIS_MIN_TO_BE_BUTTON && Math.abs(screencastAxisLastValues[j]/MAX_JOYSTICK_VALUE) >= AXIS_MIN_TO_BE_BUTTON ) {
                         sendButtonsToServer( j + "+", false );
