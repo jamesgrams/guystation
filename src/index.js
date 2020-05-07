@@ -3907,7 +3907,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
     else if( system == SYSTEM_PS2 ) {
         // We should know it is key type by now
         //if( userControl.type == KEY_CONTROL_TYPE ) {
-            controlButtons = controlButtons.map( el => el ? x11CodeMap[el] : el );
+            controlButtons = controlButtons.map( el => el ? ( "0x" + x11CodeMap[el].toString(16) ) : el );
         //}
     }
 
