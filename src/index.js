@@ -3663,7 +3663,8 @@ function setControls( systems, values ) {
 
                     // we are going to get the innermost nested object and set it's value
                     let configSetting = config;
-                    for( let i=0; i<controlInfo.keys.length - 1; i++) {
+                    for( let i=0; i<keys.length - 1; i++) {
+                        if( !configSetting[keys[i]] ) configSetting[keys[i]] = {};
                         configSetting = configSetting[keys[i]];
                     }
 
