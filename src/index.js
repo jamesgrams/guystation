@@ -3967,7 +3967,7 @@ function createVirtualGamepad() {
     ioctl(gamepadFileDescriptor, uinput.UI_SET_ABSBIT, uinput.ABS_Y);
     ioctl(gamepadFileDescriptor, uinput.UI_SET_ABSBIT, uinput.ABS_RX);
     ioctl(gamepadFileDescriptor, uinput.UI_SET_ABSBIT, uinput.ABS_RY);
-    // trigger axis
+    // hat axis
     ioctl(gamepadFileDescriptor, uinput.UI_SET_ABSBIT, uinput.ABS_HAT0X);
     ioctl(gamepadFileDescriptor, uinput.UI_SET_ABSBIT, uinput.ABS_HAT0Y);
     uidev = new uinputStructs.uinput_user_dev;
