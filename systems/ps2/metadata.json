@@ -6,5 +6,86 @@
   "screenshotsDirArgType": "=",
   "extraFlags": ["--fullscreen"],
   "activateCommand": "wmctrl -l | grep -E \"PCSX2\\s*$|Speed: \" | cut -d' ' -f1 | xargs wmctrl -i -a",
-  "frontendActivateCommand": "wmctrl -l | grep -E \"PCSX2\\s*v\" | cut -d' ' -f1 | xargs wmctrl -i -a"
+  "frontendActivateCommand": "wmctrl -l | grep -E \"PCSX2\\s*v\" | cut -d' ' -f1 | xargs wmctrl -i -a",
+  "config": {
+    "file": "/home/james/pcsx2/bin/inis/OnePAD2.ini",
+    "controls": {
+      "A": {
+        "values": [5]
+      },
+      "B": {
+        "values": [6]
+      },
+      "X": {
+        "values": [4]
+      },
+      "Y": {
+        "values": [7]
+      },
+      "L": {
+        "values": [2]
+      },
+      "R": {
+        "values": [3]
+      },
+      "L2": {
+        "values": [0]
+      },
+      "R2": {
+        "values": [1]
+      },
+      "L3": {
+        "values": [9]
+      },
+      "R3": {
+        "values": [10]
+      },
+      "Axis Y-": {
+        "values": [16]
+      },
+      "Axis Y+": {
+        "values": [18]
+      },
+      "Axis X-": {
+        "values": [19]
+      },
+      "Axis X+": {
+        "values": [17]
+      },
+      "Axis Y2-": {
+        "values": [20]
+      },
+      "Axis Y2+": {
+        "values": [22]
+      },
+      "Axis X2-": {
+        "values": [23]
+      },
+      "Axis X2+": {
+        "values": [21]
+      },
+      "Up": {
+        "values": [12]
+      },
+      "Down": {
+        "values": [14]
+      },
+      "Left": {
+        "values": [15]
+      },
+      "Right": {
+        "values": [13]
+      },
+      "Start": {
+        "values": [11]
+      },
+      "Select": {
+        "values": [8]
+      }
+    },
+    "controlFormat": {
+      "key": "PAD 0:KEYSYM $CONTROL"
+    },
+    "keyMatch": "PAD 0"
+  }
 }

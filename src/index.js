@@ -33,7 +33,8 @@ const validUrl = require("valid-url");
 const ini = require("ini");
 const gdkMap = require("./lib/gdkmap");
 const sdlMap = require("./lib/sdlmap");
-const x11Map = require("./lib/x11map");
+const x11Map = require("./lib/x11map").names;
+const x11CodeMap = require("./lib/x11map").codes;
 const vbamMap = require("./lib/vbammap");
 const qtMap = require("./lib/qtmap");
 const ppssppMap = require("./lib/ppssppmap").keys;
@@ -3644,11 +3645,37 @@ function setControls( systems, values ) {
             // we have two seperate objects, the usercontrol object provided by the user telling us what to enter
             // and the controlInfo object from the system metadata guiding us on how to enter it
             let userControls = values[control];
+
             if( userControls ) {
                 let controlParts = [];
                 let keyControlParts = [];
                 let controlInfo = controls[control];
+
+                // values need to be cleared out that are currently mapped to this control
+                // only keyboard keys are valid for PS2 right now
+                if( controlInfo.values && userControls.filter( el => el.type == KEY_CONTROL_TYPE ).length ) {
+                    // delete anything currently mapped to that control
+                    let configKeys = Object.keys(config);
+                    for(let configKey of configKeys) {
+                        if( configKey.match( systemsDict[system].config.keyMatch ) &&
+                            config[configKey] == controlInfo.values[0] ) {
+                            delete config[configKey];
+                        }
+                    }
+                }
+                
                 for( let userControl of userControls ) {
+
+                    // in this case, the values in the ini are actually the controls for the emulator
+                    // the keys are all at the root level
+                    if( controlInfo.values ) {
+                        // PS2 only allows key values right now
+                        if( userControl.type == KEY_CONTROL_TYPE ) {
+                            let newKey = translateButton( system, userControl, controlInfo, controlFormat, null, config );
+                            config[newKey] = controlInfo.values[0];
+                        }
+                        continue;
+                    }
 
                     // we might have sections for both keyboard keys and gamepad keys
                     // the default keys are always gamepad
@@ -3684,7 +3711,7 @@ function setControls( systems, values ) {
             }
         }
 
-        let writeValue = ini.stringify(config, {'whitespace': system == SYSTEM_NES || system == SYSTEM_PSP ? true : false});
+        let writeValue = ini.stringify(config, {'whitespace': system == SYSTEM_NES || system == SYSTEM_PSP || systems == SYSTEM_PS2 ? true : false});
 
         // the ini file tries to escape the wrapped quotes, but citra doesn't like that.
         if( system == SYSTEM_3DS ) writeValue = writeValue.replace( /"\\"|\\""/g, '"');
@@ -3876,6 +3903,12 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
             // prepend with the keyboard code
             controlButtons = controlButtons.map( el => el ? ppssppMap[el] : el );
         }
+    }
+    else if( system == SYSTEM_PS2 ) {
+        // We should know it is key type by now
+        //if( userControl.type == KEY_CONTROL_TYPE ) {
+            controlButtons = controlButtons.map( el => el ? x11CodeMap[el] : el );
+        //}
     }
 
 
