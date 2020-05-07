@@ -2273,8 +2273,10 @@ function displayJoypadConfig() {
             var curSystemInfo = systemsDict[curSystem];
             if( curSystemInfo.config && curSystemInfo.config.controls[ EZ_EMULATOR_CONFIG_BUTTONS[i] ] ) {
                 var buttonInfo = curSystemInfo.config.controls[ EZ_EMULATOR_CONFIG_BUTTONS[i] ];
-                var buttonValue = buttonInfo.keys[ buttonInfo.keys.length - 1 ];
-                buttonTitle.push( curSystem + ": " + buttonValue );
+                if( buttonInfo.keys ) {
+                    var buttonValue = buttonInfo.keys[ buttonInfo.keys.length - 1 ];
+                    buttonTitle.push( curSystem + ": " + buttonValue );
+                }
             }
         }
         label.setAttribute("title", buttonTitle.join("\n"));

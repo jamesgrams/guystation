@@ -175,10 +175,10 @@ Multiple monitors are not supported. Using multiple monitors will cause issues w
 
 ## Known Issues
 * Dolphin does something similar where it keeps track of controllers by controller type.
-* PCSX2 does not recognize the virtual controller.
 * Citra and Mupen64 flicker when hiding the screenshare message. As such, the message is not hidden when these emulators are in use and screenshare is started. It is made transparent, and click event are ignored on it.
 * A program restart is required if you change the screen resolution.
-* PS2 and NGC can't have their controls set with EZ Controller Configuration.
+* PS2 can only have keyboard controls set with virtual configuration.
+* NGC can't have their controls set with EZ Controller Configuration.
 * EZ Controller Configuration only allows the left version of buttons (control, alt, shift, etc.) and for player 1
 * PSP maps button names to PSP controls rather than numbers. Names can be different per controller, which can be nice. However, you have to have the mapping (number to name) for the controller listed for it to work properly. PPSSPP itself can do a little better at guessing button names, I believe with the help of the generic controller mapping of the controller plugged in, but we can't get this with the HTML5 Gamepad API. The best we can do is apply a default which likely won't be accurate. Add a controller mapping to `~/ppsspp/assets/gamecontrollerdb.txt` if your controller is not recognized.
 
