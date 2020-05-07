@@ -100,6 +100,10 @@ let x11Map = {
     46: "Delete" // delete
 };
 
+// PS2 info
+// https://github.com/PCSX2/pcsx2/blob/2af05a92f8046a5e9151bf014a9e0a9a8375032b/plugins/onepad/Linux/ini.cpp#L30
+// https://github.com/PCSX2/pcsx2/blob/2af05a92f8046a5e9151bf014a9e0a9a8375032b/plugins/onepad/onepad.h#L77
+
 // This is the map to the actual codes rather than just their names
 const x11CodeMap = {
     32: 0x0020, // space
