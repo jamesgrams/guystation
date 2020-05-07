@@ -4784,8 +4784,8 @@ function sendButtonsToServer( clientButton, down ) {
     // i is the client controller button
     var scMapKeys = Object.keys(screencastControllerMap);
     var serverButtonsForClientButton = scMapKeys.filter( el => screencastControllerMap[el] == clientButton );
-    if( !screencastControllerMap[clientButton] && !clientButton.toString().match(/\+|\-/) ) serverButtonsForClientButton.push( clientButton ); // if nothing is mapped for this button on the server, send this button. this means 2 == 2 as we intentionally left that blank so long as it is not an axis to a button.
-    
+    if( !screencastControllerMap[clientButton] && !clientButton.toString().match(/\+|\-/) && ( ( clientButton.toString().match(/^a/) && parseInt(clientButton.replace("a","")) < Object.keys(AXISCODES).length ) || ( !clientButton.toString().match(/^a/) && parseInt(clientButton) < Object.keys(PADCODES).length ) ) ) serverButtonsForClientButton.push( clientButton ); // if nothing is mapped for this button on the server, send this button. this means 2 == 2 as we intentionally left that blank - sent so long as it is not an axis to a button.
+    // also make sure it is a valid server button range
     try {
         if( !clientButton.toString().match(/^a/) ) {
             for( var k=0; k<serverButtonsForClientButton.length; k++ ) {
@@ -4800,11 +4800,13 @@ function sendButtonsToServer( clientButton, down ) {
             for( var k=0; k<serverButtonsForClientButton.length; k++ ) {
                 var index = parseInt( serverButtonsForClientButton[k].replace("a","") );
                 var axisCode = Object.values(AXISCODES)[index];
-                socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": axisCode, "value": screencastAxisLastValues[ clientButton ] } } );
+                socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": axisCode, "value": screencastAxisLastValues[ parseInt(clientButton.replace("a","")) ] } } );
             }
         }
     }
-    catch(err) { /* this is ok, we might have tried to send an axis or button that does not exist on the server (when we forward exactly the button number or axis when there is no map) */ }
+    catch(err) {
+         /* this is ok, we might have tried to send an axis or button that does not exist on the server (when we forward exactly the button number or axis when there is no map) */ 
+    }
 }
 
 /**
