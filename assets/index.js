@@ -151,7 +151,15 @@ var PADCODES = {
     '◀': 0x222, // dpad left
     '▶': 0x223, // dpad right
     '🕹️L': 1, // there's special logic for these analog pads based on their names, so be careful when changing them
-    '🕹️R': 2
+    '🕹️R': 2 // they aren't used for sending button values - they are only used for the mobile virtual controller
+}
+// These are only used when the client has a controller that we map the axis
+// The virtual controller uses the left and right axis padcode
+var AXISCODES = {
+    "🕹️X": 0x00,
+    "🕹️Y": 0x01,
+    "🕹️X2": 0x03,
+    "🕹️Y2": 0x04
 }
 // These are the buttons that will be used
 var EZ_EMULATOR_CONFIG_BUTTONS = [
@@ -232,6 +240,8 @@ var screencastAxisLastValues = {};
 // keys are server values, values are client values
 // it's a map of numbers so 0:2, 3:3:, etc. PADCODES index to controller button number.
 // these are only used for the client's controller. No mapping is used for the virtual joypad created on phones. A sends button 0 and that's that.
+// server axis will be prepended with an "a" as will client full axis
+// when using an axis direction for a button, we will simply put that axis number and + or -
 var screencastControllerMap = {}; // allow the user to map button inputs on the client to buttons on the virtual controller (button 5 on the client xbox contrller goes to button 9 on the virtual controller)
 
 var sambaUrl;
@@ -2198,9 +2208,18 @@ function displayJoypadConfig() {
     warning.setAttribute("title", "The client-connected controller maps to a virtual server controller while streaming.");
     form.appendChild(warning);
     var padcodeKeys = Object.keys(PADCODES);
+    // allow padcode mapping for the padcodes that we use
     for( var i=0; i<padcodeKeys.length-2; i++ ) {
         var label = createInput( screencastControllerMap[i] ? screencastControllerMap[i].toString() : i.toString(), "virtual-input-" + i, padcodeKeys[i] + " (button " + i + "): ", "string", true );
         label.setAttribute("data-virtual-button", i);
+        form.appendChild( label ); 
+    }
+    // allow axis mapping
+    var axiscodeKeys = Object.keys(AXISCODES);
+    for( var i=0; i<axiscodeKeys.length; i++ ) {
+        var index = "a"+i;
+        var label = createInput( screencastControllerMap[index] ? screencastControllerMap[index].toString() : (index), "virtual-input-" + index, axiscodeKeys[i] + " (axis " + i + "): ", "string", true );
+        label.setAttribute("data-virtual-button", index);
         form.appendChild( label ); 
     }
     form.appendChild( createButton( "Save", function() {
@@ -2214,10 +2233,12 @@ function displayJoypadConfig() {
         var inputs = document.querySelectorAll("#joypad-config-form label[data-virtual-button] input");
         var newScreencastControllerMap = {};
         for(var i=0; i<inputs.length; i++) {
+            var usedPadcodesLength = (Object.keys(PADCODES).length-2);
+            var index = i < usedPadcodesLength ? i : ("a"+(i-usedPadcodesLength));
             // if say button 0 != button 0
-            if( inputs[i].value != i ) {
+            if( inputs[i].value != index ) {
                 // the mapping is server to client
-                newScreencastControllerMap[ i ] = inputs[i].value;
+                newScreencastControllerMap[ index ] = inputs[i].value;
             }
         }
         screencastControllerMap = newScreencastControllerMap;
@@ -2754,7 +2775,7 @@ function createKeyButton( selected, x, y ) {
         if( !lastJoystickValues.length || (Math.abs(lastJoystickValues[0] - xValueForServer)) > SCREENCAST_AXIS_FUZZINESS || (Math.abs(lastJoystickValues[1] - yValueForServer)) > SCREENCAST_AXIS_FUZZINESS || (!e) ) {
             lastJoystickValues = [xValueForServer, yValueForServer];
 
-            // The right axis are 2 & 3
+            // The right axis are 3 & 4
             var axisAdder = selected.includes("L") ? 0 : 3;
             socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": 0x00 + axisAdder, "value": xValueForServer } });
             socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": 0x01 + axisAdder, "value": yValueForServer } });
@@ -4762,12 +4783,28 @@ function sendButtonsToServer( clientButton, down ) {
     // the client controller presses button 0, we send A, which means button 0 on the server unless a mapping specifies otherwise
     // i is the client controller button
     var scMapKeys = Object.keys(screencastControllerMap);
-    var valuesForClientButton = scMapKeys.filter( el => screencastControllerMap[el] == clientButton );
-    if( !screencastControllerMap[clientButton] && !clientButton.toString().match(/\+|\-/) ) valuesForClientButton.push( clientButton ); // if nothing is mapped for this button on the server, send this button. this means 2 == 2 as we intentionally left that blank so long as it is not an axis.
-    for( var k=0; k<valuesForClientButton.length; k++ ) {
-        var buttonCode = Object.values(PADCODES)[valuesForClientButton[k]];
-        socket.emit("/screencast/gamepad", { "event": { "type": 0x01, "code": buttonCode, "value": down !== undefined ? down : screencastButtonsPressed[clientButton] } } );
+    var serverButtonsForClientButton = scMapKeys.filter( el => screencastControllerMap[el] == clientButton );
+    if( !screencastControllerMap[clientButton] && !clientButton.toString().match(/\+|\-/) ) serverButtonsForClientButton.push( clientButton ); // if nothing is mapped for this button on the server, send this button. this means 2 == 2 as we intentionally left that blank so long as it is not an axis to a button.
+    
+    try {
+        if( !clientButton.toString().match(/^a/) ) {
+            for( var k=0; k<serverButtonsForClientButton.length; k++ ) {
+                // note whether the client axis or button, it is mapped to a server button, and thus serverButtonsForClientButton[k] will always be a number indicating the button number on the server
+                var buttonCode = Object.values(PADCODES)[serverButtonsForClientButton[k]];
+                socket.emit("/screencast/gamepad", { "event": { "type": 0x01, "code": buttonCode, "value": down !== undefined ? down : screencastButtonsPressed[clientButton] } } );
+            }
+        }
+        // this is a full axis being sent on the client (not just an axis direction) - it must be mapped to a server axis
+        // we don't allow client buttons to be mapped to a server axis.
+        else {
+            for( var k=0; k<serverButtonsForClientButton.length; k++ ) {
+                var index = parseInt( serverButtonsForClientButton[k].replace("a","") );
+                var axisCode = Object.values(AXISCODES)[index];
+                socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": axisCode, "value": screencastAxisLastValues[ clientButton ] } } );
+            }
+        }
     }
+    catch(err) { /* this is ok, we might have tried to send an axis or button that does not exist on the server (when we forward exactly the button number or axis when there is no map) */ }
 }
 
 /**
@@ -4904,9 +4941,10 @@ function manageGamepadInput() {
                                     var value = gp.axes[k];
 
                                     // trigger buttons
-                                    if( gp.axes.length == 6 ) {
-                                        if( k == 2 || k == 5 ) value = (value + 1)/2;
-                                    }
+                                    // according to the spec, they should not be giving -1 as a value...
+                                    // if( gp.axes.length == 6 ) {
+                                    //     if( k == 2 || k == 5 ) value = (value + 1)/2;
+                                    // }
 
                                     // we have to have enough change set set this value
                                     if( Math.abs(value) >= AXIS_MIN_TO_BE_BUTTON ) {
@@ -4915,7 +4953,10 @@ function manageGamepadInput() {
                                             appendEzInput(inputs[j], k + direction, "axis", gp.id);
                                         }
                                         else {
-                                            inputs[j].value = k + direction;
+                                            if( inputs[j].parentElement.getAttribute("data-virtual-button").match(/^a/) ) {
+                                                inputs[j].value = "a" + k;
+                                            }
+                                            else inputs[j].value = k + direction;
                                         }
 
                                         focusNextInput(inputs[j + 1]);
@@ -4962,25 +5003,8 @@ function manageGamepadInput() {
                     // if within 1, its ok, unless it is 0
                     if( !screencastAxisLastValues[j] || Math.abs(serverAxisValue - screencastAxisLastValues[j]) > SCREENCAST_AXIS_FUZZINESS || (serverAxisValue == 0 && screencastAxisLastValues[j] != 0) ) {
                         screencastAxisLastValues[j] = serverAxisValue;
-                        // a wii u pro controller uses axes 0,1 for left stick and 3,4 for right stick
-                        // an xbox 360 controller does this too. but there are also axes 2 and 5 for the left and right triggers respectively.
-                        // however, since the js gamepad api returns arrays, for wii u, axis 2 and 3 in the gamepad api are 3 and 4.
-                        var axisAdder = 0;
-                        if( gp.axes.length == 4 && j > 1 ) {
-                            axisAdder = 1;
-                        }
-                        if( gp.axes.length == 6 ) {
-                            if( j == 2 ) axisAdder = 14;
-                            if( j == 5 ) axisAdder = 12;
-                        }
-                        socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": j + axisAdder, "value": serverAxisValue } });
-                        // if we press a trigger axis, also send a trigger button
-                        if( gp.axes.length == 6 ) {
-                            var buttonCode;
-                            if( j == 2 ) buttonCode = 0x138;
-                            else if( j == 5 ) buttonCode = 0x139;
-                            socket.emit("/screencast/gamepad", { "event": { "type": 0x01, "code": buttonCode, "value": serverAxisValue > 0 ? 1 : 0 } } );
-                        }
+
+                        sendButtonsToServer( "a" + j ); // the client button is "a" + j, could be multiple server buttons
                     }
                 }
 
