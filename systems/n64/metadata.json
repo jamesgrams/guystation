@@ -21,7 +21,7 @@
       "B": {
         "keys": ["Input-SDL-Control1","B Button"]
       },
-      "R1": {
+      "R": {
         "keys": ["Input-SDL-Control1","Z Trig"]
       },
       "L2": {
