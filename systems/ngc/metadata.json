@@ -8,5 +8,75 @@
   "activateCommand": "wmctrl -a 'JIT64'",
   "frontendActivateCommand": "wmctrl -a 'Dolphin'",
   "optionPrefix": "-C",
-  "argsFirst": true
+  "argsFirst": true,
+  "config": {
+    "file": "/home/james/.config/dolphin-emu/GCPadNew.ini",
+    "controls": {
+      "A": {
+        "keys": ["GCPad1","Buttons/A"]
+      },
+      "B": {
+        "keys": ["GCPad1","Buttons/B"]
+      },
+      "X": {
+        "keys": ["GCPad1","Buttons/X"]
+      },
+      "Y": {
+        "keys": ["GCPad1","Buttons/Y"]
+      },
+      "R1": {
+        "keys": ["GCPad1","Buttons/Z"]
+      },
+      "L2": {
+        "keys": ["GCPad1","Triggers/L"]
+      },
+      "R2": {
+        "keys": ["GCPad1","Triggers/R"]
+      },
+      "Up": {
+        "keys": ["GCPad1","D-Pad/Up"]
+      },
+      "Down": {
+        "keys": ["GCPad1","D-Pad/Down"]
+      },
+      "Left": {
+        "keys": ["GCPad1","D-Pad/Left"]
+      },
+      "Right": {
+        "keys": ["GCPad1","D-Pad/Right"]
+      },
+      "Start": {
+        "keys": ["GCPad1","Buttons/Start"]
+      },
+      "Axis X-": {
+        "keys": ["GCPad1","Main Stick/Left"]
+      },
+      "Axis X+": {
+        "keys": ["GCPad1","Main Stick/Right"]
+      },
+      "Axis Y-": {
+        "keys": ["GCPad1","Main Stick/Up"]
+      },
+      "Axis Y+": {
+        "keys": ["GCPad1","Main Stick/Down"]
+      },
+      "Axis X2-": {
+        "keys": ["GCPad1","C-Stick/Left"]
+      },
+      "Axis X2+": {
+        "keys": ["GCPad1","C-Stick/Right"]
+      },
+      "Axis Y2-": {
+        "keys": ["GCPad1","C-Stick/Up"]
+      },
+      "Axis Y2+": {
+        "keys": ["GCPad1","C-Stick/Down"]
+      }
+    },
+    "controlFormat": {
+      "axis": "`Axis $CONTROL`",
+      "button": "`Button $CONTROL`",
+      "key": "$CONTROL"
+    }
+  }
 }

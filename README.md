@@ -99,7 +99,7 @@ You may need to change the Video Plugin for Mupen64Plus. It defaults to `mupen64
 * When streaming Nintendo 64 games, it is best to start streaming while playing the game if you change the aspect ratio. GuyStation takes into account the current aspect ratio when the stream is started and will stream with those dimensions.
 
 ### Dolphin (Gamecube/Wii)
-The version of Dolphin used changes the default screenshot key to Ctrl+S, and the quit key to Delete+F12. I have found the easiest way to connect Wiimotes is to do the following:
+The version of Dolphin used changes the default screenshot key to Ctrl+S, and the quit key to Delete+F12. This version also labels all game controllers loaded with evdev as `Gamepad`. This allows you to use the same controller configuration for multiple gamepads. I have found the easiest way to connect Wiimotes is to do the following:
 * Change the Dolphin controller settings to use a real Wiimote
 * DO NOT connect/pair the wiimote to your system using Bluetooth Manager (this is mainly to avoid the script that tries to connect to paired devices, so it probably doesn't matter if you aren't using that script)
 * Every time you start a Wii game, press the red sync button on your Wiimote to connect.
@@ -174,11 +174,10 @@ There are a few important things to note with this. You won't be able to change 
 Multiple monitors are not supported. Using multiple monitors will cause issues with ensuring the screen resolution is correct and streaming the screen.
 
 ## Known Issues
-* Dolphin does something similar where it keeps track of controllers by controller type.
 * Citra and Mupen64 flicker when hiding the screenshare message. As such, the message is not hidden when these emulators are in use and screenshare is started. It is made transparent, and click event are ignored on it.
 * A program restart is required if you change the screen resolution.
-* PS2 can only have keyboard controls set with virtual configuration.
-* NGC can't have their controls set with EZ Controller Configuration.
+* PS2 can only have keyboard controls set with EZ configuration.
+* NGC will have the device to the virtual keyboard when setting keyboad controls with EZ configuration. There isn't a good way to detect a keyboard. Hopefully, this shouldn't be a problem if you regularly use a game controller. The game controllers are connected if the evdev device name matches one of a set of keyboards (gamepad, joystick, controller, joypad).
 * EZ Controller Configuration only allows the left version of buttons (control, alt, shift, etc.) and for player 1
 * PSP maps button names to PSP controls rather than numbers. Names can be different per controller, which can be nice. However, you have to have the mapping (number to name) for the controller listed for it to work properly. PPSSPP itself can do a little better at guessing button names, I believe with the help of the generic controller mapping of the controller plugged in, but we can't get this with the HTML5 Gamepad API. The best we can do is apply a default which likely won't be accurate. Add a controller mapping to `~/ppsspp/assets/gamecontrollerdb.txt` if your controller is not recognized.
 

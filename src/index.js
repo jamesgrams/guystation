@@ -197,6 +197,10 @@ const USER_PLACEHOLDER = "james";
 const DEFAULT_PSP_CONTROLLER_ID = "default";
 const PSP_AXIS_PREPEND = "a";
 const EZ_CONTROL_PATH = "profiles.json";
+const NGC_GAMEPAD = "evdev/0/Gamepad";
+const NGC_VIRTUAL_KEYBOARD = "XInput2/0/Virtual Core Pointer";
+const NGC_PAD_KEY = "GCPad1";
+const NGC_DEVICE_TYPE_KEY = "Device";
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -3711,7 +3715,7 @@ function setControls( systems, values ) {
             }
         }
 
-        let writeValue = ini.stringify(config, {'whitespace': system == SYSTEM_NES || system == SYSTEM_PSP || systems == SYSTEM_PS2 ? true : false});
+        let writeValue = ini.stringify(config, {'whitespace': system == SYSTEM_NES || system == SYSTEM_PSP || system == SYSTEM_PS2 || system == SYSTEM_NGC ? true : false});
 
         // the ini file tries to escape the wrapped quotes, but citra doesn't like that.
         if( system == SYSTEM_3DS ) writeValue = writeValue.replace( /"\\"|\\""/g, '"');
@@ -3909,6 +3913,15 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
         //if( userControl.type == KEY_CONTROL_TYPE ) {
             controlButtons = controlButtons.map( el => el ? ( "0x" + x11CodeMap[el].toString(16) ) : el );
         //}
+    }
+    // gamecube
+    else if( system == SYSTEM_NGC ) {
+        config[NGC_PAD_KEY][NGC_DEVICE_TYPE_KEY] = NGC_GAMEPAD;
+        // dolphin uses x11 map for keys
+        if( userControl.type == KEY_CONTROL_TYPE ) {
+            controlButtons = controlButtons.map( el => el ? x11Map[el] : el );
+            config[NGC_PAD_KEY][NGC_DEVICE_TYPE_KEY] = NGC_VIRTUAL_KEYBOARD;
+        }
     }
 
 
