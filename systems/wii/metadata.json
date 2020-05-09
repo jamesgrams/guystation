@@ -32,10 +32,10 @@
         "keys": ["Wiimote1","Classic/Triggers/R"]
       },
       "L2": {
-        "keys": ["Wiimote1","Classic/Triggers/ZL"]
+        "keys": ["Wiimote1","Classic/Buttons/ZL"]
       },
       "R2": {
-        "keys": ["Wiimote1","Classic/Triggers/ZR"]
+        "keys": ["Wiimote1","Classic/Buttons/ZR"]
       },
       "Up": {
         "keys": ["Wiimote1","Classic/D-Pad/Up"]
