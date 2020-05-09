@@ -3925,7 +3925,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
                     value = x11Map[el];
                     if( value.length == 1 ) value = value.toUpperCase();
                 }
-                el ? x11Map[el] : el
+                return value;
              } );
             config[NGC_PAD_KEY][NGC_DEVICE_TYPE_KEY] = NGC_VIRTUAL_KEYBOARD;
         }
