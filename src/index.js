@@ -3919,7 +3919,14 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
         config[NGC_PAD_KEY][NGC_DEVICE_TYPE_KEY] = NGC_GAMEPAD;
         // dolphin uses x11 map for keys
         if( userControl.type == KEY_CONTROL_TYPE ) {
-            controlButtons = controlButtons.map( el => el ? x11Map[el] : el );
+            controlButtons = controlButtons.map( el => {
+                let value = el;
+                if( x11Map[el] ) {
+                    value = x11Map[el];
+                    if( value.length == 1 ) value = value.toUpperCase();
+                }
+                el ? x11Map[el] : el
+             } );
             config[NGC_PAD_KEY][NGC_DEVICE_TYPE_KEY] = NGC_VIRTUAL_KEYBOARD;
         }
     }
