@@ -11,7 +11,7 @@
   "argsFirst": true,
   "nandPathCommand": "echo \"$(eval echo '~')/.local/share/dolphin-emu/Wii$(dolphin-emu-nogui --save-path='ROM_FILE_PLACEHOLDER')\"",
   "config": {
-    "file": "/home/james/.config/dolphin-emu/GCPadNew.ini",
+    "file": "/home/james/.config/dolphin-emu/WiimoteNew.ini",
     "controls": {
       "A": {
         "keys": ["Wiimote1","Classic/Buttons/A"]
