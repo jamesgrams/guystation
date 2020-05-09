@@ -198,7 +198,7 @@ const DEFAULT_PSP_CONTROLLER_ID = "default";
 const PSP_AXIS_PREPEND = "a";
 const EZ_CONTROL_PATH = "profiles.json";
 const NGC_GAMEPAD = "evdev/0/Gamepad";
-const NGC_VIRTUAL_KEYBOARD = "XInput2/0/Virtual Core Pointer";
+const NGC_VIRTUAL_KEYBOARD = "XInput2/0/Virtual core pointer";
 const NGC_PAD_KEY = "GCPad1";
 const NGC_DEVICE_TYPE_KEY = "Device";
 
