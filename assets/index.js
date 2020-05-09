@@ -197,7 +197,8 @@ var EZ_SYSTEMS = [
     "ngc",
     "ps2",
     "psp",
-    "snes"
+    "snes",
+    "wii"
 ];
 
 var expandCountLeft; // We always need to have a complete list of systems, repeated however many times we want, so the loop works properly

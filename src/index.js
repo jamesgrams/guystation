@@ -201,6 +201,9 @@ const NGC_GAMEPAD = "evdev/0/Gamepad";
 const NGC_VIRTUAL_KEYBOARD = "XInput2/0/Virtual core pointer";
 const NGC_PAD_KEY = "GCPad1";
 const NGC_DEVICE_TYPE_KEY = "Device";
+const WII_PAD_KEY = "Wiimote1";
+const WII_CLASSIC_KEY = "Extension";
+const WII_CLASSIC_VALUE = "Classic";
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -3914,9 +3917,13 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
             controlButtons = controlButtons.map( el => el ? ( "0x" + x11CodeMap[el].toString(16) ) : el );
         //}
     }
-    // gamecube
-    else if( system == SYSTEM_NGC ) {
-        config[NGC_PAD_KEY][NGC_DEVICE_TYPE_KEY] = NGC_GAMEPAD;
+    // gamecube and wii
+    else if( system == SYSTEM_NGC || system == SYSTEM_WII ) {
+        let padKey = system == SYSTEM_NGC ? NGC_PAD_KEY : WII_PAD_KEY;
+        config[padKey][NGC_DEVICE_TYPE_KEY] = NGC_GAMEPAD;
+
+        if( system == SYSTEM_WII ) config[padKey][WII_CLASSIC_KEY] = WII_CLASSIC_VALUE;
+
         // dolphin uses x11 map for keys
         if( userControl.type == KEY_CONTROL_TYPE ) {
             controlButtons = controlButtons.map( el => {
@@ -3927,7 +3934,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
                 }
                 return value;
              } );
-            config[NGC_PAD_KEY][NGC_DEVICE_TYPE_KEY] = NGC_VIRTUAL_KEYBOARD;
+            config[padKey][NGC_DEVICE_TYPE_KEY] = NGC_VIRTUAL_KEYBOARD;
         }
     }
 

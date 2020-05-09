@@ -9,5 +9,81 @@
   "frontendActivateCommand": "wmctrl -a 'Dolphin'",
   "optionPrefix": "-C",
   "argsFirst": true,
-  "nandPathCommand": "echo \"$(eval echo '~')/.local/share/dolphin-emu/Wii$(dolphin-emu-nogui --save-path='ROM_FILE_PLACEHOLDER')\""
+  "nandPathCommand": "echo \"$(eval echo '~')/.local/share/dolphin-emu/Wii$(dolphin-emu-nogui --save-path='ROM_FILE_PLACEHOLDER')\"",
+  "config": {
+    "file": "/home/james/.config/dolphin-emu/GCPadNew.ini",
+    "controls": {
+      "A": {
+        "keys": ["Wiimote1","Classic/Buttons/A"]
+      },
+      "B": {
+        "keys": ["Wiimote1","Classic/Buttons/B"]
+      },
+      "X": {
+        "keys": ["Wiimote1","Classic/Buttons/X"]
+      },
+      "Y": {
+        "keys": ["Wiimote1","Classic/Buttons/Y"]
+      },
+      "L": {
+        "keys": ["Wiimote1","Classic/Triggers/L"]
+      },
+      "R": {
+        "keys": ["Wiimote1","Classic/Triggers/R"]
+      },
+      "L2": {
+        "keys": ["Wiimote1","Classic/Triggers/ZL"]
+      },
+      "R2": {
+        "keys": ["Wiimote1","Classic/Triggers/ZR"]
+      },
+      "Up": {
+        "keys": ["Wiimote1","Classic/D-Pad/Up"]
+      },
+      "Down": {
+        "keys": ["Wiimote1","Classic/D-Pad/Down"]
+      },
+      "Left": {
+        "keys": ["Wiimote1","Classic/D-Pad/Left"]
+      },
+      "Right": {
+        "keys": ["Wiimote1","Classic/D-Pad/Right"]
+      },
+      "Start": {
+        "keys": ["Wiimote1","Classic/Buttons/+"]
+      },
+      "Select": {
+        "keys": ["Wiimote1","Classic/Buttons/-"]
+      },
+      "Axis X-": {
+        "keys": ["Wiimote1","Classic/Left Stick/Left"]
+      },
+      "Axis X+": {
+        "keys": ["Wiimote1","Classic/Left Stick/Right"]
+      },
+      "Axis Y-": {
+        "keys": ["Wiimote1","Classic/Left Stick/Up"]
+      },
+      "Axis Y+": {
+        "keys": ["Wiimote1","Classic/Left Stick/Down"]
+      },
+      "Axis X2-": {
+        "keys": ["Wiimote1","Classic/Right Stick/Left"]
+      },
+      "Axis X2+": {
+        "keys": ["Wiimote1","Classic/Right Stick/Right"]
+      },
+      "Axis Y2-": {
+        "keys": ["Wiimote1","Classic/Right Stick/Up"]
+      },
+      "Axis Y2+": {
+        "keys": ["Wiimote1","Classic/Right Stick/Down"]
+      }
+    },
+    "controlFormat": {
+      "axis": "`Axis $CONTROL`",
+      "button": "`Button $CONTROL`",
+      "key": "$CONTROL"
+    }
+  }
 }
