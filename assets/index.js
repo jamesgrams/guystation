@@ -200,6 +200,103 @@ var EZ_SYSTEMS = [
     "snes",
     "wii"
 ];
+var EZ_REGEX = /([^\(]+)\(([^\)]+)\)(-([^\-]+)-(.*))?/;
+var KEYCODE_MAP = {
+    32: "Space", // space
+    222: "Apostrophe", // single quote
+    188: "Comma", // comma
+    189: "Minus", // minus
+    190: "Period", //period
+    192: "Slash", // slash
+    48: "0", // 0-9
+    49: "1",
+    50: "2",
+    51: "3",
+    52: "4",
+    53: "5",
+    54: "6",
+    55: "7",
+    56: "8",
+    57: "9",
+    186: "Semicolon", // semicolon
+    187: "Qqual", // equal
+    219: "Bracketleft", // open bracket
+    220: "Backslash", // backslash
+    221: "Bracketright", // close bracket
+    65: "A", // a-z
+    66: "B",
+    67: "C",
+    68: "D",
+    69: "E",
+    70: "F",
+    71: "G",
+    72: "H",
+    73: "I",
+    74: "J",
+    75: "K",
+    76: "L",
+    77: "M",
+    78: "N",
+    79: "O",
+    80: "P",
+    81: "Q",
+    82: "R",
+    83: "S",
+    84: "T",
+    85: "Y",
+    86: "V",
+    87: "W",
+    88: "X",
+    89: "Y",
+    90: "Z",
+    8: "Backspace", // backspace
+    9: "Tab", // tab
+    13: "Return", // enter
+    19: "Pause", // pause
+    145: "Scroll Lock", // scroll lock
+    27: "Escape", // escape    
+    36: "Home", // home
+    37: "Left", // left
+    38: "Up", // up
+    39: "Right", // right
+    40: "Down", // down
+    33: "Page Up", // page up
+    34: "Page Down", // page down
+    35: "End", // end
+    45: "Insert", // insert
+    96: "KP 0", // numpad 0-9
+    97: "KP 1",
+    98: "KP 2",
+    99: "KP 3",
+    100: "KP 4",
+    101: "KP 5",
+    102: "KP 6",
+    103: "KP 7",
+    104: "KP 8",
+    105: "KP 9",
+    112: "F1", // f 1-12
+    113: "F2",
+    114: "F3",
+    115: "F4",
+    116: "F5",
+    117: "F6",
+    118: "F7",
+    119: "F8",
+    120: "F9",
+    121: "F10",
+    122: "F11",
+    123: "F12",
+    16: "Shift L", // shift = left shift
+    // "shift_r": "Shift_R",
+    17: "Control L", // control = left control
+    //"control_r": "Control_R",
+    20: "Caps Lock", // caps lock
+    91: "Meta L", // meta (cmd/windows) = left meta
+    //"meta_r": "Meta_R",
+    18: "Alt L", // alt = left alt
+    //"alt_r": "Alt_R",
+    46: "Delete" // delete
+};
 
 var expandCountLeft; // We always need to have a complete list of systems, repeated however many times we want, so the loop works properly
 var expandCountRight;
@@ -2264,9 +2361,14 @@ function displayJoypadConfig() {
                 appendEzInput( this, e.which, "key" );
                 e.preventDefault();
                 e.stopPropagation();
+                updateEzControlSimpleView( this );
                 focusNextInput( document.querySelector("#ez-input-" + (index+1)) );
             } 
         })(i);
+
+        input.onchange = function() {
+            updateEzControlSimpleView( this );
+        }
 
         // Include a title to try to interpret what each button maps to
         var buttonTitle = [];
@@ -2311,7 +2413,7 @@ function displayJoypadConfig() {
             // For each of the buttons
             for( var j=0; j<buttons.length; j++ ) {
                 // Get the type and the control (e.g. keycode, axis+, etc) - we don't ever expect and array
-                var match = buttons[j].match(/([^\(]+)\(([^\)]+)\)(-([^\-]+)-(.*))?/);
+                var match = buttons[j].match(EZ_REGEX);
                 if( match ) {
                     var obj = {
                         type: match[1],
@@ -2348,7 +2450,7 @@ function displayJoypadConfig() {
                 createToast(message);
             }
             catch(err) {
-                createToast("Could not set controls.");
+                createToast("Could not set controls");
             }
         });
 
@@ -2376,6 +2478,39 @@ function displayJoypadConfig() {
     } );
     
     launchModal( form );
+}
+
+/**
+ * Update EZ Control Simple View.
+ * @param {HTMLElement} inputElement - The input element to append the EZ View after.
+ */
+function updateEzControlSimpleView( inputElement ) {
+    var simpleViewElement = inputElement.nextElementSibling;
+    if( !simpleViewElement ) {
+        simpleViewElement = document.createElement("div");
+        simpleViewElement.classList.add("ez-simple-view");
+        inputElement.parentNode.appendChild( simpleViewElement );
+    }
+    var buttons = inputElement.value.split(",");
+    var simpleText = [];
+    for( var i=0; i<buttons.length; i++ ) {
+        var match = buttons[i].match(EZ_REGEX);
+        if( match && parseInt(match[2]) ) {
+            console.log("COCOA");
+            var type = match[1];
+            var typeCapitilized = type.charAt(0).toUpperCase() + type.slice(1);
+            var key = parseInt(match[2]);
+            var pushVal = typeCapitilized + " ";
+            if( type == "key" ) {
+                pushVal += KEYCODE_MAP[key] ? KEYCODE_MAP[key] : key;
+            }
+            else {
+                pushVal += key;
+            }
+            simpleText.push(pushVal);
+        }
+    }
+    simpleViewElement.innerText = simpleText.join(", ");
 }
 
 /**
@@ -2451,6 +2586,7 @@ function loadEzProfile() {
             var inputElement = document.querySelector("#joypad-config-form #ez-profile-input");
             inputElement.value = name;
             inputElement.oninput();
+            createToast( "Profile loaded" );
         }
     }
 }
@@ -2467,7 +2603,11 @@ function saveEzProfile() {
         }
         profilesDict[name] = profile;
         updateEzProfileList();
-        makeRequest( "POST", "/profile", { "name": name, "profile": profile } );
+        makeRequest( "POST", "/profile", { "name": name, "profile": profile }, function() {
+            createToast( "Profile saved" );
+        }, function() {
+            createToast( "Could not save profile" );
+        } );
     }
 }
 
@@ -2482,7 +2622,11 @@ function deleteEzProfile() {
         if( profile ) {
             delete profilesDict[name];
             updateEzProfileList();
-            makeRequest( "DELETE", "/profile", { "name": name } );
+            makeRequest( "DELETE", "/profile", { "name": name }, function() {
+                createToast( "Profile deleted" );
+            }, function() {
+                createToast( "Could not delete profile" );
+            } );
         }
     }
 }
