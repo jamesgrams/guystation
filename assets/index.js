@@ -2496,7 +2496,6 @@ function updateEzControlSimpleView( inputElement ) {
     for( var i=0; i<buttons.length; i++ ) {
         var match = buttons[i].match(EZ_REGEX);
         if( match && parseInt(match[2]) ) {
-            console.log("COCOA");
             var type = match[1];
             var typeCapitilized = type.charAt(0).toUpperCase() + type.slice(1);
             var key = parseInt(match[2]);
@@ -2586,6 +2585,7 @@ function loadEzProfile() {
             var inputElement = document.querySelector("#joypad-config-form #ez-profile-input");
             inputElement.value = name;
             inputElement.oninput();
+            updateEzControlSimpleView( inputElement );
             createToast( "Profile loaded" );
         }
     }
