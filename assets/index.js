@@ -2580,7 +2580,9 @@ function loadEzProfile() {
         var profile = profilesDict[name];
         if( profile ) {
             for( var i=0; i<EZ_EMULATOR_CONFIG_BUTTONS.length; i++ ) {
-                document.querySelector("#ez-input-" + i).value = profile[EZ_EMULATOR_CONFIG_BUTTONS[i]];
+                var curInput = document.querySelector("#ez-input-" + i);
+                curInput.value = profile[EZ_EMULATOR_CONFIG_BUTTONS[i]];
+                updateEzControlSimpleView( curInput );
             }
             var inputElement = document.querySelector("#joypad-config-form #ez-profile-input");
             inputElement.value = name;
