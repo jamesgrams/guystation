@@ -2585,7 +2585,6 @@ function loadEzProfile() {
             var inputElement = document.querySelector("#joypad-config-form #ez-profile-input");
             inputElement.value = name;
             inputElement.oninput();
-            updateEzControlSimpleView( inputElement );
             createToast( "Profile loaded" );
         }
     }
