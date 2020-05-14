@@ -3620,6 +3620,9 @@ function setControls( systems, values ) {
         if( !systemsDict[system] ) return ERROR_MESSAGES.noSystem;
         if( !systemsDict[system].config ) return ERROR_MESSAGES.configNotAvailable;
 
+        if( !fs.existsSync(systemsDict[system].config.file) ) {
+            fs.writeFileSync(systemsDict[system].config.file, "");
+        }
         let configFile = fs.readFileSync(systemsDict[system].config.file).toString();
         // PSP has some strange characters at the start of the file not even printed by linux
         if( system == SYSTEM_PSP ) {
