@@ -181,6 +181,8 @@ const SAMBA_FLAG = "--smb";
 const TMP_FOLDER_EXTENSION = "_folder";
 const REQUEST_LOCKED_CHECK_TIME = 100;
 const UPDATE_PERCENT_MINIMUM = 1;
+const RELOAD_MENU_PAGE_INTERVAL = 14400000; // 4 hours
+const RELOAD_MENU_PAGE_MORE_TIME_NEEDED = 600000; // 10 minutes
 
 const CONFIG_JOINER = ",";
 const CONTROL_STRING = "$CONTROL";
@@ -1052,6 +1054,27 @@ async function launchBrowser() {
             await switchBrowseTab( currentPage.mainFrame()._id );
         }
     });
+
+    setTimeout( reloadMenuPage, RELOAD_MENU_PAGE_INTERVAL );
+}
+
+/**
+ * Reload the menu page.
+ * This is to try to prevent memory leaks.
+ * We will add a little more time if we think they are interacting with the server menu page.
+ */
+async function reloadMenuPage() {
+    let interactingWithMenuPage = await menuPage.evaluate( () => isInteractionHappening() );
+    if( interactingWithMenuPage ) {
+        setTimeout( reloadMenuPage, RELOAD_MENU_PAGE_MORE_TIME_NEEDED );
+    }
+    else {
+        let oldMenuPage = menuPage;
+        menuPage = await browser.newPage();
+        menuPage.goto(oldMenuPage.url());
+        oldMenuPage.close();
+        setTimeout( reloadMenuPage, RELOAD_MENU_PAGE_INTERVAL );
+    }
 }
 
 /**

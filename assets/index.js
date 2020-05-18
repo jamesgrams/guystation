@@ -2118,7 +2118,15 @@ function isRemoteMediaPlaying( system, game, parents ) {
  * @returns {boolean} - True if remote media is being played.
  */
 function isRemoteMediaActive() {
-    return document.querySelector(".modal #remote-media-form[data-is-server-launched]");
+    return document.querySelector(".modal #remote-media-form[data-is-server-launched]") ? true : false;
+}
+
+/**
+ * Determine if interaction is happening (for server calls only).
+ * @returns {boolean} - True if interaction is happening.
+ */
+function isInteractionHappening() {
+    return document.querySelector(".modal, #functions.open") ? true : false;
 }
 
 /**
