@@ -4311,7 +4311,7 @@ async function screencastPrepare(alreadyStarted) {
     if( typeof alreadyStarted === 'undefined' ) alreadyStarted = startedClientIds.length;
     // starting a screencast will activate the home tab
     // it is best to predict that and to it anyway
-    if( currentEmulator && currentSystem != MEDIA && !alreadyStarted && !menuPageIsActive() ) { 
+    if( currentEmulator && !alreadyStarted && ( !menuPageIsActive() || (await menuPage.evaluate(() => isRemoteMediaActive())) ) ) { 
         // Get the current resolution of the emulator	
         // I was getting an error where, despite the n64 emulator being active, it hadn't yet changed the screen resolution
         // by the time we were getting the screen resolution to determine the "emulatorResolution"
@@ -4386,7 +4386,7 @@ async function screencastFix(alreadyStarted) {
     }
 
     // we can return to the game now
-    if( currentEmulator && currentSystem != MEDIA && !alreadyStarted && needToRefocusGame ) {
+    if( currentEmulator && !alreadyStarted && needToRefocusGame ) {
         await launchGame( currentSystem, currentGame, false, currentParentsString.split(SEPARATOR).filter(el => el != ''), true ); 
         needToRefocusGame = false;
     }

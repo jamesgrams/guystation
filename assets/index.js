@@ -2107,9 +2107,18 @@ function removeRemoteMediaPlaceholder() {
  * @param {string} system - The system to determine if being played.
  * @param {string} game - The game to determine if being played.
  * @param {Array<string>} parents - The parents of the game being determined if it is being played.
+ * @returns {boolean} - True if remote media is being played.
  */
 function isRemoteMediaPlaying( system, game, parents ) {
     return document.querySelector('#remote-media-form[data-is-server-launched] video[data-system="'+system+'"][data-game="'+encodeURIComponent(game)+'"][data-parents="'+parentsArrayToString(parents)+'"]') ? true : false;
+}
+
+/**
+ * Determine if remote media is active (for server calls only).
+ * @returns {boolean} - True if remote media is being played.
+ */
+function isRemoteMediaActive() {
+    return document.querySelector(".modal #remote-media-form[data-is-server-launched]");
 }
 
 /**
