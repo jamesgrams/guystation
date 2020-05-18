@@ -208,6 +208,9 @@ const WII_CLASSIC_KEY = "Extension";
 const WII_CLASSIC_VALUE = "Classic";
 const WII_SOURCE_KEY = "Source";
 const WII_SOURCE_EMULATED = 1;
+const N64_MANUAL_CONTROLLER = "Input-SDL-Control1";
+const N64_MANUAL_KEY = "mode";
+const N64_MANUAL_VALUE = 0;
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -3818,9 +3821,12 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
     }
 
     // For n64, we use key(keycode)
-    if( system == SYSTEM_N64 && userControl.type == KEY_CONTROL_TYPE ) {
-        // mupen expects the sdl keycodes
-        controlButtons = controlButtons.map( el => el && sdlMap[el] ? sdlMap[el] : el );
+    if( system == SYSTEM_N64 ) {
+        if( userControl.type == KEY_CONTROL_TYPE ) {
+            // mupen expects the sdl keycodes
+            controlButtons = controlButtons.map( el => el && sdlMap[el] ? sdlMap[el] : el );
+        }
+        config[N64_MANUAL_CONTROLLER][N64_MANUAL_KEY] = N64_MANUAL_VALUE;
     }
     // gba expects uppercase key names
     else if( system == SYSTEM_GBA && userControl.type == KEY_CONTROL_TYPE ) {
