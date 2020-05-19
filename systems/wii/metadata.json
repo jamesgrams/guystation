@@ -20,58 +20,74 @@
     ],
     "controls": {
       "A": {
-        "keys": ["Wiimote1","Classic/Buttons/A"]
+        "keys": ["Wiimote1","Classic/Buttons/A"],
+        "nunchukKeys": ["Wiimote1","Buttons/A"]
       },
       "B": {
-        "keys": ["Wiimote1","Classic/Buttons/B"]
+        "keys": ["Wiimote1","Classic/Buttons/B"],
+        "nunchukKeys": ["Wiimote1","Buttons/B"]
       },
       "X": {
-        "keys": ["Wiimote1","Classic/Buttons/X"]
+        "keys": ["Wiimote1","Classic/Buttons/X"],
+        "nunchukKeys": ["Wiimote1","Buttons/1"]
       },
       "Y": {
-        "keys": ["Wiimote1","Classic/Buttons/Y"]
+        "keys": ["Wiimote1","Classic/Buttons/Y"],
+        "nunchukKeys": ["Wiimote1","Buttons/2"]
       },
       "L": {
         "keys": ["Wiimote1","Classic/Triggers/L"]
       },
       "R": {
-        "keys": ["Wiimote1","Classic/Triggers/R"]
+        "keys": ["Wiimote1","Classic/Triggers/R"],
+        "nunchukKeys": ["Wiimote1","Nunchuck/Buttons/C"]
       },
       "L2": {
         "keys": ["Wiimote1","Classic/Buttons/ZL"]
       },
       "R2": {
-        "keys": ["Wiimote1","Classic/Buttons/ZR"]
+        "keys": ["Wiimote1","Classic/Buttons/ZR"],
+        "nunchukKeys": ["Wiimote1","Nunchuck/Buttons/Z"]
       },
       "Up": {
-        "keys": ["Wiimote1","Classic/D-Pad/Up"]
+        "keys": ["Wiimote1","Classic/D-Pad/Up"],
+        "nunchukKeys": ["Wiimote1","D-Pad/Up"]
       },
       "Down": {
-        "keys": ["Wiimote1","Classic/D-Pad/Down"]
+        "keys": ["Wiimote1","Classic/D-Pad/Down"],
+        "nunchukKeys": ["Wiimote1","D-Pad/Down"]
       },
       "Left": {
-        "keys": ["Wiimote1","Classic/D-Pad/Left"]
+        "keys": ["Wiimote1","Classic/D-Pad/Left"],
+        "nunchukKeys": ["Wiimote1","D-Pad/Left"]
       },
       "Right": {
-        "keys": ["Wiimote1","Classic/D-Pad/Right"]
+        "keys": ["Wiimote1","Classic/D-Pad/Right"],
+        "nunchukKeys": ["Wiimote1","D-Pad/Right"]
       },
       "Start": {
-        "keys": ["Wiimote1","Classic/Buttons/+"]
+        "keys": ["Wiimote1","Classic/Buttons/+"],
+        "nunchukKeys": ["Wiimote1","Buttons/+"]
       },
       "Select": {
-        "keys": ["Wiimote1","Classic/Buttons/-"]
+        "keys": ["Wiimote1","Classic/Buttons/-"],
+        "nunchukKeys": ["Wiimote1","Buttons/-"]
       },
       "Axis X-": {
-        "keys": ["Wiimote1","Classic/Left Stick/Left"]
+        "keys": ["Wiimote1","Classic/Left Stick/Left"],
+        "nunchukKeys": ["Wiimote1","Nunchuk/Stick/Left"]
       },
       "Axis X+": {
-        "keys": ["Wiimote1","Classic/Left Stick/Right"]
+        "keys": ["Wiimote1","Classic/Left Stick/Right"],
+        "nunchukKeys": ["Wiimote1","Nunchuk/Stick/Right"]
       },
       "Axis Y-": {
-        "keys": ["Wiimote1","Classic/Left Stick/Up"]
+        "keys": ["Wiimote1","Classic/Left Stick/Up"],
+        "nunchukKeys": ["Wiimote1","Nunchuk/Stick/Up"]
       },
       "Axis Y+": {
-        "keys": ["Wiimote1","Classic/Left Stick/Down"]
+        "keys": ["Wiimote1","Classic/Left Stick/Down"],
+        "nunchukKeys": ["Wiimote1","Nunchuk/Stick/Down"]
       },
       "Axis X2-": {
         "keys": ["Wiimote1","Classic/Right Stick/Left"]

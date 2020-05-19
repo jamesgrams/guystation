@@ -206,6 +206,7 @@ const NGC_DEVICE_TYPE_KEY = "Device";
 const WII_PAD_KEY = "Wiimote1";
 const WII_CLASSIC_KEY = "Extension";
 const WII_CLASSIC_VALUE = "Classic";
+const WII_NUNCHUCK_VALUE = "Nunchuck";
 const WII_SOURCE_KEY = "Source";
 const WII_SOURCE_EMULATED = 1;
 const N64_MANUAL_CONTROLLER = "Input-SDL-Control1";
@@ -811,7 +812,7 @@ app.post("/controls", async function(request, response) {
     if( ! requestLocked ) {
         requestLocked = true;
         try {
-            let errorMessage = setControls( request.body.systems, request.body.values, request.body.controller );
+            let errorMessage = setControls( request.body.systems, request.body.values, request.body.controller, request.body.nunchuck );
             requestLocked = false;
             writeActionResponse( response, errorMessage );
         }
@@ -3639,9 +3640,10 @@ function generateMessageUserName( id ) {
  * @param {Array<string>} system - The systems to set controls for.
  * @param {Object} values - An object with keys being GuyStation buttons and values being an array of objects (each item is another control) containing a key for type and the button (can be axis+-/key) to set them to, or an array for multiple values (will be inserted for each $CONTROL in the control format) relating to a single control (note: we really only should ever receive one value, and we'll only use the first value).
  * @param {number} [controller] - The controller number to set controls for. 0,1,2, etc.
+ * @param {boolean} [nunchuck] - True if we are setting the Wii to use the nunchuck extension.
  * @returns {boolean|string} An error message if there is an error, false if not.
  */
-function setControls( systems, values, controller=0 ) {
+function setControls( systems, values, controller=0, nunchuck=false ) {
 
     for( let system of systems ) {
 
@@ -3689,6 +3691,9 @@ function setControls( systems, values, controller=0 ) {
             // and the controlInfo object from the system metadata guiding us on how to enter it
             let userControls = values[control];
 
+            // we know we he have keys for everything, but we might not have nunchuckKeys
+            if( nunchuck && !controlInfo.nunchukKeys ) continue;
+
             if( userControls ) {
                 let controlParts = [];
                 let keyControlParts = [];
@@ -3725,6 +3730,7 @@ function setControls( systems, values, controller=0 ) {
                     // note that this is different to when we can set multiple controls, both keyboard and gamepad,
                     // to a button. This is when in the config, they are actually in two seperate places.
                     let keys = controlInfo.keys;
+                    if( nunchuck ) keys = controlInfo.nunchukKeys;
                     let curControlParts = controlParts;
                     if( userControl.type == KEY_CONTROL_TYPE && controlInfo.keyboardKeys ) {
                         keys = controlInfo.keyboardKeys;
@@ -3749,7 +3755,7 @@ function setControls( systems, values, controller=0 ) {
                     // Note that a control can require multiple components (e.g. an axis with X plus and X minus) which thus userControl.button is an array
                     // This is different to when there are multiple controls mapped to a button (e.g. Dpad left and arrow key left) in which case both need to be run through translateButton
                     // however, we actually seperate out everything, so the user should only ever pass a single item in an array. we'll add to it from pre-exising as need be.
-                    curControlParts.push( translateButton( system, userControl, controlInfo, controlFormat, configSetting[finalKey], config, controllers, controller ) );
+                    curControlParts.push( translateButton( system, userControl, controlInfo, controlFormat, configSetting[finalKey], config, controllers, controller, nunchuck ) );
 
                     // we only allow one control for systems except vba-m and ppsspp
                     if( system != SYSTEM_GBA && system != SYSTEM_PSP ) {
@@ -3783,11 +3789,12 @@ function setControls( systems, values, controller=0 ) {
  * @param {string} controlFormat - The format for the control.
  * @param {string} currentControlValue - The current control value for the config setting. We might need to include some of it in the new value.
  * @param {Object} config - The root config object.
- * @param {Array} [controllers] - different controller values for each player.
- * @param {number} [controller] - the controller index.
+ * @param {Array} [controllers] - Different controller values for each player.
+ * @param {number} [controller] - The controller index.
+ * @param {boolean} [nunchuck] - True if the Wii extension is for a nunchuck.
  * @returns {string} The translated value for the emulator.
  */
-function translateButton( system, userControl, controlInfo, controlFormat, currentControlValue, config, controllers, controller=0 ) {
+function translateButton( system, userControl, controlInfo, controlFormat, currentControlValue, config, controllers, controller=0, nunchuck=false ) {
     let controlButtons = userControl.button;
     if( typeof controlButtons != OBJECT_TYPE ) controlButtons = [controlButtons];
 
@@ -3986,13 +3993,10 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
         
         if( !config[padKey] ) config[padKey] = {};
 
-        let ngcKey = NGC_GAMEPAD.replace("0", controller); 
-        let wiiKey = WII_CLASSIC_VALUE.replace("0", controller);
-
-        config[padKey][NGC_DEVICE_TYPE_KEY] = ngcKey;
+        config[padKey][NGC_DEVICE_TYPE_KEY] = NGC_GAMEPAD.replace("0", controller); 
 
         if( system == SYSTEM_WII ) {
-            config[padKey][WII_CLASSIC_KEY] = wiiKey;
+            config[padKey][WII_CLASSIC_KEY] = nunchuck ? WII_NUNCHUCK_VALUE : WII_CLASSIC_VALUE;
             config[padKey][WII_SOURCE_KEY] = WII_SOURCE_EMULATED;
         }
 
@@ -4006,7 +4010,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
                 }
                 return value;
              } );
-            config[padKey][NGC_DEVICE_TYPE_KEY] = NGC_VIRTUAL_KEYBOARD;
+            config[padKey][NGC_DEVICE_TYPE_KEY] = NGC_VIRTUAL_KEYBOARD.replace("0", controller);
         }
     }
 

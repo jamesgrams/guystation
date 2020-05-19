@@ -85,7 +85,7 @@ Here are some recommendedations to make your experience better on Ubuntu.
 ## Emulator Specific Setup
 For all emulators, you will have to setup your controller(s). You can do this by opening emulator GUIs by clicking a system image when it is the selected system. This will launch the emulator without any game allowing you to choose options.
 
-Note: there is also limited support for setting up controls for each emulator all at once by using the EZ Controller Configuration section of the Joypad Configuration (available by clicking the gamepad icon in the menu). EZ Controller buttons correspond to their positions on a Nintendo Wii U Pro Controller. EZ Config sets the controls for a Classic Controller for the Wii.
+Note: there is also limited support for setting up controls for each emulator all at once by using the EZ Controller Configuration section of the Joypad Configuration (available by clicking the gamepad icon in the menu). EZ Controller buttons correspond to their positions on a Nintendo Wii U Pro Controller.
 
 ### VBA-M (Game Boy Advance)
 This emulator doesn't change the default screenshot key to be Ctrl+S like most others, mainly because you can set the screenshot key to a joystick button. Feel free to set it accordingly when you set up your controller.

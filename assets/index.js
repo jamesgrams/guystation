@@ -2419,6 +2419,9 @@ function displayJoypadConfig() {
     var controllerSelect = createMenu(null, [1,2,3,4],"controller-select-menu","Player: ");
     form.appendChild(controllerSelect);
 
+    var nunchuckSelect = createMenu(null, ["Classic Controller", "Nunchuck"],"nunchuck-select-menu","Wii Extension: ");
+    form.appendChild(nunchuckSelect);
+
     form.appendChild( createButton( "Apply EZ Config", function() {
         var inputs = document.querySelectorAll("#joypad-config-form label[data-ez-button] input");
 
@@ -2464,8 +2467,12 @@ function displayJoypadConfig() {
         // figure out the controller
         var controllerSelectMenu = controllerSelect.querySelector("select");
         var controller = parseInt(controllerSelectMenu.options[controllerSelectMenu.selectedIndex].value) - 1;
+        
+        // figure out if we are using the nunchuck
+        var nunchuckSelectMenu = nunchuckSelect.querySelector("select");
+        var nunchuck = nunchuckSelectMenu.selectedIndex > 0 ? true : false;
 
-        var sendObject = { "systems": systems, "values": values, "controller": controller };
+        var sendObject = { "systems": systems, "values": values, "controller": controller, "nunchuck": nunchuck };
         makeRequest("POST", "/controls", sendObject, function() {
             createToast("Controls set");
         }, function(data) {
