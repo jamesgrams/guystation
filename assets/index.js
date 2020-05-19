@@ -2416,6 +2416,9 @@ function displayJoypadConfig() {
     }
     form.appendChild(systemsSection);
 
+    var controllerSelect = createMenu(null, [1,2,3,4],"controller-select-menu","Player: ");
+    form.appendChild(controllerSelect);
+
     form.appendChild( createButton( "Apply EZ Config", function() {
         var inputs = document.querySelectorAll("#joypad-config-form label[data-ez-button] input");
 
@@ -2458,7 +2461,10 @@ function displayJoypadConfig() {
             }
         }
 
-        var sendObject = { "systems": systems, "values": values };
+        // figure out the controller
+        var controller = parseInt(controllerSelect.options[controllerSelect.selectedIndex].value) - 1;
+
+        var sendObject = { "systems": systems, "values": values, "controller": controller };
         makeRequest("POST", "/controls", sendObject, function() {
             createToast("Controls set");
         }, function(data) {

@@ -9,6 +9,12 @@
   "activateCommand": "wmctrl -a 'FCEUX'",
   "config": {
     "file": "/home/james/.fceux/fceux.cfg",
+    "controllers": [
+      "SDL.Input.GamePad.0",
+      "SDL.Input.GamePad.1",
+      "SDL.Input.GamePad.2",
+      "SDL.Input.GamePad.3"
+    ],
     "controls": {
       "A": {
         "keys": ["SDL.Input.GamePad.0A"]

@@ -12,6 +12,12 @@
   "nandPathCommand": "echo \"$(eval echo '~')/.local/share/dolphin-emu/Wii$(dolphin-emu-nogui --save-path='ROM_FILE_PLACEHOLDER')\"",
   "config": {
     "file": "/home/james/.config/dolphin-emu/WiimoteNew.ini",
+    "controllers": [
+      "Wiimote1",
+      "Wiimote2",
+      "Wiimote3",
+      "Wiimote4"
+    ],
     "controls": {
       "A": {
         "keys": ["Wiimote1","Classic/Buttons/A"]

@@ -11,6 +11,12 @@
   "argsFirst": true,
   "config": {
     "file": "/home/james/.config/dolphin-emu/GCPadNew.ini",
+    "controllers": [
+      "GCPad1",
+      "GCPad2",
+      "GCPad3",
+      "GCPad4"
+    ],
     "controls": {
       "A": {
         "keys": ["GCPad1","Buttons/A"]

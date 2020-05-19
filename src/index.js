@@ -810,7 +810,7 @@ app.post("/controls", async function(request, response) {
     if( ! requestLocked ) {
         requestLocked = true;
         try {
-            let errorMessage = setControls( request.body.systems, request.body.values );
+            let errorMessage = setControls( request.body.systems, request.body.values, request.body.controller );
             requestLocked = false;
             writeActionResponse( response, errorMessage );
         }
@@ -1068,7 +1068,7 @@ async function launchBrowser() {
  */
 async function reloadMenuPage() {
     let interactingWithMenuPage = await menuPage.evaluate( () => isInteractionHappening() );
-    if( interactingWithMenuPage ) {
+    if( interactingWithMenuPage || !menuPageIsActive() ) {
         setTimeout( reloadMenuPage, RELOAD_MENU_PAGE_MORE_TIME_NEEDED );
     }
     else {
@@ -3637,9 +3637,10 @@ function generateMessageUserName( id ) {
  * } );
  * @param {Array<string>} system - The systems to set controls for.
  * @param {Object} values - An object with keys being GuyStation buttons and values being an array of objects (each item is another control) containing a key for type and the button (can be axis+-/key) to set them to, or an array for multiple values (will be inserted for each $CONTROL in the control format) relating to a single control (note: we really only should ever receive one value, and we'll only use the first value).
+ * @param {number} [controller] - The controller number to set controls for. 0,1,2, etc.
  * @returns {boolean|string} An error message if there is an error, false if not.
  */
-function setControls( systems, values ) {
+function setControls( systems, values, controller=0 ) {
 
     for( let system of systems ) {
 
@@ -3658,6 +3659,9 @@ function setControls( systems, values ) {
         let controls = systemsDict[system].config.controls;
         // control formats will map the common user expect values of "key", "button", and "axis" to whatever they are listed as in the ini file (e.g. "Keyboard")
         let controlFormat = systemsDict[system].config.controlFormat;
+        let controllers = systemsDict[system].config.controllers;
+
+        if( controller && (!controllers || !controllers[controller]) ) continue; // this system doesn't have a player 2 or what not.
 
         // disable default for 3ds
         if( system == SYSTEM_3DS ) {
@@ -3729,22 +3733,30 @@ function setControls( systems, values ) {
                     // we are going to get the innermost nested object and set it's value
                     let configSetting = config;
                     for( let i=0; i<keys.length - 1; i++) {
-                        if( !configSetting[keys[i]] ) configSetting[keys[i]] = {};
-                        configSetting = configSetting[keys[i]];
+                        let curConfigSetting = configSetting[keys[i]];
+                        // we may have a slightly different path for the specific controller
+                        if( controller && controllers && keys[i].match(controllers[0]) ) curConfigSetting = configSetting[ keys[i].replace(controllers[0], controllers[controller]) ];
+
+                        if( !curConfigSetting ) curConfigSetting = {};
+                        configSetting = curConfigSetting;
                     }
+
+                    let finalKey = keys[keys.length-1];
+                    // we may have a slightly different path for the specific controller
+                    if( controller && controllers && finalKey.match(controllers[0]) ) finalKey = finalKey.replace(controllers[0], controllers[controller]);
 
                     // Note that a control can require multiple components (e.g. an axis with X plus and X minus) which thus userControl.button is an array
                     // This is different to when there are multiple controls mapped to a button (e.g. Dpad left and arrow key left) in which case both need to be run through translateButton
                     // however, we actually seperate out everything, so the user should only ever pass a single item in an array. we'll add to it from pre-exising as need be.
-                    curControlParts.push( translateButton( system, userControl, controlInfo, controlFormat, configSetting[keys[keys.length-1]], config ) );
+                    curControlParts.push( translateButton( system, userControl, controlInfo, controlFormat, configSetting[finalKey], config, controllers, controller ) );
 
                     // we only allow one control for systems except vba-m and ppsspp
                     if( system != SYSTEM_GBA && system != SYSTEM_PSP ) {
                         curControlParts = [curControlParts[0]];
                     }
-
+   
                     // We'll just update each time
-                    configSetting[keys[keys.length-1]] = curControlParts.join(CONFIG_JOINER);
+                    configSetting[finalKey] = curControlParts.join(CONFIG_JOINER);
                 }
             }
         }
@@ -3770,9 +3782,11 @@ function setControls( systems, values ) {
  * @param {string} controlFormat - The format for the control.
  * @param {string} currentControlValue - The current control value for the config setting. We might need to include some of it in the new value.
  * @param {Object} config - The root config object.
+ * @param {Array} [controllers] - different controller values for each player.
+ * @param {number} [controller] - the controller index.
  * @returns {string} The translated value for the emulator.
  */
-function translateButton( system, userControl, controlInfo, controlFormat, currentControlValue, config ) {
+function translateButton( system, userControl, controlInfo, controlFormat, currentControlValue, config, controllers, controller ) {
     let controlButtons = userControl.button;
     if( typeof controlButtons != OBJECT_TYPE ) controlButtons = [controlButtons];
 
@@ -3826,7 +3840,10 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
             // mupen expects the sdl keycodes
             controlButtons = controlButtons.map( el => el && sdlMap[el] ? sdlMap[el] : el );
         }
-        config[N64_MANUAL_CONTROLLER][N64_MANUAL_KEY] = N64_MANUAL_VALUE;
+
+        let controllerKey = N64_MANUAL_CONTROLLER;
+        if( controller && controllers && controllerKey.match(controllers[0]) ) controllerKey = controllerKey.replace(controllers[0], controller);
+        config[controllerKey][N64_MANUAL_KEY] = N64_MANUAL_VALUE;
     }
     // gba expects uppercase key names
     else if( system == SYSTEM_GBA && userControl.type == KEY_CONTROL_TYPE ) {
@@ -3882,7 +3899,11 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
     }
     // For NES
     else if( system == SYSTEM_NES ) {
-        config[NES_DEVICE_TYPE_KEY] = NES_JOYSTICK;
+
+        let controllerKey = NES_DEVICE_TYPE_KEY;
+        if( controller && controllers && controllerKey.match(controllers[0]) ) controllerKey = controllerKey.replace(controllers[0], controller);
+        config[controllerKey] = NES_JOYSTICK;
+
         if( userControl.type == AXIS_CONTROL_TYPE ) {
             // https://github.com/TASVideos/fceux/blob/5be92d3ee50fcdc04ec4d727cef5201fa8fba378/src/attic/pc/sdl.c#L354
             controlButtons = controlButtons.map( function(button) {
@@ -3893,7 +3914,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
         }
         else if( userControl.type == KEY_CONTROL_TYPE ) {
             controlButtons = controlButtons.map( el => el ? sdlMap[el] : el );
-            config[NES_DEVICE_TYPE_KEY] = NES_KEYBOARD;
+            config[controllerKey] = NES_KEYBOARD;
         }
     }
     // for psp
@@ -3954,6 +3975,8 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
     // gamecube and wii
     else if( system == SYSTEM_NGC || system == SYSTEM_WII ) {
         let padKey = system == SYSTEM_NGC ? NGC_PAD_KEY : WII_PAD_KEY;
+        if( controller && controllers && padKey.match(controllers[0]) ) padKey = padKey.replace(controllers[0], controller);
+        config[padKey] = NES_JOYSTICK;
         
         config[padKey][NGC_DEVICE_TYPE_KEY] = NGC_GAMEPAD;
 

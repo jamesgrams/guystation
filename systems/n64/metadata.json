@@ -14,6 +14,12 @@
   "failsafeStateCheck": "xprop -id $(wmctrl -l | grep -E \"Glide64|Mupen64Plus\" | cut -d ' ' -f 1) | grep _NET_WM_STATE",
   "config": {
     "file": "/home/james/.config/mupen64plus/mupen64plus.cfg",
+    "controllers": [
+      "Input-SDL-Control1",
+      "Input-SDL-Control2",
+      "Input-SDL-Control3",
+      "Input-SDL-Control4"
+    ],
     "controls": {
       "A": {
         "keys": ["Input-SDL-Control1","A Button"]

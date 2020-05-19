@@ -9,6 +9,12 @@
   "argsFirst": true,
   "config": {
     "file": "/home/james/.config/snes9x/snes9x.conf",
+    "controllers": [
+      "Joypad 0",
+      "Joypad 1",
+      "Joypad 2",
+      "Joypad 3"
+    ],
     "controls": {
       "A": {
         "keys": ["Joypad 0","A"]
