@@ -3691,13 +3691,13 @@ function setControls( systems, values, controller=0, nunchuck=false ) {
             // and the controlInfo object from the system metadata guiding us on how to enter it
             let userControls = values[control];
 
-            // we know we he have keys for everything, but we might not have nunchuckKeys
-            if( nunchuck && !controlInfo.nunchukKeys ) continue;
-
             if( userControls ) {
                 let controlParts = [];
                 let keyControlParts = [];
                 let controlInfo = controls[control];
+
+                // we know we he have keys for everything, but we might not have nunchuckKeys
+                if( nunchuck && !controlInfo.nunchukKeys ) continue;
 
                 // values need to be cleared out that are currently mapped to this control
                 // only keyboard keys are valid for PS2 right now
