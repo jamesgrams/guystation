@@ -86,6 +86,6 @@
     "controlFormat": {
       "key": "PAD 0:KEYSYM $CONTROL"
     },
-    "keyMatch": "PAD 0"
+    "keyMatch": "PAD "
   }
 }
