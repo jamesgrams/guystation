@@ -297,6 +297,8 @@ var KEYCODE_MAP = {
     //"alt_r": "Alt_R",
     46: "Delete" // delete
 };
+// default mobile key mapping
+var DEFAULT_KEY_MAPPING = '{"1366x531":[],"1366x306":[{"key":"🎮B","x":130,"y":299}],"568x320":[{"key":"🎮B","x":70,"y":237}],"812x375":[{"key":"🎮B","x":110,"y":271}],"1366x689":[{"key":"🕹️L","x":265,"y":589}],"1600x747":[{"key":"🕹️L","x":344,"y":573},{"key":"🕹️R","x":515,"y":576},{"key":"⭐","x":232,"y":453},{"key":"Ⓐ","x":396,"y":428},{"key":"Ⓑ","x":260,"y":341}],"1600x663":[{"key":"⭐","x":152,"y":414},{"key":"Ⓐ","x":297,"y":418},{"key":"🕹️L","x":115,"y":543},{"key":"Ⓑ","x":284,"y":535}],"375x667":[{"key":"Ⓧ","x":236,"y":497},{"key":"Ⓨ","x":290,"y":466},{"key":"Ⓑ","x":346,"y":499},{"key":"Ⓐ","x":291,"y":525},{"key":"◀","x":28,"y":495},{"key":"▼","x":83,"y":525},{"key":"▲","x":83,"y":468},{"key":"▶","x":137,"y":497},{"key":"🕹️L","x":123,"y":608},{"key":"🕹️R","x":249,"y":609},{"key":"Ⓡ","x":347,"y":236},{"key":"🅡","x":347,"y":181},{"key":"Ⓛ","x":29,"y":237},{"key":"🅛","x":28,"y":181},{"key":"🔘","x":135,"y":169},{"key":"⭐","x":241,"y":169},{"key":"⎋","x":77,"y":105},{"key":"↵","x":303,"y":105}],"667x375":[{"key":"▲","x":90,"y":161},{"key":"◀","x":35,"y":188},{"key":"▶","x":146,"y":188},{"key":"▼","x":91,"y":221},{"key":"🕹️L","x":68,"y":313},{"key":"🔘","x":161,"y":310},{"key":"⭐","x":453,"y":309},{"key":"Ⓐ","x":578,"y":336},{"key":"Ⓑ","x":633,"y":310},{"key":"Ⓧ","x":522,"y":309},{"key":"Ⓨ","x":577,"y":279},{"key":"🕹️R","x":599,"y":183},{"key":"Ⓡ","x":510,"y":31},{"key":"🅡","x":566,"y":30},{"key":"Ⓛ","x":201,"y":31},{"key":"🅛","x":146,"y":30},{"key":"✲","x":39,"y":96},{"key":"S","x":625,"y":97}]}';
 
 var expandCountLeft; // We always need to have a complete list of systems, repeated however many times we want, so the loop works properly
 var expandCountRight;
@@ -3078,7 +3080,9 @@ function saveKeyConfiguration() {
  */
 function loadKeyConfiguration() {
 
-    if( !window.localStorage.guystationMobileKeyMappings ) return;
+    if( !window.localStorage.guystationMobileKeyMappings ) {
+        window.localStorage.guystationMobileKeyMappings = DEFAULT_KEY_MAPPING;
+    }
 
     var resolution = window.innerWidth.toString() + "x" + window.innerHeight.toString();
     var keyMappings = JSON.parse( window.localStorage.guystationMobileKeyMappings );
