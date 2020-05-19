@@ -211,6 +211,7 @@ const WII_SOURCE_EMULATED = 1;
 const N64_MANUAL_CONTROLLER = "Input-SDL-Control1";
 const N64_MANUAL_KEY = "mode";
 const N64_MANUAL_VALUE = 0;
+const N64_DEVICE_KEY = "device;
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -3786,7 +3787,7 @@ function setControls( systems, values, controller=0 ) {
  * @param {number} [controller] - the controller index.
  * @returns {string} The translated value for the emulator.
  */
-function translateButton( system, userControl, controlInfo, controlFormat, currentControlValue, config, controllers, controller ) {
+function translateButton( system, userControl, controlInfo, controlFormat, currentControlValue, config, controllers, controller=0 ) {
     let controlButtons = userControl.button;
     if( typeof controlButtons != OBJECT_TYPE ) controlButtons = [controlButtons];
 
@@ -3842,8 +3843,10 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
         }
 
         let controllerKey = N64_MANUAL_CONTROLLER;
-        if( controller && controllers && controllerKey.match(controllers[0]) ) controllerKey = controllerKey.replace(controllers[0], controller);
+        if( controller && controllers && controllerKey.match(controllers[0]) ) controllerKey = controllerKey.replace(controllers[0], controllers[controller]);
+        if( !config[controllerKey] ) config[controllerKey] = {};
         config[controllerKey][N64_MANUAL_KEY] = N64_MANUAL_VALUE;
+        config[controllerKey][N64_DEVICE_KEY] = controller;
     }
     // gba expects uppercase key names
     else if( system == SYSTEM_GBA && userControl.type == KEY_CONTROL_TYPE ) {
@@ -3864,12 +3867,15 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
         if( userControl.type == KEY_CONTROL_TYPE ) {
             controlButtons = controlButtons.map( el => el ? x11Map[el] : el );
         }
-        else if( userControl.type == AXIS_CONTROL_TYPE ) {
-            controlButtons = controlButtons.map( function(button) {
-                let axis = button.substring(0, button.length-1);
-                let direction = button.substring(button.length-1);
-                return axis + " " + direction;
-            } );
+        else {
+            controlFormat = controlFormat.replace("1", controller+1);
+            else if( userControl.type == AXIS_CONTROL_TYPE ) {
+                controlButtons = controlButtons.map( function(button) {
+                    let axis = button.substring(0, button.length-1);
+                    let direction = button.substring(button.length-1);
+                    return axis + " " + direction;
+                } );
+            }
         }
     }
     // For 3ds
@@ -3901,7 +3907,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
     else if( system == SYSTEM_NES ) {
 
         let controllerKey = NES_DEVICE_TYPE_KEY;
-        if( controller && controllers && controllerKey.match(controllers[0]) ) controllerKey = controllerKey.replace(controllers[0], controller);
+        if( controller && controllers && controllerKey.match(controllers[0]) ) controllerKey = controllerKey.replace(controllers[0], controllers[controller]);
         config[controllerKey] = NES_JOYSTICK;
 
         if( userControl.type == AXIS_CONTROL_TYPE ) {
@@ -3975,13 +3981,17 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
     // gamecube and wii
     else if( system == SYSTEM_NGC || system == SYSTEM_WII ) {
         let padKey = system == SYSTEM_NGC ? NGC_PAD_KEY : WII_PAD_KEY;
-        if( controller && controllers && padKey.match(controllers[0]) ) padKey = padKey.replace(controllers[0], controller);
-        config[padKey] = NES_JOYSTICK;
+        if( controller && controllers && padKey.match(controllers[0]) ) padKey = padKey.replace(controllers[0], controllers[controller]);
         
-        config[padKey][NGC_DEVICE_TYPE_KEY] = NGC_GAMEPAD;
+        if( !config[padKey] ) config[padKey] = {};
+
+        let ngcKey = NGC_GAMEPAD.replace("0", controller); 
+        let wiiKey = WII_CLASSIC_VALUE.replace("0", controller);
+
+        config[padKey][NGC_DEVICE_TYPE_KEY] = ngcKey;
 
         if( system == SYSTEM_WII ) {
-            config[padKey][WII_CLASSIC_KEY] = WII_CLASSIC_VALUE;
+            config[padKey][WII_CLASSIC_KEY] = wiiKey;
             config[padKey][WII_SOURCE_KEY] = WII_SOURCE_EMULATED;
         }
 
