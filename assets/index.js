@@ -2729,112 +2729,113 @@ function forceRedraw( element ) {
  * @param {HTMLElement} element - The video element to fullscreen.
  */
 function fullscreenVideo( element ) {
-    try {
-        element.requestFullscreen();
-    }
-    catch(err) {
-        if( isTouch() ) {
-            // this should be for iOS safari
-            //element.webkitEnterFullScreen();
-            var oldParent = element.parentNode;
-            var nextSibling = element.nextSibling;
-            var blackBackground = document.createElement("div");
-            blackBackground.classList.add("black-background");
-            document.body.appendChild(blackBackground);
-            blackBackground.appendChild( element );
+    if( isTouch() ) {
+        // this should be for iOS safari
+        //element.webkitEnterFullScreen();
+        var oldParent = element.parentNode;
+        var nextSibling = element.nextSibling;
+        var blackBackground = document.createElement("div");
+        blackBackground.classList.add("black-background");
+        document.body.appendChild(blackBackground);
+        blackBackground.appendChild( element );
 
-            resizePseudoFullscreen();
+        resizePseudoFullscreen();
 
-            window.addEventListener("resize", resizePseudoFullscreen);
-            window.addEventListener("orientationchange", resizePseudoFullscreen);
+        window.addEventListener("resize", resizePseudoFullscreen);
+        window.addEventListener("orientationchange", resizePseudoFullscreen);
 
-            blackBackground.onclick = function(e) {
+        blackBackground.onclick = function(e) {
 
-                if( document.querySelector(".black-background #edit-button .fa-check") ) {
+            if( document.querySelector(".black-background #edit-button .fa-check") ) {
 
-                    if( document.querySelector(".black-background #action-button:not(.hidden) .fa-plus") ) {
-                        var keyButton = createKeyButton( '0', e.clientX, e.clientY );
-                        blackBackground.appendChild(keyButton);
-                    }
-
+                if( document.querySelector(".black-background #action-button:not(.hidden) .fa-plus") ) {
+                    var keyButton = createKeyButton( '0', e.clientX, e.clientY );
+                    blackBackground.appendChild(keyButton);
                 }
 
-                e.stopPropagation();
-                e.preventDefault();
             }
-            blackBackground.ontouchstart = function(e) {
-                if(e.target == this && !document.querySelector(".black-background #edit-button .fa-check") ) e.preventDefault();
-            }
-            var exitButton = createButton( "X", function() { 
-                if( nextSibling ) {
-                    oldParent.insertBefore(element, nextSibling);
-                }
-                else {
-                    oldParent.appendChild(element);
-                }
-                blackBackground.parentNode.removeChild(blackBackground);
-                window.removeEventListener("resize", resizePseudoFullscreen);
-                window.removeEventListener("orientationchange", resizePseudoFullscreen);
-            } );
-            exitButton.setAttribute("id", "exit-button");
-            blackBackground.appendChild(exitButton);
-            
-            var actionButton = createButton( '<i class="fas fa-plus"></i>', function(e) {
-                var icon = this.querySelector( "i" );
-                var currentAction = icon.classList[1];
-                icon.classList.remove( currentAction );
 
-                if( currentAction == "fa-plus" ) {
-                    icon.classList.add("fa-arrows-alt");
-                }
-                else if( currentAction == "fa-arrows-alt" ) {
+            e.stopPropagation();
+            e.preventDefault();
+        }
+        blackBackground.ontouchstart = function(e) {
+            if(e.target == this && !document.querySelector(".black-background #edit-button .fa-check") ) e.preventDefault();
+        }
+        var exitButton = createButton( "X", function() { 
+            if( nextSibling ) {
+                oldParent.insertBefore(element, nextSibling);
+            }
+            else {
+                oldParent.appendChild(element);
+            }
+            blackBackground.parentNode.removeChild(blackBackground);
+            window.removeEventListener("resize", resizePseudoFullscreen);
+            window.removeEventListener("orientationchange", resizePseudoFullscreen);
+        } );
+        exitButton.setAttribute("id", "exit-button");
+        blackBackground.appendChild(exitButton);
+        
+        var actionButton = createButton( '<i class="fas fa-plus"></i>', function(e) {
+            var icon = this.querySelector( "i" );
+            var currentAction = icon.classList[1];
+            icon.classList.remove( currentAction );
+
+            if( currentAction == "fa-plus" ) {
+                icon.classList.add("fa-arrows-alt");
+            }
+            else if( currentAction == "fa-arrows-alt" ) {
+                document.querySelectorAll(".black-background .key-button .key-display").forEach( function(el) { el.classList.add("hidden"); } );
+                document.querySelectorAll(".black-background .key-button .key-select").forEach( function(el) { el.classList.remove("hidden"); } );
+                icon.classList.add("fa-keyboard");
+            }
+            else if( currentAction == "fa-keyboard" ) {
+                document.querySelectorAll(".black-background .key-button .key-select").forEach( function(el) { el.classList.add("hidden"); } );
+                document.querySelectorAll(".black-background .key-button .key-display").forEach( function(el) { el.classList.remove("hidden"); determineAnalog(el); } );
+                icon.classList.add("fa-trash");
+            }
+            else if( currentAction == "fa-trash" ) {
+                icon.classList.add("fa-plus");
+            }
+            e.stopPropagation();
+            e.preventDefault();
+        } );
+        actionButton.setAttribute("id", "action-button");
+        var editButton = createButton( '<i class="fas fa-edit"></i>', function(e) {
+            var icon = this.querySelector("i");
+            if( actionButton.classList.contains("hidden") ) {
+                // show the select menus if starting out on keyboard
+                if( document.querySelector(".black-background #action-button .fa-keyboard") ) {
                     document.querySelectorAll(".black-background .key-button .key-display").forEach( function(el) { el.classList.add("hidden"); } );
                     document.querySelectorAll(".black-background .key-button .key-select").forEach( function(el) { el.classList.remove("hidden"); } );
-                    icon.classList.add("fa-keyboard");
                 }
-                else if( currentAction == "fa-keyboard" ) {
-                    document.querySelectorAll(".black-background .key-button .key-select").forEach( function(el) { el.classList.add("hidden"); } );
-                    document.querySelectorAll(".black-background .key-button .key-display").forEach( function(el) { el.classList.remove("hidden"); determineAnalog(el); } );
-                    icon.classList.add("fa-trash");
-                }
-                else if( currentAction == "fa-trash" ) {
-                    icon.classList.add("fa-plus");
-                }
-                e.stopPropagation();
-                e.preventDefault();
-            } );
-            actionButton.setAttribute("id", "action-button");
-            var editButton = createButton( '<i class="fas fa-edit"></i>', function(e) {
-                var icon = this.querySelector("i");
-                if( actionButton.classList.contains("hidden") ) {
-                    // show the select menus if starting out on keyboard
-                    if( document.querySelector(".black-background #action-button .fa-keyboard") ) {
-                        document.querySelectorAll(".black-background .key-button .key-display").forEach( function(el) { el.classList.add("hidden"); } );
-                        document.querySelectorAll(".black-background .key-button .key-select").forEach( function(el) { el.classList.remove("hidden"); } );
-                    }
-                    actionButton.classList.remove("hidden");
-                    icon.classList.remove("fa-edit");
-                    icon.classList.add("fa-check");
-                }
-                else {
-                    document.querySelectorAll(".black-background .key-button .key-select").forEach( function(el) { el.classList.add("hidden"); } );
-                    document.querySelectorAll(".black-background .key-button .key-display").forEach( function(el) { el.classList.remove("hidden"); determineAnalog(el); } );
-                    actionButton.classList.add("hidden");
-                    icon.classList.remove("fa-check");
-                    icon.classList.add("fa-edit");
-                    saveKeyConfiguration();
-                }
-                e.stopPropagation();
-                e.preventDefault();
-            } );
-            editButton.setAttribute("id", "edit-button");
-            actionButton.classList.add("hidden");
+                actionButton.classList.remove("hidden");
+                icon.classList.remove("fa-edit");
+                icon.classList.add("fa-check");
+            }
+            else {
+                document.querySelectorAll(".black-background .key-button .key-select").forEach( function(el) { el.classList.add("hidden"); } );
+                document.querySelectorAll(".black-background .key-button .key-display").forEach( function(el) { el.classList.remove("hidden"); determineAnalog(el); } );
+                actionButton.classList.add("hidden");
+                icon.classList.remove("fa-check");
+                icon.classList.add("fa-edit");
+                saveKeyConfiguration();
+            }
+            e.stopPropagation();
+            e.preventDefault();
+        } );
+        editButton.setAttribute("id", "edit-button");
+        actionButton.classList.add("hidden");
 
-            blackBackground.appendChild(editButton);
-            blackBackground.appendChild(actionButton);
+        blackBackground.appendChild(editButton);
+        blackBackground.appendChild(actionButton);
 
-            loadKeyConfiguration();
+        loadKeyConfiguration();
+    }
+    else {
+        try {
+            element.requestFullscreen();
         }
+        catch(err) {}
     }
 }
 
