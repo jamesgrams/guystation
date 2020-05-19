@@ -2462,7 +2462,8 @@ function displayJoypadConfig() {
         }
 
         // figure out the controller
-        var controller = parseInt(controllerSelect.options[controllerSelect.selectedIndex].value) - 1;
+        var controllerSelectMenu = controllerSelect.querySelector("select");
+        var controller = parseInt(controllerSelectMenu.options[controllerSelectMenu.selectedIndex].value) - 1;
 
         var sendObject = { "systems": systems, "values": values, "controller": controller };
         makeRequest("POST", "/controls", sendObject, function() {
