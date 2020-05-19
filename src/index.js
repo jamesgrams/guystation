@@ -3700,7 +3700,7 @@ function setControls( systems, values, controller=0 ) {
                     // delete anything currently mapped to that control
                     let configKeys = Object.keys(config);
                     for(let configKey of configKeys) {
-                        if( configKey.match( systemsDict[system].config.keyMatch ) &&
+                        if( configKey.match( systemsDict[system].config.keyMatch + controller ) &&
                             config[configKey] == controlInfo.values[0] ) {
                             delete config[configKey];
                         }
@@ -3714,7 +3714,7 @@ function setControls( systems, values, controller=0 ) {
                     if( controlInfo.values ) {
                         // PS2 only allows key values right now
                         if( userControl.type == KEY_CONTROL_TYPE ) {
-                            let newKey = translateButton( system, userControl, controlInfo, controlFormat, null, config );
+                            let newKey = translateButton( system, userControl, controlInfo, controlFormat, null, config, controllers, controller );
                             config[newKey] = controlInfo.values[0];
                         }
                         continue;
