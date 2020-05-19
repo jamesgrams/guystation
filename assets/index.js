@@ -3095,18 +3095,22 @@ function loadKeyConfiguration() {
         var curWidth = window.innerWidth.toString();
         var curHeight = window.innerHeight.toString();
         // try to detect landscape mode.
-        var mappingToUse = DEFAULT_KEY_MAPPING_PORTRAIT
+        var mappingToUse = DEFAULT_KEY_MAPPING_PORTRAIT;
+        var trueWidth = TRUE_DEFAULT_KEY_MAPPING_WIDTH;
+        var trueHeight = TRUE_DEFAULT_KEY_MAPPING_HEIGHT;
         if( curWidth > curHeight ) {
             mappingToUse = DEFAULT_KEY_MAPPING_LANDSCAPE;
+            trueWidth = TRUE_DEFAULT_KEY_MAPPING_HEIGHT;
+            trueHeight = TRUE_DEFAULT_KEY_MAPPING_WIDTH;
         }
 
-        var widthMultiplier = curWidth/TRUE_DEFAULT_KEY_MAPPING_WIDTH;
-        var heightMultiplier = curHeight/TRUE_DEFAULT_KEY_MAPPING_HEIGHT;
+        var widthMultiplier = curWidth/trueWidth;
+        var heightMultiplier = curHeight/trueHeight;
         var buttonKeys = Object.keys(mappingToUse);
         for( var i=0; i<buttonKeys.length; i++ ) {
             var curButtonObj = mappingToUse[buttonKeys[i]];
-            curButtonObj.x = curButtonObj.x * widthMultiplier;
-            curButtonObj.y = curButtonObj.y * heightMultiplier;
+            curButtonObj.x = Math.round(curButtonObj.x * widthMultiplier);
+            curButtonObj.y = Math.round(curButtonObj.y * heightMultiplier);
         }
 
         keyMappings[resolution] = mappingToUse;
