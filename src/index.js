@@ -211,7 +211,7 @@ const WII_SOURCE_EMULATED = 1;
 const N64_MANUAL_CONTROLLER = "Input-SDL-Control1";
 const N64_MANUAL_KEY = "mode";
 const N64_MANUAL_VALUE = 0;
-const N64_DEVICE_KEY = "device;
+const N64_DEVICE_KEY = "device";
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -3869,7 +3869,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
         }
         else {
             controlFormat = controlFormat.replace("1", controller+1);
-            else if( userControl.type == AXIS_CONTROL_TYPE ) {
+            if( userControl.type == AXIS_CONTROL_TYPE ) {
                 controlButtons = controlButtons.map( function(button) {
                     let axis = button.substring(0, button.length-1);
                     let direction = button.substring(button.length-1);
