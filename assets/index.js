@@ -3104,7 +3104,7 @@ function loadKeyConfiguration() {
         var heightMultiplier = curHeight/TRUE_DEFAULT_KEY_MAPPING_HEIGHT;
         var buttonKeys = Object.keys(mappingToUse);
         for( var i=0; i<buttonKeys.length; i++ ) {
-            var curButtonObj = mappingToUse[buttonKeys[j]];
+            var curButtonObj = mappingToUse[buttonKeys[i]];
             curButtonObj.x = curButtonObj.x * widthMultiplier;
             curButtonObj.y = curButtonObj.y * heightMultiplier;
         }
