@@ -3,5 +3,5 @@ node_modules/*
 npm-debug.log
 systems/*/emulators
 systems/*/games/*
-!systems/browser/games/*
+!systems/browser/games/Browser/metadata.json
 profiles.json

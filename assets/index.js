@@ -321,7 +321,7 @@ var tabsHeartbeat;
 var navigating = false;
 var sendString = "";
 var activePageId = null;
-var nonGameSystems = ["browser"];
+var nonGameSystems = [];
 var nonSaveSystems = ["browser", "media"];
 var menuDirection = null;
 var menuMoveSpeedMultiplier = 1;
