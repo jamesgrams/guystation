@@ -183,7 +183,7 @@ const REQUEST_LOCKED_CHECK_TIME = 100;
 const UPDATE_PERCENT_MINIMUM = 1;
 const RELOAD_MENU_PAGE_INTERVAL = 14400000; // 4 hours
 const RELOAD_MENU_PAGE_MORE_TIME_NEEDED = 600000; // 10 minutes
-const BROWSE_SCRIPT_INTERVAL = 1000;
+const BROWSE_SCRIPT_INTERVAL = 3000;
 
 const CONFIG_JOINER = ",";
 const CONTROL_STRING = "$CONTROL";
@@ -1209,11 +1209,11 @@ async function launchBrowseTab( url, script ) {
         await browsePage.goto(url ? url : HOMEPAGE);
         if( script ) {
             for( let scriptLine of script ) {
+                await browsePage.waitFor(BROWSE_SCRIPT_INTERVAL);
                 try {
                     await browsePage.evaluate(scriptLine);
                 }
                 catch(err) {/*ok*/}
-                await browsePage.waitFor(BROWSE_SCRIPT_INTERVAL);
             }
         }
     }
