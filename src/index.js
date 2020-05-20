@@ -83,7 +83,6 @@ const FOCUS_CHROMIUM_COMMAND = "wmctrl -a 'Chrom'";
 const TMP_ROM_LOCATION = "/tmp/tmprom";
 const NAND_ROM_FILE_PLACEHOLDER = "ROM_FILE_PLACEHOLDER";
 const BROWSER = "browser";
-const DEFAULT_BROWSER_GAME = "Browser";
 const MEDIA = "media";
 const GOOGLE_SEARCH_URL = "https://google.com/search?q=";
 const HTTP = "http://";
@@ -279,9 +278,7 @@ const ERROR_MESSAGES = {
     "configNotAvailable": "This emulator is unavailable for configuration",
     "invalidProfile": "Invalid profile",
     "noUrl": "No URL for site",
-    "onlyLinksForBrowser": "Only links can be added for the browser",
-    "cantDeleteDefaultBrowserGame": "The default browser link can't be deleted",
-    "cantChangeBrowserGame": "The default browser link can't be changed"
+    "onlyLinksForBrowser": "Only links can be added for the browser"
 }
 // http://jsfiddle.net/vWx8V/ - keycode
 // http://robotjs.io/docs/syntax - robotjs
@@ -1720,7 +1717,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         if( noGame && systemsDict[system].frontendCommand ) command = systemsDict[system].frontendCommand;
 
         if( system == BROWSER ) {
-            await launchBrowseTab( systemsDict[system].games[game].siteUrl );
+            await launchBrowseTab( noGame ? null : systemsDict[system].games[game].siteUrl );
             currentSystem = system;
             currentGame = game;
             currentParentsString = parents.join(SEPARATOR);
@@ -2891,10 +2888,6 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
         return ERROR_MESSAGES.playlistHasGameBeingPlayed;
     }
     if( system == BROWSER && file && typeof file != STRING_TYPE ) return ERROR_MESSAGES.onlyLinksForBrowser;
-    // Can't delete the default browser link
-    if( system == BROWSER && oldGame == DEFAULT_BROWSER_GAME ) {
-        return ERROR_MESSAGES.cantChangeBrowserGame;
-    }
 
     // Get the current game directory
     let oldGameDir = generateGameDir( oldSystem, oldGame, oldParents );
@@ -3201,10 +3194,6 @@ function deleteGame( system, game, parents=[], force, isPlaylist=false ) {
         // we don't have to check for this for folders since we can't delete empty folders
         if( isPlaylist && isBeingPlayedRecursive(system, game, parents)) {
             return ERROR_MESSAGES.playlistHasGameBeingPlayed;
-        }
-        // Can't delete the default browser link
-        if( system == BROWSER && game == DEFAULT_BROWSER_GAME ) {
-            return ERROR_MESSAGES.cantDeleteDefaultBrowserGame;
         }
     }
 
