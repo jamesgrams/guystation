@@ -1,6 +1,6 @@
 var SPACING = 400;
 var EXPAND_COUNT = 10; // Number to expand on each side of the selected element - Note: We may actually expand more than this. We need to have a number of items divisble by the number of systems for the loop to work properly.
-var ROM_READ_ERROR = "An error ocurred readline the ROM file.";
+var ROM_READ_ERROR = "An error ocurred reading the ROM file.";
 var BUBBLE_SCREENSHOTS_INTERVAL = 10000;
 var QUIT_TIME = 2500; // Time to hold escape to quit a game
 var GAMEPAD_INTERVAL = 500;
@@ -3205,6 +3205,7 @@ function createInteractiveScreencast() {
     var lastMoveSent = 0;
     video.onmousedown = function(event) {
         if( !document.querySelector(".black-background #edit-button .fa-check") ) { // dont record clicks if editing the interface
+            if( document.activeElement ) document.activeElement.blur();
             var mousePercentLocation = getMousePercentLocation(event);
             var xPercent = mousePercentLocation.xPercent;
             var yPercent = mousePercentLocation.yPercent;
