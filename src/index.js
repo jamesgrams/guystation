@@ -183,6 +183,7 @@ const REQUEST_LOCKED_CHECK_TIME = 100;
 const UPDATE_PERCENT_MINIMUM = 1;
 const RELOAD_MENU_PAGE_INTERVAL = 14400000; // 4 hours
 const RELOAD_MENU_PAGE_MORE_TIME_NEEDED = 600000; // 10 minutes
+const BROWSE_SCRIPT_INTERVAL = 1000;
 
 const CONFIG_JOINER = ",";
 const CONTROL_STRING = "$CONTROL";
@@ -278,7 +279,8 @@ const ERROR_MESSAGES = {
     "configNotAvailable": "This emulator is unavailable for configuration",
     "invalidProfile": "Invalid profile",
     "noUrl": "No URL for site",
-    "onlyLinksForBrowser": "Only links can be added for the browser"
+    "invalidSiteJson": "Invalid JSON for site",
+    "siteUrlRequired": "The siteUrl key is required for site JSON"
 }
 // http://jsfiddle.net/vWx8V/ - keycode
 // http://robotjs.io/docs/syntax - robotjs
@@ -1198,12 +1200,22 @@ async function goBack() {
 /**
  * Launch a browse tab.
  * @param {string} url - The url to launch the browse tab to.
+ * @param {Array<string>} script - An array of strings to be evaluated on the browse page.
  * @returns {Promise<boolean>} A promise containing false when completed.
  */
-async function launchBrowseTab( url ) {
+async function launchBrowseTab( url, script ) {
     browsePage = await browser.newPage();
     try {
         await browsePage.goto(url ? url : HOMEPAGE);
+        if( script ) {
+            for( let scriptLine of script ) {
+                try {
+                    await browsePage.evaluate(scriptLine);
+                }
+                catch(err) {/*ok*/}
+                await browsePage.waitFor(BROWSE_SCRIPT_INTERVAL);
+            }
+        }
     }
     catch(err) {};
     return Promise.resolve(false);
@@ -1382,7 +1394,12 @@ function generateGames(system, games, parents=[], startup) {
             var metadataFileContents = JSON.parse(fs.readFileSync(generateGameMetaDataLocation(system, game, curParents)));
             gameData.rom = metadataFileContents.rom;
             gameData.isPlaylist = metadataFileContents.isPlaylist;
-            if( metadataFileContents.siteUrl ) gameData.siteUrl = metadataFileContents.siteUrl;
+            if( metadataFileContents.siteUrl ) {
+                gameData.siteUrl = metadataFileContents.siteUrl;
+                if( metadataFileContents.script ) {
+                    gameData.script = metadataFileContents.script;
+                }
+            }
             if( metadataFileContents.status ) gameData.status = metadataFileContents.status;
             if( metadataFileContents.percent ) gameData.percent = metadataFileContents.percent;
             if( gameData.isPlaylist ) {
@@ -1717,7 +1734,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         if( noGame && systemsDict[system].frontendCommand ) command = systemsDict[system].frontendCommand;
 
         if( system == BROWSER ) {
-            await launchBrowseTab( noGame ? null : systemsDict[system].games[game].siteUrl );
+            await launchBrowseTab( noGame ? null : systemsDict[system].games[game].siteUrl, !noGame && systemsDict[system].games[game].script ? systemsDict[system].games[game].script : null );
             currentSystem = system;
             currentGame = game;
             currentParentsString = parents.join(SEPARATOR);
@@ -2251,7 +2268,6 @@ function addGame( system, game, file, parents=[], isFolder, isPlaylist, playlist
             if( playlistItemsError ) return playlistItemsError;
         }
         if( isSymlink && !getGameDictEntry(symlink.system, symlink.game, symlink.parents)) return ERROR_MESSAGES.invalidSymlink;
-        if( system == BROWSER && typeof file != STRING_TYPE ) return ERROR_MESSAGES.onlyLinksForBrowser;
     }
 
     // This is the function to run once we are done and have the rom.
@@ -2273,25 +2289,38 @@ function addGame( system, game, file, parents=[], isFolder, isPlaylist, playlist
         // regular game
         if( !isFolder && !isPlaylist ) {
 
+            let errorMessage;
             // browser, we just append the siteUrl to the metadata.json
             if(system == BROWSER) {
-                fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"siteUrl": file}));
+                if( typeof file == STRING_TYPE )
+                    fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"siteUrl": file}));
+                else {
+                    try {
+                        let uploadedContent = fs.readFileSync(file.path);
+                        let uploadedJson = JSON.parse(uploadedContent);
+                        if( !uploadedJson.siteUrl ) errorMessage = ERROR_MESSAGES.siteUrlRequired;
+                        fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), uploadedContent);
+                    }
+                    // invalid JSON file
+                    catch(err) {
+                        errorMessage = ERROR_MESSAGES.invalidSiteJson;
+                    }
+                }
             }
             else {
                 // Move the rom into the directory
-                let errorMessage;
                 // We don't need a promise for this one
                 // and the async failure has a different behavior than the sync one
                 // Async, we'll just note the ROM download failed to the user as opposed to deleting the game
                 // immediately.
                 if( typeof file == STRING_TYPE ) errorMessage = downloadRom( file, system, game, parents, runWhenDone );
                 else errorMessage = saveUploadedRom( file, system, game, parents );
-                if( errorMessage ) {
-                    // Delete the game directory
-                    rimraf.sync( gameDir );
-                    // Return the error message
-                    return errorMessage;
-                }
+            }
+            if( errorMessage ) {
+                // Delete the game directory
+                rimraf.sync( gameDir );
+                // Return the error message
+                return errorMessage;
             }
         }
         else if( isPlaylist ) {
@@ -2887,7 +2916,6 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
     if( isPlaylist && isBeingPlayedRecursive(oldSystem, oldGame, oldParents)) {
         return ERROR_MESSAGES.playlistHasGameBeingPlayed;
     }
-    if( system == BROWSER && file && typeof file != STRING_TYPE ) return ERROR_MESSAGES.onlyLinksForBrowser;
 
     // Get the current game directory
     let oldGameDir = generateGameDir( oldSystem, oldGame, oldParents );
@@ -2922,17 +2950,36 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
 
     // Update the rom file if necessary 
     if( file && !isFolder && !isPlaylist ) {
+
+        let errorMessage;
+        let oldRomPath;
         // Set the browser site url
         if( system == BROWSER ) {
             let currentGameDictEntry = getGameDictEntry(oldSystem, oldGame, oldParents);
-            currentGameDictEntry.siteUrl = file;
-            fs.writeFileSync(generateGameMetaDataLocation(oldSystem, oldGame, oldParents), JSON.stringify(currentGameDictEntry));
+            if( typeof file == STRING_TYPE ) {
+                currentGameDictEntry.siteUrl = file;
+                fs.writeFileSync(generateGameMetaDataLocation(oldSystem, oldGame, oldParents), JSON.stringify(currentGameDictEntry));
+            }
+            else {
+                try {
+                    let uploadedContent = fs.readFileSync(file.path);
+                    let uploadedJson = JSON.parse(uploadedContent);
+                    if( !uploadedJson.siteUrl ) errorMessage = ERROR_MESSAGES.siteUrlRequired;
+                    currentGameDictEntry.siteUrl = uploadedJson.siteUrl;
+                    if( uploadedJson.script ) currentGameDictEntry.script = uploadedJson.script;
+                    fs.writeFileSync(generateGameMetaDataLocation(oldSystem, oldGame, oldParents), JSON.stringify(currentGameDictEntry));
+                }
+                // invalid JSON file
+                catch(err) {
+                    errorMessage = ERROR_MESSAGES.invalidSiteJson;
+                }
+            }
         }
         else {
             // Get the current game file and its name. We will move it for now,
             // but we will ultimately either move it back or get rid of it.
             // upload into the old directory and that will change if necessary next
-            let oldRomPath = getGameDictEntry(oldSystem, oldGame, oldParents).rom ? generateRomLocation( oldSystem, oldGame, getGameDictEntry(oldSystem, oldGame, oldParents).rom, oldParents ) : "";
+            oldRomPath = getGameDictEntry(oldSystem, oldGame, oldParents).rom ? generateRomLocation( oldSystem, oldGame, getGameDictEntry(oldSystem, oldGame, oldParents).rom, oldParents ) : "";
             if( oldRomPath ) {
                 oldRomNandPath = getNandPath( oldSystem, oldGame, oldParents ); // We'll need this to clean up the old rom for NAND systems
                 fs.renameSync( oldRomPath, TMP_ROM_LOCATION );
@@ -2944,22 +2991,22 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
             // An async error, we'll just have to alert the user that we failed.
             if( typeof file == STRING_TYPE ) errorMessage = downloadRom( file, system ? system : oldSystem, game ? game : oldGame, parents ? parents : oldParents, runWhenDone, dirsDonePromise, oldSystem, oldGame, oldParents );
             else errorMessage = saveUploadedRom( file, oldSystem, oldGame, oldParents );
+        }
 
-            // We failed
-            // Note, that there can be errors in the async download that won't get caught here.
-            // In that case, the async download simply does not overwrite any file.
-            if( errorMessage ) {
-                // Deleting the new rom is not necessary, since error message implies the save failed
-                if( oldRomPath ) {
-                    // Move the old rom back
-                    fs.renameSync( TMP_ROM_LOCATION, oldRomPath );
-                }
-                return errorMessage;
+        // We failed
+        // Note, that there can be errors in the async download that won't get caught here.
+        // In that case, the async download simply does not overwrite any file.
+        if( errorMessage ) {
+            // Deleting the new rom is not necessary, since error message implies the save failed
+            if( oldRomPath ) {
+                // Move the old rom back
+                fs.renameSync( TMP_ROM_LOCATION, oldRomPath );
             }
-            // We succeeded, delete the old rom
-            else if( oldRomPath ) {
-                fs.unlinkSync( TMP_ROM_LOCATION );
-            }
+            return errorMessage;
+        }
+        // We succeeded, delete the old rom
+        else if( oldRomPath ) {
+            fs.unlinkSync( TMP_ROM_LOCATION );
         }
     }
     // Move some of the directories around

@@ -1390,7 +1390,12 @@ function toggleButtons() {
 
     // Only allow browser if we are "playing" it
     var browserControlsButton = document.getElementById("browser-controls");
-    if( !systemsDict["browser"].games[ Object.keys(systemsDict["browser"].games)[0] ].playing ) {
+    var isPlaying = false;
+    var browserGameKeys = Object.keys(systemsDict["browser"].games);
+    for( var i=0; i<browserGameKeys.length; i++ ) {
+        if( systemsDict["browser"].games[browserGameKeys[i]].playing ) isPlaying = true;
+    }
+    if( !isPlaying ) {
         browserControlsButton.onclick = null;
         browserControlsButton.classList.add("inactive");
     }
