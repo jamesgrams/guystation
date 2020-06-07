@@ -4438,7 +4438,7 @@ async function connectScreencast( id, noController ) {
     await menuPage.evaluate( () => connectToSignalServer(true) );
 
     // connect the virtual gamepad if necessary
-    if( !gamepadFileDescriptor && !noController ) {
+    if( !gamepadFileDescriptors[id] && !noController ) {
         createVirtualGamepad( id );
     }
 
