@@ -4427,6 +4427,11 @@ async function connectScreencast( id, noController ) {
     // this is extra security beyond oniceconnectionstatechange in case the connection never happens
     // so it never disconnects
 
+    // connect the virtual gamepad if necessary
+    if( !gamepadFileDescriptors[id] && !noController ) {
+        createVirtualGamepad( id );
+    }
+
     // do not connect again if we are already connected
     if( serverSocketId ) {
         return Promise.resolve(false);
@@ -4436,11 +4441,6 @@ async function connectScreencast( id, noController ) {
 
     // focus on guy station
     await menuPage.evaluate( () => connectToSignalServer(true) );
-
-    // connect the virtual gamepad if necessary
-    if( !gamepadFileDescriptors[id] && !noController ) {
-        createVirtualGamepad( id );
-    }
 
     return Promise.resolve(false);
 }
