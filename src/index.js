@@ -4562,6 +4562,8 @@ async function stopScreencast(id) {
     clearTimeout(cancelStreamingTimeouts[id]);
     delete cancelStreamingTimeouts[id];
 
+    disconnectVirtualGamepad( id ); // Disconnect the virtual gamepad.
+
     try {
         await menuPage.evaluate( (id) => stopConnectionToPeer(true, id), id );
     }
@@ -4579,7 +4581,6 @@ async function stopScreencast(id) {
         if( menuPageIsActive() ) ensureProperResolution(); // we might have gone home and changed to resolution in preparation to go back to the emulator. If there was an error, we might not have gone back to the emulator. In this case, once the reset timeout fails, we should make sure we have the correct resolution.
     }
     catch(err) { /* ok */ }
-    disconnectVirtualGamepad( id ); // Disconnect the virtual gamepad.
     return Promise.resolve(false);
 }
 
