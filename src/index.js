@@ -1082,6 +1082,7 @@ async function reloadMenuPage() {
         menuPage = await browser.newPage();
         menuPage.goto(oldMenuPage.url());
         oldMenuPage.close();
+        menuPage.bringToFront();
         setTimeout( reloadMenuPage, RELOAD_MENU_PAGE_INTERVAL );
     }
 }
