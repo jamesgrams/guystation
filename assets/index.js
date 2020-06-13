@@ -2377,7 +2377,7 @@ function displayJoypadConfig() {
     else {
         connectController = !desktopAndNoClientGamepad();
     }
-    var connectCheckbox = createInput( connectController, "connect-controller-checkbox", "Connect a Virtual Controller when streaming", "checkbox" );
+    var connectCheckbox = createInput( connectController, "connect-controller-checkbox", "Virtual Controller", "checkbox" );
     connectCheckbox.querySelector("input").onchange = function() {
         localStorage.guystationConnectController = this.checked.toString();
     }
