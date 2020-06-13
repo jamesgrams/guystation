@@ -792,6 +792,10 @@ h1 {
     clear: both;
 }
 
+#joypad-config-form label[for='connect-controller-checkbox'] {
+    clear: both;
+}
+
 @keyframes fade {
     0% {transform: translateY(100%); opacity: 1;}
     75% {transform: translateY(0%); opacity: 0.7;}

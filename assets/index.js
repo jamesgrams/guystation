@@ -2385,7 +2385,6 @@ function displayJoypadConfig() {
 
     // EZ config section
     warning = createWarning("EZ Emulator Controller Configuration");
-    warning.classList.add("break");
     warning.setAttribute("title", "This section can be used to set controls for multiple emulators at once. For example, you might map \"A\" to button 1 on your controller. GuyStation would then map button 1 to A for GBA, A for N64, Circle for PSP, etc. if those emulators are selected.");
     form.appendChild(warning);
     for( var i=0; i<EZ_EMULATOR_CONFIG_BUTTONS.length; i++ ) {
