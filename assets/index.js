@@ -2450,26 +2450,8 @@ function displayJoypadConfig() {
         // comma separated list in the form of key/axis/button(control)
         for( var i=0; i<inputs.length; i++ ) {
             var guystationButton = EZ_EMULATOR_CONFIG_BUTTONS[inputs[i].parentNode.getAttribute("data-ez-button")];
-            
-            // Get the list of buttons that have been set for each input
-            var buttons = inputs[i].value.split(","); // we have to split by pipe here
-            var buttonsToSet = [];
-            // For each of the buttons
-            for( var j=0; j<buttons.length; j++ ) {
-                // Get the type and the control (e.g. keycode, axis+, etc) - we don't ever expect and array
-                var match = buttons[j].match(EZ_REGEX);
-                if( match ) {
-                    var obj = {
-                        type: match[1],
-                        button: match[2]
-                    }
-                    if( match[3] ) {
-                        obj.vendor = match[4];
-                        obj.product = match[5];
-                    }
-                    buttonsToSet.push( obj );
-                }
-            }
+
+            var buttonsToSet = parseEzButtonString( inputs[i].value );
 
             if( buttonsToSet.length ) {
                 values[guystationButton] = buttonsToSet;
@@ -2544,6 +2526,34 @@ function displayJoypadConfig() {
 }
 
 /**
+ * Parse an EZ button string into a value readable by the server.
+ * @param {string} buttonString - The button string.
+ * @returns {Array<Object>} The expeceted server object.
+ */
+function parseEzButtonString( buttonString ) {
+    // Get the list of buttons that have been set for each input
+    var buttons = buttonString.split(","); // we have to split by pipe here
+    var buttonsToSet = [];
+    // For each of the buttons
+    for( var j=0; j<buttons.length; j++ ) {
+        // Get the type and the control (e.g. keycode, axis+, etc) - we don't ever expect and array
+        var match = buttons[j].match(EZ_REGEX);
+        if( match ) {
+            var obj = {
+                type: match[1],
+                button: match[2]
+            }
+            if( match[3] ) {
+                obj.vendor = match[4];
+                obj.product = match[5];
+            }
+            buttonsToSet.push( obj );
+        }
+    }
+    return buttonsToSet;
+}
+
+/**
  * Autoload an EZ profile.
  * @param {Function} [callback] - The callback to run after load.
  */
@@ -2587,10 +2597,15 @@ function saveAutoloadEzProfile() {
 
 /**
  * Set the current autoload profile.
- * @param {Object} profile - The profile to load. There should be one key - the profile name, and the value is the EZ config value.
+ * @param {Object} profile - The profile to load. It should have keys for nunchuk, profile (the profile as given to us by the server [note, this is different to what the server expects - values are strings not objects]), and name.
  */
 function setCurrentAutoloadProfile(profile) {
     if( profile ) {
+        profile = JSON.parse(JSON.stringify(profile));
+        var keys = Object.keys(profile);
+        for( var i=0; i<keys.length; i++ ) {
+            profile[keys[i]] = parseEzButtonString(profile[keys[i]]);
+        }
         localStorage.guystationAutoloadEzProfile = JSON.stringify(profile);
     }
     else {
