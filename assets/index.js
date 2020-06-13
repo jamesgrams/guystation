@@ -2377,7 +2377,7 @@ function displayJoypadConfig() {
     else {
         connectController = !desktopAndNoClientGamepad();
     }
-    var connectCheckbox = createInput("", "connect-controller-checkbox", "Connect a Virtual Controller when streaming", "checkbox", connectController );
+    var connectCheckbox = createInput( connectController, "connect-controller-checkbox", "Connect a Virtual Controller when streaming", "checkbox" );
     connectCheckbox.querySelector("input").onchange = function() {
         localStorage.guystationConnectController = this.checked.toString();
     }
@@ -4521,7 +4521,12 @@ function addLabel( element, text ) {
 function createInput( defaultValue, id, label, type, required ) {
     var input = document.createElement("input");
     input.type = type ? type : "text";
-    if( defaultValue ) input.value = defaultValue;
+    if( defaultValue ) {
+        if( type == "checkbox" ) {
+            if( defaultValue ) input.setAttribute("checked", "true");
+        }
+        else input.value = defaultValue;
+    }
     if(id) input.setAttribute("id", id);
     if( required ) {
         input.setAttribute("required", "required");
