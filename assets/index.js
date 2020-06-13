@@ -2508,10 +2508,8 @@ function displayJoypadConfig() {
         var currentProfile = getCurrentAutoloadProfile();
         // If there is a current profile, see if there is a profile by the same name that we just loaded from the server
         // then update the local profile if so
-        if( currentProfile ) {
-            if( profilesDict[currentProfile.name] ) {
-                setCurrentAutoloadProfile( { name: currentProfile.name, nunchuk: currentProfile.nunchuk, profile: profilesDict[currentProfile.name] } );
-            }
+        if( currentProfile && profilesDict[currentProfile.name] ) {
+            setCurrentAutoloadProfile( { "name": currentProfile.name, "nunchuk": currentProfile.nunchuk, "profile": profilesDict[currentProfile.name] } );
         }
         var setAutoloadButton = createButton( "Autoload Profile", saveAutoloadEzProfile );
     
@@ -2591,6 +2589,7 @@ function saveAutoloadEzProfile() {
         createToast( "Profile set to autoload" );
     }
     else {
+        setCurrentAutoloadProfile( "" );
         createToast( "Removed profile autoload" );
     }
 }
@@ -2601,12 +2600,13 @@ function saveAutoloadEzProfile() {
  */
 function setCurrentAutoloadProfile(profile) {
     if( profile ) {
-        profile = JSON.parse(JSON.stringify(profile));
-        var keys = Object.keys(profile);
+        var curProfile = JSON.parse(JSON.stringify(profile));
+        var keys = Object.keys(curProfile.profile);
         for( var i=0; i<keys.length; i++ ) {
-            profile[keys[i]] = parseEzButtonString(profile[keys[i]]);
+            var curKey = curProfile.profile[keys[i]];
+            curProfile.profile[keys[i]] = parseEzButtonString(curKey);
         }
-        localStorage.guystationAutoloadEzProfile = JSON.stringify(profile);
+        localStorage.guystationAutoloadEzProfile = JSON.stringify(curProfile);
     }
     else {
         localStorage.guystationAutoloadEzProfile = "";
