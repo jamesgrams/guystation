@@ -2804,7 +2804,7 @@ function displayScreencast() {
             launchModal( form, function() { stopConnectionToPeer(false, "server"); } );
             connectToSignalServer(false);
         }, function(responseText) { standardFailure(responseText, true) } );
-    }
+    } );
 }
 
 /**
@@ -4828,7 +4828,7 @@ function launchGame( system, game, parents ) {
             makeRequest( "POST", "/launch", { "system": system, "game": game, "parents": parents },
             function( responseText ) { standardSuccess(responseText, "Game launched", null, null, null, null, null, null, true) },
             function( responseText ) { standardFailure( responseText ) } );
-        }
+        };
         // Don't set any controls if we are streaming from another device
         if( peerConnections.length && isServer ) doLaunch();
         else {
