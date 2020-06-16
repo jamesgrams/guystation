@@ -303,6 +303,8 @@ var TRUE_DEFAULT_KEY_MAPPING_WIDTH = 375;
 var TRUE_DEFAULT_KEY_MAPPING_HEIGHT = 667;
 var DEFAULT_KEY_MAPPING_PORTRAIT = [{"key":"Ⓧ","x":236,"y":497},{"key":"Ⓨ","x":290,"y":466},{"key":"Ⓑ","x":346,"y":499},{"key":"Ⓐ","x":291,"y":525},{"key":"◀","x":28,"y":495},{"key":"▼","x":83,"y":525},{"key":"▲","x":83,"y":468},{"key":"▶","x":137,"y":497},{"key":"🕹️L","x":123,"y":608},{"key":"🕹️R","x":249,"y":609},{"key":"Ⓡ","x":347,"y":236},{"key":"🅡","x":347,"y":181},{"key":"Ⓛ","x":29,"y":237},{"key":"🅛","x":28,"y":181},{"key":"🔘","x":135,"y":169},{"key":"⭐","x":241,"y":169},{"key":"⎋","x":77,"y":105},{"key":"↵","x":303,"y":105}];
 var DEFAULT_KEY_MAPPING_LANDSCAPE = [{"key":"▲","x":90,"y":161},{"key":"◀","x":35,"y":188},{"key":"▶","x":146,"y":188},{"key":"▼","x":91,"y":221},{"key":"🕹️L","x":68,"y":313},{"key":"🔘","x":161,"y":310},{"key":"⭐","x":453,"y":309},{"key":"Ⓐ","x":578,"y":336},{"key":"Ⓑ","x":633,"y":310},{"key":"Ⓧ","x":522,"y":309},{"key":"Ⓨ","x":577,"y":279},{"key":"🕹️R","x":599,"y":183},{"key":"Ⓡ","x":510,"y":31},{"key":"🅡","x":566,"y":30},{"key":"Ⓛ","x":201,"y":31},{"key":"🅛","x":146,"y":30},{"key":"✲","x":39,"y":96},{"key":"S","x":625,"y":97}];
+var CONTROLS_SET_MESSAGE = "Controls set";
+var COULD_NOT_SET_CONTROLS_MESSAGE = "Could not set controls";
 
 var expandCountLeft; // We always need to have a complete list of systems, repeated however many times we want, so the loop works properly
 var expandCountRight;
@@ -2377,7 +2379,7 @@ function displayJoypadConfig() {
     else {
         connectController = !desktopAndNoClientGamepad();
     }
-    var connectCheckbox = createInput("", "connect-controller-checkbox", "Connect a Virtual Controller when streaming", "checkbox", connectController );
+    var connectCheckbox = createInput( connectController, "connect-controller-checkbox", "Virtual Controller", "checkbox" );
     connectCheckbox.querySelector("input").onchange = function() {
         localStorage.guystationConnectController = this.checked.toString();
     }
@@ -2385,7 +2387,6 @@ function displayJoypadConfig() {
 
     // EZ config section
     warning = createWarning("EZ Emulator Controller Configuration");
-    warning.classList.add("break");
     warning.setAttribute("title", "This section can be used to set controls for multiple emulators at once. For example, you might map \"A\" to button 1 on your controller. GuyStation would then map button 1 to A for GBA, A for N64, Circle for PSP, etc. if those emulators are selected.");
     form.appendChild(warning);
     for( var i=0; i<EZ_EMULATOR_CONFIG_BUTTONS.length; i++ ) {
@@ -2449,26 +2450,8 @@ function displayJoypadConfig() {
         // comma separated list in the form of key/axis/button(control)
         for( var i=0; i<inputs.length; i++ ) {
             var guystationButton = EZ_EMULATOR_CONFIG_BUTTONS[inputs[i].parentNode.getAttribute("data-ez-button")];
-            
-            // Get the list of buttons that have been set for each input
-            var buttons = inputs[i].value.split(","); // we have to split by pipe here
-            var buttonsToSet = [];
-            // For each of the buttons
-            for( var j=0; j<buttons.length; j++ ) {
-                // Get the type and the control (e.g. keycode, axis+, etc) - we don't ever expect and array
-                var match = buttons[j].match(EZ_REGEX);
-                if( match ) {
-                    var obj = {
-                        type: match[1],
-                        button: match[2]
-                    }
-                    if( match[3] ) {
-                        obj.vendor = match[4];
-                        obj.product = match[5];
-                    }
-                    buttonsToSet.push( obj );
-                }
-            }
+
+            var buttonsToSet = parseEzButtonString( inputs[i].value );
 
             if( buttonsToSet.length ) {
                 values[guystationButton] = buttonsToSet;
@@ -2494,14 +2477,14 @@ function displayJoypadConfig() {
 
         var sendObject = { "systems": systems, "values": values, "controller": controller, "nunchuk": nunchuk };
         makeRequest("POST", "/controls", sendObject, function() {
-            createToast("Controls set");
+            createToast(CONTROLS_SET_MESSAGE);
         }, function(data) {
             try {
                 var message = JSON.parse(data).message;
                 createToast(message);
             }
             catch(err) {
-                createToast("Could not set controls");
+                createToast(COULD_NOT_SET_CONTROLS_MESSAGE);
             }
         });
 
@@ -2521,14 +2504,125 @@ function displayJoypadConfig() {
             currentOnChange();
             loadEzProfile();
         }
+
+        var currentProfile = getCurrentAutoloadProfile();
+        // If there is a current profile, see if there is a profile by the same name that we just loaded from the server
+        // then update the local profile if so
+        if( currentProfile && profilesDict[currentProfile.name] ) {
+            setCurrentAutoloadProfile( { "name": currentProfile.name, "nunchuk": currentProfile.nunchuk, "profile": profilesDict[currentProfile.name] } );
+        }
+        var setAutoloadButton = createButton( "Autoload Profile", saveAutoloadEzProfile );
     
         form.appendChild(profileInput);
         form.appendChild(saveProfileButton);
         form.appendChild(profilesMenu);
         form.appendChild(deleteProfileButton);
+        form.appendChild(setAutoloadButton);
     } );
     
     launchModal( form );
+}
+
+/**
+ * Parse an EZ button string into a value readable by the server.
+ * @param {string} buttonString - The button string.
+ * @returns {Array<Object>} The expeceted server object.
+ */
+function parseEzButtonString( buttonString ) {
+    // Get the list of buttons that have been set for each input
+    var buttons = buttonString.split(","); // we have to split by pipe here
+    var buttonsToSet = [];
+    // For each of the buttons
+    for( var j=0; j<buttons.length; j++ ) {
+        // Get the type and the control (e.g. keycode, axis+, etc) - we don't ever expect and array
+        var match = buttons[j].match(EZ_REGEX);
+        if( match ) {
+            var obj = {
+                type: match[1],
+                button: match[2]
+            }
+            if( match[3] ) {
+                obj.vendor = match[4];
+                obj.product = match[5];
+            }
+            buttonsToSet.push( obj );
+        }
+    }
+    return buttonsToSet;
+}
+
+/**
+ * Autoload an EZ profile.
+ * @param {Function} [callback] - The callback to run after load.
+ */
+function autoloadEzProfile( callback ) {
+    var profile = getCurrentAutoloadProfile();
+    if( profile ) {
+        var sendObject = { "systems": EZ_SYSTEMS, "values": profile.profile, "controller": 0, "nunchuk": profile.nunchuk };
+        makeRequest("POST", "/controls", sendObject, function() {
+            createToast(CONTROLS_SET_MESSAGE);
+            if( callback ) callback();
+        }, function(data) {
+            try {
+                var message = JSON.parse(data).message;
+                createToast(message);
+            }
+            catch(err) {
+                createToast(COULD_NOT_SET_CONTROLS_MESSAGE);
+            }
+            if( callback ) callback();
+        });
+    }
+    else if( callback ) callback();
+}
+
+/**
+ * Make a profile the autoload profile from the menu.
+ */
+function saveAutoloadEzProfile() {
+    var selectElement = document.querySelector("#joypad-config-form #ez-profile-select");
+    var name = selectElement.options[selectElement.selectedIndex].value;
+    if( profilesDict[name] ) {
+        var nunchukSelectMenu = document.querySelector("#nunchuk-select-menu");
+        var nunchuk = nunchukSelectMenu.selectedIndex > 0 ? true : false;
+        setCurrentAutoloadProfile( { name: name, nunchuk: nunchuk, profile: profilesDict[name] } );
+        createToast( "Profile set to autoload" );
+    }
+    else {
+        setCurrentAutoloadProfile( "" );
+        createToast( "Removed profile autoload" );
+    }
+}
+
+/**
+ * Set the current autoload profile.
+ * @param {Object} profile - The profile to load. It should have keys for nunchuk, profile (the profile as given to us by the server [note, this is different to what the server expects - values are strings not objects]), and name.
+ */
+function setCurrentAutoloadProfile(profile) {
+    if( profile ) {
+        var curProfile = JSON.parse(JSON.stringify(profile));
+        var keys = Object.keys(curProfile.profile);
+        for( var i=0; i<keys.length; i++ ) {
+            var curKey = curProfile.profile[keys[i]];
+            curProfile.profile[keys[i]] = parseEzButtonString(curKey);
+        }
+        localStorage.guystationAutoloadEzProfile = JSON.stringify(curProfile);
+    }
+    else {
+        localStorage.guystationAutoloadEzProfile = "";
+    }
+}
+
+/**
+ * Get the current autload profile.
+ * @returns {Object} - The current autoload profile.
+ */
+function getCurrentAutoloadProfile() {
+    var currentProfile = localStorage.guystationAutoloadEzProfile;
+    if( currentProfile ) {
+        return JSON.parse(currentProfile);
+    }
+    return null;
 }
 
 /**
@@ -2713,18 +2807,19 @@ function displayScreencast() {
         // it might be "true" or "false"
         connectController = connectController == "true" ? true : false;
     }
-    else {
-        connectController = !desktopAndNoClientGamepad();
-    }
-    makeRequest( "GET", "/screencast/connect", { id: socket.id, noController: !connectController }, function() {
-        // start letting the server know we exist after it is now looking for us i.e. won't accept another connection
-        // (serverSocketId is set)
-        resetCancelStreamingInterval = setInterval( function() {
-            makeRequest( "GET", "/screencast/reset-cancel", { id: socket.id } );
-        }, RESET_CANCEL_STREAMING_INTERVAL );
-        launchModal( form, function() { stopConnectionToPeer(false, "server"); } );
-        connectToSignalServer(false);
-    }, function(responseText) { standardFailure(responseText, true) } );
+    else connectController = !desktopAndNoClientGamepad();
+
+    autoloadEzProfile( function() {
+        makeRequest( "GET", "/screencast/connect", { id: socket.id, noController: !connectController }, function() {
+            // start letting the server know we exist after it is now looking for us i.e. won't accept another connection
+            // (serverSocketId is set)
+            resetCancelStreamingInterval = setInterval( function() {
+                makeRequest( "GET", "/screencast/reset-cancel", { id: socket.id } );
+            }, RESET_CANCEL_STREAMING_INTERVAL );
+            launchModal( form, function() { stopConnectionToPeer(false, "server"); } );
+            connectToSignalServer(false);
+        }, function(responseText) { standardFailure(responseText, true) } );
+    } );
 }
 
 /**
@@ -4521,7 +4616,12 @@ function addLabel( element, text ) {
 function createInput( defaultValue, id, label, type, required ) {
     var input = document.createElement("input");
     input.type = type ? type : "text";
-    if( defaultValue ) input.value = defaultValue;
+    if( defaultValue ) {
+        if( type == "checkbox" ) {
+            if( defaultValue ) input.setAttribute("checked", "true");
+        }
+        else input.value = defaultValue;
+    }
     if(id) input.setAttribute("id", id);
     if( required ) {
         input.setAttribute("required", "required");
@@ -4739,9 +4839,16 @@ function createToast(message, type, html) {
 function launchGame( system, game, parents ) {
     if( !makingRequest ) {
         startRequest(); // Most other functions do this prior since they need to do other things
-        makeRequest( "POST", "/launch", { "system": system, "game": game, "parents": parents },
-        function( responseText ) { standardSuccess(responseText, "Game launched", null, null, null, null, null, null, true) },
-        function( responseText ) { standardFailure( responseText ) } );
+        var doLaunch = function() {
+            makeRequest( "POST", "/launch", { "system": system, "game": game, "parents": parents },
+            function( responseText ) { standardSuccess(responseText, "Game launched", null, null, null, null, null, null, true) },
+            function( responseText ) { standardFailure( responseText ) } );
+        };
+        // Don't set any controls if we are streaming from another device
+        if( peerConnections.length && isServer ) doLaunch();
+        else {
+            autoloadEzProfile( doLaunch );
+        }
     }
 }
 
