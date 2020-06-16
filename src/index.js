@@ -1018,7 +1018,7 @@ async function launchBrowser() {
     }
     browser = await puppeteer.launch(options);
     let context = await browser.defaultBrowserContext();
-    context.overridePermissions("http://" + LOCALHOST, ['microphone']);
+    context.overridePermissions("http://" + LOCALHOST, ['microphone','camera']);
     let pages = await browser.pages();
     menuPage = await pages[0];
 

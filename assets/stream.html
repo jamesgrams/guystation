@@ -1,0 +1,24 @@
+<html>
+    <head>
+        <title>GuyStation Streaming</title>
+        <style>
+            body {
+                margin: 0;
+                background-color: black;
+            }
+            video {
+                width: 100vw;
+                height: 100vh;
+            }
+        </style>
+    </head>
+    <body>
+        <video autoplay="true"></video>
+    </body>
+    <script>
+        navigator.mediaDevices.getUserMedia({"audio": true,"video": true}).then( function(stream) {
+            var video = document.querySelector("video");
+            document.querySelector("video").srcObject = stream;
+        });
+    </script>
+</html>
