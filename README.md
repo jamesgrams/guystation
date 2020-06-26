@@ -190,8 +190,11 @@ Multiple monitors are not supported. Using multiple monitors will cause issues w
 * A program restart is required if you change the screen resolution.
 * PS2 can only have keyboard controls set with EZ configuration.
 * NGC will have the device to the virtual keyboard when setting keyboad controls with EZ configuration. There isn't a good way to detect a keyboard. Hopefully, this shouldn't be a problem if you regularly use a game controller. The game controllers are connected if the evdev device name matches one of a set of keyboards (gamepad, joystick, controller, joypad).
-* EZ Controller Configuration only allows the left version of buttons (control, alt, shift, etc.) and for player 1
+* EZ Controller Configuration only allows the left version of buttons (control, alt, shift, etc.)
 * PSP maps button names to PSP controls rather than numbers. Names can be different per controller, which can be nice. However, you have to have the mapping (number to name) for the controller listed for it to work properly. PPSSPP itself can do a little better at guessing button names, I believe with the help of the generic controller mapping of the controller plugged in, but we can't get this with the HTML5 Gamepad API. The best we can do is apply a default which likely won't be accurate. Add a controller mapping to `~/ppsspp/assets/gamecontrollerdb.txt` if your controller is not recognized.
+* VBA-M, PPSSPP, and SNES9X do not set the screenshot key to Ctrl+S by default. SNES9X does not have default controls.
+* EZ Config missing print screen and keys around the numpad (+, -, etc.).
+* Mobile Virtual Controller Keycode options don't extend beyond main keyboard area, F keys, and arrow keys.
 
 ## Credits and Special Thanks
 * Game Boy Advance and DS Lite icons: [David Pérez](https://thenounproject.com/david730/)
