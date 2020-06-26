@@ -18,6 +18,9 @@
       "B": {
         "keys": ["Joypad/1","B"]
       },
+      "R": {
+        "keys": ["Joypad/1","Speed"]
+      },
       "L2": {
         "keys": ["Joypad/1","L"]
       },

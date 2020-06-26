@@ -26,6 +26,10 @@
         "keys": ["JOYKEYS","Y"],
         "keyboardKeys": ["KEYS","Y"]
       },
+      "R": {
+        "keys": ["JOYKEYS","Boost"],
+        "keyboardKeys": ["KEYS","Boost"]
+      },
       "L2": {
         "keys": ["JOYKEYS","L"],
         "keyboardKeys": ["KEYS","L"]
