@@ -8,7 +8,8 @@ let ppssppMap = {
     188: 159, // comma
     189: 69, // minus
     190: 56, //period
-    192: 76, // slash
+    191: 76, // slash
+    192: 68,// backtick
     48: 7, // 0-9
     49: 8,
     50: 9,

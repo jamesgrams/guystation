@@ -207,7 +207,8 @@ var KEYCODE_MAP = {
     188: "Comma", // comma
     189: "Minus", // minus
     190: "Period", //period
-    192: "Slash", // slash
+    191: "Slash", // slash
+    192: "Backtick", // backtick
     48: "0", // 0-9
     49: "1",
     50: "2",
@@ -219,7 +220,7 @@ var KEYCODE_MAP = {
     56: "8",
     57: "9",
     186: "Semicolon", // semicolon
-    187: "Qqual", // equal
+    187: "Equals", // equal
     219: "Bracketleft", // open bracket
     220: "Backslash", // backslash
     221: "Bracketright", // close bracket

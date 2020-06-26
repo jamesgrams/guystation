@@ -9,7 +9,8 @@ let x11Map = {
     188: "comma", // comma
     189: "minus", // minus
     190: "period", //period
-    192: "slash", // slash
+    191: "slash", // slash
+    192: "grave", // backtick
     48: "0", // 0-9
     49: "1",
     50: "2",
@@ -111,7 +112,8 @@ const x11CodeMap = {
     188: 0x002c, // comma
     189: 0x002d, // minus
     190: 0x002e, //period
-    192: 0x002f, // slash
+    191: 0x002f, // slash
+    192: 0x0060, // backtick
     48: 0x0030, // 0-9
     49: 0x0031,
     50: 0x0032,

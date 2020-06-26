@@ -7,7 +7,8 @@ let gdkMap = {
     188: 0x002c, // comma
     189: 0x002d, // minus
     190: 0x002e, //period
-    192: 0x002f, // slash
+    191: 0x002f, // slash
+    192: 0x0060, // backtick
     48: 0x0030, // 0-9
     49: 0x0031,
     50: 0x0032,

@@ -4,8 +4,9 @@ let vbamMap = {
     222: "'", // single quote
     188: ",", // comma
     189: "-", // minus
-    190: ".", //period
-    192: "/", // slash
+    190: ".", // period
+    191: "/", // slash
+    192: "`", // backtick
     48: "0", // 0-9
     49: "1",
     50: "2",

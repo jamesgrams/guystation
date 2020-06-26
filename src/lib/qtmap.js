@@ -9,7 +9,8 @@ let qtMap = {
     188: 0x2c, // comma
     189: 0x2d, // minus
     190: 0x2e, //period
-    192: 0x2f, // slash
+    191: 0x2f, // slash
+    192: 0x7e, // backtick/tilde
     48: 0x30, // 0-9
     49: 0x31,
     50: 0x32,

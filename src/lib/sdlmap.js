@@ -7,7 +7,8 @@ let sdlMap = {
     188: 44, // comma
     189: 45, // minus
     190: 46, //period
-    192: 47, // slash
+    191: 47, // slash
+    192: 96, // backtick
     48: 48, // 0-9
     49: 49,
     50: 50,
