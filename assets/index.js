@@ -5611,6 +5611,19 @@ var localStream = null;
 var peerConnections = [];
 
 /**
+ * Get the correct object that has the getDisplayMedia function.
+ * Chrome versions 70-71 have getDisplayMedia under the navigator object rather than
+ * navigator.mediaDevices.
+ * In those versions, the "Experimental Web Platform features" flag needs to be enabled.
+ */
+function getMediaDevicesForDisplayMedia() {
+    if( navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia ) {
+        return navigator.mediaDevices;
+    }
+    return navigator;
+}
+
+/**
  * Connect to the signal server.
  * @param {boolean} isStreamer - True if this is being called from the menuPage of guystation > we stream from guystation.
  */
@@ -5623,7 +5636,7 @@ function connectToSignalServer( isStreamer ) {
     socket.on( 'ice', handleRemoteIce );
 
     if( isStreamer ) {
-        navigator.mediaDevices.getDisplayMedia({"video": { "cursor": "never" }, "audio": false}).then(getDisplayMediaSuccess).catch(errorHandler);
+        getMediaDevicesForDisplayMedia().getDisplayMedia({"video": { "cursor": "never" }, "audio": false}).then(getDisplayMediaSuccess).catch(errorHandler);
     }
 
 }
@@ -5681,7 +5694,7 @@ function startConnectionToPeer( isStreamer, id ) {
 function renegotiate() {
     var oldLocalStream = localStream;
     oldLocalStream.getVideoTracks().forEach(track => track.stop())
-    navigator.mediaDevices.getDisplayMedia({"video": { "cursor": "never" }, "audio": true}).then(function(stream) {
+    getMediaDevicesForDisplayMedia().getDisplayMedia({"video": { "cursor": "never" }, "audio": true}).then(function(stream) {
         localStream = stream;
         for( let peerConnection of peerConnections ) {
             var newTrack = localStream.getVideoTracks()[0];
