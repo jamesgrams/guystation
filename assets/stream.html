@@ -17,7 +17,7 @@
         <video autoplay="true"></video>
     </body>
     <script>
-        navigator.mediaDevices.getUserMedia({"audio": true,"video": true}).then( function(stream) {
+	    navigator.mediaDevices.getUserMedia({"audio": true,"video": { width: {ideal: 1920}, height: {ideal:1080} }}).then( function(stream) {
             var video = document.querySelector("video");
             document.querySelector("video").srcObject = stream;
         });
