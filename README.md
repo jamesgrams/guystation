@@ -48,6 +48,7 @@ Note: You can press F11 to get GuyStation out of full screen mode at any time.
         }
         ```
     * The file `helper/browser-scripts/stream.json` can be added as a browser game. Opening it in GuyStation will take you to a page that will stream connected user media. You can use this if you have a capture device on your GuyStation machine. You will be able to play HDMI/AV content such as another video game system through GuyStation and thus stream that to another device if you like.
+    * The file `helper/browser-scripts/stream-remote.json` can be used as a browser game to pull up a stream on another guystation. Just be sure to set the url to the right ip address.
 * Media - you can play media files or stream them to any device using the GuyStation web interface.
     * You add a media file just like a game. Upload the audio/video file as the ROM file.
     * You can access media remotely by opening the menu and clicking the CD icon under "More".
@@ -92,6 +93,7 @@ Here are some recommendedations to make your experience better on Ubuntu.
 11. There is a script called `backup_saves.sh` in the `helper` directory that you can edit to copy your savedata to another location on your computer. Personally, I run the script each night in cron and copy the data to my mounted Google Drive.
 12. Turn off notifications. You can do this in Ubuntu settings.
 13. Disable auto-checking and notifications of new Ubuntu versions in Update Manager. This will prevent update popups.
+14. Set the default input/output audio device on login. You can do this by doing the following. Find your output/input device by running `pactl list short sinks` or `pactl list short sources`, respectively. Create an entry in `~/.config/autostart/` similar to `~/.config/autostart/guystation.desktop` to run the command `pactl set-default-sink '<device name>'` or `pactl set-default-source '<device name>'`, respectively. You may have to comment out the line `load-module module-switch-on-connect` in `/etc/pulse/default.pa` as well.
 
 ## Emulator Specific Setup
 For all emulators, you will have to setup your controller(s). You can do this by opening emulator GUIs by clicking a system image when it is the selected system. This will launch the emulator without any game allowing you to choose options.
