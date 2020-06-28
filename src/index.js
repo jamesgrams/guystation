@@ -140,7 +140,8 @@ const COVER_FILENAME = "cover.jpg";
 const USER_DATA_DIR = "../chrome";
 const STATUS_FILE = USER_DATA_DIR + SEPARATOR + "Default" + SEPARATOR + "Preferences";
 const MAX_MESSAGES_LENGTH = 100;
-const SHARING_PROMPT = "http://localhost is sharing your screen.";
+// sharing prompt either starts with http://localhost or GuyStation on older chrome
+const SHARING_PROMPT = "is sharing your screen.";
 const SHARING_PROMPT_DELAY_TIME = 100;
 const SHARING_PROMPT_MAX_TRIES = 5;
 const SYSTEM_3DS = '3ds';
@@ -3479,7 +3480,7 @@ function menuPageIsActive() {
  * @returns {boolean} True if the sharing prompt is active.
  */
 function sharingPromptIsActive() {
-    return proc.execSync(ACTIVE_WINDOW_COMMAND).toString().startsWith(SHARING_PROMPT);
+    return proc.execSync(ACTIVE_WINDOW_COMMAND).toString().includes(SHARING_PROMPT);
 }
 
 /**
