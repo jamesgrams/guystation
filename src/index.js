@@ -105,7 +105,9 @@ const GIT_FETCH_COMMAND = "git -C ~/guystation fetch";
 const GIT_UPDATES_AVAILABLE_COMMAND = 'if [ $(git -C ~/guystation rev-parse HEAD) != $(git -C ~/guystation rev-parse @{u}) ]; then echo "1"; else echo "0"; fi;';
 const GIT_PULL_COMMAND = "git -C ~/guystation pull";
 const KILL_GUYSTATION_COMMAND = "ps -aux | grep '[n]ode' | awk '{print $2}' | xargs sudo kill -9; ps -aux | grep '[c]hrome' | awk '{print $2}' | xargs sudo kill -9";
-const START_GUYSTATION_COMMAND = "sleep 5; sudo npm --prefix=~/guystation start 2>&1 | logger &";
+let currentGuystationArgs = process.argv.slice(2);
+const START_GUYSTATION_COMMAND = "sudo npm --prefix=~/guystation start" + (currentGuystationArgs.length ? (" -- " + currentGuystationArgs.join(" ")) : "");;
+const RESTART_GUYSTATION_COMMAND = "sleep 5; "+START_GUYSTATION_COMMAND+" 2>&1 | logger &";
 const NPM_INSTALL_COMMAND = "sudo npm --prefix=~/guystation install";
 const REBOOT_GUYSTATION_COMMAND = "reboot";
 const ONE_WEEK_MILLISECONDS = 604800000;
@@ -3635,7 +3637,7 @@ function restartGuystation() {
     for( let id of clientSocketIds ) {
         disconnectVirtualGamepad( id ); // Disconnect the virtual gamepad.
     }
-    proc.spawn( START_GUYSTATION_COMMAND, { shell: true, detached: true } );
+    proc.spawn( RESTART_GUYSTATION_COMMAND, { shell: true, detached: true } );
     proc.execSync( KILL_GUYSTATION_COMMAND );
     return false;
 }
