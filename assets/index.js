@@ -5611,16 +5611,16 @@ var localStream = null;
 var peerConnections = [];
 
 /**
- * Get the correct object that has the getDisplayMedia function.
+ * Get the displayMedia from the correct location.
  * Chrome versions 70-71 have getDisplayMedia under the navigator object rather than
  * navigator.mediaDevices.
  * In those versions, the "Experimental Web Platform features" flag needs to be enabled.
  */
-function getMediaDevicesForDisplayMedia() {
+function getDisplayMedia() {
     if( navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia ) {
-        return navigator.mediaDevices;
+        return navigator.mediaDevices.getDisplayMedia({"video": { "cursor": "never" }, "audio": false});
     }
-    return navigator;
+    return navigator.getDisplayMedia({"video": true, "audio": false});
 }
 
 /**
@@ -5636,7 +5636,7 @@ function connectToSignalServer( isStreamer ) {
     socket.on( 'ice', handleRemoteIce );
 
     if( isStreamer ) {
-        getMediaDevicesForDisplayMedia().getDisplayMedia({"video": { "cursor": "never" }, "audio": false}).then(getDisplayMediaSuccess).catch(errorHandler);
+        getDisplayMedia().then(getDisplayMediaSuccess).catch(errorHandler);
     }
 
 }
@@ -5694,7 +5694,7 @@ function startConnectionToPeer( isStreamer, id ) {
 function renegotiate() {
     var oldLocalStream = localStream;
     oldLocalStream.getVideoTracks().forEach(track => track.stop())
-    getMediaDevicesForDisplayMedia().getDisplayMedia({"video": { "cursor": "never" }, "audio": true}).then(function(stream) {
+    getDisplayMedia().then(function(stream) {
         localStream = stream;
         for( let peerConnection of peerConnections ) {
             var newTrack = localStream.getVideoTracks()[0];
