@@ -6,7 +6,6 @@ var QUIT_TIME = 2500; // Time to hold escape to quit a game
 var GAMEPAD_INTERVAL = 500;
 var GAMEPAD_INPUT_INTERVAL = 10;
 var REDRAW_INTERVAL = 10000;
-var SAMBA_REDRAW_INTERVAL = 60000;
 var FOCUS_NEXT_INTERVAL = 500;
 var BLOCK_MENU_MOVE_INTERVAL = 250;
 var SEND_INPUT_TIME = 1000;
@@ -755,7 +754,7 @@ function load() {
         }
         enableSearch();
         // Check for changes every 10 seconds
-        setInterval( function() {
+        var redrawInterval = setInterval( function() {
             if( !makingRequest ) {
                 makeRequest( "GET", "/data", {}, function(responseText) {
                     var response = JSON.parse(responseText);
@@ -767,7 +766,11 @@ function load() {
                     }
                 } );
             }
-        }, sambaUrl ? SAMBA_REDRAW_INTERVAL : REDRAW_INTERVAL );
+        }, REDRAW_INTERVAL );
+        makeRequest( "GET", "/samba", {}, function(responseText) {
+            var response = JSON.parse(responseText);
+            if( response.samba ) clearInterval(redrawInterval);
+        } );
         // Check for new messages every second
         var reloadMessages = function() {
             makeRequest( "GET", "/message", {}, function(responseText) {

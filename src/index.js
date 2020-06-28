@@ -887,6 +887,12 @@ app.get("/profiles", async function(request, response) {
     }
 });
 
+// get the samba flag
+app.get("/samba", async function(request, response) {
+    console.log("app serving /samba");
+    let sambaOn = process.argv.indexOf(SAMBA_FLAG) != -1;
+    writeResponse( response, HTTP_OK, {"samba": sambaOn} );
+} );
 
 // Create the fake microphone
 if(process.argv.indexOf(CHROMIUM_ARG) == -1) {
