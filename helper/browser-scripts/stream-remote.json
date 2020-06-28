@@ -1,6 +1,7 @@
 {
     "siteUrl": "http://192.168.1.18",
     "script": [
+        "document.querySelector('system[data-system=browser] .game[data-game=Stream]').click()",
         "document.querySelector('#screencast').click()",
         "var loadLoadInterval = setInterval(function() {if(document.querySelector('#remote-screencast-form')) {setTimeout(function() {document.querySelector('#remote-screencast-form button').click()}, 100); clearInterval(loadLoadInterval);} },20);"
     ]
