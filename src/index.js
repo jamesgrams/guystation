@@ -187,6 +187,7 @@ const UPDATE_PERCENT_MINIMUM = 1;
 const RELOAD_MENU_PAGE_INTERVAL = 14400000; // 4 hours
 const RELOAD_MENU_PAGE_MORE_TIME_NEEDED = 600000; // 10 minutes
 const BROWSE_SCRIPT_INTERVAL = 3000;
+const CLOSE_PAGE_TIMEOUT = 2000;
 
 const CONFIG_JOINER = ",";
 const CONTROL_STRING = "$CONTROL";
@@ -1090,7 +1091,7 @@ async function reloadMenuPage() {
         let oldMenuPage = menuPage;
         menuPage = await browser.newPage();
         menuPage.goto(oldMenuPage.url());
-        oldMenuPage.close();
+        oldMenuPage.close(); // we don't need to use closePage since we are not using await
         menuPage.bringToFront();
         setTimeout( reloadMenuPage, RELOAD_MENU_PAGE_INTERVAL );
     }
@@ -1269,6 +1270,22 @@ async function getBrowseTabs() {
 }
 
 /**
+ * Close a page.
+ * Newer versions of puppeteer seem to hang on trying to close
+ * pages in older versions of Chrome. They close the page, but they
+ * just never complete the function. So we use a promise race to create
+ * a timeout.
+ * @param {Page} page - The page to close.
+ * @returns {Promise} The promise that resolves once the page is closed or there is a timeout.
+ */
+function closePage( page ) {
+    return Promise.race([
+        page.close(),
+        new Promise( (resolve, reject) => setTimeout(() => resolve(), CLOSE_PAGE_TIMEOUT) )
+    ]);
+}
+
+/**
  * Close a browse tab.
  * @param {string} id - The id of the tab to close.
  * @returns {Promise<(boolean|string)>} A promise that is false if the action was successful or contains an error message if not.
@@ -1282,7 +1299,7 @@ async function closeBrowseTab(id) {
     for( let page of pages ) {
         if( page.mainFrame()._id === id && page.mainFrame()._id !== menuPage.mainFrame()._id ) {
             try {
-                await page.close();
+                await closePage( page );
             }
             catch(err) {}
             return Promise.resolve(false);
@@ -1305,7 +1322,7 @@ async function closeBrowseTabs() {
     let pages = await browser.pages();
     for( let page of pages ) {
         if( page.mainFrame()._id !== menuPage.mainFrame()._id ) {
-            await page.close();
+            await closePage( page );
         }
     }
 
