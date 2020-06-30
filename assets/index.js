@@ -3,6 +3,7 @@ var EXPAND_COUNT = 10; // Number to expand on each side of the selected element 
 var ROM_READ_ERROR = "An error ocurred reading the ROM file.";
 var BUBBLE_SCREENSHOTS_INTERVAL = 10000;
 var QUIT_TIME = 2500; // Time to hold escape to quit a game
+var SCREENCAST_TIME = 5000; // Time to hold enter to screencast a game in fullscreen.
 var GAMEPAD_INTERVAL = 500;
 var GAMEPAD_INPUT_INTERVAL = 10;
 var REDRAW_INTERVAL = 10000;
@@ -359,6 +360,10 @@ var sambaUrl;
 // Hold escape for 5 seconds to quit
 // Note this variable contains a function interval, not a boolean value
 var escapeDown = null; 
+// Hold enter for 5 seconds to start streaming in fullscreen
+var enterDown = null;
+// Hold start for 5 seconds to start streaming in fullscreen
+var startDown = {};
 
 // These buttons need to be pressed again to trigger the action again
 var joyMapping = {
@@ -896,6 +901,12 @@ function enableControls() {
                         document.querySelector("#launch-game").click();
                     }
                     buttonsUp.keyboard["13"] = false;
+
+                    if( !isServer && !enterDown ) {
+                        enterDown = setTimeout(function() {
+                            if( !document.querySelector("#remote-screencast-form") ) displayScreencast(true);
+                        }, SCREENCAST_TIME);
+                    }
                     break;
                 // Escape
                 case 27:
@@ -950,6 +961,9 @@ function enableControls() {
                 if( document.querySelector("#messaging-box") ) {
                     document.querySelector("#messaging-form button").click();
                 }
+
+                clearTimeout(enterDown);
+                enterDown = null;
                 break;
             // Escape
             case 27:
@@ -2793,8 +2807,9 @@ function deleteEzProfile() {
 
 /**
  * Display the screencast.
+ * @param {boolean} fullscreen - True if we should open the screencast in fullscreen by default.
  */
-function displayScreencast() {
+function displayScreencast( fullscreen ) {
     if( isServer ) {
         return;
     }
@@ -2824,6 +2839,7 @@ function displayScreencast() {
             }, RESET_CANCEL_STREAMING_INTERVAL );
             launchModal( form, function() { stopConnectionToPeer(false, "server"); } );
             connectToSignalServer(false);
+            if( fullscreen ) fullscreenVideo( video );
         }, function(responseText) { standardFailure(responseText, true) } );
     } );
 }
@@ -5220,10 +5236,20 @@ function manageGamepadInput() {
                     if( startPressed ) buttonsUp.gamepad[i][joyMapping["Start"]] = false;
                     
                     document.querySelector("#launch-game").click();
+
+                    if( !isServer && !startDown[i] ) {
+                        startDown[i] = setTimeout(function() {
+                            if( !document.querySelector("#remote-screencast-form") ) displayScreencast(true);
+                        }, SCREENCAST_TIME);
+                    }
+                    break;
                 }
                 else {
                     if(!aPressed) buttonsUp.gamepad[i][joyMapping["A"]] = true;
                     if(!startPressed) buttonsUp.gamepad[i][joyMapping["Start"]] = true;
+
+                    clearTimeout(startDown[i]);
+                    startDown[i] = null;
                 }
             
                 var rightTriggerPressed = buttonPressed(gp.buttons[joyMapping["Right Trigger"]]);
