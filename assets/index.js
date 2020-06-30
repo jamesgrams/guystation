@@ -383,6 +383,7 @@ var buttonsUp = {
     "gamepad": {},
     "keyboard": {
         "13": true, // Enter
+        "32": true // Spacebar
     }
 };
 
@@ -918,6 +919,14 @@ function enableControls() {
                         }, QUIT_TIME);
                     }
                     break;
+                // Spacebar
+                case 32:
+                    // we know there is not a modal already open since disableMenuControls is false
+                    if( buttonsUp.keyboard["32"] ) {
+                        document.querySelector("#remote-media").click();
+                    }
+                    buttonsUp.keyboard["32"] = false;
+                    break;
             }
         }
         // for the video
@@ -970,6 +979,9 @@ function enableControls() {
                 clearTimeout(escapeDown);
                 escapeDown = null;
                 break;
+            // Spacebar
+            case 32:
+                buttonsUp.keyboard["32"] = true;
         }
         // for the video
         if( enableModalControls && document.querySelector(".modal #remote-screencast-form video, .modal #browser-controls-form video, .black-background video") ) {
@@ -1442,9 +1454,15 @@ function toggleButtons() {
         };
         remoteMediaButton.classList.remove("inactive");
     }
+    // screenshots
     else if( nonSaveSystems.indexOf(selectedSystem.getAttribute("data-system")) == -1 && selectedGame 
         && getAllScreenshots(selectedSystem.getAttribute("data-system"), decodeURIComponent(selectedGame.getAttribute("data-game")), parentsStringToArray(selectedGame.getAttribute("data-parents")) ).length > 0 ) {
         remoteMediaButton.onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#remote-media-form-screenshots") ) displayRemoteMediaScreenshots(); };
+        remoteMediaButton.classList.remove("inactive");
+    }
+    // browser
+    else if( selectedSystem.getAttribute("data-system") == "browser" && selectedGame ) {
+        remoteMediaButton.onclick = function(e) { e.stopPropagation(); openRemoteMediaBrowser(); };
         remoteMediaButton.classList.remove("inactive");
     }
     else {
@@ -1935,6 +1953,18 @@ function getSelectedValues(systemSaveAllowedOnly, noFolders, onlyWithLeafNodes) 
     }
 
     return { system: currentSystem, game: currentGame, save: currentSave, parents: currentParents, highlighted: highlighted };
+}
+
+/**
+ * Open a browser link remotely.
+ */
+function openRemoteMediaBrowser() {
+    var selected = getSelectedValues();
+    var jsonUrl = ["systems", "browser", "games"].concat(selected.parents).concat([encodeURIComponent(selected.game), "metadata.json"]).join("/");
+    makeRequest( "GET", jsonUrl, {}, function(responseText) {
+        var data = JSON.parse(responseText);
+        window.open(data.siteUrl, "_blank");
+    } );
 }
 
 /**
