@@ -171,7 +171,7 @@ const HIDDEN_STATE = "_NET_WM_STATE_HIDDEN";
 const FAKE_MICROPHONE_COMMAND = "modprobe snd_aloop";
 const LIST_SOURCE_OUTPUTS_COMMAND = "pacmd list-source-outputs";
 const MOVE_SOURCE_OUTPUT_COMMAND = "pacmd move-source-output ";
-const GET_DEFAULT_AUDIO_DEVICE_COMMAND = "pacmd list-sinks | grep '* index'";
+const GET_DEFAULT_AUDIO_DEVICE_COMMAND = "pacmd list-sinks | grep -A 100000 '* index'";
 const GOOGLE_CHROME_AUDIO_IDENTIFIER = "google-chrome";
 const PACMD_PREFIX = 'export PULSE_RUNTIME_PATH="/run/user/$(id --user $(logname))/pulse/" && sudo -u $(logname) -E '; // need to run as the user
 const DOWNLOAD_ROM_PREFIX = "/tmp/download_rom_";
@@ -4725,7 +4725,7 @@ async function bindOutputToChromeInput() {
 
                 // Now get the source
                 let sourceString = proc.execSync(PACMD_PREFIX + GET_DEFAULT_AUDIO_DEVICE_COMMAND).toString();
-                let sourceIndex = sourceString.match(/\d+/)[0];
+                let sourceIndex = sourceString.match(/monitor\ssource:\s(\d+)/)[1];
 
                 proc.execSync(PACMD_PREFIX + MOVE_SOURCE_OUTPUT_COMMAND + sourceOutputIndex + " " + sourceIndex);
             }
