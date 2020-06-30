@@ -17,9 +17,75 @@
         <video autoplay="true"></video>
     </body>
     <script>
-	    navigator.mediaDevices.getUserMedia({"audio": true,"video": { width: {ideal: 1920}, height: {ideal:1080} }}).then( function(stream) {
-            var video = document.querySelector("video");
-            document.querySelector("video").srcObject = stream;
-        });
+        var startStream = function() {
+            // Start streaming
+            navigator.mediaDevices.getUserMedia({"audio": true,"video": { width: {ideal: 1920}, height: {ideal:1080} }}).then( function(stream) {
+                var video = document.querySelector("video");
+                document.querySelector("video").srcObject = stream;
+
+                // Make sure the microphone is set up right so we get sound while streaming (streaming would have chrome think we want to use the monitor as we are already as the input to this page)
+                makeRequest( "GET", "/stream/microphone", {} );
+            });
+        }
+        // Reset the usb device to make sure it is working
+        makeRequest( "GET", "/stream/usb", {}, startStream, startStream );
+
+        /**
+         * Make a request.
+         * @param {string} type - "GET" or "POST".
+         * @param {string} url - The url to make the request to.
+         * @param {object} parameters - An object with keys being parameter keys and values being parameter values to send with the request.
+         * @param {function} callback - Callback function to run upon request completion.
+         * @param {boolean} useFormData - True if we should use form data instead of json.
+         */
+        function makeRequest(type, url, parameters, callback, errorCallback, useFormData) {
+            var parameterKeys = Object.keys(parameters);
+
+            var hostname = window.location.hostname;
+            url = "http://" + hostname + ":8080" + url;
+            if( type == "GET" && parameterKeys.length ) {
+                var parameterArray = [];
+                for( var i=0; i<parameterKeys.length; i++ ) {
+                    parameterArray.push( parameterKeys[i] + "=" + parameters[parameterKeys[i]] );
+                }
+                url = url + "?" + parameterArray.join("&");
+            }
+        
+            var xhttp = new XMLHttpRequest();
+            xhttp.open(type, url, true);
+
+            if( type != "GET" && parameterKeys.length ) {
+                if( !useFormData ) {
+                    xhttp.setRequestHeader("Content-type", "application/json");
+                }
+            } 
+
+            xhttp.onreadystatechange = function() {
+                if( this.readyState == 4 ) {
+                    if( this.status == 200 ) {
+                        if( callback ) { callback(this.responseText); }
+                    }
+                    else {
+                        if( errorCallback ) { errorCallback(this.responseText); }
+                    }
+                }
+            }    
+            if( type != "GET" && Object.keys(parameters).length ) {
+                var sendParameters;
+                if( useFormData ) {
+                    sendParameters = new FormData();
+                    for ( var key in parameters ) {
+                        sendParameters.append(key, parameters[key]);
+                    }
+                }
+                else {
+                    sendParameters = JSON.stringify(parameters);
+                }
+                xhttp.send( sendParameters );
+            }
+            else {
+                xhttp.send();
+            }
+        }
     </script>
 </html>

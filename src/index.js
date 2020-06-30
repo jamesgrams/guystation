@@ -172,6 +172,7 @@ const FAKE_MICROPHONE_COMMAND = "modprobe snd_aloop";
 const LIST_SOURCE_OUTPUTS_COMMAND = "pacmd list-source-outputs";
 const MOVE_SOURCE_OUTPUT_COMMAND = "pacmd move-source-output ";
 const GET_DEFAULT_AUDIO_DEVICE_COMMAND = "pacmd list-sinks | grep -A 100000 '* index'";
+const GET_DEFAULT_MICROPHONE_COMMAND = "pacmd list-sources | grep '* index'";
 const GOOGLE_CHROME_AUDIO_IDENTIFIER = "google-chrome";
 const PACMD_PREFIX = 'export PULSE_RUNTIME_PATH="/run/user/$(id --user $(logname))/pulse/" && sudo -u $(logname) -E '; // need to run as the user
 const DOWNLOAD_ROM_PREFIX = "/tmp/download_rom_";
@@ -188,6 +189,11 @@ const RELOAD_MENU_PAGE_INTERVAL = 14400000; // 4 hours
 const RELOAD_MENU_PAGE_MORE_TIME_NEEDED = 600000; // 10 minutes
 const BROWSE_SCRIPT_INTERVAL = 3000;
 const CLOSE_PAGE_TIMEOUT = 2000;
+const RESET_USB_BEGINNING_COMMAND = "echo '";
+const RESET_USB_END_COMMAND_BIND = "' >/sys/bus/usb/drivers/usb/bind";
+const RESET_USB_END_COMMAND_UNBIND = "' >/sys/bus/usb/drivers/usb/unbind";
+const RESET_BUS_SEPERATOR = "-";
+const RESET_PORT_SEPERATOR = ".";
 
 const CONFIG_JOINER = ",";
 const CONTROL_STRING = "$CONTROL";
@@ -895,6 +901,20 @@ app.get("/samba", async function(request, response) {
     console.log("app serving /samba");
     let sambaOn = process.argv.indexOf(SAMBA_FLAG) != -1;
     writeResponse( response, HTTP_OK, {"samba": sambaOn} );
+} );
+
+// endpoints to set up to stream what is coming through the microphone and webcam
+
+// set up the proper microphone input to the stream
+app.get("/stream/microphone", async function(request, response) {
+    bindMicrophoneToChromeInput();
+    writeResponse( response, HTTP_OK );
+} );
+
+// reset a usb device (unplug and plug back in again)
+app.get("/stream/usb", async function(request, response) {
+    resetUsbDevice();
+    writeResponse( response, HTTP_OK );
 } );
 
 // Create the fake microphone
@@ -3871,6 +3891,8 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
 
         // the ini file tries to escape the wrapped quotes, but citra doesn't like that.
         if( system == SYSTEM_3DS ) writeValue = writeValue.replace( /"\\"|\\""/g, '"');
+        // VBAM just uses characters as keys but ini tries to escape them.
+        else if( system == SYSTEM_GBA ) writeValue = writeValue.replace( /\\;/g, ';' );
 
         fs.writeFileSync(systemsDict[system].config.file, writeValue);
 
@@ -4713,6 +4735,34 @@ function createFakeMicrophone() {
 */
 async function bindOutputToChromeInput() {
     try {
+        // get the source output
+        let sourceOutputIndex = getLatestChromeSourceOutput();
+        if( sourceOutputIndex ) {
+            // Now get the source
+            let sourceString = proc.execSync(PACMD_PREFIX + GET_DEFAULT_AUDIO_DEVICE_COMMAND).toString();
+            // We will get the default sink and then find the source that is set up to be monitoring that
+            let sourceIndex = sourceString.match(/monitor\ssource:\s(\d+)/)[1];
+
+            // Now we set the source of the source output to be the monitor which is what Chrome reads as the microphone.
+            proc.execSync(PACMD_PREFIX + MOVE_SOURCE_OUTPUT_COMMAND + sourceOutputIndex + " " + sourceIndex);
+        }
+    }
+    catch(err) {
+        console.log(err);
+    }
+}
+
+/**
+ * Get the latest chrome source output.
+ * Whenever we use a microphone on Chrome, a source output
+ * will be set up. They are added in ascending order, so we just
+ * get the latest one here and we know we have the right output, so
+ * long as this is called very close to when Chrome starts listening
+ * to the microphone.
+ * @returns {String} - The index of the chrome source output or null if there is none.
+ */
+function getLatestChromeSourceOutput() {
+    try {
         // get the source outputs
         let sourceOutputs = proc.execSync(PACMD_PREFIX + LIST_SOURCE_OUTPUTS_COMMAND).toString();
         if( sourceOutputs ) {
@@ -4723,11 +4773,7 @@ async function bindOutputToChromeInput() {
                 let sourceOutputIndexes = Array.from(sourceOutputs.matchAll(/index: (\d+)/));
                 let sourceOutputIndex = sourceOutputIndexes[sourceOutputIndexes.length-1][1];
 
-                // Now get the source
-                let sourceString = proc.execSync(PACMD_PREFIX + GET_DEFAULT_AUDIO_DEVICE_COMMAND).toString();
-                let sourceIndex = sourceString.match(/monitor\ssource:\s(\d+)/)[1];
-
-                proc.execSync(PACMD_PREFIX + MOVE_SOURCE_OUTPUT_COMMAND + sourceOutputIndex + " " + sourceIndex);
+                return sourceOutputIndex;
             }
 
         }
@@ -4735,6 +4781,49 @@ async function bindOutputToChromeInput() {
     catch(err) {
         console.log(err);
     }
+    return null;
 }
 
 // End signal server section
+
+/**
+ * Bind the microphone to chrome input.
+ * This should be called when we want to send the actual microphone
+ * to the chrome page as we do when opening the stream page.
+ */
+function bindMicrophoneToChromeInput() {
+    try {
+        // get the source output
+        let sourceOutputIndex = getLatestChromeSourceOutput();
+        if( sourceOutputIndex ) {
+            // Now get the source
+            let sourceString = proc.execSync(PACMD_PREFIX + GET_DEFAULT_MICROPHONE_COMMAND).toString();
+            let sourceIndex = sourceString.match(/\d+/)[0];
+
+            // Now we set the source of the source output to be the default microphone device (which may be the hdmi reader card).
+            proc.execSync(PACMD_PREFIX + MOVE_SOURCE_OUTPUT_COMMAND + sourceOutputIndex + " " + sourceIndex);
+        }
+    }
+    catch(err) {
+        console.log(err);
+    }
+}
+
+/**
+ * Reset USB device.
+ */
+function resetUsbDevice() {
+    // e.g. 1-2.1
+    // see here: https://askubuntu.com/questions/1036341/unplug-and-plug-in-again-a-usb-device-in-the-terminal
+    let usbInfo = process.env.GUYSTATION_STREAM_USB_PORT_IDENTIFIER;
+    if( !usbInfo ) return;
+    try {
+        proc.execSync(RESET_USB_BEGINNING_COMMAND + usbInfo + RESET_USB_END_COMMAND_UNBIND);
+    }
+    catch(err) {console.log(err);}
+    proc.execSync(SLEEP_HALF_COMMAND);
+    try {
+        proc.execSync(RESET_USB_BEGINNING_COMMAND + usbInfo + RESET_USB_END_COMMAND_BIND);
+    }
+    catch(err) {console.log(err);}
+}
