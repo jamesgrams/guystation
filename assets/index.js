@@ -1960,7 +1960,7 @@ function getSelectedValues(systemSaveAllowedOnly, noFolders, onlyWithLeafNodes) 
  */
 function openRemoteMediaBrowser() {
     var selected = getSelectedValues();
-    var jsonUrl = ["systems", "browser", "games"].concat(selected.parents).concat([encodeURIComponent(selected.game), "metadata.json"]).join("/");
+    var jsonUrl = "/" + ["systems", "browser", "games"].concat(selected.parents).concat([encodeURIComponent(selected.game), "metadata.json"]).join("/");
     makeRequest( "GET", jsonUrl, {}, function(responseText) {
         var data = JSON.parse(responseText);
         window.open(data.siteUrl, "_blank");

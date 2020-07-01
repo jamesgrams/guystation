@@ -337,10 +337,6 @@ getData( true );
 
 const app = express();
 const staticApp = express();
-app.use( "/"+ASSETS_DIR+"/", express.static(ASSETS_DIR) );
-app.use( "/"+SYSTEMS_DIR+"/", express.static(SYSTEMS_DIR) );
-staticApp.use( "/"+ASSETS_DIR+"/", express.static(ASSETS_DIR) );
-staticApp.use( "/"+SYSTEMS_DIR+"/", express.static(SYSTEMS_DIR) );
 
 // Middleware to allow cors from any origin
 app.use(function(req, res, next) {
@@ -349,6 +345,11 @@ app.use(function(req, res, next) {
     res.header('Access-Control-Allow-Methods', 'PUT, POST, GET, DELETE, OPTIONS, PATCH');
     next();
 });
+
+app.use( "/"+ASSETS_DIR+"/", express.static(ASSETS_DIR) );
+app.use( "/"+SYSTEMS_DIR+"/", express.static(SYSTEMS_DIR) );
+staticApp.use( "/"+ASSETS_DIR+"/", express.static(ASSETS_DIR) );
+staticApp.use( "/"+SYSTEMS_DIR+"/", express.static(SYSTEMS_DIR) );
 
 app.use( express.json({limit: '20000mb'}) );
 
@@ -4767,11 +4768,11 @@ function getLatestChromeSourceOutput() {
         let sourceOutputs = proc.execSync(PACMD_PREFIX + LIST_SOURCE_OUTPUTS_COMMAND).toString();
         if( sourceOutputs ) {
             // find Chrome's output source
-            let chromeOutputIndex = sourceOutputs.indexOf(GOOGLE_CHROME_AUDIO_IDENTIFIER);
+            let chromeOutputIndex = sourceOutputs.lastIndexOf(GOOGLE_CHROME_AUDIO_IDENTIFIER);
             if( chromeOutputIndex != -1 ) {
                 sourceOutputs = sourceOutputs.substring(0, chromeOutputIndex);
-                let sourceOutputIndexes = Array.from(sourceOutputs.matchAll(/index: (\d+)/));
-                let sourceOutputIndex = sourceOutputIndexes[sourceOutputIndexes.length-1][1];
+                let sourceOutputIndexes = sourceOutputs.match(/index: \d+/g).map( m => m.match(/\d+/)[0] );
+                let sourceOutputIndex = sourceOutputIndexes[sourceOutputIndexes.length-1];
 
                 return sourceOutputIndex;
             }
