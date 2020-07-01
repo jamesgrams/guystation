@@ -760,7 +760,7 @@ function load() {
         }
         enableSearch();
         // Check for changes every 10 seconds
-        var redrawInterval = setInterval( function() {
+        setInterval( function() {
             if( !makingRequest ) {
                 makeRequest( "GET", "/data", {}, function(responseText) {
                     var response = JSON.parse(responseText);
@@ -773,10 +773,6 @@ function load() {
                 } );
             }
         }, REDRAW_INTERVAL );
-        makeRequest( "GET", "/samba", {}, function(responseText) {
-            var response = JSON.parse(responseText);
-            if( response.samba ) clearInterval(redrawInterval);
-        } );
         // Check for new messages every second
         var reloadMessages = function() {
             makeRequest( "GET", "/message", {}, function(responseText) {
@@ -1438,6 +1434,35 @@ function toggleButtons() {
     if( selectedSystem.getAttribute("data-system") == "media" && selectedGame && !selectedGame.hasAttribute("data-is-folder") && !selectedGame.hasAttribute("data-is-playlist") && !selectedGame.hasAttribute("data-status") ) {
         remoteMediaButton.onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#remote-media-form") ) displayRemoteMedia(); };
         remoteMediaButton.classList.remove("inactive");
+    }
+    // folder
+    else if( selectedSystem.getAttribute("data-system") == "media" && selectedGame && selectedGame.hasAttribute("data-is-folder") ) {
+        var parents = selectedGame.getAttribute("data-parents");
+        var game = decodeURIComponent(selectedGame.getAttribute("data-game"));
+        parents = parentsStringToArray( parents );
+        // If we have some pure media that are not playlists, downloading, subfolders, etc.
+        var folderEntries = removeNotDownloaded(removePlaylists(filterGameTypes( getGamesInFolder( parents, selectedSystem.getAttribute("data-system") )[game].games, false)));
+        if( Object.keys(folderEntries).length ) {
+
+            remoteMediaButton.onclick = function(e) { 
+                e.stopPropagation(); 
+                if( !document.querySelector("#remote-media-form") ) {
+                    var parents = selectedGame.getAttribute("data-parents");
+                    var game = decodeURIComponent(selectedGame.getAttribute("data-game"));
+                    parents = parentsStringToArray( parents );
+                    // play the pure media only (note this is what playNextMedia does too)
+                    var folderEntries = removeNotDownloaded(removePlaylists(filterGameTypes( getGamesInFolder( parents, selectedSystem.getAttribute("data-system") )[game].games, false)));
+                    parents.push( game );
+                    displayRemoteMedia( selectedSystem.getAttribute("data-system"), folderEntries[ Object.keys(folderEntries)[0] ].game, parents ); 
+                }
+            };
+            remoteMediaButton.classList.remove("inactive");
+
+        }
+        else {
+            remoteMediaButton.onclick = null;
+            remoteMediaButton.classList.add("inactive");
+        }
     }
     // playlist
     else if( selectedSystem.getAttribute("data-system") == "media" && selectedGame && selectedGame.hasAttribute("data-is-playlist") ) {

@@ -199,6 +199,7 @@ Multiple monitors are not supported. Using multiple monitors will cause issues w
 * EZ Config missing print screen and keys around the numpad (+, -, etc.).
 * Mobile Virtual Controller Keycode options don't extend beyond main keyboard area, F keys, and arrow keys.
 * Firefox does not use the same keycodes as other browsers for some keys and thus EZ config doesn't work for all keys in Firefox.
+* The USB reset for streaming doesn't always seem to fix the problem.
 
 ## Credits and Special Thanks
 * Game Boy Advance and DS Lite icons: [David Pérez](https://thenounproject.com/david730/)
