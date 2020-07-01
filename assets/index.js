@@ -1988,7 +1988,13 @@ function openRemoteMediaBrowser() {
     var jsonUrl = "/" + ["systems", "browser", "games"].concat(selected.parents).concat([encodeURIComponent(selected.game), "metadata.json"]).join("/");
     makeRequest( "GET", jsonUrl, {}, function(responseText) {
         var data = JSON.parse(responseText);
-        window.open(data.siteUrl, "_blank");
+        // They may have the GuyStation remote chrome extension installed which allows us to run scripts remotely.
+        if( typeof gsExtensionRunScript !== 'undefined' ) {
+            gsExtensionRunScript( data.siteUrl, data.script.join(";") );
+        }
+        else {
+            window.open(data.siteUrl, "_blank");
+        }
     } );
 }
 
