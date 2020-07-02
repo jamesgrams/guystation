@@ -5742,6 +5742,7 @@ function connectToSignalServer( isStreamer ) {
  */
 function getDisplayMediaSuccess(stream) {
     navigator.mediaDevices.getUserMedia({"audio": true}).then( function(audio) {
+        stream.getTracks()[0].contentHint = "motion"; // See here: https://webrtc.github.io/samples/src/content/capture/video-contenthint/
         var av = new MediaStream();
         av.addTrack(stream.getTracks()[0]);
         av.addTrack(audio.getTracks()[0]);
@@ -5927,6 +5928,10 @@ function createdDescription(id, description) {
  * @param {Event} event - The event that triggered the stream.
  */
 function gotRemoteStream(event) {
+    // Set the playout delay hint to be very low
+    // See here: https://stackoverflow.com/questions/56510151/change-playout-delay-in-webrtc-stream
+    // https://github.com/w3c/webrtc-extensions/issues/8
+    event.receiver.playoutDelayHint = 0;
     document.querySelector(".modal #remote-screencast-form video, .modal #browser-controls-form video").srcObject = event.streams[0];
 }
 
