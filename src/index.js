@@ -189,11 +189,6 @@ const RELOAD_MENU_PAGE_INTERVAL = 14400000; // 4 hours
 const RELOAD_MENU_PAGE_MORE_TIME_NEEDED = 600000; // 10 minutes
 const BROWSE_SCRIPT_INTERVAL = 3000;
 const CLOSE_PAGE_TIMEOUT = 2000;
-const RESET_USB_BEGINNING_COMMAND = "echo '";
-const RESET_USB_END_COMMAND_BIND = "' >/sys/bus/usb/drivers/usb/bind";
-const RESET_USB_END_COMMAND_UNBIND = "' >/sys/bus/usb/drivers/usb/unbind";
-const RESET_BUS_SEPERATOR = "-";
-const RESET_PORT_SEPERATOR = ".";
 
 const CONFIG_JOINER = ",";
 const CONTROL_STRING = "$CONTROL";
@@ -902,12 +897,6 @@ app.get("/profiles", async function(request, response) {
 // set up the proper microphone input to the stream
 app.get("/stream/microphone", async function(request, response) {
     bindMicrophoneToChromeInput();
-    writeResponse( response, HTTP_OK );
-} );
-
-// reset a usb device (unplug and plug back in again)
-app.get("/stream/usb", async function(request, response) {
-    resetUsbDevice();
     writeResponse( response, HTTP_OK );
 } );
 
@@ -4801,23 +4790,4 @@ function bindMicrophoneToChromeInput() {
     catch(err) {
         console.log(err);
     }
-}
-
-/**
- * Reset USB device.
- */
-function resetUsbDevice() {
-    // e.g. 1-2.1
-    // see here: https://askubuntu.com/questions/1036341/unplug-and-plug-in-again-a-usb-device-in-the-terminal
-    let usbInfo = process.env.GUYSTATION_STREAM_USB_PORT_IDENTIFIER;
-    if( !usbInfo ) return;
-    try {
-        proc.execSync(RESET_USB_BEGINNING_COMMAND + usbInfo + RESET_USB_END_COMMAND_UNBIND);
-    }
-    catch(err) {console.log(err);}
-    proc.execSync(SLEEP_HALF_COMMAND);
-    try {
-        proc.execSync(RESET_USB_BEGINNING_COMMAND + usbInfo + RESET_USB_END_COMMAND_BIND);
-    }
-    catch(err) {console.log(err);}
 }

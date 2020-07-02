@@ -345,6 +345,7 @@ var scrollAddTimeout;
 var messages = [];
 var fetchedMessages = false;
 var swRegistration;
+var autoplayMedia = false; // manually force autoplay on remote media
 
 var screencastButtonsPressed = {};
 var screencastAxisLastValues = {};
@@ -1432,7 +1433,7 @@ function toggleButtons() {
     // Only allow media if we are "on" a playable file
     var remoteMediaButton = document.getElementById("remote-media");
     if( selectedSystem.getAttribute("data-system") == "media" && selectedGame && !selectedGame.hasAttribute("data-is-folder") && !selectedGame.hasAttribute("data-is-playlist") && !selectedGame.hasAttribute("data-status") ) {
-        remoteMediaButton.onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#remote-media-form") ) displayRemoteMedia(); };
+        remoteMediaButton.onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#remote-media-form") ) { autoplayMedia = false; displayRemoteMedia(); } };
         remoteMediaButton.classList.remove("inactive");
     }
     // folder
@@ -1453,6 +1454,7 @@ function toggleButtons() {
                     // play the pure media only (note this is what playNextMedia does too)
                     var folderEntries = removeNotDownloaded(removePlaylists(filterGameTypes( getGamesInFolder( parents, selectedSystem.getAttribute("data-system") )[game].games, false)));
                     parents.push( game );
+                    autoplayMedia = true;
                     displayRemoteMedia( selectedSystem.getAttribute("data-system"), folderEntries[ Object.keys(folderEntries)[0] ].game, parents ); 
                 }
             };
@@ -1474,6 +1476,7 @@ function toggleButtons() {
                 parents = parentsStringToArray( parents );
                 var playlistEntry = getGamesInFolder( parents, selectedSystem.getAttribute("data-system"), true )[game];
                 parents.push( game );
+                autoplayMedia = true;
                 displayRemoteMedia( selectedSystem.getAttribute("data-system"), playlistEntry.games[ Object.keys(playlistEntry.games)[0] ].game, parents ); 
             }
         };
@@ -1990,7 +1993,7 @@ function openRemoteMediaBrowser() {
         var data = JSON.parse(responseText);
         // They may have the GuyStation remote chrome extension installed which allows us to run scripts remotely.
         if( typeof gsExtensionRunScript !== 'undefined' ) {
-            gsExtensionRunScript( data.siteUrl, data.script.join(";") );
+            gsExtensionRunScript( data.siteUrl, data.script );
         }
         else {
             window.open(data.siteUrl, "_blank");
@@ -2070,7 +2073,7 @@ function displayRemoteMedia(system, game, parents, serverLaunched) {
     var videoElement = document.createElement("video");
     videoElement.setAttribute("controls", "true");
     videoElement.setAttribute("autoplay", "true");
-    if( isPlaylistMedia ) {
+    if( autoplayMedia || isPlaylistMedia ) { // the server can't launch folder media, so we don't need the autoplayMedia flag on the server, we can just autoplay or not based on whether it is a playlist
         videoElement.addEventListener( "ended", function() {
             playNextMedia(1);
         });
