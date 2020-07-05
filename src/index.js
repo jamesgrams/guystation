@@ -892,6 +892,13 @@ app.get("/profiles", async function(request, response) {
     }
 });
 
+// get the samba flag
+app.get("/samba", async function(request, response) {
+    console.log("app serving /samba");
+    let sambaOn = process.argv.indexOf(SAMBA_FLAG) != -1;
+    writeResponse( response, HTTP_OK, {"samba": sambaOn} );
+} );
+
 // endpoints to set up to stream what is coming through the microphone and webcam
 
 // set up the proper microphone input to the stream

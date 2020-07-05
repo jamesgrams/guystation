@@ -357,6 +357,7 @@ var screencastAxisLastValues = {};
 var screencastControllerMap = {}; // allow the user to map button inputs on the client to buttons on the virtual controller (button 5 on the client xbox contrller goes to button 9 on the virtual controller)
 
 var sambaUrl;
+var serverIsSamba = false;
 
 // Hold escape for 5 seconds to quit
 // Note this variable contains a function interval, not a boolean value
@@ -761,7 +762,7 @@ function load() {
         }
         enableSearch();
         // Check for changes every 10 seconds
-        setInterval( function() {
+        var redrawInterval = setInterval( function() {
             if( !makingRequest ) {
                 makeRequest( "GET", "/data", {}, function(responseText) {
                     var response = JSON.parse(responseText);
@@ -774,6 +775,10 @@ function load() {
                 } );
             }
         }, REDRAW_INTERVAL );
+        makeRequest( "GET", "/samba", {}, function(responseText) {
+            var response = JSON.parse(responseText);
+            if( response.samba ) serverIsSamba = true;
+        } );
         // Check for new messages every second
         var reloadMessages = function() {
             makeRequest( "GET", "/message", {}, function(responseText) {
