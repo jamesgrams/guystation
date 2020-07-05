@@ -762,8 +762,8 @@ function load() {
         }
         enableSearch();
         // Check for changes every 10 seconds
-        var redrawInterval = setInterval( function() {
-            if( !makingRequest ) {
+        setInterval( function() {
+            if( !makingRequest && (!serverIsSamba || !document.querySelector(".screencast-wrapper")) ) {
                 makeRequest( "GET", "/data", {}, function(responseText) {
                     var response = JSON.parse(responseText);
                     var newSystemsDict = response.systems;
