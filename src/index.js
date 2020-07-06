@@ -285,7 +285,8 @@ const ERROR_MESSAGES = {
     "invalidProfile": "Invalid profile",
     "noUrl": "No URL for site",
     "invalidSiteJson": "Invalid JSON for site",
-    "siteUrlRequired": "The siteUrl key is required for site JSON"
+    "siteUrlRequired": "The siteUrl key is required for site JSON",
+    "couldNotSetScale": "Could not set scale"
 }
 // http://jsfiddle.net/vWx8V/ - keycode
 // http://robotjs.io/docs/syntax - robotjs
@@ -743,6 +744,13 @@ app.post("/screencast/buttons", async function(request, response) {
 app.post("/screencast/gamepad", async function(request, response) {
     console.log("app serving /screencast/gamepad with body: " + JSON.stringify(request.body));
     let errorMessage = await performScreencastGamepad( request.body.event, request.body.id );
+    writeActionResponse( response, errorMessage );
+});
+
+// Set the scale down by of the screencast
+app.post("/screencast/scale", async function(request, response) {
+    console.log("app serving /screencast/scale with body: " + JSON.stringify(request.body));
+    let errorMessage = await setScreencastScale( request.body.id, request.body.factor );
     writeActionResponse( response, errorMessage );
 });
 
@@ -4701,6 +4709,26 @@ async function performScreencastGamepad( event, id ) {
         return ERROR_MESSAGES.gamepadNotConnected;
     }
     else return createGamepadEvent( event, gamepadFileDescriptor );
+}
+
+/**
+ * Set the screencast scale down by factor.
+ * @param {string} id - The client to scale down for.
+ * @param {number} factor - The factor to scale the screencast down by for better performance.
+ * @returns {Promise<boolean|string>} A promise containing false if the action was successful or an error message if not.
+ */
+async function setScreencastScale( id, factor ) {
+    if( !menuPage || menuPage.isClosed() ) {
+        return Promise.resolve(ERROR_MESSAGES.menuPageClosed);
+    }
+
+    try {
+        await menuPage.evaluate( (id, factor) => setScaleDownBy(id, factor), id, factor );
+        return Promise.resolve(false);
+    }
+    catch(err) {
+        return Promise.resolve(ERROR_MESSAGES.couldNotSetScale);
+    }
 }
 
 /**

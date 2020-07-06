@@ -308,6 +308,8 @@ var DEFAULT_KEY_MAPPING_PORTRAIT = [{"key":"Ⓧ","x":236,"y":497},{"key":"Ⓨ","
 var DEFAULT_KEY_MAPPING_LANDSCAPE = [{"key":"▲","x":90,"y":161},{"key":"◀","x":35,"y":188},{"key":"▶","x":146,"y":188},{"key":"▼","x":91,"y":221},{"key":"🕹️L","x":68,"y":313},{"key":"🔘","x":161,"y":310},{"key":"⭐","x":453,"y":309},{"key":"Ⓐ","x":578,"y":336},{"key":"Ⓑ","x":633,"y":310},{"key":"Ⓧ","x":522,"y":309},{"key":"Ⓨ","x":577,"y":279},{"key":"🕹️R","x":599,"y":183},{"key":"Ⓡ","x":510,"y":31},{"key":"🅡","x":566,"y":30},{"key":"Ⓛ","x":201,"y":31},{"key":"🅛","x":146,"y":30},{"key":"✲","x":39,"y":96},{"key":"S","x":625,"y":97}];
 var CONTROLS_SET_MESSAGE = "Controls set";
 var COULD_NOT_SET_CONTROLS_MESSAGE = "Could not set controls";
+var SCALE_DOWN_TIMEOUT = 1000;
+var SCALE_OPTIONS = [1,1.5,2,3,4,6]; // 1080p, 720p, 540p, 360p, 270p, 180p
 
 var expandCountLeft; // We always need to have a complete list of systems, repeated however many times we want, so the loop works properly
 var expandCountRight;
@@ -346,6 +348,7 @@ var messages = [];
 var fetchedMessages = false;
 var swRegistration;
 var autoplayMedia = false; // manually force autoplay on remote media
+var scaleDownByTimeouts = {};
 
 var screencastButtonsPressed = {};
 var screencastAxisLastValues = {};
@@ -2890,6 +2893,29 @@ function displayScreencast( fullscreen ) {
     form.setAttribute("id", "remote-screencast-form");
     form.appendChild(video);
 
+    // Set the options to scale the video for better performance
+    form.appendChild( createWarning("Scale Resolution Down By") );
+
+    // we will make sure the server scales down once the video starts - see gotRemoteStream
+
+    // Handle the onclick event for the radio buttons
+    for( var i=0; i<SCALE_OPTIONS.length; i++ ) {
+        var resolutionRadio = createInput( SCALE_OPTIONS[i]==parseFloat(window.localStorage.guystationScaleDownFactor), "screencast-scale-option-" + i, SCALE_OPTIONS[i], "radio", false);
+        var rrInput = resolutionRadio.querySelector("input");
+        rrInput.setAttribute("name", "screencast-scale-options");
+        rrInput.onchange = (function(index) { return function() {
+            if( this.checked ) {
+                window.localStorage.guystationScaleDownFactor = SCALE_OPTIONS[index];
+                // scale the screencast on the server
+                // if this occurs in the short time between when the modal pops up and when the video is set,
+                // then when gotRemoteStream gets called, we will simply call this endpoint again at that point
+                // and our value will be saved
+                makeRequest( "POST", "/screencast/scale", { id: socket.id, factor: SCALE_OPTIONS[index] } );
+            }
+        }; })(i);
+        form.appendChild(resolutionRadio);
+    }
+
     form.appendChild( createButton("Fullscreen", function() { fullscreenVideo(video) }));
 
     var connectController = localStorage.guystationConnectController;
@@ -4708,7 +4734,7 @@ function createInput( defaultValue, id, label, type, required ) {
     var input = document.createElement("input");
     input.type = type ? type : "text";
     if( defaultValue ) {
-        if( type == "checkbox" ) {
+        if( type == "checkbox" || type == "radio" ) {
             if( defaultValue ) input.setAttribute("checked", "true");
         }
         else input.value = defaultValue;
@@ -5786,6 +5812,27 @@ function startConnectionToPeer( isStreamer, id ) {
     }
 }
 
+/**
+ * Set the scale down by factor.
+ * @param {string} id - The id of the peer to scale.
+ * @param {number} factor - The factor to scale down by.
+ */
+function setScaleDownBy( id, factor ) {
+    clearTimeout( scaleDownByTimeouts[id] );
+    var peerConnection = peerConnections[id];
+    if( !peerConnection ) return; // there should always be a peer connection
+    var sender = peerConnection.peerConnection.getSenders().filter( el => el.track.kind == "video" )[0];
+    // we need all sendings to have their encodings set which can take a little time
+    if( !sender.getParameters().encodings || sender.getParameters().encodings.length ) {
+        scaleDownByTimeouts[id] = setTimeout( function() { setScaleDownBy(factor) }, SCALE_DOWN_TIMEOUT );
+        return;
+    }
+
+    var parameters = sender.getParameters();
+    parameters.encodings[0].scaleResolutionDownBy = factor;
+    sender.setParameters(sender);
+}
+
 /** 
  * Renegotiate screenshare with the clients.
  * We actually don't need to do a true renegotiation since we can just change tracks.
@@ -5823,19 +5870,14 @@ function handlePotentialDisconnect( id ) {
  * Since the connection will always be closed from the client, if this is the client
  * this will tell the server to stop too once it has closed.
  * @param {boolean} isStreamer - True if this is the streamer, or we want to pretend that we are
- * @param {string} [id] - The id of the peer to stop the connection to.
+ * @param {string} id - The id of the peer to stop the connection to.
  * @param {boolean} [useIdAsSocketId] - send the id as the socket id - this is what the server will read as the id to stop the connection to. So when we are pretending to not be the server, we should set this to the peer id. When are the client, it should be our socket id.
  */
 function stopConnectionToPeer( isStreamer, id, useIdAsSocketId ) {
-    if( !id ) { // this is a disconnect from reset cancel
-        for( var i=0; i<peerConnections.length; i++ ) {
-            peerConnections[i].peerConnection.close();
-        }
-        peerConnections = [];
-    }
     if( peerConnections.length ) {
         var peerConnection = peerConnections.filter(el => el.id==id)[0].peerConnection;
         peerConnection.close();
+        if( scaleDownByTimeouts[peerConnection.id] ) clearTimeout(scaleDownByTimeouts[peerConnection.id]);
         peerConnections = peerConnections.filter(el => el.id != id);
     }
     if( !isStreamer ) {
@@ -5938,6 +5980,9 @@ function gotRemoteStream(event) {
     // https://github.com/w3c/webrtc-extensions/issues/8
     event.receiver.playoutDelayHint = 0;
     document.querySelector(".modal #remote-screencast-form video, .modal #browser-controls-form video").srcObject = event.streams[0];
+    // scale the screencast on the server to the previous setting
+    var scale = parseFloat(window.localStorage.guystationScaleDownFactor);
+    makeRequest( "POST", "/screencast/scale", { id: socket.id, factor: scale ? scale : SCALE_OPTIONS[0] } );
 }
 
 /**

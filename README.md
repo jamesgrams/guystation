@@ -199,7 +199,7 @@ Multiple monitors are not supported. Using multiple monitors will cause issues w
 * EZ Config missing print screen and keys around the numpad (+, -, etc.).
 * Mobile Virtual Controller Keycode options don't extend beyond main keyboard area, F keys, and arrow keys.
 * Firefox does not use the same keycodes as other browsers for some keys and thus EZ config doesn't work for all keys in Firefox.
-* The USB reset for streaming doesn't always seem to fix the problem.
+* Google Chrome/HTML Gamepad API seems to have a different mapping for Xbox 360 Controllers than SDL (what the emulators use) does. As such, the button numbers and axes are wrong when setting with EZ config. You can still use EZ config if you get the correct button numbers from a program such as jstest-gtk and edit the value EZ config has set to include the proper button number/axes.
 
 ## Credits and Special Thanks
 * Game Boy Advance and DS Lite icons: [David Pérez](https://thenounproject.com/david730/)
