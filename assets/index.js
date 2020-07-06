@@ -5819,18 +5819,18 @@ function startConnectionToPeer( isStreamer, id ) {
  */
 function setScaleDownBy( id, factor ) {
     clearTimeout( scaleDownByTimeouts[id] );
-    var peerConnection = peerConnections[id];
+    var peerConnection = peerConnections.filter(el => el.id == id)[0];
     if( !peerConnection ) return; // there should always be a peer connection
     var sender = peerConnection.peerConnection.getSenders().filter( el => el.track.kind == "video" )[0];
     // we need all sendings to have their encodings set which can take a little time
-    if( !sender.getParameters().encodings || sender.getParameters().encodings.length ) {
-        scaleDownByTimeouts[id] = setTimeout( function() { setScaleDownBy(factor) }, SCALE_DOWN_TIMEOUT );
+    if( !sender.getParameters().encodings || !sender.getParameters().encodings.length ) {
+        scaleDownByTimeouts[id] = setTimeout( function() { setScaleDownBy(id, factor) }, SCALE_DOWN_TIMEOUT );
         return;
     }
 
     var parameters = sender.getParameters();
     parameters.encodings[0].scaleResolutionDownBy = factor;
-    sender.setParameters(sender);
+    sender.setParameters(parameters);
 }
 
 /** 
