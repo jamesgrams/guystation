@@ -370,6 +370,13 @@ app.get("/data", async function(request, response) {
     writeResponse( response, SUCCESS, {} );
 });
 
+// Get Data without reloading
+// Helpful for samba mode
+app.get("/data-quick", async function(request, response) {
+    console.log("app serving /data-quick (GET)");
+    writeResponse( response, SUCCESS, {} );
+});
+
 // Launch a game
 app.post("/launch", async function(request, response) {
     console.log("app serving /launch (POST) with body: " + JSON.stringify(request.body));

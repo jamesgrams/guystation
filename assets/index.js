@@ -767,7 +767,7 @@ function load() {
         // Check for changes every 10 seconds
         setInterval( function() {
             if( !makingRequest && (!serverIsSamba || !document.querySelector(".screencast-wrapper")) ) {
-                makeRequest( "GET", "/data", {}, function(responseText) {
+                makeRequest( "GET", serverIsSamba ? "/data-quick" : "/data", {}, function(responseText) {
                     var response = JSON.parse(responseText);
                     var newSystemsDict = response.systems;
                     if( JSON.stringify(newSystemsDict) != JSON.stringify(systemsDict) ) {

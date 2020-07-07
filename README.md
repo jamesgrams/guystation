@@ -199,7 +199,6 @@ Multiple monitors are not supported. Using multiple monitors will cause issues w
 * EZ Config missing print screen and keys around the numpad (+, -, etc.).
 * Mobile Virtual Controller Keycode options don't extend beyond main keyboard area, F keys, and arrow keys.
 * Firefox does not use the same keycodes as other browsers for some keys and thus EZ config doesn't work for all keys in Firefox.
-* Google Chrome/HTML Gamepad API seems to have a different mapping for Xbox 360 Controllers than SDL (what the emulators use) does. As such, the button numbers and axes are wrong when setting with EZ config. You can still use EZ config if you get the correct button numbers from a program such as jstest-gtk and edit the value EZ config has set to include the proper button number/axes.
 * YoutubeDL fails to download currently (7/7/20). It is an issue with their website and you can fix it by doing the following: https://github.com/ytdl-org/youtube-dl/issues/25491#issuecomment-637192267, and then running `rm -rf node_modules/youtube-dl && npm install` in the `guystation` directory again.
 
 ## Credits and Special Thanks
