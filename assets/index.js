@@ -2773,7 +2773,7 @@ function appendEzInput(inputElement, value, type, controller) {
         let match = controller.match( /Vendor:\s([^\s]+)\sProduct:\s([^\)]+)/ );
         // -vendor-product
         if( match ) {
-            newValue += "-" + match[1] + "-" + match[2];
+            newValue = demapController( newValue, match[1], match[2] );
         }
     }
 
@@ -2783,6 +2783,34 @@ function appendEzInput(inputElement, value, type, controller) {
 
         inputElement.value += newValue;
     }
+}
+
+/**
+ * Demap controller to get the proper inputs.
+ * Chrome attempts to map some controllers to a standardized mapping. This breaks EZ input, as the button and axis
+ * numbers are off from their real numbers which is what the emulators expect. This function will get their true values.
+ * @param {string} buttonOrAxis - The button or axis in a form such as "button(2)" or "axis(3-)".
+ * @param {string} vendor - The 4 character vendor hex code.
+ * @param {string} product - The 4 character product hex code.
+ * @returns {string} The controller string to be used in the form <buttonOrAxis>-<vendor>-<product>
+ */
+function demapController( buttonOrAxis, vendor, product ) {
+    if( demapperTypes && demapperControllers ) { // external script
+        var type = demapperControllers[vendor + "-" + product];
+        // we have a custom mapper
+        if( type ) {
+            var buttonMap = demapperTypes[type];
+            // we should have a button map but do a sanity check here
+            if( buttonMap ) {
+                // we should have a map for this specific button - this is important as not all mappings map every button
+                // some just forward what's already there - we need to leave those
+                if( buttonMap[buttonOrAxis] ) {
+                    buttonOrAxis = buttonMap[buttonOrAxis];
+                }
+            }
+        }
+    }
+    return buttonOrAxis + "-" + vendor + "-" + product;
 }
 
 /**
