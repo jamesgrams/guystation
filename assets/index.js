@@ -2898,23 +2898,12 @@ function displayScreencast( fullscreen ) {
 
     // we will make sure the server scales down once the video starts - see gotRemoteStream
 
-    // Handle the onclick event for the radio buttons
-    for( var i=0; i<SCALE_OPTIONS.length; i++ ) {
-        var resolutionRadio = createInput( SCALE_OPTIONS[i]==parseFloat(window.localStorage.guystationScaleDownFactor), "screencast-scale-option-" + i, SCALE_OPTIONS[i], "radio", false);
-        var rrInput = resolutionRadio.querySelector("input");
-        rrInput.setAttribute("name", "screencast-scale-options");
-        rrInput.onchange = (function(index) { return function() {
-            if( this.checked ) {
-                window.localStorage.guystationScaleDownFactor = SCALE_OPTIONS[index];
-                // scale the screencast on the server
-                // if this occurs in the short time between when the modal pops up and when the video is set,
-                // then when gotRemoteStream gets called, we will simply call this endpoint again at that point
-                // and our value will be saved
-                makeRequest( "POST", "/screencast/scale", { id: socket.id, factor: SCALE_OPTIONS[index] } );
-            }
-        }; })(i);
-        form.appendChild(resolutionRadio);
-    }
+    // Handle the onchange event for the select scale
+    var scaleMenu = createMenu( parseFloat(window.localStorage.guystationScaleDownFactor), SCALE_OPTIONS, "screencast-scale-select", "Scale Down By", function() {
+        window.localStorage.guystationScaleDownFactor = this.options[this.selectedIndex].value;
+        makeRequest( "POST", "/screencast/scale", { id: socket.id, factor: window.localStorage.guystationScaleDownFactor } );
+    } );
+    form.appendChild(scaleMenu);
 
     form.appendChild( createButton("Fullscreen", function() { fullscreenVideo(video) }));
 
