@@ -2893,9 +2893,6 @@ function displayScreencast( fullscreen ) {
     form.setAttribute("id", "remote-screencast-form");
     form.appendChild(video);
 
-    // Set the options to scale the video for better performance
-    form.appendChild( createWarning("Scale Resolution Down By") );
-
     // we will make sure the server scales down once the video starts - see gotRemoteStream
 
     // Handle the onchange event for the select scale
