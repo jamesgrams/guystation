@@ -3806,7 +3806,7 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
 
             let controlsKeys = Object.keys(config.Controls);
             for( let key of controlsKeys ) {
-                if( key.match(/profiles\\1\\.*\\default/) || key.match(/Shortcuts\\Main%20Window\\Capture%20\\Screenshot\\KeySeq\\default/) ) {
+                if( key.match(/profiles\\1\\.*\\default/) || key.match(/Shortcuts\\Main%20Window\\Capture%20Screenshot\\KeySeq\\default/) ) {
                     config.Controls[key] = false;
                 }
                 // citra expects these values wrapped in quotes, which the ini reader removes
@@ -3821,7 +3821,6 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
 
         // for each of the controls listed
         for( let control in controls ) {
-            let config = control.iniIndex ? configs[control.iniIndex] : configs[0];
 
             // get the value of the control from the values object
             // this is what we will set the value to
@@ -3833,6 +3832,7 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
                 let controlParts = [];
                 let keyControlParts = [];
                 let controlInfo = controls[control];
+                let config = controlInfo.iniIndex ? configs[controlInfo.iniIndex] : configs[0];
                 controlInfo.actualControl = control; // this is used later.
 
                 // we know we he have keys for everything, but we might not have nunchukKeys
@@ -3882,11 +3882,11 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
                     // we are going to get the innermost nested object and set it's value
                     let configSetting = config;
                     for( let i=0; i<keys.length - 1; i++) {
+                        if( !(keys[i] in configSetting) ) configSetting[keys[i]] = {};
                         let curConfigSetting = configSetting[keys[i]];
                         // we may have a slightly different path for the specific controller
                         if( controller && controllers && keys[i].match(controllers[0]) ) curConfigSetting = configSetting[ keys[i].replace(controllers[0], controllers[controller]) ];
 
-                        if( !curConfigSetting ) curConfigSetting = {};
                         configSetting = curConfigSetting;
                     }
 
@@ -3995,6 +3995,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
         if( userControl.type == KEY_CONTROL_TYPE ) {
             // mupen expects the sdl keycodes
             controlButtons = controlButtons.map( el => el && sdlMap[el] ? sdlMap[el] : el );
+            if( controlInfo.actualControl == SCREENSHOT_CONTROL ) controlFormat = CONTROL_STRING;
         }
 
         let controllerKey = N64_MANUAL_CONTROLLER;
@@ -4039,6 +4040,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
         if( userControl.type == KEY_CONTROL_TYPE ) {
             // citra expects the keycodes of lowercase keys
             controlButtons = controlButtons.map( el => el && qtMap[el] ? qtMap[el] : el );
+            if( controlInfo.actualControl == SCREENSHOT_CONTROL ) controlFormat = CONTROL_STRING;
         }
         // for mapping a user axis to a button
         else if ( userControl.type == AXIS_CONTROL_TYPE && (!controlInfo.type || controlInfo.type == BUTTON_CONTROL_TYPE) ) {
@@ -4131,6 +4133,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
     else if( system == SYSTEM_PS2 ) {
         if( controlInfo.actualControl == SCREENSHOT_CONTROL ) {
             controlButtons = controlButtons.map( el => el ? pcsx2Map[el] : el );
+            controlFormat = CONTROL_STRING;
         }
         else {
             controlFormat = controlFormat.replace("0", controller);
@@ -4145,13 +4148,15 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
         let padKey = system == SYSTEM_NGC ? NGC_PAD_KEY : WII_PAD_KEY;
         if( controller && controllers && padKey.match(controllers[0]) ) padKey = padKey.replace(controllers[0], controllers[controller]);
         
-        if( !config[padKey] ) config[padKey] = {};
+	if( controlInfo.actualControl != SCREENSHOT_CONTROL) {
+            if( !config[padKey] ) config[padKey] = {};
 
-        config[padKey][NGC_DEVICE_TYPE_KEY] = NGC_GAMEPAD.replace("0", controller); 
+            config[padKey][NGC_DEVICE_TYPE_KEY] = NGC_GAMEPAD.replace("0", controller); 
 
-        if( system == SYSTEM_WII ) {
-            config[padKey][WII_CLASSIC_KEY] = nunchuk ? WII_NUNCHUK_VALUE : WII_CLASSIC_VALUE;
-            config[padKey][WII_SOURCE_KEY] = WII_SOURCE_EMULATED;
+            if( system == SYSTEM_WII ) {
+                config[padKey][WII_CLASSIC_KEY] = nunchuk ? WII_NUNCHUK_VALUE : WII_CLASSIC_VALUE;
+                config[padKey][WII_SOURCE_KEY] = WII_SOURCE_EMULATED;
+            }
         }
 
         // dolphin uses x11 map for keys
@@ -4164,7 +4169,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
                 }
                 return value;
              } );
-            config[padKey][NGC_DEVICE_TYPE_KEY] = NGC_VIRTUAL_KEYBOARD.replace("0", controller);
+            if( controlInfo.actualControl != SCREENSHOT_CONTROL) config[padKey][NGC_DEVICE_TYPE_KEY] = NGC_VIRTUAL_KEYBOARD.replace("0", controller);
         }
     }
 

@@ -157,7 +157,7 @@
         "type": "axis"
       },
       "Screenshot": {
-        "keys": ["Shortcuts","Shortcuts\\Main%20Window\\Capture%20Screenshot\\KeySeq"]
+        "keys": ["UI","Shortcuts\\Main%20Window\\Capture%20Screenshot\\KeySeq"]
       }
     },
     "controlFormat": {
