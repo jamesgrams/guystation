@@ -3919,6 +3919,8 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
             if( system == SYSTEM_3DS ) writeValue = writeValue.replace( /"\\"|\\""/g, '"');
             // VBAM just uses characters as keys but ini tries to escape them.
             else if( system == SYSTEM_GBA ) writeValue = writeValue.replace( /\\;/g, ';' );
+            // desmume should never have quotes
+            else if(system == SYSTEM_NDS && configIndex == 1) writeValue = writeValue.replace( /"|'/g, "" );
 
             fs.writeFileSync(systemsDict[system].config.files[configIndex], writeValue);
             configIndex++;
