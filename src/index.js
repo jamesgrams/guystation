@@ -38,6 +38,7 @@ const x11Map = require("./lib/x11map").names;
 const x11CodeMap = require("./lib/x11map").codes;
 const vbamMap = require("./lib/vbammap");
 const qtMap = require("./lib/qtmap");
+const citraMap = require("./lib/citramap");
 const pcsx2Map = require('./lib/pcsx2map');
 const ppssppMap = require("./lib/ppssppmap").keys;
 const ppssppButtonsMap = require("./lib/ppssppmap").buttons;
@@ -4038,9 +4039,15 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
     // For 3ds
     else if( system == SYSTEM_3DS ) {
         if( userControl.type == KEY_CONTROL_TYPE ) {
-            // citra expects the keycodes of lowercase keys
-            controlButtons = controlButtons.map( el => el && qtMap[el] ? qtMap[el] : el );
-            if( controlInfo.actualControl == SCREENSHOT_CONTROL ) controlFormat = CONTROL_STRING;
+            if( controlInfo.actualControl == SCREENSHOT_CONTROL ) {
+                controlFormat = CONTROL_STRING;
+                // citra expects the keycodes of lowercase keys
+                controlButtons = controlButtons.map( el => el && citraMap[el] ? citraMap[el] : el );
+            }
+            else {
+                // citra expects the keycodes of lowercase keys
+                controlButtons = controlButtons.map( el => el && qtMap[el] ? qtMap[el] : el );
+            }
         }
         // for mapping a user axis to a button
         else if ( userControl.type == AXIS_CONTROL_TYPE && (!controlInfo.type || controlInfo.type == BUTTON_CONTROL_TYPE) ) {
