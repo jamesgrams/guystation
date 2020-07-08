@@ -8,7 +8,7 @@
   "allGamesShareNand": true,
   "controllerDbLocation": "/home/james/ppsspp/assets/gamecontrollerdb.txt",
   "config": {
-    "file": "/home/james/.config/ppsspp/PSP/SYSTEM/controls.ini",
+    "files": ["/home/james/.config/ppsspp/PSP/SYSTEM/controls.ini"],
     "controls": {
       "A": {
         "keys": ["ControlMapping","Circle"]
@@ -57,6 +57,9 @@
       },
       "Select": {
         "keys": ["ControlMapping","Select"]
+      },
+      "Screenshot": {
+        "keys": ["ControlMapping", "Screenshot"]
       }
     },
     "controlFormat": {

@@ -11,7 +11,7 @@
   "argsFirst": true,
   "nandPathCommand": "echo \"$(eval echo '~')/.local/share/dolphin-emu/Wii$(dolphin-emu-nogui --save-path='ROM_FILE_PLACEHOLDER')\"",
   "config": {
-    "file": "/home/james/.config/dolphin-emu/WiimoteNew.ini",
+    "files": ["/home/james/.config/dolphin-emu/WiimoteNew.ini","/home/james/.config/dolphin-emu/Hotkeys.ini"],
     "controllers": [
       "Wiimote1",
       "Wiimote2",
@@ -100,6 +100,10 @@
       },
       "Axis Y2+": {
         "keys": ["Wiimote1","Classic/Right Stick/Down"]
+      },
+      "Screenshot": {
+        "keys": ["Hotkeys1","Keys/Take Screenshot"],
+        "iniIndex": 1
       }
     },
     "controlFormat": {

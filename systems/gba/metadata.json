@@ -10,7 +10,7 @@
    ],
    "activateCommand": "wmctrl -a \"VisualBoyAdvance\"",
    "config": {
-    "file": "/home/james/.config/visualboyadvance-m/vbam.ini",
+    "files": ["/home/james/.config/visualboyadvance-m/vbam.ini"],
     "controls": {
       "A": {
         "keys": ["Joypad/1","A"]
@@ -44,6 +44,9 @@
       },
       "Select": {
         "keys": ["Joypad/1","Select"]
+      },
+      "Screenshot": {
+        "keys": ["Joypad/1","Capture"]
       }
     },
     "controlFormat": {

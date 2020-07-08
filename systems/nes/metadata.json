@@ -8,7 +8,7 @@
   "fullScreenButtons": ["alt", "enter"],
   "activateCommand": "wmctrl -a 'FCEUX'",
   "config": {
-    "file": "/home/james/.fceux/fceux.cfg",
+    "files": ["/home/james/.fceux/fceux.cfg"],
     "controllers": [
       "SDL.Input.GamePad.0",
       "SDL.Input.GamePad.1",
@@ -39,6 +39,9 @@
       },
       "Select": {
         "keys": ["SDL.Input.GamePad.0Select"]
+      },
+      "Screenshot": {
+        "keys": ["SDL.Hotkeys.Screenshot"]
       }
     },
     "controlFormat": {

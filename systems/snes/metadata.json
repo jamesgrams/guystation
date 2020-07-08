@@ -8,7 +8,7 @@
   "activateCommand": "wmctrl -a 'Snes9X'",
   "argsFirst": true,
   "config": {
-    "file": "/home/james/.config/snes9x/snes9x.conf",
+    "files": ["/home/james/.config/snes9x/snes9x.conf"],
     "controllers": [
       "Joypad 0",
       "Joypad 1",
@@ -51,6 +51,9 @@
       },
       "Select": {
         "keys": ["Joypad 0","Select"]
+      },
+      "Screenshot": {
+        "keys": ["Shortcuts","Screenshot"]
       }
     },
     "controlFormat": {

@@ -8,7 +8,7 @@
   "activateCommand": "wmctrl -l | grep -E \"PCSX2\\s*$|Speed: \" | cut -d' ' -f1 | xargs wmctrl -i -a",
   "frontendActivateCommand": "wmctrl -l | grep -E \"PCSX2\\s*v\" | cut -d' ' -f1 | xargs wmctrl -i -a",
   "config": {
-    "file": "/home/james/pcsx2/bin/inis/OnePAD2.ini",
+    "files": ["/home/james/pcsx2/bin/inis/OnePAD2.ini","/home/james/pcsx2/bin/inis/PCSX2_keys.ini"],
     "controllers": [
       "PAD 0",
       "PAD 1",
@@ -87,6 +87,10 @@
       },
       "Select": {
         "values": [8]
+      },
+      "Screenshot": {
+        "keys": ["Sys_TakeSnapshot"],
+        "iniIndex": 1
       }
     },
     "controlFormat": {

@@ -189,6 +189,7 @@ var EZ_EMULATOR_CONFIG_BUTTONS = [
     'Axis X2+',
     'Axis Y2-',
     'Axis Y2+',
+    'Screenshot'
 ];
 var EZ_SYSTEMS = [
     "3ds",

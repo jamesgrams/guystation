@@ -10,7 +10,7 @@
   "optionPrefix": "-C",
   "argsFirst": true,
   "config": {
-    "file": "/home/james/.config/dolphin-emu/GCPadNew.ini",
+    "files": ["/home/james/.config/dolphin-emu/GCPadNew.ini","/home/james/.config/dolphin-emu/Hotkeys.ini"],
     "controllers": [
       "GCPad1",
       "GCPad2",
@@ -77,6 +77,10 @@
       },
       "Axis Y2+": {
         "keys": ["GCPad1","C-Stick/Down"]
+      },
+      "Screenshot": {
+        "keys": ["Hotkeys1","Keys/Take Screenshot"],
+        "iniIndex": 1
       }
     },
     "controlFormat": {

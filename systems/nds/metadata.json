@@ -8,7 +8,7 @@
   "fullScreenButtons": ["f11"],
   "activateCommand": "wmctrl -a 'DeSmuME'",
   "config": {
-    "file": "/home/james/.config/desmume/config",
+    "files": ["/home/james/.config/desmume/config", "/home/james/.config/desmume/config.cfg"],
     "controls": {
       "A": {
         "keys": ["JOYKEYS","A"],
@@ -61,6 +61,10 @@
       "Select": {
         "keys": ["JOYKEYS","Select"],
         "keyboardKeys": ["KEYS","Select"]
+      },
+      "Screenshot": {
+        "keys": ["Config","ScreenshotKey"],
+        "iniIndex": 1
       }
     },
     "controlFormat": {

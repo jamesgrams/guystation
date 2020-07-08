@@ -31,12 +31,14 @@ const urlLib = require('url');
 const isBinaryFileSync = require("isbinaryfile").isBinaryFileSync;
 const validUrl = require("valid-url");
 const ini = require("ini");
-const gdkMap = require("./lib/gdkmap");
+const gdkMap = require("./lib/gdkmap").codes;
+const gdkNameMap = require("./lib/gdkmap").names;
 const sdlMap = require("./lib/sdlmap");
 const x11Map = require("./lib/x11map").names;
 const x11CodeMap = require("./lib/x11map").codes;
 const vbamMap = require("./lib/vbammap");
 const qtMap = require("./lib/qtmap");
+const pcsx2Map = require('./lib/pcsx2map');
 const ppssppMap = require("./lib/ppssppmap").keys;
 const ppssppButtonsMap = require("./lib/ppssppmap").buttons;
 const generatePpssppControllersMap = require("./lib/ppssppmap").generateControllerMap;
@@ -219,6 +221,7 @@ const N64_MANUAL_CONTROLLER = "Input-SDL-Control1";
 const N64_MANUAL_KEY = "mode";
 const N64_MANUAL_VALUE = 0;
 const N64_DEVICE_KEY = "device";
+const SCREENSHOT_CONTROL = "Screenshot";
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -3774,15 +3777,22 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
         if( !systemsDict[system] ) return ERROR_MESSAGES.noSystem;
         if( !systemsDict[system].config ) return ERROR_MESSAGES.configNotAvailable;
 
-        if( !fs.existsSync(systemsDict[system].config.file) ) {
-            fs.writeFileSync(systemsDict[system].config.file, "");
-        }
-        let configFile = fs.readFileSync(systemsDict[system].config.file).toString();
-        // PSP has some strange characters at the start of the file not even printed by linux
-        if( system == SYSTEM_PSP ) {
-            configFile = configFile.replace(/\s\[/,"[");
-        }
-        let config = ini.parse(configFile);
+        // Read all the config files
+        let configFiles = systemsDict[system].config.files.map( file => {
+            if( !fs.existsSync(file) ) {
+                fs.writeFileSync(file, "");
+            }
+
+            let str = fs.readFileSync(file).toString();
+            // PSP has some strange characters at the start of the file not even printed by linux
+            if( system == SYSTEM_PSP ) {
+                str = str.replace(/\s\[/,"[");
+            }
+            return str;
+        } );
+        
+        // Parse all the config files
+        let configs = configFiles.map( configFile => ini.parse(configFile) );
         let controls = systemsDict[system].config.controls;
         // control formats will map the common user expect values of "key", "button", and "axis" to whatever they are listed as in the ini file (e.g. "Keyboard")
         let controlFormat = systemsDict[system].config.controlFormat;
@@ -3792,9 +3802,11 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
 
         // disable default for 3ds
         if( system == SYSTEM_3DS ) {
+            let config = configs[0];
+
             let controlsKeys = Object.keys(config.Controls);
             for( let key of controlsKeys ) {
-                if(key.match(/profiles\\1\\.*\\default/)) {
+                if( key.match(/profiles\\1\\.*\\default/) || key.match(/Shortcuts\\Main%20Window\\Capture%20\\Screenshot\\KeySeq\\default/) ) {
                     config.Controls[key] = false;
                 }
                 // citra expects these values wrapped in quotes, which the ini reader removes
@@ -3809,6 +3821,8 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
 
         // for each of the controls listed
         for( let control in controls ) {
+            let config = control.iniIndex ? configs[control.iniIndex] : configs[0];
+
             // get the value of the control from the values object
             // this is what we will set the value to
             // we have two seperate objects, the usercontrol object provided by the user telling us what to enter
@@ -3819,6 +3833,7 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
                 let controlParts = [];
                 let keyControlParts = [];
                 let controlInfo = controls[control];
+                controlInfo.actualControl = control; // this is used later.
 
                 // we know we he have keys for everything, but we might not have nunchukKeys
                 if( nunchuk && !controlInfo.nunchukKeys ) continue;
@@ -3837,6 +3852,9 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
                 }
                 
                 for( let userControl of userControls ) {
+
+                    // Screenshot only allows keys (not buttons or axis)
+                    if( userControl.type != KEY_CONTROL_TYPE && control == SCREENSHOT_CONTROL ) continue;
 
                     // in this case, the values in the ini are actually the controls for the emulator
                     // the keys are all at the root level
@@ -3892,14 +3910,18 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
             }
         }
 
-        let writeValue = ini.stringify(config, {'whitespace': system == SYSTEM_NES || system == SYSTEM_PSP || system == SYSTEM_PS2 || system == SYSTEM_NGC ? true : false});
+        let configIndex = 0;
+        for( let config of configs ) {
+            let writeValue = ini.stringify(config, {'whitespace': system == SYSTEM_NES || system == SYSTEM_PSP || system == SYSTEM_PS2 || system == SYSTEM_NGC ? true : false});
 
-        // the ini file tries to escape the wrapped quotes, but citra doesn't like that.
-        if( system == SYSTEM_3DS ) writeValue = writeValue.replace( /"\\"|\\""/g, '"');
-        // VBAM just uses characters as keys but ini tries to escape them.
-        else if( system == SYSTEM_GBA ) writeValue = writeValue.replace( /\\;/g, ';' );
+            // the ini file tries to escape the wrapped quotes, but citra doesn't like that.
+            if( system == SYSTEM_3DS ) writeValue = writeValue.replace( /"\\"|\\""/g, '"');
+            // VBAM just uses characters as keys but ini tries to escape them.
+            else if( system == SYSTEM_GBA ) writeValue = writeValue.replace( /\\;/g, ';' );
 
-        fs.writeFileSync(systemsDict[system].config.file, writeValue);
+            fs.writeFileSync(systemsDict[system].config.files[configIndex], writeValue);
+            configIndex++;
+        }
 
     }
     return false;
@@ -3989,7 +4011,8 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
     // desmume is custom
     else if( system == SYSTEM_NDS ) {
         if( userControl.type == KEY_CONTROL_TYPE ) {
-            controlButtons = controlButtons.map( el => el ? gdkMap[el] : el );
+            if( controlInfo.actualControl == SCREENSHOT_CONTROL ) controlButtons = controlButtons.map( el => el ? gdkNameMap[el] : el );
+            else controlButtons = controlButtons.map( el => el ? gdkMap[el] : el );
         }
         else {
             controlButtons = controlButtons.map( el => codeToDesmumeJoystick(userControl.type, el) );
@@ -4106,11 +4129,16 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
         }
     }
     else if( system == SYSTEM_PS2 ) {
-        controlFormat = controlFormat.replace("0", controller);
-        // We should know it is key type by now
-        //if( userControl.type == KEY_CONTROL_TYPE ) {
-            controlButtons = controlButtons.map( el => el ? ( "0x" + x11CodeMap[el].toString(16) ) : el );
-        //}
+        if( controlInfo.actualControl == SCREENSHOT_CONTROL ) {
+            controlButtons = controlButtons.map( el => el ? pcsx2Map[el] : el );
+        }
+        else {
+            controlFormat = controlFormat.replace("0", controller);
+            // We should know it is key type by now
+            //if( userControl.type == KEY_CONTROL_TYPE ) {
+                controlButtons = controlButtons.map( el => el ? ( "0x" + x11CodeMap[el].toString(16) ) : el );
+            //}
+        }
     }
     // gamecube and wii
     else if( system == SYSTEM_NGC || system == SYSTEM_WII ) {

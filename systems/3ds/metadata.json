@@ -6,7 +6,7 @@
   "activateCommand": "wmctrl -a 'Citra'",
   "nandPathCommand": "citra --save-path='ROM_FILE_PLACEHOLDER'",
   "config": {
-    "file": "/home/james/.config/citra-emu/qt-config.ini",
+    "files": ["/home/james/.config/citra-emu/qt-config.ini"],
     "controls": {
       "A": {
         "keys": ["Controls","profiles\\1\\button_a"]
@@ -155,6 +155,9 @@
           "button": 0
         },
         "type": "axis"
+      },
+      "Screenshot": {
+        "keys": ["Shortcuts","Shortcuts\\Main%20Window\\Capture%20Screenshot\\KeySeq"]
       }
     },
     "controlFormat": {
