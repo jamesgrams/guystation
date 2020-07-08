@@ -200,5 +200,5 @@ let gdkNameMap = {
 
 module.exports = {
     "codes": gdkMap,
-    "name": gdkNameMap
+    "names": gdkNameMap
 };

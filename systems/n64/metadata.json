@@ -13,7 +13,7 @@
   "getResolutionCommand": "wmctrl -lG | grep -E \"Glide64|Mupen64Plus\" | tr -s ' ' | cut -f 5,6 -d ' ' | tr ' ' x",
   "failsafeStateCheck": "xprop -id $(wmctrl -l | grep -E \"Glide64|Mupen64Plus\" | cut -d ' ' -f 1) | grep _NET_WM_STATE",
   "config": {
-    "file": "/home/james/.config/mupen64plus/mupen64plus.cfg",
+    "files": ["/home/james/.config/mupen64plus/mupen64plus.cfg"],
     "controllers": [
       "Input-SDL-Control1",
       "Input-SDL-Control2",
@@ -86,6 +86,9 @@
       },
       "Axis Y2+": {
         "keys": ["Input-SDL-Control1","C Button D"]
+      },
+      "Screenshot": {
+        "kets": ["CoreEvents","Kbd Mapping Screenshot"]
       }
     },
     "controlFormat": {
