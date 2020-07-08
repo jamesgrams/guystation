@@ -198,7 +198,6 @@ Multiple monitors are not supported. Using multiple monitors will cause issues w
 * VBA-M, PPSSPP, and SNES9X do not set the screenshot key to Ctrl+S by default. SNES9X does not have default controls.
 * EZ Config missing print screen and keys around the numpad (+, -, etc.).
 * Mobile Virtual Controller Keycode options don't extend beyond main keyboard area, F keys, and arrow keys.
-* Firefox does not use the same keycodes as other browsers for some keys and thus EZ config doesn't work for all keys in Firefox.
 * YoutubeDL fails to download currently (7/7/20). It is an issue with their website and you can fix it by doing the following: https://github.com/ytdl-org/youtube-dl/issues/25491#issuecomment-637192267, and then running `rm -rf node_modules/youtube-dl && npm install` in the `guystation` directory again.
 
 ## Credits and Special Thanks

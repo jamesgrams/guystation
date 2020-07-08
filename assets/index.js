@@ -300,6 +300,12 @@ var KEYCODE_MAP = {
     //"alt_r": "Alt_R",
     46: "Delete" // delete
 };
+// Firefox uses non-standard keys
+var FIREFOX_TO_STANDARD_KEYCODE_MAP = {
+    59: 186, // ;
+    61: 187, // =
+    173: 189 // -
+};
 // default mobile key mapping
 // 375 x 667 is what the buttons are set up with
 var TRUE_DEFAULT_KEY_MAPPING_WIDTH = 375;
@@ -2758,6 +2764,14 @@ function updateEzControlSimpleView( inputElement ) {
 }
 
 /**
+ * Determine if this is Firefox.
+ * @returns {boolean} True if this is Firefox.
+ */
+function isFirefox() {
+    return navigator.userAgent.toLowerCase().indexOf("firefox") != -1;
+}
+
+/**
  * Append a value to an EZ Input element
  * @param {HTMLElement} inputElement - The input element.
  * @param {string} value - The value to add.
@@ -2765,6 +2779,11 @@ function updateEzControlSimpleView( inputElement ) {
  * @param {string} [controller] - Info about the controller used to set the button.
  */
 function appendEzInput(inputElement, value, type, controller) {
+    // standardize keycode inputs
+    if( type == "key" && isFirefox() && FIREFOX_TO_STANDARD_KEYCODE_MAP[value] ) {
+        value = FIREFOX_TO_STANDARD_KEYCODE_MAP[value];
+    }
+
     var newValue = "";
     newValue += type + "(" + value + ")";
 
