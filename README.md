@@ -103,7 +103,7 @@ Note: there is also limited support for setting up controls for each emulator al
 
 ### Short Summary
 
-You can use EZ Controller Configuration to set up all the emulator's main controls and screenshot key (must be a keyboard key). Beyond that, you may need to change the resolution of Mupen64Plus, you will need to provide a bios for PCSX2 and perhaps play with its settings to work well on your machine, and you will need to set the Auto-save SRAM setting to a low number on SNES9x. 
+You can use EZ Controller Configuration to set up all the emulator's main controls and screenshot key (must be a keyboard key). Beyond that, you may need to change the resolution of Mupen64Plus, you will need to provide a bios for PCSX2 and perhaps play with its settings to work well on your machine, and you will need to set the Auto-save SRAM setting to a low number on SNES9x. You may also need to start Citra once, before EZ config will work.
 
 ### VBA-M (Game Boy Advance)
 This emulator doesn't change the default screenshot key to be Ctrl+S like most others, mainly because you can set the screenshot key to a joystick button and because you can't set multiple simulataneous keys for a button (it would just have to be S). Feel free to set it accordingly when you set up your controller.
@@ -202,10 +202,11 @@ Multiple monitors are not supported. Using multiple monitors will cause issues w
 * NGC will have the device to the virtual keyboard when setting keyboad controls with EZ configuration. There isn't a good way to detect a keyboard. Hopefully, this shouldn't be a problem if you regularly use a game controller. The game controllers are connected if the evdev device name matches one of a set of keyboards (gamepad, joystick, controller, joypad).
 * EZ Controller Configuration only allows the left version of buttons (control, alt, shift, etc.)
 * PSP maps button names to PSP controls rather than numbers. Names can be different per controller, which can be nice. However, you have to have the mapping (number to name) for the controller listed for it to work properly. PPSSPP itself can do a little better at guessing button names, I believe with the help of the generic controller mapping of the controller plugged in, but we can't get this with the HTML5 Gamepad API. The best we can do is apply a default which likely won't be accurate. Add a controller mapping to `~/ppsspp/assets/gamecontrollerdb.txt` if your controller is not recognized.
-* VBA-M, PPSSPP, and SNES9X do not set the screenshot key to Ctrl+S by default. SNES9X does not have default controls.
 * EZ Config missing print screen and keys around the numpad (+, -, etc.).
+* In addition to the keys that aren't supported on all emulators through EZ Controller Configuration, EZ Controller Configuration does not allow Shift, Ctrl, Alt, and Meta for Citra, Pause, Scroll Lock, Caps Lock, Shift, Ctrl, Alt, and Meta for PCSX2 Hotkeys, and the F keys, Numpad keys, Pause, Scroll Lock, Caps Lock, and Meta for VBAM.
 * Mobile Virtual Controller Keycode options don't extend beyond main keyboard area, F keys, and arrow keys.
 * YoutubeDL fails to download currently (7/7/20). It is an issue with their website and you can fix it by doing the following: https://github.com/ytdl-org/youtube-dl/issues/25491#issuecomment-637192267, and then running `rm -rf node_modules/youtube-dl && npm install` in the `guystation` directory again.
+* The short summary could be made shorter.
 
 ## Credits and Special Thanks
 * Game Boy Advance and DS Lite icons: [David Pérez](https://thenounproject.com/david730/)

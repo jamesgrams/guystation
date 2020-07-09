@@ -3804,6 +3804,8 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
         // disable default for 3ds
         if( system == SYSTEM_3DS ) {
             let config = configs[0];
+            if( !config.Controls ) config.Controls = {};
+            if( !config.UI ) config.UI = {};
 
             let controlsKeys = Object.keys(config.Controls);
             for( let key of controlsKeys ) {
@@ -3817,8 +3819,8 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
                     }
                 }
                 catch(err) {/*ok*/}
-                config.UI["Shortcuts\\Main%20Window\\Capture%20Screenshot\\KeySeq\\default"] = false;
             }
+            config.UI["Shortcuts\\Main%20Window\\Capture%20Screenshot\\KeySeq\\default"] = false;
         }
 
         // for each of the controls listed

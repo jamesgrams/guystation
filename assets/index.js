@@ -2780,6 +2780,11 @@ function isFirefox() {
  * @param {string} [controller] - Info about the controller used to set the button.
  */
 function appendEzInput(inputElement, value, type, controller) {
+    if( type != "key" &&
+        EZ_EMULATOR_CONFIG_BUTTONS[parseInt(inputElement.getAttribute("id").match(/-(\d+)/)[1])] == "Screenshot" ) {
+        return; // only set keys for screenshot
+    }
+
     // standardize keycode inputs
     if( type == "key" && isFirefox() && FIREFOX_TO_STANDARD_KEYCODE_MAP[value] ) {
         value = FIREFOX_TO_STANDARD_KEYCODE_MAP[value];
