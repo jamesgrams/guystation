@@ -102,7 +102,7 @@
         "keys": ["Wiimote1","Classic/Right Stick/Down"]
       },
       "Screenshot": {
-        "keys": ["Hotkeys1","Keys/Take Screenshot"],
+        "keys": ["Hotkeys","General/Take Screenshot"],
         "iniIndex": 1
       }
     },

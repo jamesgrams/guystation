@@ -79,7 +79,7 @@
         "keys": ["GCPad1","C-Stick/Down"]
       },
       "Screenshot": {
-        "keys": ["Hotkeys1","Keys/Take Screenshot"],
+        "keys": ["Hotkeys","General/Take Screenshot"],
         "iniIndex": 1
       }
     },
