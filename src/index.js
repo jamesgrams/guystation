@@ -3807,7 +3807,7 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
 
             let controlsKeys = Object.keys(config.Controls);
             for( let key of controlsKeys ) {
-                if( key.match(/profiles\\1\\.*\\default/) || key.match(/Shortcuts\\Main%20Window\\Capture%20Screenshot\\KeySeq\\default/) ) {
+                if( key.match(/profiles\\1\\.*\\default/) ) {
                     config.Controls[key] = false;
                 }
                 // citra expects these values wrapped in quotes, which the ini reader removes
@@ -3817,6 +3817,7 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
                     }
                 }
                 catch(err) {/*ok*/}
+                config.UI["Shortcuts\\Main%20Window\\Capture%20Screenshot\\KeySeq\\default"] = false;
             }
         }
 
