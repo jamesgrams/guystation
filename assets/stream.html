@@ -11,6 +11,9 @@
                 height: 100vh;
                 object-fit: fill;
             }
+            body.mouse-hidden {
+                cursor: none;
+            }
         </style>
     </head>
     <body>
@@ -24,6 +27,19 @@
 
             // Make sure the microphone is set up right so we get sound while streaming (streaming would have chrome think we want to use the monitor as we are already as the input to this page)
             makeRequest( "GET", "/stream/microphone", {} );
+
+            // mouse hide
+            var mouseHideTimeout;
+            function resetMouseHide() {
+                clearTimeout(mouseHideTimeout);
+                document.body.classList.remove("mouse-hidden");
+                mouseHideTimeout = setTimeout( function() {
+                    document.body.classList.add("mouse-hidden");
+                }, 2000 );
+            }
+            resetMouseHide();
+            document.body.onmousemove = resetMouseHide;
+            document.body.onmousedown = resetMouseHide;
         });
 
         /**
