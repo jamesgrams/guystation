@@ -5222,8 +5222,6 @@ function endRequest() {
 function makeRequest(type, url, parameters, callback, errorCallback, useFormData, sambaMode) {
     var parameterKeys = Object.keys(parameters);
 
-    var hostname = (sambaMode && sambaUrl) ? sambaUrl : window.location.hostname;
-    url = "http://" + hostname + ":8080" + url;
     if( type == "GET" && parameterKeys.length ) {
         var parameterArray = [];
         for( var i=0; i<parameterKeys.length; i++ ) {
@@ -5231,6 +5229,26 @@ function makeRequest(type, url, parameters, callback, errorCallback, useFormData
         }
         url = url + "?" + parameterArray.join("&");
     }
+
+    if( socket && type == "GET" ) {
+        socket.emit( "request", { url: url, method: type }, function(responseText) {
+            try {
+                var status = JSON.parse(responseText).status;
+                if( status == 200 ) {
+                    if(callback) callback(responseText);
+                }
+                else {
+                    if( errorCallback ) errorCallback(responseText);
+                }
+            }
+            catch(err) {
+                if( errorCallback ) errorCallback(responseText);
+            }
+        } );
+    }
+
+    var hostname = (sambaMode && sambaUrl) ? sambaUrl : window.location.hostname;
+    url = "http://" + hostname + ":8080" + url;
    
     var xhttp = new XMLHttpRequest();
     xhttp.open(type, url, true);

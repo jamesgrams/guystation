@@ -4494,6 +4494,16 @@ io.on('connection', function(socket) {
         performScreencastGamepad( body.event, body.id );
         if(ack) ack();
     } );
+    // generalized request handler through socket.io
+    // body should contain method and url keys
+    // https://stackoverflow.com/questions/33090091/is-it-possible-to-call-express-router-directly-from-code-with-a-fake-request
+    socket.on("request", function(body, ack) {
+        app.handle(body, {
+            end: function(responseString) {
+                ack(responseString);
+            }
+        }); 
+    } );
 } );
 
 /**
