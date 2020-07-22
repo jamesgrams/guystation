@@ -5230,11 +5230,11 @@ function makeRequest(type, url, parameters, callback, errorCallback, useFormData
         url = url + "?" + parameterArray.join("&");
     }
 
-    if( socket && type == "GET" ) {
-        socket.emit( "request", { url: url, method: type }, function(responseText) {
+    if( socket && type == "GET" && !sambaMode ) {
+        socket.emit( "request", { url: url, method: type, headers: [] }, function(responseText) {
             try {
                 var status = JSON.parse(responseText).status;
-                if( status == 200 ) {
+                if( status == "success" ) {
                     if(callback) callback(responseText);
                 }
                 else {
@@ -5245,6 +5245,7 @@ function makeRequest(type, url, parameters, callback, errorCallback, useFormData
                 if( errorCallback ) errorCallback(responseText);
             }
         } );
+        return;
     }
 
     var hostname = (sambaMode && sambaUrl) ? sambaUrl : window.location.hostname;

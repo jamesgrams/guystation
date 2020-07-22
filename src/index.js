@@ -1103,7 +1103,7 @@ async function launchBrowser() {
         }
     });
 
-    setTimeout( reloadMenuPage, RELOAD_MENU_PAGE_INTERVAL );
+    //setTimeout( reloadMenuPage, RELOAD_MENU_PAGE_INTERVAL );
 }
 
 /**
@@ -4501,7 +4501,8 @@ io.on('connection', function(socket) {
         app.handle(body, {
             end: function(responseString) {
                 ack(responseString);
-            }
+            },
+            setHeader: function() {}
         }); 
     } );
 } );
