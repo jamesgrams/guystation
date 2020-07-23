@@ -4502,7 +4502,8 @@ io.on('connection', function(socket) {
             end: function(responseString) {
                 ack(responseString);
             },
-            setHeader: function() {}
+            setHeader: function() {},
+            headers: []
         }); 
     } );
 } );
