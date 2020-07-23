@@ -2013,7 +2013,7 @@ function openRemoteMediaBrowser() {
         else {
             window.open(data.siteUrl, "_blank");
         }
-    } );
+    }, null, null, null, true );
 }
 
 /**
@@ -5216,10 +5216,12 @@ function endRequest() {
  * @param {string} url - The url to make the request to.
  * @param {object} parameters - An object with keys being parameter keys and values being parameter values to send with the request.
  * @param {function} callback - Callback function to run upon request completion.
+ * @param {function} errorCallback - Error callback function to run upon request failure.
  * @param {boolean} useFormData - True if we should use form data instead of json.
  * @param {boolean} sambaMode - True if we should make the request to the GuyStation that this GuyStation has mounted the system directoy of (can't update symlinks on a samba mount).
+ * @param {boolean} noWebsockets - True if we should not allow websockets to be used.
  */
-function makeRequest(type, url, parameters, callback, errorCallback, useFormData, sambaMode) {
+function makeRequest(type, url, parameters, callback, errorCallback, useFormData, sambaMode, noWebsockets) {
     var parameterKeys = Object.keys(parameters);
 
     if( type == "GET" && parameterKeys.length ) {
@@ -5230,7 +5232,7 @@ function makeRequest(type, url, parameters, callback, errorCallback, useFormData
         url = url + "?" + parameterArray.join("&");
     }
 
-    if( socket && type == "GET" && !sambaMode ) {
+    if( socket && type == "GET" && !sambaMode && !noWebsockets ) {
         socket.emit( "request", { url: url, method: type, headers: [] }, function(responseText) {
             try {
                 var status = JSON.parse(responseText).status;
