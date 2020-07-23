@@ -4503,6 +4503,7 @@ io.on('connection', function(socket) {
                 ack(responseString);
             },
             setHeader: function() {},
+            getHeader: function() {return ""},
             headers: []
         }); 
     } );
