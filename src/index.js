@@ -903,7 +903,7 @@ app.get("/profiles", async function(request, response) {
     console.log("app serving /profiles");
     try {
         loadEzControlsProfiles();
-        writeResponse( response, HTTP_OK, { "profiles": profilesDict } );
+        writeResponse( response, SUCCESS, { "profiles": profilesDict } );
     }
     catch(err) {
         console.log(err);
