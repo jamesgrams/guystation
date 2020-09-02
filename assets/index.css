@@ -833,6 +833,8 @@ h1 {
     }
     h1 {
         top: 10px !important;
+    }
+    h1:not(.game-marquee) {
         transform: none !important;
     }
     .game-marquee-header {
