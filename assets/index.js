@@ -2543,7 +2543,7 @@ function displayJoypadConfig() {
     form.appendChild(nunchukSelect);
 
     form.appendChild( createButton( "Apply EZ Config", function() {
-        var inputs = document.querySelectorAll("#joypad-config-form .systems-checkboxes label[data-ez-button] input");
+        var inputs = document.querySelectorAll("#joypad-config-form label[data-ez-button] input");
 
         var values = {};
         // comma separated list in the form of key/axis/button(control)
@@ -2559,7 +2559,7 @@ function displayJoypadConfig() {
     
         // figure out for which systems we need to send values
         var systems = [];
-        var checkboxes = document.querySelectorAll("#joypad-config-form input[type='checkbox']");
+        var checkboxes = document.querySelectorAll("#joypad-config-form .systems-checkboxes input[type='checkbox']");
         for( var i=0; i<checkboxes.length; i++) {
             if( checkboxes[i].checked ) {
                 systems.push( checkboxes[i].parentNode.querySelector("span").innerText );
