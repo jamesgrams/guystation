@@ -2655,24 +2655,32 @@ function parseEzButtonString( buttonString ) {
  * @param {Function} [callback] - The callback to run after load.
  */
 function autoloadEzProfile( callback ) {
-    var profile = getCurrentAutoloadProfile();
-    if( profile ) {
-        var sendObject = { "systems": EZ_SYSTEMS, "values": profile.profile, "controller": 0, "nunchuk": profile.nunchuk };
-        makeRequest("POST", "/controls", sendObject, function() {
-            createToast(CONTROLS_SET_MESSAGE);
-            if( callback ) callback();
-        }, function(data) {
-            try {
-                var message = JSON.parse(data).message;
-                createToast(message);
-            }
-            catch(err) {
-                createToast(COULD_NOT_SET_CONTROLS_MESSAGE);
-            }
-            if( callback ) callback();
-        });
-    }
-    else if( callback ) callback();
+    loadEzProfiles( function() { // load profiles again in case the current profile has been updated on a different computer
+        // we do this when the joypad display dialog is shown, but we don't do that when we autload.
+        var profile = getCurrentAutoloadProfile();
+        if( profile && profilesDict[profile.name] ) {
+            // note that which play it is, what systems, and nunchuk is not stored on the server
+            profile = { "name": profile.name, "nunchuk": profile.nunchuk, "profile": profilesDict[profile.name] };
+            setCurrentAutoloadProfile( profile );
+        }
+        if( profile ) {
+            var sendObject = { "systems": EZ_SYSTEMS, "values": profile.profile, "controller": 0, "nunchuk": profile.nunchuk };
+            makeRequest("POST", "/controls", sendObject, function() {
+                createToast(CONTROLS_SET_MESSAGE);
+                if( callback ) callback();
+            }, function(data) {
+                try {
+                    var message = JSON.parse(data).message;
+                    createToast(message);
+                }
+                catch(err) {
+                    createToast(COULD_NOT_SET_CONTROLS_MESSAGE);
+                }
+                if( callback ) callback();
+            });
+        }
+        else if( callback ) callback();
+    } );
 }
 
 /**
