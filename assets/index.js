@@ -2660,8 +2660,8 @@ function autoloadEzProfile( callback ) {
         var profile = getCurrentAutoloadProfile();
         if( profile && profilesDict[profile.name] ) {
             // note that which play it is, what systems, and nunchuk is not stored on the server
-            profile = { "name": profile.name, "nunchuk": profile.nunchuk, "profile": profilesDict[profile.name] };
-            setCurrentAutoloadProfile( profile );
+            setCurrentAutoloadProfile( { "name": profile.name, "nunchuk": profile.nunchuk, "profile": profilesDict[profile.name] } );
+            profile = getCurrentAutoloadProfile();
         }
         if( profile ) {
             var sendObject = { "systems": EZ_SYSTEMS, "values": profile.profile, "controller": 0, "nunchuk": profile.nunchuk };
