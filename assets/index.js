@@ -2543,7 +2543,7 @@ function displayJoypadConfig() {
     form.appendChild(nunchukSelect);
 
     form.appendChild( createButton( "Apply EZ Config", function() {
-        var inputs = document.querySelectorAll("#joypad-config-form label[data-ez-button] input");
+        var inputs = document.querySelectorAll("#joypad-config-form .systems-checkboxes label[data-ez-button] input");
 
         var values = {};
         // comma separated list in the form of key/axis/button(control)
