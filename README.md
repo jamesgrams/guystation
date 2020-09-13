@@ -103,7 +103,9 @@ Note: there is also limited support for setting up controls for each emulator al
 
 ### Short Summary
 
-You can use EZ Controller Configuration to set up all the emulator's main controls and screenshot key (must be a keyboard key). Beyond that, you may need to change the resolution of Mupen64Plus, you will need to provide a bios for PCSX2 and perhaps play with its settings to work well on your machine, and you will need to set the Auto-save SRAM setting to a low number on SNES9x. You may also need to start Citra once, before EZ config will work.
+You can use EZ Controller Configuration to set up all the emulator's main controls and screenshot key (must be a keyboard key). Beyond that, you may need to change the resolution of Mupen64Plus, you will need to provide a bios for PCSX2 and perhaps play with its settings to work well on your machine, and you will need to set the Auto-save SRAM setting to a low number on SNES9x. You may also need to start Citra once, before EZ config will work. 
+
+Note: EZ controller configuration will save only the button mapping to the server (not which controller port or nunchuk/classic controller option). The autoload function will save the button mapping AND the nunchuk/classic controller option. It will always set the controls for the first controller port. Additionally, the autoload function will check for any updates to the button mapping on the server prior to setting the controls.
 
 ### VBA-M (Game Boy Advance)
 This emulator doesn't change the default screenshot key to be Ctrl+S like most others, mainly because you can set the screenshot key to a joystick button and because you can't set multiple simulataneous keys for a button (it would just have to be S). Feel free to set it accordingly when you set up your controller.
