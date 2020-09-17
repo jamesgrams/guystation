@@ -52,6 +52,7 @@ This template comes with many items listed in the recommendations section includ
 * Apport disabled
 * Notifications turned off
 * Auto-checking of new versions disabled
+
 With that being said, you may still want to set up the following (see the Recommendations section for more details)
 * Set up an IGDB API key
 * Install xwiimote
