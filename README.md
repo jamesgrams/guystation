@@ -44,7 +44,7 @@ Note: This is if you want to wipe the hard drive of a computer and start with a 
 6. After you install, the first thing you will want to do is update GuyStation to make sure you have the latest version!
 
 The username for this image is `cocoa` and the password is `pup`.
-This template comes with many items listed in the recommendations section including
+This template comes with many items listed in the recommendations section including:
 * Screen lock disabled
 * Bluetooth Manager installed
 * AntimicroX installed and set to run on startup
@@ -53,7 +53,7 @@ This template comes with many items listed in the recommendations section includ
 * Notifications turned off
 * Auto-checking of new versions disabled
 
-With that being said, you may still want to set up the following (see the Recommendations section for more details)
+With that being said, you may still want to set up the following (see the Recommendations section for more details):
 * Set up an IGDB API key
 * Install xwiimote
 * Map your controller with AntimicroX
