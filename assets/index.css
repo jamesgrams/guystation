@@ -871,7 +871,7 @@ h1 {
     #time, #ip {
         display: none
     }
-    .modal input:not([type='checkbox']), .dying-modal input:not([type='checkbox']), .modal input:not([type='radio']), .dying-modal input:not([type='radio']) {
+    .modal input:not([type='checkbox']):not([type='radio']), .dying-modal input:not([type='checkbox']):not([type='radio']) {
         min-width: 280px;
         width: 100%;
     }
