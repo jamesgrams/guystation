@@ -4915,21 +4915,21 @@ function startPcChangeLoop() {
     let myParents = currentParentsString.split(SEPARATOR).filter(el => el != '');
 
     // Get the original contents of each folder that contains programs
-    let originalFolders = PC_WATCH_FOLDERS.map( folder => fs.readdirSync(folder) );
+    let originalFolderContents = PC_WATCH_FOLDERS.map( folder => fs.readdirSync(folder) );
 
     pcChangeLoop = setInterval( function() {
 
         // Get the new contents of each folder that contains programs
-        let currentFolders = PC_WATCH_FOLDERS.map( folder => fs.readdirSync(folder) );
+        let currentFolderContents = PC_WATCH_FOLDERS.map( folder => fs.readdirSync(folder) );
 
-        for( let i=0; i<originalFolders.length; i++ ) {
-            let originalFolder = originalFolders[i];
-            let currentFolder = currentFolders[i];
+        for( let i=0; i<originalFolderContents.length; i++ ) {
+            let originalFolderContent = originalFolderContents[i];
+            let currentFolderContent = currentFolderContents[i];
 
-            let difference = currentFolder.filter(el => !originalFolder.includes(el));
+            let difference = currentFolderContent.filter(el => !originalFolderContent.includes(el));
             if( difference.length ) {
                 clearInterval( pcChangeLoop );
-                let newFolderPath = currentFolder + SEPARATOR + difference[0];
+                let newFolderPath = PC_WATCH_FOLDERS[i] + SEPARATOR + difference[0];
                 // we've found the new folder, we just have to consistently look for the largest .exe file now
                 let largestBinaryPath = null;
                 let largestBinarySize = 0;
