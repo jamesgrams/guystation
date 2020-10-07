@@ -4923,7 +4923,7 @@ function startPcChangeLoop() {
         let currentFolders = PC_WATCH_FOLDERS.map( folder => fs.readdirSync(folder) );
 
         for( let i=0; i<originalFolders.length; i++ ) {
-            let originalFolder = originalFodlers[i];
+            let originalFolder = originalFolders[i];
             let currentFolder = currentFolders[i];
 
             let difference = currentFolder.filter(el => !originalFolder.includes(el));
