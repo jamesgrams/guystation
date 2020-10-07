@@ -1645,6 +1645,7 @@ function generateGameDir(system, game, parents) {
  * @returns {string} The ROM filepath for the game (e.g. /home/user/guystation/systems/gba/games/super-mario-world/mario-world.gba).
  */
 function generateRomLocation(system, game, rom, parents) {
+    if( rom.match(/^\//) ) return rom; // absolute path
     return generateGameDir(system, game, parents) + SEPARATOR + rom;
 }
 
