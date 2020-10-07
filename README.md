@@ -42,6 +42,7 @@ Note: This is if you want to wipe the hard drive of a computer and start with a 
 5. You will be given the option to launch GuyStation directly from the flash drive or install it on to your computer. Installing is recommended. 
     * Make sure you install to the correct hard drive on your computer.
 6. After you install, the first thing you will want to do is update GuyStation to make sure you have the latest version!
+    * As of writing this, to get PC to work properly, you'll want to manually run the lines of code in `setup.sh` under the comment `Install Wine` as that isn't in the 1.0 release. Remember to run these lines in your home directory (`~`) and not as root.
 
 The username for this image is `cocoa` and the password is `pup`.
 This template comes with many items listed in the recommendations section including:
@@ -110,6 +111,7 @@ With that being said, you may still want to set up the following (see the Recomm
         * When you start streaming, a virtual controller will be added to GuyStation. Please keep in mind that some emulators need to have a controller plugged in before starting up, so you might need to start streaming before opening the game. Also keep this in mind as it may conflict with your physical controllers, if they are not already connected before starting to stream.
 * You can update, restart, or reboot the system by clicking the power button under "More" in the menu.
 * GuyStation has IGDB integration to display information about games. To display information, you must first generate an API key by creating an account [here](https://api.igdb.com/). Then, you must set the environment variable GUYSTATION_IGDB_API_KEY to this value. The easiest way to do this is to add the line `GUYSTATION_IGDB_API_KEY=<api key>` to `/etc/environment`. After a system reboot, GuyStation should start fetching game metadata.
+* PC - GuyStation installs Wine so you can run PC games. Since these can vary so widely, GuyStation doesn't allow for changing saves or controller mapping. Most PC games have an installer. Simply upload the installer as the ROM file, then run the game. GuyStation will boot up the installer. Install the game. While the game is installing, GuyStation will be monitoring the `~/.wine/c_drive/Program Files` and `~/.wine/c_drive/Program Files (x86)` directories for changes. Once it finds a new folder there, which is likely where your game will be installed, it will look for the largest executable file in that folder and continue to do so while the installation finishes. Once it finds this file, it will update your game to run this file rather than the installer, so next time you launch from GuyStation, you will boot directly to the game! Of course, this process is not perfect, so you may need to manually edit the `metadata.json` file to point to the `exe` file for your installed game (e.g. `{"rom":"/home/myexe.exe/"}).
 
 ## Recommendations
 Here are some recommendedations to make your experience better on Ubuntu.
@@ -222,6 +224,7 @@ On the client, install (`sudo apt-get`) samba and cfs-utils. Then, update `/etc/
 //192.168.1.2/systems   /home/<your_home_name>/guystation/systems  cifs    sfu,rw,username=root,password=<root_password>,vers=1.0       00
 ```
 There are a few important things to note with this. You won't be able to change saves on the client machine. This is simply because you can't update symlinks on a mounted drive. Additionally, you can't use colons or pipes in your game or save names. Samba doesn't like files that have these names, so it is best to avoid them. However, you can tell GuyStation to send save change requests that wouldn't work typically to the GuyStation that you are mounting by starting the client GuyStation with the command `node src/index.js --smb <server GuyStation ip>`.
+Note: Since PC games are installed outside of the systems directory, you'll have to install them on all computers in your cluster.
 
 ## File Structure for Systems Directory
 * `systems`
