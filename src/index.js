@@ -2383,7 +2383,8 @@ function addGame( system, game, file, parents=[], isFolder, isPlaylist, playlist
                 // and the async failure has a different behavior than the sync one
                 // Async, we'll just note the ROM download failed to the user as opposed to deleting the game
                 // immediately.
-                if( typeof file == STRING_TYPE ) errorMessage = downloadRom( file, system, game, parents, runWhenDone );
+                if( typeof file == STRING_TYPE && file.match(/^\//) ) fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"rom": file}));
+                else if( typeof file == STRING_TYPE ) errorMessage = downloadRom( file, system, game, parents, runWhenDone );
                 else errorMessage = saveUploadedRom( file, system, game, parents );
             }
             if( errorMessage ) {
@@ -2404,7 +2405,7 @@ function addGame( system, game, file, parents=[], isFolder, isPlaylist, playlist
 
     // Update the data (this will take care of making all the necessary directories for the game as well as updating the data)
     // browser uses strings, but it doesn't perform a download
-    if( typeof file != STRING_TYPE || system == BROWSER ) runWhenDone();
+    if( typeof file != STRING_TYPE || system == BROWSER || file.match(/^\//) ) runWhenDone();
     else if( !force ) getData(); // Run get data now, so we can have an updated gamesDict even if we haven't finished downloading yet
 
     return false;
@@ -3059,7 +3060,8 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
             // Note: an async error will continue unlike a sync error
             // A sync error to get the file - we'll just revert
             // An async error, we'll just have to alert the user that we failed.
-            if( typeof file == STRING_TYPE ) errorMessage = downloadRom( file, system ? system : oldSystem, game ? game : oldGame, parents ? parents : oldParents, runWhenDone, dirsDonePromise, oldSystem, oldGame, oldParents );
+            if( typeof file == STRING_TYPE && file.match(/^\//) ) fs.writeFileSync(generateGameMetaDataLocation(system ? system : oldSystem, game ? game : oldGame, parents ? parents : oldParents), JSON.stringify({"rom": file}));
+            else if( typeof file == STRING_TYPE ) errorMessage = downloadRom( file, system ? system : oldSystem, game ? game : oldGame, parents ? parents : oldParents, runWhenDone, dirsDonePromise, oldSystem, oldGame, oldParents );
             else errorMessage = saveUploadedRom( file, oldSystem, oldGame, oldParents );
         }
 
@@ -3118,7 +3120,7 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
 
     // After dirs are done, we can run getData
     // Update the data (this will take care of making all the necessary directories for the game as well as updating the data)
-    if( !file || typeof file != STRING_TYPE || system == BROWSER ) runWhenDone();
+    if( !file || typeof file != STRING_TYPE || system == BROWSER || file.match(/^\//) ) runWhenDone();
     else getData(); // Run get data now, so we can have an updated gamesDict even if we haven't finished downloading yet
     resolveDirsDone();
 
