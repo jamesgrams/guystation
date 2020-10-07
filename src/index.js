@@ -224,7 +224,6 @@ const N64_MANUAL_KEY = "mode";
 const N64_MANUAL_VALUE = 0;
 const N64_DEVICE_KEY = "device";
 const SCREENSHOT_CONTROL = "Screenshot";
-const PC_SYMLINK_NAME = "guystation-symlink";
 const WATCH_FOLDERS_INTERVAL = 3000;
 
 const ERROR_MESSAGES = {
@@ -4943,9 +4942,8 @@ function startPcChangeLoop() {
                             if( isBinaryFileSync(curPath) && (!largestBinaryPath || stats["size"] > largestBinarySize) ) {
                                 largestBinaryPath = curPath;
                                 largestBinarySize = stats["size"];
-                                // symlink
-                                fs.symlinkSync( largestBinaryPath, generateRomLocation( mySystem, myGame, PC_SYMLINK_NAME, myParents ) );
-                                fs.writeFileSync(generateGameMetaDataLocation(mySystem, myGame, myParents), JSON.stringify({"rom": PC_SYMLINK_NAME}));
+                                // link metadata to new location
+                                fs.writeFileSync(generateGameMetaDataLocation(mySystem, myGame, myParents), JSON.stringify({"rom": largestBinaryPath}));
                             }
                         }
                     }
