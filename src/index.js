@@ -4944,7 +4944,7 @@ function startPcChangeLoop() {
                                 largestBinaryPath = curPath;
                                 largestBinarySize = stats["size"];
                                 // symlink
-                                fs.symlinkSync( largestBinaryPath, generateRomLocation( mySystem, myGame, PC_SYMLINK_NAME, myParentsString ) );
+                                fs.symlinkSync( largestBinaryPath, generateRomLocation( mySystem, myGame, PC_SYMLINK_NAME, myParents ) );
                                 fs.writeFileSync(generateGameMetaDataLocation(mySystem, myGame, myParents), JSON.stringify({"rom": PC_SYMLINK_NAME}));
                             }
                         }
