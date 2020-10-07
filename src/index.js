@@ -331,7 +331,7 @@ let pcChangeLoop = null;
 let desktopUser = proc.execSync(GET_USER_COMMAND).toString().trim();
 const PC_WATCH_FOLDERS = [
     "/home/"+desktopUser+"/.wine/drive_c/Program Files",
-    "/home/"+desktopUser+"/.wine/drive_c/Program Files 86",
+    "/home/"+desktopUser+"/.wine/drive_c/Program Files (x86)",
 ];
 
 let messages = [];
