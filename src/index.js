@@ -224,10 +224,6 @@ const N64_MANUAL_KEY = "mode";
 const N64_MANUAL_VALUE = 0;
 const N64_DEVICE_KEY = "device";
 const SCREENSHOT_CONTROL = "Screenshot";
-const PC_WATCH_FOLDERS = [
-    "/home/"+desktopUser+"/.wine/drive_c/Program Files",
-    "/home/"+desktopUser+"/.wine/drive_c/Program Files 86",
-];
 const PC_SYMLINK_NAME = "guystation-symlink";
 const WATCH_FOLDERS_INTERVAL = 3000;
 
@@ -333,6 +329,10 @@ let continueInterval = null;
 let pcChangeLoop = null;
 
 let desktopUser = proc.execSync(GET_USER_COMMAND).toString().trim();
+const PC_WATCH_FOLDERS = [
+    "/home/"+desktopUser+"/.wine/drive_c/Program Files",
+    "/home/"+desktopUser+"/.wine/drive_c/Program Files 86",
+];
 
 let messages = [];
 
