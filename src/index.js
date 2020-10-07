@@ -4912,7 +4912,7 @@ function bindMicrophoneToChromeInput() {
 function startPcChangeLoop() {
     let mySystem = currentSystem;
     let myGame = currentGame;
-    let myParents = currentParents;
+    let myParents = currentParentsString.split(SEPARATOR).filter(el => el != '');
 
     // Get the original contents of each folder that contains programs
     let originalFolders = PC_WATCH_FOLDERS.map( folder => fs.readdirSync(folder) );
