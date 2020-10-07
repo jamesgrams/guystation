@@ -138,6 +138,22 @@ sudo apt-get -y install libportaudio2:i386
 # Return to the home directory
 cd ~
 
+# Install Wine
+wget -nc https://dl.winehq.org/wine-builds/winehq.key
+sudo apt-key add winehq.key
+sudo apt-add-repository 'deb https://dl.winehq.org/wine-builds/ubuntu/ bionic main'
+sudo apt update
+wget -nc https://download.opensuse.org/repositories/Emulators:/Wine:/Debian/xUbuntu_18.04/amd64/libfaudio0_19.07-0~bionic_amd64.deb
+wget -nc https://download.opensuse.org/repositories/Emulators:/Wine:/Debian/xUbuntu_18.04/i386/libfaudio0_19.07-0~bionic_i386.deb
+sudo apt install -y ./libfaudio0_19.07-0~bionic_amd64.deb
+sudo apt install -y ./libfaudio0_19.07-0~bionic_i386.deb
+rm ./libfaudio0_19.07-0~bionic_amd64.deb
+rm ./libfaudio0_19.07-0~bionic_i386.deb
+sudo apt install -y --install-recommends winehq-stable
+
+# Return to the home directory
+cd ~
+
 # Make sure nodjs is installed
 sudo apt-get -y install curl
 curl -sL https://deb.nodesource.com/setup_12.x | sudo sh

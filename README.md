@@ -74,6 +74,7 @@ With that being said, you may still want to set up the following (see the Recomm
 * Nintendo 64
 * Nintendo GameCube
 * Wii
+* PC
 * PlayStation 1
 * PlayStation 2
 * PSP
@@ -267,6 +268,7 @@ Multiple monitors are not supported. Using multiple monitors will cause issues w
 * PSP icon: [Guilherme Simoes](https://icons-for-free.com/icons-author-Guilherme+Simoes/)
 * SNES icon: [Icon-Library.net](https://icon-library.net/icon/nintendo-controller-icon-14.html)
 * NES icon: [Icon-Library.net](https://icon-library.net/icon/nes-icon-22.html)
+* Keyboard icon: [Yorlmar Campos](https://thenounproject.com/Yorlmar%20Campos/)
 * Game Boy Advance emulator: [VisualBoyAdvance-m](https://vba-m.com/)
 * DS emulator: [DeSmuMe](http://desmume.org/)
 * Nintendo 64 emulator: [Mupen64Plus](https://mupen64plus.org/)
@@ -276,6 +278,7 @@ Multiple monitors are not supported. Using multiple monitors will cause issues w
 * PSP emulator: [PPSSPP](https://www.ppsspp.org/)
 * SNES emulator: [Snes9X](http://www.snes9x.com/)
 * NES emulator: [FCEUX](http://www.fceux.com/)
+* PC player: [Wine](https://www.winehq.org/)
 * Menu Icons: [Font Awesome](https://fontawesome.com/)
 * Blinker font: [Juergen Huber](https://fonts.google.com/specimen/Blinker)
 * Toy Train font: [West Winds Fonts](https://www.dafont.com/west-wind-fonts.d361)
