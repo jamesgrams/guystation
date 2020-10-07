@@ -150,6 +150,8 @@ sudo apt install -y ./libfaudio0_19.07-0~bionic_i386.deb
 rm ./libfaudio0_19.07-0~bionic_amd64.deb
 rm ./libfaudio0_19.07-0~bionic_i386.deb
 sudo apt install -y --install-recommends winehq-stable
+sudo rm -rf ~/.wine || true
+sudo mkdir ~/.wine
 
 # Return to the home directory
 cd ~

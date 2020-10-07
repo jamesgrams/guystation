@@ -159,6 +159,7 @@ const SYSTEM_NGC = "ngc";
 const SYSTEM_PS2 = "ps2";
 const SYSTEM_PSP = "psp";
 const SYSTEM_WII = "wii";
+const SYSTEM_PC = "pc";
 const UINPUT_PATH = "/dev/uinput";
 const UINPUT_MODE = "w+";
 const VIRTUAL_GAMEPAD_NAME = "GuyStation Gamepad";
@@ -223,6 +224,12 @@ const N64_MANUAL_KEY = "mode";
 const N64_MANUAL_VALUE = 0;
 const N64_DEVICE_KEY = "device";
 const SCREENSHOT_CONTROL = "Screenshot";
+const PC_WATCH_FOLDERS = [
+    "/home/"+desktopUser+"/.wine/drive_c/Program Files",
+    "/home/"+desktopUser+"/.wine/drive_c/Program Files 86",
+];
+const PC_SYMLINK_NAME = "guystation-symlink";
+const WATCH_FOLDERS_INTERVAL = 3000;
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -323,6 +330,7 @@ let needToRefocusGame = false;
 let gamepadFileDescriptors = [];
 let properEmulatorResolution = null;
 let continueInterval = null;
+let pcChangeLoop = null;
 
 let desktopUser = proc.execSync(GET_USER_COMMAND).toString().trim();
 
@@ -1868,6 +1876,11 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         currentSystem = system;
         currentParentsString = parents.join(SEPARATOR);
 
+        // PC, check for installation.
+        if( system === SYSTEM_PC ) {
+            startPcChangeLoop();
+        }
+
         if( !noGame && (systemsDict[system].fullScreenButtons ) ) {
             activateTries = 1; // We know the program since we waited until we could full screen
             // I guess the only time this would come into play is if we failed to full screen
@@ -2029,6 +2042,7 @@ async function quitGame() {
  */
 function blankCurrentGame() {
     clearInterval(continueInterval); // put this here just to be safe
+    clearInterval(pcChangeLoop) // stop looking for pc game changes
 
     currentGame = null;
     currentSystem = null;
@@ -4890,4 +4904,58 @@ function bindMicrophoneToChromeInput() {
     catch(err) {
         console.log(err);
     }
+}
+
+/**
+ * Start looking for PC installations.
+ */
+function startPcChangeLoop() {
+    let mySystem = currentSystem;
+    let myGame = currentGame;
+    let myParents = currentParents;
+
+    // Get the original contents of each folder that contains programs
+    let originalFolders = PC_WATCH_FOLDERS.map( folder => fs.readdirSync(folder) );
+
+    pcChangeLoop = setInterval( function() {
+
+        // Get the new contents of each folder that contains programs
+        let currentFolders = PC_WATCH_FOLDERS.map( folder => fs.readdirSync(folder) );
+
+        for( let i=0; i<originalFolders.length; i++ ) {
+            let originalFolder = originalFodlers[i];
+            let currentFolder = currentFolders[i];
+
+            let difference = currentFolder.filter(el => !originalFolder.includes(el));
+            if( difference.length ) {
+                clearInterval( pcChangeLoop );
+                let newFolderPath = currentFolder + SEPARATOR + difference[0];
+                // we've found the new folder, we just have to consistently look for the largest .exe file now
+                let largestBinaryPath = null;
+                let largestBinarySize = 0;
+                let checkFolder = function() {
+                    let installedFiles = fs.readdirSync(newFolderPath);
+                    // Get the largest binary file
+                    for( let installedFile of installedFiles ) {
+                        if( installedFile.match(/\.exe$/) ) {
+                            let curPath = newFolderPath + SEPARATOR + installedFile;
+                            let stats = fs.statSync(curPath);
+                            if( isBinaryFileSync(curPath) && (!largestBinaryPath || stats["size"] > largestBinarySize) ) {
+                                largestBinaryPath = curPath;
+                                largestBinarySize = stats["size"];
+                                // symlink
+                                fs.symlinkSync( largestBinaryPath, generateRomLocation( mySystem, myGame, PC_SYMLINK_NAME, myParentsString ) );
+                                fs.writeFileSync(generateGameMetaDataLocation(mySystem, myGame, myParents), JSON.stringify({"rom": PC_SYMLINK_NAME}));
+                            }
+                        }
+                    }
+
+                };
+                checkFolder();
+                pcChangeLoop = setInterval( checkFolder, WATCH_FOLDERS_INTERVAL );
+            }
+        }
+
+    }, WATCH_FOLDERS_INTERVAL );
+
 }
