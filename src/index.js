@@ -4937,7 +4937,7 @@ function startPcChangeLoop() {
                     let installedFiles = fs.readdirSync(newFolderPath);
                     // Get the largest binary file
                     for( let installedFile of installedFiles ) {
-                        if( installedFile.match(/\.exe$/) ) {
+                        if( installedFile.match(/\.exe$/i) ) {
                             let curPath = newFolderPath + SEPARATOR + installedFile;
                             let stats = fs.statSync(curPath);
                             if( isBinaryFileSync(curPath) && (!largestBinaryPath || stats["size"] > largestBinarySize) ) {
