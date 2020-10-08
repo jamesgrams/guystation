@@ -292,7 +292,8 @@ const ERROR_MESSAGES = {
     "noUrl": "No URL for site",
     "invalidSiteJson": "Invalid JSON for site",
     "siteUrlRequired": "The siteUrl key is required for site JSON",
-    "couldNotSetScale": "Could not set scale"
+    "couldNotSetScale": "Could not set scale",
+    "invalidFilepath": "Invalid filepath"
 }
 // http://jsfiddle.net/vWx8V/ - keycode
 // http://robotjs.io/docs/syntax - robotjs
@@ -2331,6 +2332,7 @@ function addGame( system, game, file, parents=[], isFolder, isPlaylist, playlist
         var invalidName = isInvalidName( game );
         if( invalidName ) return invalidName;
         if( (!file || (typeof file != STRING_TYPE && (!file.path || !file.originalname))) && !isFolder && !isPlaylist && !isSymlink ) return ERROR_MESSAGES.romFileRequired;
+        if( typeof file === STRING_TYPE && file.match(/^\//) && !fs.existsSync(file) ) return ERROR_MESSAGES.invalidFilepath;
         if( isPlaylist && system != MEDIA ) return ERROR_MESSAGES.playlistsOnlyForMedia;
         if( (!playlistItems || !playlistItems.length) && isPlaylist ) return ERROR_MESSAGES.playlistItemsRequired;
         if( isPlaylist ) {
@@ -2653,8 +2655,16 @@ function saveUploadedRom( file, system, game, parents ) {
     if( !fs.existsSync(generateGameDir(system, game, parents)) ) {
         return ERROR_MESSAGES.locationDoesNotExist;
     }
-    fs.renameSync(file.path, generateRomLocation(system, game, file.originalname, parents));
-    fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"rom": file.originalname}));
+    let romLocation = generateRomLocation(system, game, file.originalname, parents);
+    fs.renameSync(file.path, romLocation);
+
+    let name = file.originalname;
+    if( system === SYSTEM_PC ) { // PC games may be zipped as they require multiple files.
+        let unzippedName = await unpackGetLargestFile( romLocation, generateGameDir( system, game, parents ), false );
+        if( unzippedName ) name = unzippedName;
+    }
+
+    fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"rom": name}));
     return false;
 }
 
@@ -2783,40 +2793,7 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
         try {
             let tmpFolderPath = tmpFilePath + TMP_FOLDER_EXTENSION;
 
-            let extractPromise = new Promise( function(resolve, reject) {
-
-                ua.unpack( tmpFilePath, {
-                    targetDir: tmpFolderPath
-                }, function(err, files, text) {
-                    if( err ) {
-                        // perfectly fine, we expect this for non archive files.
-                    }
-                    else if( files ) {
-                        let largestBinaryPath = null;
-                        let largestBinarySize = 0;
-                        let tmpFiles = fs.readdirSync(tmpFolderPath);
-                        // Get the largest binary file
-                        for( let tmpFile of tmpFiles ) {
-                            let curPath = tmpFolderPath + SEPARATOR + tmpFile;
-                            let stats = fs.statSync(curPath);
-                            if( isBinaryFileSync(curPath) && (!largestBinaryPath || stats["size"] > largestBinarySize) ) {
-                                largestBinaryPath = curPath;
-                                largestBinarySize = stats["size"];
-                                filename = tmpFile;
-                            }
-                        }
-
-                        // Move the actual rom over the zip file
-                        if( largestBinaryPath ) {
-                            fs.renameSync( largestBinaryPath, tmpFilePath );
-                        }
-                        rimraf.sync(tmpFolderPath); // Delete the temp folder
-                    }
-                    resolve();
-                } );
-
-            } );
-            await extractPromise;
+            filename = await unpackGetLargestFile( tmpFilePath, tmpFolderPath, true );
         }
         catch(err) {
             // ok
@@ -2847,6 +2824,56 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
 
     });
     return false;
+}
+
+/**
+ * Unzip an archive file and return the largest file in the folder.
+ * @param {String} file - The file to unzip. 
+ * @param {String} folder - The folder to place the files.
+ * @param {boolean} [deleteFolder] - true if the folder should be deleted and largest file extracted to the original location of file.
+ * @returns {Promise<string>} - A promise containing the filename.
+ */
+async function unpackGetLargestFile( file, folder, deleteFolder=false ) {
+
+    let filename = null;
+    let extractPromise = new Promise( function(resolve, reject) {
+
+        ua.unpack( file, {
+            targetDir: folder
+        }, function(err, files, text) {
+            if( err ) {
+                // perfectly fine, we expect this for non archive files.
+            }
+            else if( files ) {
+                let largestBinaryPath = null;
+                let largestBinarySize = 0;
+                let tmpFiles = fs.readdirSync(folder);
+                // Get the largest binary file
+                for( let tmpFile of tmpFiles ) {
+                    let curPath = folder + SEPARATOR + tmpFile;
+                    let stats = fs.statSync(curPath);
+                    if( isBinaryFileSync(curPath) && (!largestBinaryPath || stats["size"] > largestBinarySize) ) {
+                        largestBinaryPath = curPath;
+                        largestBinarySize = stats["size"];
+                        filename = tmpFile;
+                    }
+                }
+
+                if( deleteFolder ) {
+                    // Move the actual rom over the zip file
+                    if( largestBinaryPath ) {
+                        fs.renameSync( largestBinaryPath, file );
+                    }
+                    rimraf.sync(folder); // Delete the temp folder
+                }
+            }
+            resolve();
+        } );
+
+    } );
+    await extractPromise;
+
+    return Promise.resolve(filename);
 }
 
 /**
@@ -2950,6 +2977,9 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
         else if( !gameDictEntry.isPlaylist && isPlaylist ) {
             return ERROR_MESSAGES.convertGameToPlaylist;
         }
+        else if( file && typeof file === STRING_TYPE && file.match(/^\//) && !fs.existsSync(file) ) {
+            return ERROR_MESSAGES.invalidFilepath;
+        } 
     }
     // Don't allow updates while still trying to download
     if( getGameDictEntry( oldSystem, oldGame, oldParents ).status == STATUS_DOWNLOADING ) {
