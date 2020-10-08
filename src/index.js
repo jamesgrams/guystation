@@ -3741,6 +3741,8 @@ async function getIgdbHeaders() {
             igdbContent = fetched.data;
             igdbContent.expires = igdbContent.expires_in + timeSeconds;
             delete igdbContent.expires_in;
+            delete igdbContent.bearer;
+            igdbContent["Client-ID"] = IGDB_CLIENT_ID;
             fs.writeFileSync( IGDB_PATH, JSON.stringify(igdbContent) );
         }
         else {
