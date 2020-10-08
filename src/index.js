@@ -2832,7 +2832,7 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
  * Unzip an archive file and return the largest file in the folder.
  * @param {String} file - The file to unzip. 
  * @param {String} folder - The folder to place the files.
- * @param {boolean} [deleteFolder] - true if the folder should be deleted and largest file extracted to the original location of file.
+ * @param {boolean} [deleteFolder] - true if the folder should be deleted and largest file extracted to the original location of file - for saving from url.
  * @param {boolean} [noDirectory] - true if no containing directory should be made
  * @returns {Promise<string>} - A promise containing the filename.
  */
@@ -2856,11 +2856,13 @@ async function unpackGetLargestFile( file, folder, deleteFolder=false, noDirecto
                 for( let tmpFile of tmpFiles ) {
                     let curPath = folder + SEPARATOR + tmpFile;
                     try {
-                        let stats = fs.statSync(curPath);
-                        if( isBinaryFileSync(curPath) && (!largestBinaryPath || stats["size"] > largestBinarySize) ) {
-                            largestBinaryPath = curPath;
-                            largestBinarySize = stats["size"];
-                            filename = tmpFile;
+                        if( !deleteFolder || tmpFile.match(/\.exe$/) || tmpFile.match(/\.msi$/) ) {
+                            let stats = fs.statSync(curPath);
+                            if( isBinaryFileSync(curPath) && (!largestBinaryPath || stats["size"] > largestBinarySize) ) {
+                                largestBinaryPath = curPath;
+                                largestBinarySize = stats["size"];
+                                filename = tmpFile;
+                            }
                         }
                     }
                     catch(err) {} // ok we found a directory
