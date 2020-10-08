@@ -2860,6 +2860,9 @@ async function unpackGetLargestFile( file, folder, deleteFolder=false, installer
                 for( let tmpFile of tmpFiles ) {
                     let curPath = folder + SEPARATOR + tmpFile;
                     try {
+                        if( copyFolderContentsPath ) {
+                            fs.copyFileSync( curPath, copyFolderContentsPath + SEPARATOR + filename );
+                        }
                         if( !installersOnly || tmpFile.match(/\.exe$/i) || tmpFile.match(/\.msi$/i) ) {
                             let stats = fs.statSync(curPath);
                             if( isBinaryFileSync(curPath) && (!largestBinaryPath || stats["size"] > largestBinarySize) ) {
@@ -2867,9 +2870,6 @@ async function unpackGetLargestFile( file, folder, deleteFolder=false, installer
                                 largestBinarySize = stats["size"];
                                 filename = tmpFile;
                             }
-                        }
-                        if( copyFolderContentsPath ) {
-                            fs.copyFileSync( curPath, copyFolderContentsPath + SEPARATOR + filename );
                         }
                     }
                     catch(err) {} // ok we found a directory
