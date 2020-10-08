@@ -2658,13 +2658,15 @@ function saveUploadedRom( file, system, game, parents ) {
     let romLocation = generateRomLocation(system, game, file.originalname, parents);
     fs.renameSync(file.path, romLocation);
 
-    let name = file.originalname;
+    fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"rom": file.originalname}));
     if( system === SYSTEM_PC ) { // PC games may be zipped as they require multiple files.
-        let unzippedName = await unpackGetLargestFile( romLocation, generateGameDir( system, game, parents ), false );
-        if( unzippedName ) name = unzippedName;
+        unpackGetLargestFile( romLocation, generateGameDir( system, game, parents ), false ).then( (name) => {
+            if( name ) {
+                fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"rom": name}));
+            }
+        } );
     }
 
-    fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"rom": name}));
     return false;
 }
 
