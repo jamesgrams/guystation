@@ -2659,8 +2659,8 @@ function saveUploadedRom( file, system, game, parents ) {
     fs.renameSync(file.path, romLocation);
 
     fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"rom": file.originalname}));
-    if( system === SYSTEM_PC ) { // PC games may be zipped as they require multiple files.
-        unpackGetLargestFile( romLocation, generateGameDir( system, game, parents ), false ).then( (name) => {
+    if( system === SYSTEM_PC && !file.match(/\.exe$/) && !file.match(/\.msi$/) ) { // PC games may be zipped as they require multiple files.
+        unpackGetLargestFile( romLocation, generateGameDir( system, game, parents ), false, true ).then( (name) => {
             if( name ) {
                 fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"rom": name}));
             }
@@ -2833,15 +2833,17 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
  * @param {String} file - The file to unzip. 
  * @param {String} folder - The folder to place the files.
  * @param {boolean} [deleteFolder] - true if the folder should be deleted and largest file extracted to the original location of file.
+ * @param {boolean} [noDirectory] - true if no containing directory should be made
  * @returns {Promise<string>} - A promise containing the filename.
  */
-async function unpackGetLargestFile( file, folder, deleteFolder=false ) {
+async function unpackGetLargestFile( file, folder, deleteFolder=false, noDirectory=true ) {
 
     let filename = null;
     let extractPromise = new Promise( function(resolve, reject) {
 
         ua.unpack( file, {
-            targetDir: folder
+            targetDir: folder,
+            noDirectory: noDirectory
         }, function(err, files, text) {
             if( err ) {
                 // perfectly fine, we expect this for non archive files.
