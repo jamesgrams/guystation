@@ -1,6 +1,6 @@
 {
   "command": "wine",
-  "extraFlags": ["start","/unix","/b"],
+  "extraFlags": ["start","/wait","/unix"],
   "argsFirst": true,
   "frontendCommand": "winecfg",
   "activateCommand": "wmctrl -i -a $(xdotool search --class wine | xargs -I % xwininfo -id % | grep -E $(wmctrl -l | cut -d ' ' -f 1 | sed 's/0x0/0x/' | tr '\\n' '|' | sed 's/|$//') | cut -d' ' -f 4)",

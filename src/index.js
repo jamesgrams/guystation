@@ -2855,12 +2855,15 @@ async function unpackGetLargestFile( file, folder, deleteFolder=false, noDirecto
                 // Get the largest binary file
                 for( let tmpFile of tmpFiles ) {
                     let curPath = folder + SEPARATOR + tmpFile;
-                    let stats = fs.statSync(curPath);
-                    if( isBinaryFileSync(curPath) && (!largestBinaryPath || stats["size"] > largestBinarySize) ) {
-                        largestBinaryPath = curPath;
-                        largestBinarySize = stats["size"];
-                        filename = tmpFile;
+                    try {
+                        let stats = fs.statSync(curPath);
+                        if( isBinaryFileSync(curPath) && (!largestBinaryPath || stats["size"] > largestBinarySize) ) {
+                            largestBinaryPath = curPath;
+                            largestBinarySize = stats["size"];
+                            filename = tmpFile;
+                        }
                     }
+                    catch(err) {} // ok we found a directory
                 }
 
                 if( deleteFolder ) {
