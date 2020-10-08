@@ -180,6 +180,7 @@ const GET_DEFAULT_MICROPHONE_COMMAND = "pacmd list-sources | grep '* index'";
 const GOOGLE_CHROME_AUDIO_IDENTIFIER = "google-chrome";
 const PACMD_PREFIX = 'export PULSE_RUNTIME_PATH="/run/user/$(id --user $(logname))/pulse/" && sudo -u $(logname) -E '; // need to run as the user
 const DOWNLOAD_ROM_PREFIX = "/tmp/download_rom_";
+const DOWNLOAD_PC_PREFIX = "/tmp/download_pc";
 const STATUS_DOWNLOADING = "downloading";
 const STATUS_ROM_FAILED = "failed";
 const STRING_TYPE = "string";
@@ -2660,7 +2661,9 @@ function saveUploadedRom( file, system, game, parents ) {
 
     fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"rom": file.originalname}));
     if( system === SYSTEM_PC && !file.originalname.match(/\.exe$/i) && !file.originalname.match(/\.msi$/i) ) { // PC games may be zipped as they require multiple files.
-        unpackGetLargestFile( romLocation, generateGameDir( system, game, parents ), false, true ).then( (name) => {
+        // copy files
+        fs.copyFileSync( romLocation, DOWNLOAD_PC_PREFIX );
+        unpackGetLargestFile( DOWNLOAD_PC_PREFIX, DOWNLOAD_PC_PREFIX + TMP_FOLDER_EXTENSION, false, true, generateGameDir(system, game, parents) ).then( (name) => {
             if( name ) {
                 fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"rom": name}));
             }
@@ -2832,18 +2835,19 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
  * Unzip an archive file and return the largest file in the folder.
  * @param {String} file - The file to unzip. 
  * @param {String} folder - The folder to place the files.
- * @param {boolean} [deleteFolder] - true if the folder should be deleted and largest file extracted to the original location of file - for saving from url.
- * @param {boolean} [noDirectory] - true if no containing directory should be made
+ * @param {boolean} [deleteFolder] - true if the folder should be deleted and largest file extracted to the original location of file
+ * @param {boolean} [installersOnly] - true if only pc installers should be considered.
+ * @param {string} [copyFolderContentsPath] - the folder contents should be copied to this location, and the file and folder deleted
  * @returns {Promise<string>} - A promise containing the filename.
  */
-async function unpackGetLargestFile( file, folder, deleteFolder=false, noDirectory=true ) {
+async function unpackGetLargestFile( file, folder, deleteFolder=false, installersOnly=false, copyFolderContentsPath ) {
 
     let filename = null;
     let extractPromise = new Promise( function(resolve, reject) {
 
         ua.unpack( file, {
             targetDir: folder,
-            noDirectory: noDirectory
+            noDirectory: true
         }, function(err, files, text) {
             if( err ) {
                 // perfectly fine, we expect this for non archive files.
@@ -2856,7 +2860,7 @@ async function unpackGetLargestFile( file, folder, deleteFolder=false, noDirecto
                 for( let tmpFile of tmpFiles ) {
                     let curPath = folder + SEPARATOR + tmpFile;
                     try {
-                        if( deleteFolder || tmpFile.match(/\.exe$/i) || tmpFile.match(/\.msi$/i) ) {
+                        if( !installersOnly || tmpFile.match(/\.exe$/i) || tmpFile.match(/\.msi$/i) ) {
                             let stats = fs.statSync(curPath);
                             if( isBinaryFileSync(curPath) && (!largestBinaryPath || stats["size"] > largestBinarySize) ) {
                                 largestBinaryPath = curPath;
@@ -2864,11 +2868,18 @@ async function unpackGetLargestFile( file, folder, deleteFolder=false, noDirecto
                                 filename = tmpFile;
                             }
                         }
+                        if( copyFolderContentsPath ) {
+                            fs.copyFileSync( curPath, copyFolderContentsPath + SEPARATOR + filename );
+                        }
                     }
                     catch(err) {} // ok we found a directory
                 }
 
-                if( deleteFolder ) {
+                if( copyFolderContentsPath ) {
+                    fs.unlinkSync(file);
+                    rimraf.sync(folder);
+                }
+                else if( deleteFolder ) {
                     // Move the actual rom over the zip file
                     if( largestBinaryPath ) {
                         fs.renameSync( largestBinaryPath, file );
