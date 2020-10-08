@@ -2659,7 +2659,7 @@ function saveUploadedRom( file, system, game, parents ) {
     fs.renameSync(file.path, romLocation);
 
     fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"rom": file.originalname}));
-    if( system === SYSTEM_PC && !file.match(/\.exe$/) && !file.match(/\.msi$/) ) { // PC games may be zipped as they require multiple files.
+    if( system === SYSTEM_PC && !file.originalname.match(/\.exe$/) && !file.originalname.match(/\.msi$/) ) { // PC games may be zipped as they require multiple files.
         unpackGetLargestFile( romLocation, generateGameDir( system, game, parents ), false, true ).then( (name) => {
             if( name ) {
                 fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"rom": name}));
