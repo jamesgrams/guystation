@@ -3671,7 +3671,7 @@ async function fetchGameData( system, game, parents, currentMetadataContents, fo
     delete currentMetadataContents.cover;
 
     let payload = GAMES_FIELDS + 'search "' + game + '";' + 'where platforms=(' + PLATFORM_LOOKUP[system].join() + ");";
-    let gameInfo = await axios.post( GAMES_ENDPOINT, payload, headers );
+    let gameInfo = await axios.post( GAMES_ENDPOINT, payload, { headers: headers } );
     if( gameInfo.data.length ) {
         gameInfo = gameInfo.data[0];
         if( gameInfo.first_release_date ) currentMetadataContents.releaseDate = gameInfo.first_release_date;
@@ -3679,7 +3679,7 @@ async function fetchGameData( system, game, parents, currentMetadataContents, fo
         if( gameInfo.summary ) currentMetadataContents.summary = gameInfo.summary;
         if( gameInfo.cover ) {
             let coverPayload = "where id=" + gameInfo.cover + ";" + COVERS_FIELDS;
-            let coverInfo = await axios.post( COVERS_ENDPOINT, coverPayload, headers );
+            let coverInfo = await axios.post( COVERS_ENDPOINT, coverPayload, { headers: headers } );
             if( coverInfo.data.length ) {
                 coverInfo = coverInfo.data[0];
                 if( coverInfo.width && coverInfo.height && coverInfo.url ) {
@@ -3741,8 +3741,9 @@ async function getIgdbHeaders() {
             igdbContent = fetched.data;
             igdbContent.expires = igdbContent.expires_in + timeSeconds;
             delete igdbContent.expires_in;
-            delete igdbContent.bearer;
-            igdbContent["Client-ID"] = IGDB_CLIENT_ID;
+            delete igdbContent.token_type;
+            igdbContent.Authorization = "Bearer " + igdbContent.access_token;
+            delete igdbContent.access_token;
             fs.writeFileSync( IGDB_PATH, JSON.stringify(igdbContent) );
         }
         else {
@@ -3751,6 +3752,7 @@ async function getIgdbHeaders() {
     }
 
     delete igdbContent.expires;
+    igdbContent["Client-ID"] = IGDB_CLIENT_ID;
     return Object.assign( igdbContent, IGDB_HEADERS );
 }
 
