@@ -2856,7 +2856,7 @@ async function unpackGetLargestFile( file, folder, deleteFolder=false, noDirecto
                 for( let tmpFile of tmpFiles ) {
                     let curPath = folder + SEPARATOR + tmpFile;
                     try {
-                        if( !deleteFolder || tmpFile.match(/\.exe$/i) || tmpFile.match(/\.msi$/i) ) {
+                        if( deleteFolder || tmpFile.match(/\.exe$/i) || tmpFile.match(/\.msi$/i) ) {
                             let stats = fs.statSync(curPath);
                             if( isBinaryFileSync(curPath) && (!largestBinaryPath || stats["size"] > largestBinarySize) ) {
                                 largestBinaryPath = curPath;
