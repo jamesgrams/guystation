@@ -2659,7 +2659,7 @@ function saveUploadedRom( file, system, game, parents ) {
     fs.renameSync(file.path, romLocation);
 
     fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"rom": file.originalname}));
-    if( system === SYSTEM_PC && !file.originalname.match(/\.exe$/) && !file.originalname.match(/\.msi$/) ) { // PC games may be zipped as they require multiple files.
+    if( system === SYSTEM_PC && !file.originalname.match(/\.exe$/i) && !file.originalname.match(/\.msi$/i) ) { // PC games may be zipped as they require multiple files.
         unpackGetLargestFile( romLocation, generateGameDir( system, game, parents ), false, true ).then( (name) => {
             if( name ) {
                 fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"rom": name}));
@@ -2856,7 +2856,7 @@ async function unpackGetLargestFile( file, folder, deleteFolder=false, noDirecto
                 for( let tmpFile of tmpFiles ) {
                     let curPath = folder + SEPARATOR + tmpFile;
                     try {
-                        if( !deleteFolder || tmpFile.match(/\.exe$/) || tmpFile.match(/\.msi$/) ) {
+                        if( !deleteFolder || tmpFile.match(/\.exe$/i) || tmpFile.match(/\.msi$/i) ) {
                             let stats = fs.statSync(curPath);
                             if( isBinaryFileSync(curPath) && (!largestBinaryPath || stats["size"] > largestBinarySize) ) {
                                 largestBinaryPath = curPath;
