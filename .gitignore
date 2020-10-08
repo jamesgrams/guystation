@@ -4,3 +4,4 @@ npm-debug.log
 systems/*/emulators
 systems/*/games/*
 profiles.json
+igdb.json

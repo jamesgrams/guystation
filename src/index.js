@@ -129,15 +129,17 @@ const PLATFORM_LOOKUP = {
     "psp": [38],
     "3ds": [37, 137] // 3ds & new 3ds
 }
-const IGDB_API_KEY = process.env.GUYSTATION_IGDB_API_KEY;
-const IGBD_API_URL = "https://api-v3.igdb.com/";
+const IGDB_CLIENT_ID = process.env.GUYSTATION_IGDB_CLIENT_ID;
+const IGDB_CLIENT_SECRET = process.env.GUYSTATION_IGDB_CLIENT_SECRET;
+const IGDB_PATH = "igdb.json";
+const IGDB_TWITCH_OAUTH_URL= `https://id.twitch.tv/oauth2/token?client_id=${IGDB_CLIENT_ID}&client_secret=${IGDB_CLIENT_SECRET}&grant_type=client_credentials`;
+const IGBD_API_URL = "https://api.igdb.com/v4/";
 const GAMES_ENDPOINT = IGBD_API_URL + "games";
 const GAMES_FIELDS = "fields cover, name, first_release_date, summary;";
 const COVERS_ENDPOINT = IGBD_API_URL + "covers";
 const COVERS_FIELDS = "fields url, width, height;";
 const IGDB_HEADERS = { 
-    'Content-Type': 'text/plain',
-    'user-key': IGDB_API_KEY
+    'Content-Type': 'text/plain'
 }
 const THUMB_IMAGE_SIZE = "thumb";
 const COVER_IMAGE_SIZE = "cover_big";
@@ -278,7 +280,7 @@ const ERROR_MESSAGES = {
     "noGamesForMediaOrBrowser": "Media and Browser have no games",
     "alreadyFetchedWithinWeek": "Info has already been fetched this week",
     "noGameInfo": "No game info available",
-    "noApiKey": "No IGDB API key",
+    "noApiKey": "No IGDB API credentials",
     "invalidFileName": "Invalid file name",
     "genericError": "An uncaught error ocurred",
     "invalidMessage": "Invalid message",
@@ -294,7 +296,8 @@ const ERROR_MESSAGES = {
     "invalidSiteJson": "Invalid JSON for site",
     "siteUrlRequired": "The siteUrl key is required for site JSON",
     "couldNotSetScale": "Could not set scale",
-    "invalidFilepath": "Invalid filepath"
+    "invalidFilepath": "Invalid filepath",
+    "couldNotFetchIGDBInfo": "Could not fetch IGDB information"
 }
 // http://jsfiddle.net/vWx8V/ - keycode
 // http://robotjs.io/docs/syntax - robotjs
@@ -3647,12 +3650,12 @@ async function goHome() {
 async function fetchGameData( system, game, parents, currentMetadataContents, force ) {
     //let isInvalid = isInvalidGame( system, game, parents );
     //if( isInvalid ) return isInvalid;
-    if( !IGDB_API_KEY ) {
-        return ERROR_MESSAGES.noApiKey;
-    }
+
     if( system == MEDIA || system == BROWSER ) {
         return ERROR_MESSAGES.noGamesForMediaOrBrowser;
     }
+    let headers = await getIgdbHeaders();
+    if( typeof headers === STRING_TYPE ) return headers; // An error ocurred
 
     let metaDataLocation = generateGameMetaDataLocation(system, game, parents);
     if( !currentMetadataContents ) currentMetadataContents = JSON.parse(fs.readFileSync(metaDataLocation));
@@ -3668,7 +3671,7 @@ async function fetchGameData( system, game, parents, currentMetadataContents, fo
     delete currentMetadataContents.cover;
 
     let payload = GAMES_FIELDS + 'search "' + game + '";' + 'where platforms=(' + PLATFORM_LOOKUP[system].join() + ");";
-    let gameInfo = await axios.post( GAMES_ENDPOINT, payload, { "headers": IGDB_HEADERS } );
+    let gameInfo = await axios.post( GAMES_ENDPOINT, payload, headers );
     if( gameInfo.data.length ) {
         gameInfo = gameInfo.data[0];
         if( gameInfo.first_release_date ) currentMetadataContents.releaseDate = gameInfo.first_release_date;
@@ -3676,7 +3679,7 @@ async function fetchGameData( system, game, parents, currentMetadataContents, fo
         if( gameInfo.summary ) currentMetadataContents.summary = gameInfo.summary;
         if( gameInfo.cover ) {
             let coverPayload = "where id=" + gameInfo.cover + ";" + COVERS_FIELDS;
-            let coverInfo = await axios.post( COVERS_ENDPOINT, coverPayload, { "headers": IGDB_HEADERS } );
+            let coverInfo = await axios.post( COVERS_ENDPOINT, coverPayload, headers );
             if( coverInfo.data.length ) {
                 coverInfo = coverInfo.data[0];
                 if( coverInfo.width && coverInfo.height && coverInfo.url ) {
@@ -3706,6 +3709,47 @@ async function fetchGameData( system, game, parents, currentMetadataContents, fo
         fs.writeFileSync(metaDataLocation, JSON.stringify(currentMetadataContents));
         return ERROR_MESSAGES.noGameInfo;
     }
+}
+
+/**
+ * Get the IGDB headers.
+ * @returns {Object|string} - The object that can be uses as the headers for IGDB requests or an error message.
+ */
+async function getIgdbHeaders() {
+    if( !IGDB_CLIENT_ID || !IGDB_CLIENT_SECRET ) {
+        return ERROR_MESSAGES.noApiKey;
+    }
+
+    let timeSeconds = Math.floor(Date.now()/1000);
+    let needsFetch = false;
+    let igdbContent = {};
+    try {
+        igdbContent = JSON.parse( fs.readFileSync(IGDB_PATH).toString() );
+        let expires = igdbContent.expires;
+        if( timeSeconds >= expires ) {
+            needsFetch = true;
+        }
+    }
+    catch(err) {
+        // file malformed or does not exist
+        needsFetch = true;
+    }
+
+    if( needsFetch ) {
+        let fetched = await axios.post( IGDB_TWITCH_OAUTH_URL );
+        if( fetched.data.length ) {
+            igdbContent = fetched.data;
+            igdbContent.expires = igdbContent.expires_in + timeSeconds;
+            delete igdbContent.expires_in;
+            fs.writeFileSync( IGDB_PATH, JSON.stringify(igdbContent) );
+        }
+        else {
+            return ERROR_MESSAGES.couldNotFetchIGDBInfo;
+        }
+    }
+
+    delete igdbContent.expires;
+    return Object.assign( igdbContent, IGDB_HEADERS );
 }
 
 /**
