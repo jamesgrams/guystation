@@ -3737,7 +3737,7 @@ async function getIgdbHeaders() {
 
     if( needsFetch ) {
         let fetched = await axios.post( IGDB_TWITCH_OAUTH_URL );
-        if( fetched.data.length ) {
+        if( fetched.data ) {
             igdbContent = fetched.data;
             igdbContent.expires = igdbContent.expires_in + timeSeconds;
             delete igdbContent.expires_in;
