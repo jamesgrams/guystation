@@ -2861,7 +2861,7 @@ async function unpackGetLargestFile( file, folder, deleteFolder=false, installer
                     let curPath = folder + SEPARATOR + tmpFile;
                     try {
                         if( copyFolderContentsPath ) {
-                            fs.copyFileSync( curPath, copyFolderContentsPath + SEPARATOR + filename );
+                            fs.copyFileSync( curPath, copyFolderContentsPath + SEPARATOR + tmpFile );
                         }
                         if( !installersOnly || tmpFile.match(/\.exe$/i) || tmpFile.match(/\.msi$/i) ) {
                             let stats = fs.statSync(curPath);
