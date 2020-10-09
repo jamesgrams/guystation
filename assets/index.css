@@ -842,9 +842,12 @@ h1 {
     }
 }
 
-@media only screen and (max-width: 1088px) {
+@media only screen and (max-width: 1146px) {
     #functions {
         width: 220px;
+    }
+    #more-functions .function-row:last-child button {
+        width: 51px;
     }
     #game-functions, #save-functions, #more-functions {
         padding: 8px 0;

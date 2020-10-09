@@ -3745,7 +3745,7 @@ function displayPictureInPicture() {
     muteVideo.classList.add("inline");
     muteVideo.querySelector("input").setAttribute("name","pip-radio");
     form.appendChild(muteGame);
-    form.appendChild(muteRadio);
+    form.appendChild(muteVideo);
 
     form.appendChild( createButton("Apply", function() {
         
