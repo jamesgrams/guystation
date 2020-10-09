@@ -416,7 +416,7 @@ h1 {
     right: 0;
     text-align: center;
     transform: translateX(100%); /* ~24px shown */
-    width: 990px; /* 58px to add another icon */
+    width: 1048px; /* 58px to add another icon */
     transition: transform 0.5s, width 0.5s, background-color 1s;
     z-index: 997;
     background-color: #191919;
@@ -972,6 +972,9 @@ readers do not read off random characters that represent icons */
 
 .fa-envelope:before {
     content: "\f0e0"; }
+
+.fa-clone:before {
+    content: "\f24d"; }
 
 .sr-only-focusable:active, .sr-only-focusable:focus {
   clip: auto;

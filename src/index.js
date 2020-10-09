@@ -228,6 +228,19 @@ const N64_MANUAL_VALUE = 0;
 const N64_DEVICE_KEY = "device";
 const SCREENSHOT_CONTROL = "Screenshot";
 const WATCH_FOLDERS_INTERVAL = 3000;
+const VIDEO_SELECTOR_TIMEOUT = 8000;
+const LIST_SINK_INPUTS_COMMAND = "pacmd list-sink-inputs | grep 'index:\\|application.name'";
+const SET_MUTE_COMMAND = "pacmd set-sink-input-mute ";
+const MUTE_TRUE = " true";
+const MUTE_FALSE = " false";
+const BLANK_PAGE = "about:blank";
+const CHROME_NAME = "application.name = \"Chrome\"";
+const MUTE_MODES = {
+    none: "none",
+    game: "game",
+    browser: "browser",
+    all: "all"
+}
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -297,7 +310,11 @@ const ERROR_MESSAGES = {
     "siteUrlRequired": "The siteUrl key is required for site JSON",
     "couldNotSetScale": "Could not set scale",
     "invalidFilepath": "Invalid filepath",
-    "couldNotFetchIGDBInfo": "Could not fetch IGDB information"
+    "couldNotFetchIGDBInfo": "Could not fetch IGDB information",
+    "pipPageClosed": "The PIP page is closed",
+    "couldNotFindVideo": "Could not find video on page",
+    "couldNotMuteProperly": "Could not mute properly",
+    "invalidMuteMode": "Invalid mute mode"
 }
 // http://jsfiddle.net/vWx8V/ - keycode
 // http://robotjs.io/docs/syntax - robotjs
@@ -323,6 +340,9 @@ let profilesDict = {};
 
 let browser = null;
 let menuPage = null;
+let pipPage = null;
+let muteMode = null;
+let previousMuteMode = null;
 let browsePage = null;
 let properResolution = null;
 let clearMediaPlayingInterval = null;
@@ -930,6 +950,27 @@ app.get("/samba", async function(request, response) {
     writeResponse( response, HTTP_OK, {"samba": sambaOn} );
 } );
 
+// Start PIP
+app.post("/pip/start", async function(request, response) {
+    console.log("app serving /pip/start");
+    let errorMessage = await startPip( request.body.url, request.body.muteMode );
+    writeActionResponse( response, errorMessage );
+});
+
+// Stop PIP
+app.post("/pip/stop", async function(request, response) {
+    console.log("app serving /pip/stop");
+    let errorMessage = await stopPip();
+    writeActionResponse( response, errorMessage );
+});
+
+// Change the mute mode
+app.post("/mute-mode", async function(request, response) {
+    console.log("app serving /mute-mode");
+    let errorMessage = setMuteMode( request.body.muteMode );
+    writeActionResponse( response, errorMessage );
+});
+
 // endpoints to set up to stream what is coming through the microphone and webcam
 
 // set up the proper microphone input to the stream
@@ -941,6 +982,7 @@ app.get("/stream/microphone", async function(request, response) {
 // Create the fake microphone
 if(process.argv.indexOf(CHROMIUM_ARG) == -1) {
     createFakeMicrophone();
+    setMuteMode(MUTE_MODES.none);
 }
 
 // START PROGRAM (Launch Browser and Listen)
@@ -1072,6 +1114,8 @@ async function launchBrowser() {
     context.overridePermissions("http://" + LOCALHOST, ['microphone','camera']);
     let pages = await browser.pages();
     menuPage = await pages[0];
+    pipPage = await browser.newPage();
+    await menuPage.bringToFront();
 
     let sambaString = "";
     let sambaIndex = process.argv.indexOf(SAMBA_FLAG);
@@ -1085,7 +1129,7 @@ async function launchBrowser() {
     browser.on("targetdestroyed", async function() {
         // If there are no more browse tabs, the browser has been quit
         let pages = await browser.pages();
-        if( pages.length == 1 ) { // only the menu page is open
+        if( pages.length <= 2 ) { // only the menu page is open
             browsePage = null; // There is no browse page
             if( currentSystem === BROWSER ) {
                 blankCurrentGame();
@@ -1103,8 +1147,8 @@ async function launchBrowser() {
                 currentPageIndex ++;
             }
             // If the current page is the menu page, we need to switch it
-            if( currentPage.mainFrame()._id === menuPage.mainFrame()._id ) {
-                // there is necessarily at least one other browse tab, since the open pages > 1
+            while( currentPage.mainFrame()._id === menuPage.mainFrame()._id || currentPage.mainFrame()._id === pipPage.mainFrame()._id ) {
+                // there is necessarily at least one other browse tab, since the open pages > 2
                 currentPageIndex++;
                 if( currentPageIndex >= pages.length ) {
                     currentPageIndex = 0;
@@ -1294,7 +1338,7 @@ async function getBrowseTabs() {
     let response = [];
     let pages = await browser.pages();
     for( let page of pages ) {
-        if( page.mainFrame()._id !== menuPage.mainFrame()._id ) {
+        if( page.mainFrame()._id !== menuPage.mainFrame()._id && page.mainFrame()._id !== pipPage.mainFrame()._id ) {
             try {
                 let title = await page.title();
                 let data = { title: title, id: page.mainFrame()._id };
@@ -1338,7 +1382,7 @@ async function closeBrowseTab(id) {
 
     let pages = await browser.pages();
     for( let page of pages ) {
-        if( page.mainFrame()._id === id && page.mainFrame()._id !== menuPage.mainFrame()._id ) {
+        if( page.mainFrame()._id === id && page.mainFrame()._id !== menuPage.mainFrame()._id && page.mainFrame()._id !== pipPage.mainFrame()._id ) {
             try {
                 await closePage( page );
             }
@@ -1362,7 +1406,7 @@ async function closeBrowseTabs() {
     // Close all the non-menu pages
     let pages = await browser.pages();
     for( let page of pages ) {
-        if( page.mainFrame()._id !== menuPage.mainFrame()._id ) {
+        if( page.mainFrame()._id !== menuPage.mainFrame()._id && page.mainFrame()._id !== pipPage.mainFrame()._id ) {
             await closePage( page );
         }
     }
@@ -1382,7 +1426,7 @@ async function switchBrowseTab(id) {
 
     let pages = await browser.pages();
     for( let page of pages ) {
-        if( page.mainFrame()._id === id && page.mainFrame()._id !== menuPage.mainFrame()._id ) {
+        if( page.mainFrame()._id === id && page.mainFrame()._id !== menuPage.mainFrame()._id && page.mainFrame()._id !== pipPage.mainFrame()._id ) {
             await page.bringToFront();
             browsePage = page;
             return Promise.resolve(false);
@@ -1808,6 +1852,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
             currentGame = game;
             currentParentsString = parents.join(SEPARATOR);
             currentEmulator = true; // Kind of hacky... but will pass for playing
+            updateMute();
             return Promise.resolve(false);
         }
         else if( system == MEDIA ) {
@@ -1816,6 +1861,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
             currentGame = game;
             currentParentsString = parents.join(SEPARATOR);
             currentEmulator = true; // Kind of hacky... but will pass for playing
+            updateMute();
             return Promise.resolve(false);
         }
 
@@ -1875,6 +1921,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         }
 
         currentEmulator = proc.spawn( command, arguments, {detached: true, stdio: 'ignore'} );
+        updateMute();
         currentEmulator.on('exit', blankCurrentGame);
 
         currentGame = game;
@@ -1921,6 +1968,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         for( let i=0; i<activateTries; i++ ) {
             try {
                 proc.execSync( command );
+                updateMute();
                 break;
             }
             catch(err) { 
@@ -1935,11 +1983,13 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
     }
     else if( system == BROWSER ) {
         if ( browsePage && !browsePage.isClosed() ) {
+            updateMute();
             browsePage.bringToFront();
         }
     }
     else if( system == MEDIA ) {
         if( menuPage && !menuPage.isClosed() ) {
+            updateMute();
             resumeRemoteMedia();
         }
     }
@@ -5057,4 +5107,96 @@ function startPcChangeLoop() {
 
     }, WATCH_FOLDERS_INTERVAL );
 
+}
+
+/**
+ * Set the saved mute mode.
+ * @param {string} mode - The mute mode.
+ * @returns {boolean} false or an error message if the mute mode is invalid..
+ */
+function setMuteMode( mode ) {
+    if( ! Object.values(MUTE_MODES).filter(el => el === mode).length ) return ERROR_MESSAGES.invalidMuteMode;
+
+    if( muteMode === MUTE_MODES.all || MUTE_MODES.none ) previousMuteMode = muteMode;
+    muteMode = mode;
+    updateMute();
+    return false;
+}
+
+/**
+ * Ensure that the mute mode we have set is being followed.
+ * @returns {boolean|string} false if successful or an error message if there is one.
+ */
+function updateMute() {
+    
+    try {
+        let sinkInputs = proc.execSync(PACMD_PREFIX + LIST_SINK_INPUTS_COMMAND).toString();
+        sinkInputs = sinkInputs.split("index:").map( el => el.split("\n").map( el2 => el2.trim() ) );
+
+        for( let sinkInput of sinkInputs ) {
+            let index = sinkInput[0];
+            let name = sinkInputs[1];
+            let setTo = MUTE_FALSE;
+            if(
+                ( muteMode === MUTE_MODES.all ) ||
+                ( muteMode === MUTE_MODES.game && !name.match(CHROME_NAME) ) ||
+                ( muteMode === MUTE_MODES.browser && name.match(CHROME_NAME) )
+            ) {
+                setTo = MUTE_TRUE;
+            }
+            proc.execSync(PACMD_PREFIX + SET_MUTE_COMMAND + index + setTo);
+        }
+        return false;
+    }
+    catch(err) {
+        return ERROR_MESSAGES.couldNotMuteProperly;
+    }
+
+}
+
+/**
+ * Start PIP mode.
+ * @param {string} url - The url containing the video we want to PIP.
+ * @param {string} pipMuteMode - The mute mode to set (should be browser or game).
+ * @returns {Promise} - A promise containing false or an error message if there is one.
+ */
+async function startPip( url, pipMuteMode ) {
+    if( !pipPage || pipPage.isClosed() ) {
+        return Promise.resolve( ERROR_MESSAGES.pipPageClosed );
+    }
+
+    try {
+        await pipPage.goto( url ) ;
+        try {
+            await pipPage.waitForNavigation();
+            await pipPage.waitForSelector("video", { timeout: VIDEO_SELECTOR_TIMEOUT });
+            pipPage.evaluate( () => document.querySelector("video").requestPictureInPicture() );
+        }
+        catch(err) {
+            return Promise.resolve(ERROR_MESSAGES.couldNotFindVideo);
+        }
+        let mm = setMuteMode( pipMuteMode );
+        if( mm ) return mm;
+    }
+    catch(err) {
+        return Promise.resolve(ERROR_MESSAGES.invalidUrl);
+    }
+    return Promise.resolve(false);
+}
+
+/**
+ * Stop Picture in Picture mode.
+ * @returns {Promise} A promise containing an error message if there is one or false if there is not.
+ */
+async function stopPip() {
+    if( !pipPage || pipPage.isClosed() ) {
+        return Promise.resolve( ERROR_MESSAGES.pipPageClosed );
+    }
+
+    await pipPage.evaluate( () => document.exitPictureInPicture() );
+    await pipPage.goto(BLANK_PAGE);
+    
+    setMuteMode( previousMuteMode );
+
+    return Promise.resolve(false);
 }

@@ -1579,6 +1579,9 @@ function toggleButtons() {
 
     // Always allow power controls
     document.getElementById("power-options").onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#power-options-form") ) displayPowerOptions(); }
+
+    // always allow pip
+    document.getElementById("picture-in-picture").onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#pip-form") ) displayPictureInPicture(); }
 }
 
 /**
@@ -3719,6 +3722,61 @@ function displayPowerOptions() {
             }, closeModal);
         }
     }) );
+    launchModal( form );
+}
+
+/**
+ * Display picture in picture.
+ */
+function displayPictureInPicture() {
+    var form = document.createElement("div");
+    form.appendChild( createFormTitle("Picture in Picture") );
+    form.setAttribute("id", "pip-form");
+    
+    var pipUrlInput = createInput(null, "pip-url-input", "URL: ");
+    form.appendChild( pipUrlInput );
+
+    var muteGame = createInput(null, "pip-mute-game-input", "Mute Game", "radio");
+    muteGame.classList.add("inline");
+    var muteGameInput = muteGame.querySelector("input");
+    muteGameInput.setAttribute("name","pip-radio");
+    muteGameInput.setAttribute("checked","checked");
+    var muteVideo = createInput(null, "pip-mute-video-input", "Mute Video", "radio");
+    muteVideo.classList.add("inline");
+    muteVideo.querySelector("input").setAttribute("name","pip-radio");
+    form.appendChild(muteGame);
+    form.appendChild(muteRadio);
+
+    form.appendChild( createButton("Apply", function() {
+        
+        var muteMode = muteGameInput.checked ? "game" : "browser";
+        var url = pipUrlInput.querySelector("input").value;
+        if( url ) {
+            makeRequest( "POST", "/pip/start", {
+                url: url,
+                muteMode: muteMode
+            },
+            function( responseText ) { standardSuccess(responseText, "PIP enabled") },
+            function( responseText ) { standardFailure( responseText ) } );
+        }
+        else {
+            makeRequest( "POST", "/mute-mode", {
+                muteMode: muteMode
+            },
+            function( responseText ) { standardSuccess(responseText, "Mute change made") },
+            function( responseText ) { standardFailure( responseText ) } );
+        }
+
+    } ) );
+    form.appendChild( createButton("Stop", function() {
+        
+        makeRequest( "POST", "/pip/stop", {},
+            function( responseText ) { standardSuccess(responseText, "PIP disabled") },
+            function( responseText ) { standardFailure( responseText ) }
+        );
+
+    } ) );
+
     launchModal( form );
 }
 
