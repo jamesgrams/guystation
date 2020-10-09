@@ -5193,7 +5193,12 @@ async function stopPip() {
         return Promise.resolve( ERROR_MESSAGES.pipPageClosed );
     }
 
-    await pipPage.evaluate( () => document.exitPictureInPicture() );
+    try {
+        await pipPage.evaluate( () => document.exitPictureInPicture() );
+    }
+    catch(err) {
+        // ok
+    }
     await pipPage.goto(BLANK_PAGE);
     
     setMuteMode( previousMuteMode );
