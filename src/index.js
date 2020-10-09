@@ -5169,18 +5169,19 @@ async function startPip( url, pipMuteMode ) {
         await pipPage.goto( url ) ;
         try {
             await pipPage.waitForSelector("video", { timeout: VIDEO_SELECTOR_TIMEOUT });
-            const session = await pipPage.target().createCDPSession();
-            await session.send("Page.enable");
-            await sesion.send("Page.setWebLifecycleState", {state: "active"});
             pipPage.evaluate( () => {
                 var gsPipVideo = document.querySelector("video");
                 try {
                     gsPipVideo.requestPictureInPicture();
                 }
                 catch(err) {
-                    gsPipVideo.onloadedmetadata = function() {
-                        gsPipVideo.requestPictureInPicture();
-                    }
+                    var gsPipInterval = setInterval( function() {
+                        try {
+                            gsPipVideo.requestPictureInPicture();
+                            clearInterval(gsPipInterval);
+                        }
+                        catch(err) {}
+                    }, 1000 );
                 }
             } );
         }
