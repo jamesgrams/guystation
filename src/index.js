@@ -5168,9 +5168,18 @@ async function startPip( url, pipMuteMode ) {
     try {
         await pipPage.goto( url ) ;
         try {
-            await pipPage.waitForNavigation();
             await pipPage.waitForSelector("video", { timeout: VIDEO_SELECTOR_TIMEOUT });
-            pipPage.evaluate( () => document.querySelector("video").requestPictureInPicture() );
+            pipPage.evaluate( () => {
+                var gsPipVideo = document.querySelector("video");
+                try {
+                    gsPipVideo.requestPictureInPicture();
+                }
+                catch(err) {
+                    gsPipVideo.onloadedmetadata = function() {
+                        gsPipVideo.requestPictureInPicture();
+                    }
+                }
+            } );
         }
         catch(err) {
             return Promise.resolve(ERROR_MESSAGES.couldNotFindVideo);
