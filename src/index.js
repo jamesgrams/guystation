@@ -241,7 +241,7 @@ const MUTE_MODES = {
     browser: "browser",
     all: "all"
 }
-const PIP_LOAD_TIME = 50;
+const PIP_LOAD_TIME = 100;
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -5120,7 +5120,7 @@ function startPcChangeLoop() {
 function setMuteMode( mode ) {
     if( ! Object.values(MUTE_MODES).filter(el => el === mode).length ) return ERROR_MESSAGES.invalidMuteMode;
 
-    if( muteMode === MUTE_MODES.all || MUTE_MODES.none ) previousMuteMode = muteMode;
+    if( muteMode === MUTE_MODES.all || muteMode === MUTE_MODES.none ) previousMuteMode = muteMode;
     muteMode = mode;
     updateMute();
     return false;
@@ -5137,6 +5137,16 @@ function updateMute() {
         let sinkInputs = proc.execSync(PACMD_PREFIX + LIST_SINK_INPUTS_COMMAND).toString();
         sinkInputs = sinkInputs.split("index:").map( el => el.split("\n").map( el2 => el2.trim() ) ).filter( el => el.length > 1 && el[0] && el[1] );
 
+        // when we hit the browser, and we are only going to mute either the game or the browser
+        // well the game is in the browser, so we need to do something different rather than
+        // muting the entire application.
+        if( (currentSystem === BROWSER || currentSystem === MEDIA) && muteMode !== MUTE_MODES.all ) {
+            muteAlternative = currentSystem;
+        }
+        if( muteMode === MUTE_MODES.none ) {
+            muteAlternative = true;
+        }
+
         for( let sinkInput of sinkInputs ) {
             let index = sinkInput[0];
             let name = sinkInput[1];
@@ -5146,21 +5156,12 @@ function updateMute() {
                 ( muteMode === MUTE_MODES.game && !name.match(CHROME_NAME) ) ||
                 ( muteMode === MUTE_MODES.browser && name.match(CHROME_NAME) )
             ) {
-                setTo = MUTE_TRUE;
+                if( !muteAlternative ) setTo = MUTE_TRUE;
             }
-            // when we hit the browser, and we are only going to mute either the game or the browser
-            // well the game is in the browser, so we need to do something different rather than
-            // muting the entire application.
-            if( (currentSystem === BROWSER || currentSystem === MEDIA) && setTo === MUTE_TRUE && muteMode !== MUTE_MODES.all ) {
-                setTo = MUTE_FALSE;
-                muteAlternative = currentSystem;
-            }
+            
             proc.execSync(PACMD_PREFIX + SET_MUTE_COMMAND + index + setTo);
         }
 
-        if( muteMode = MUTE_MODES.none ) {
-            muteAlternative = true;
-        }
         // muteMode could be browser, game, or none
         if( muteAlternative ) {
             handleWithinBrowserMute( muteAlternative );
