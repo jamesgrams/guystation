@@ -5133,6 +5133,7 @@ function setMuteMode( mode ) {
 function updateMute() {
 
     try {
+        let muteAlternative = null;
         let sinkInputs = proc.execSync(PACMD_PREFIX + LIST_SINK_INPUTS_COMMAND).toString();
         sinkInputs = sinkInputs.split("index:").map( el => el.split("\n").map( el2 => el2.trim() ) ).filter( el => el.length > 1 && el[0] && el[1] );
 
@@ -5147,14 +5148,81 @@ function updateMute() {
             ) {
                 setTo = MUTE_TRUE;
             }
+            // when we hit the browser, and we are only going to mute either the game or the browser
+            // well the game is in the browser, so we need to do something different rather than
+            // muting the entire application.
+            if( (currentSystem === BROWSER || currentSystem === MEDIA) && setTo === MUTE_TRUE && muteMode !== MUTE_MODES.all ) {
+                setTo = MUTE_FALSE;
+                muteAlternative = currentSystem;
+            }
             proc.execSync(PACMD_PREFIX + SET_MUTE_COMMAND + index + setTo);
         }
+
+        if( muteMode = MUTE_MODES.none ) {
+            muteAlternative = true;
+        }
+        // muteMode could be browser, game, or none
+        if( muteAlternative ) {
+            handleWithinBrowserMute( muteAlternative );
+        }
+
         return false;
     }
     catch(err) {
         return ERROR_MESSAGES.couldNotMuteProperly;
     }
 
+}
+
+/**
+ * Handle when pages within the browser need to be muted or not.
+ * @param {string|boolean} muteAlternative - browser, media, or true. Logic applies to browser/media different to true. (true unmutes all).
+ * We really only ever need true when we previously were on browser or media mute alternative as when we mute all, we just mute the application.
+ * This isn't ideal since we don't keep track of what the user has muted manually.
+ */
+async function handleWithinBrowserMute( muteAlternative ) {
+    let pages = await browser.pages();
+    for( let page of pages ) {
+
+        if( muteAlternative === BROWSER || muteAlternative === MEDIA ) {
+            if( muteMode === MUTE_MODES.game ) {
+                // we want to mute the game, which is everything except the PIP page (menuPage for media, other pages for browser)
+                if( page.mainFrame()._id === pipPage.mainFrame()._id ) {
+                    setPageMute( page, false );
+                }
+                else {
+                    setPageMute( page, true );
+                }
+            }
+            else {
+                // we want to mute the video - i.e. the pipPage
+                if( page.mainFrame()._id === pipPage.mainFrame()._id ) {
+                    setPageMute( page, true );
+                }
+                else {
+                    setPageMute( page, false ); 
+                }
+            }
+        }
+        // none muted > be certain we've unmuted from when we were on game/pip video muted.
+        else {
+            setPageMute( page, false );
+        }
+
+    }
+}
+
+/**
+ * Set elements on a page to be muted or not.
+ * @param {Page} page - The puppeteer page to mute/unmute. 
+ * @param {boolean} shouldMute - Whether we should mute or not.
+ */
+async function setPageMute( page, shouldMute ) {
+    await page.evaluate( (sM) => {
+        document.querySelectorAll("video,audio").forEach( el => {
+            el.muted = sM;
+        } );
+    }, shouldMute );
 }
 
 /**
