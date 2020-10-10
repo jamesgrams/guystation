@@ -115,6 +115,8 @@ With that being said, you may still want to set up the following (see the Recomm
     * To help with this, you can specify an absolute path of an exe file in the Rom URL field if you like.
     * Additionally, it's often the case that multiple files are needed to install a PC game. If you have multiple files, you can zip them up and upload them. GuyStation will take the biggest .exe or .msi file found as the installer (or potentially game) file, but all the files will be available in the folder.
         * Please note, this only happens when you upload a zip file. Downloading a zip file via the ROM URL function will behave as that function typically does - only the largest file is kept.
+* Picture-in-Picture Mode
+    * You can play an online video (e.g. YouTube) while you use GuyStation. Simply click the PIP Button under "More" in the menu and enter the URL of the page containing the video and click Apply. You can also choose whether to mute the game or the video in PIP mode. Once you are done, use the Stop button to leave PIP mode. You can switch between the video and the game being muted by selecting one and clicking Apply without entering a value for the URL field.
 
 ## Recommendations
 Here are some recommendedations to make your experience better on Ubuntu.
