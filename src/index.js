@@ -241,6 +241,7 @@ const MUTE_MODES = {
     browser: "browser",
     all: "all"
 }
+const PIP_LOAD_TIME = 50;
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -5176,7 +5177,7 @@ async function startPip( url, pipMuteMode ) {
             }
             await pipPage.waitForSelector("video", { timeout: VIDEO_SELECTOR_TIMEOUT });
             await pipPage.bringToFront();
-            await pipPage.waitFor(10);
+            await pipPage.waitFor(PIP_LOAD_TIME);
             pipPage.evaluate( () => {
                 var gsPipVideo = document.querySelector("video");
                 try {
