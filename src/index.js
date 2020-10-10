@@ -1133,6 +1133,7 @@ async function launchBrowser() {
             browsePage = null; // There is no browse page
             if( currentSystem === BROWSER ) {
                 blankCurrentGame();
+                await menuPage.bringToFront();
             }
         }
         else {
@@ -1410,6 +1411,7 @@ async function closeBrowseTabs() {
             await closePage( page );
         }
     }
+    await menuPage.bringToFront();
 
     return Promise.resolve(false);
 }
@@ -1694,7 +1696,7 @@ function generateGameDir(system, game, parents) {
  * @returns {string} The ROM filepath for the game (e.g. /home/user/guystation/systems/gba/games/super-mario-world/mario-world.gba).
  */
 function generateRomLocation(system, game, rom, parents) {
-    if( rom.match(/^\//) ) return rom; // absolute path
+    if( rom && rom.match(/^\//) ) return rom; // absolute path
     return generateGameDir(system, game, parents) + SEPARATOR + rom;
 }
 
@@ -5128,14 +5130,14 @@ function setMuteMode( mode ) {
  * @returns {boolean|string} false if successful or an error message if there is one.
  */
 function updateMute() {
-    
+
     try {
         let sinkInputs = proc.execSync(PACMD_PREFIX + LIST_SINK_INPUTS_COMMAND).toString();
-        sinkInputs = sinkInputs.split("index:").map( el => el.split("\n").map( el2 => el2.trim() ) );
+        sinkInputs = sinkInputs.split("index:").map( el => el.split("\n").map( el2 => el2.trim() ) ).filter( el => el.length > 1 && el[0] && el[1] );
 
         for( let sinkInput of sinkInputs ) {
             let index = sinkInput[0];
-            let name = sinkInputs[1];
+            let name = sinkInput[1];
             let setTo = MUTE_FALSE;
             if(
                 ( muteMode === MUTE_MODES.all ) ||
@@ -5168,7 +5170,13 @@ async function startPip( url, pipMuteMode ) {
     try {
         await pipPage.goto( url ) ;
         try {
+            let pipRefocusGame = false;
+            if( currentEmulator && ( !menuPageIsActive() || (await menuPage.evaluate(() => isRemoteMediaActive())) ) ) { 
+                pipRefocusGame = true;
+            }
             await pipPage.waitForSelector("video", { timeout: VIDEO_SELECTOR_TIMEOUT });
+            await pipPage.bringToFront();
+            await pipPage.waitFor(10);
             pipPage.evaluate( () => {
                 var gsPipVideo = document.querySelector("video");
                 try {
@@ -5184,6 +5192,10 @@ async function startPip( url, pipMuteMode ) {
                     }, 1000 );
                 }
             } );
+            await goHome();
+            if( pipRefocusGame && currentEmulator ) {
+                await launchGame( currentSystem, currentGame, false, currentParentsString.split(SEPARATOR).filter(el => el != ''), true );
+            } 
         }
         catch(err) {
             return Promise.resolve(ERROR_MESSAGES.couldNotFindVideo);

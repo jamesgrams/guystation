@@ -3747,6 +3747,10 @@ function displayPictureInPicture() {
     form.appendChild(muteGame);
     form.appendChild(muteVideo);
 
+    var stopBreak = document.createElement("div");
+    stopBreak.classList.add("break");
+    form.appendChild(stopBreak);
+
     form.appendChild( createButton("Apply", function() {
         
         var muteMode = muteGameInput.checked ? "game" : "browser";
