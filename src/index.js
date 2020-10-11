@@ -242,6 +242,7 @@ const MUTE_MODES = {
     all: "all"
 }
 const PIP_LOAD_TIME = 100;
+const TRY_PIP_INTERVAL = 100;
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -352,6 +353,7 @@ let gamepadFileDescriptors = [];
 let properEmulatorResolution = null;
 let continueInterval = null;
 let pcChangeLoop = null;
+let tryPipInterval = null;
 
 let desktopUser = proc.execSync(GET_USER_COMMAND).toString().trim();
 const PC_WATCH_FOLDERS = [
@@ -5247,21 +5249,25 @@ async function startPip( url, pipMuteMode ) {
             await pipPage.waitForSelector("video", { timeout: VIDEO_SELECTOR_TIMEOUT });
             await pipPage.bringToFront();
             await pipPage.waitFor(PIP_LOAD_TIME);
-            pipPage.evaluate( () => {
-                var gsPipVideo = document.querySelector("video");
+            clearInterval(tryPipInterval);
+            let tryPip = async (success, failure) => {
                 try {
-                    gsPipVideo.requestPictureInPicture();
+                    await pipPage.evaluate( () => document.querySelector("video").requestPictureInPicture() );
                 }
                 catch(err) {
-                    var gsPipInterval = setInterval( function() {
-                        try {
-                            gsPipVideo.requestPictureInPicture();
-                            clearInterval(gsPipInterval);
-                        }
-                        catch(err) {}
-                    }, 1000 );
+                    if( failure ) failure();
+                    return;
                 }
+                if( success ) success();
+            };
+            let tryPipPromise = new Promise( (resolve, reject) => {
+                tryPip( resolve, () => {
+                    tryPipInterval = setInterval( async () => {
+                        tryPip( () => { clearInterval(tryPipInterval); resolve(); } );
+                    }, TRY_PIP_INTERVAL );
+                } );
             } );
+            await tryPipPromise;
             await goHome();
             if( pipRefocusGame && currentEmulator ) {
                 await launchGame( currentSystem, currentGame, false, currentParentsString.split(SEPARATOR).filter(el => el != ''), true );
@@ -5284,6 +5290,7 @@ async function startPip( url, pipMuteMode ) {
  * @returns {Promise} A promise containing an error message if there is one or false if there is not.
  */
 async function stopPip() {
+    clearInterval( tryPipInterval );
     if( !pipPage || pipPage.isClosed() ) {
         return Promise.resolve( ERROR_MESSAGES.pipPageClosed );
     }
