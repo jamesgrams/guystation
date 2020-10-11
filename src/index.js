@@ -234,7 +234,7 @@ const SET_MUTE_COMMAND = "pacmd set-sink-input-mute ";
 const MUTE_TRUE = " true";
 const MUTE_FALSE = " false";
 const BLANK_PAGE = "about:blank";
-const CHROME_NAME = "application.name = \"Chrome\"";
+const CHROME_NAME = "application.name = \"Chrom";
 const MUTE_MODES = {
     none: "none",
     game: "game",
