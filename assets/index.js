@@ -3752,6 +3752,8 @@ function displayPictureInPicture() {
     form.appendChild(stopBreak);
 
     form.appendChild( createButton("Apply", function() {
+        if( this.classList.contains("inactive") ) return;
+        form.querySelectorAll("button").forEach( function(el) { el.classList.add("inactive") } );
         
         var muteMode = muteGameInput.checked ? "game" : "browser";
         var url = pipUrlInput.querySelector("input").value;
@@ -3761,22 +3763,33 @@ function displayPictureInPicture() {
                 muteMode: muteMode
             },
             function( responseText ) { standardSuccess(responseText, "PIP enabled") },
-            function( responseText ) { standardFailure( responseText ) } );
+            function( responseText ) { 
+                standardFailure( responseText );
+                form.querySelectorAll("button").forEach( function(el) { el.classList.remove("inactive") } );
+            } );
         }
         else {
             makeRequest( "POST", "/mute-mode", {
                 muteMode: muteMode
             },
             function( responseText ) { standardSuccess(responseText, "Mute change made") },
-            function( responseText ) { standardFailure( responseText ) } );
+            function( responseText ) { 
+                standardFailure( responseText );
+                form.querySelectorAll("button").forEach( function(el) { el.classList.remove("inactive") } );
+            } );
         }
 
     } ) );
     form.appendChild( createButton("Stop", function() {
+        if( this.classList.contains("inactive") ) return;
+        form.querySelectorAll("button").forEach( function(el) { el.classList.add("inactive") } );
         
         makeRequest( "POST", "/pip/stop", {},
             function( responseText ) { standardSuccess(responseText, "PIP disabled") },
-            function( responseText ) { standardFailure( responseText ) }
+            function( responseText ) { 
+                standardFailure( responseText );
+                form.querySelectorAll("button").forEach( function(el) { el.classList.remove("inactive") } );
+            }
         );
 
     } ) );
