@@ -5397,9 +5397,9 @@ async function toggleFullscreenPip() {
         await pipPage.bringToFront(); // make sure pip page is displayed ONLY if we are going into fullscreen mode
     }
 
-    await pipPage.evaluate( () => {
+    await pipPage.evaluate( (currentlyInFullscreen) => {
 
-        if( document.fullscreenElement && document.fullscreenElement == document.querySelector("video") ) {
+        if( currentlyInFullscreen ) {
             document.exitFullscreen();
         }
         else {
@@ -5412,7 +5412,7 @@ async function toggleFullscreenPip() {
             document.addEventListener("fullscreenchange",gsListenerFunction);
         }
 
-    } );
+    }, currentlyInFullscreen );
 
     return Promise.resolve(false); 
 
