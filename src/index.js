@@ -244,7 +244,6 @@ const MUTE_MODES = {
 const PIP_LOAD_TIME = 100;
 const TRY_PIP_INTERVAL = 100;
 const ENSURE_MUTE_TIMEOUT_TIME = 6000;
-const PIP_WAIT_TO_ENSURE_NOT_FULLSCREEN = 100;
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -5435,15 +5434,16 @@ async function ensurePipNotFullscreen() {
         return Promise.resolve( ERROR_MESSAGES.pipPageClosed );
     }
     try {
-        let waitNeeded = await pipPage.evaluate( () => {
-            if( document.fullscreenElement && document.fullscreenElement == document.querySelector("video") ) {
-                document.exitFullscreen();
+        await pipPage.evaluate( () => {
+            // we can't check for fullscreen element, because escape by going home might have exited fs already
+            if( document.querySelector("video") ) {
+                try {
+                    document.exitFullscreen();
+                }
+                catch(err) {}
                 document.querySelector("video").requestPictureInPicture();
-                return true;
             }
-            return false;
         } );
-        if( waitNeeded ) await pipPage.waitFor(PIP_WAIT_TO_ENSURE_NOT_FULLSCREEN); // we need to make sure we're still on the pip page while we request picture in picture.
     }
     catch(err) {
         return Promise.resolve(ERROR_MESSAGES.couldNotFindVideo);
