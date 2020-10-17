@@ -3733,6 +3733,8 @@ async function goHome() {
 
     clearInterval(continueInterval);
 
+    ensurePipNotFullscreen();
+
     var needsPause = true;
     if( menuPageIsActive() ) {
         needsPause = false;
@@ -3749,8 +3751,6 @@ async function goHome() {
         pauseRemoteMedia();
     }
     catch(err) {/*ok*/}
-
-    ensurePipNotFullscreen();
 
     return Promise.resolve( { "didPause": needsPause } );
 }
@@ -5414,6 +5414,7 @@ async function toggleFullscreenPip() {
         } );
     }
     else {
+        // might not be necessary due to ensurePipNotFullscreen in goHome()
         await pipPage.evaluate( () => {
             document.querySelector("video").requestPictureInPicture();
         } );
