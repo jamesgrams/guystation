@@ -5401,17 +5401,13 @@ async function toggleFullscreenPip() {
 
     if( !currentlyInFullscreen ) {
         await pipPage.bringToFront(); // make sure pip page is displayed ONLY if we are going into fullscreen mode
-
         await pipPage.evaluate( () => {
-
             document.querySelector("video").requestFullscreen();
-            // whenever we exit fullscreen, we will go back to PIP mode.
-            var gsListenerFunction = function() {
-                document.querySelector("video").requestPictureInPicture();
-                window.removeEventListener("blur",gsListenerFunction);
-            };
-            window.addEventListener("blur",gsListenerFunction);
-
+        } );
+    }
+    else {
+        await pipPage.evaluate( () => {
+            document.querySelector("video").requestPictureInPicture();
         } );
     }
 
