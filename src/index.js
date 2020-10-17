@@ -243,6 +243,7 @@ const MUTE_MODES = {
 }
 const PIP_LOAD_TIME = 100;
 const TRY_PIP_INTERVAL = 100;
+const ENSURE_MUTE_TIMEOUT_TIME = 6000;
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -354,6 +355,7 @@ let properEmulatorResolution = null;
 let continueInterval = null;
 let pcChangeLoop = null;
 let tryPipInterval = null;
+let ensureMuteTimeout = null;
 
 let desktopUser = proc.execSync(GET_USER_COMMAND).toString().trim();
 const PC_WATCH_FOLDERS = [
@@ -956,22 +958,56 @@ app.get("/samba", async function(request, response) {
 // Start PIP
 app.post("/pip/start", async function(request, response) {
     console.log("app serving /pip/start");
-    let errorMessage = await startPip( request.body.url, request.body.muteMode );
-    writeActionResponse( response, errorMessage );
+    if( ! requestLocked ) {
+        requestLocked = true;
+        try {
+            let errorMessage = await startPip( request.body.url, request.body.muteMode );
+            requestLocked = false;
+            writeActionResponse( response, errorMessage );
+        }
+        catch(err) {
+            console.log(err);
+            requestLocked = false;
+            writeActionResponse( response, ERROR_MESSAGES.genericError );
+        }
+    }
+    else {
+        writeLockedResponse( response );
+    }
 });
 
 // Stop PIP
 app.post("/pip/stop", async function(request, response) {
     console.log("app serving /pip/stop");
-    let errorMessage = await stopPip();
-    writeActionResponse( response, errorMessage );
+    if( ! requestLocked ) {
+        requestLocked = true;
+        try {
+            let errorMessage = await stopPip();
+            requestLocked = false;
+            writeActionResponse( response, errorMessage );
+        }
+        catch(err) {
+            console.log(err);
+            requestLocked = false;
+            writeActionResponse( response, ERROR_MESSAGES.genericError );
+        }
+    }
+    else {
+        writeLockedResponse( response );
+    }
 });
 
 // Change the mute mode
 app.post("/mute-mode", async function(request, response) {
     console.log("app serving /mute-mode");
-    let errorMessage = setMuteMode( request.body.muteMode );
-    writeActionResponse( response, errorMessage );
+    try {
+        let errorMessage = setMuteMode( request.body.muteMode );
+        writeActionResponse( response, errorMessage );
+    }
+    catch(err) {
+        console.log(err);
+        writeActionResponse( response, ERROR_MESSAGES.genericError );
+    }
 });
 
 // endpoints to set up to stream what is coming through the microphone and webcam
@@ -5130,9 +5166,17 @@ function setMuteMode( mode ) {
 
 /**
  * Ensure that the mute mode we have set is being followed.
+ * @param {boolean} [noEnsure] - True if we shouldn't ensure the update mute with a follow up timeout.
  * @returns {boolean|string} false if successful or an error message if there is one.
  */
-function updateMute() {
+function updateMute( noEnsure ) {
+    clearTimeout( ensureMuteTimeout );
+    if( !noEnsure ) {
+        // double check mute was set properly.
+        ensureMuteTimeout = setTimeout( function() {
+            updateMute( true );
+        }, ENSURE_MUTE_TIMEOUT_TIME );
+    }
 
     try {
         let muteAlternative = null;
