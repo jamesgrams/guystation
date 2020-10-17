@@ -3793,7 +3793,7 @@ function displayPictureInPicture() {
         );
 
     } ) );
-    form.appendChild( createButton("Toggle Fullscreen", function() {
+    form.appendChild( createButton("Toggle FS", function() {
         if( this.classList.contains("inactive") ) return;
         form.querySelectorAll("button").forEach( function(el) { el.classList.add("inactive") } );
         

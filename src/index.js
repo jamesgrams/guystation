@@ -5387,11 +5387,11 @@ async function toggleFullscreenPip() {
     let videoPlaying = await pipPage.evaluate( () => document.querySelector("video") != null );
     if( !videoPlaying ) return Promise.resolve( ERROR_MESSAGES.couldNotFindVideo );
 
+    let currentlyInFullscreen = await pipPage.evaluate( () => document.fullscreenElement && document.fullscreenElement == document.querySelector("video") );
+
     await goHome(); // this will ensure our game is paused.
     // we always need to go home - in pip mode? we'll pause the game, in fullscreen mode? don't want to be on a non-full
     // screen pip page.
-
-    let currentlyInFullscreen = await pipPage.evaluate( () => document.fullscreenElement && document.fullscreenElement == document.querySelector("video") );
 
     if( !currentlyInFullscreen ) {
         await pipPage.bringToFront(); // make sure pip page is displayed ONLY if we are going into fullscreen mode
