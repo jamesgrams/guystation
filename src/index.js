@@ -2113,6 +2113,8 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         }, FAILSAFE_TRIES_INTERVAL );
     }
 
+    ensurePipNotFullscreen();
+
     return Promise.resolve(false);
 }
 
@@ -3743,6 +3745,7 @@ async function goHome() {
             if( currentEmulator && currentGame == BROWSER && browsePage && !browsePage.isClosed() ) await browsePage.evaluate( () => document.exitFullscreen() );
         }
         pauseRemoteMedia();
+        ensurePipNotFullscreen();
     }
     catch(err) {/*ok*/}
     return Promise.resolve( { "didPause": needsPause } );
@@ -5414,4 +5417,26 @@ async function toggleFullscreenPip() {
 
     return Promise.resolve(false); 
 
+}
+
+/**
+ * Ensure pip is not in fullscreen for when blur event doesn't work.
+ * Do this when we go home or launch another game.
+ * @returns {Promise} A promise containing an error message if there is one or false if there is not.
+ */
+async function ensurePipNotFullscreen() {
+    if( !pipPage || pipPage.isClosed() ) {
+        return Promise.resolve( ERROR_MESSAGES.pipPageClosed );
+    }
+    try {
+        await pipPage.evaluate( () => {
+            if( document.querySelector("video") ) {
+                document.querySelector("video").requestPictureInPicture();
+            }
+        } );
+    }
+    catch(err) {
+        return Promise.resolve(ERROR_MESSAGES.couldNotFindVideo);
+    }
+    return Promise.resolve(false);
 }
