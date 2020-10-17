@@ -5394,22 +5394,23 @@ async function toggleFullscreenPip() {
     await goHome(); // this will ensure our game is paused.
     // we always need to go home - in pip mode? we'll pause the game, in fullscreen mode? don't want to be on a non-full
     // screen pip page.
-    // this will exit fullscreen
+    // this will exit fullscreen and also trigger the blur function that resumes PIP
 
     if( !currentlyInFullscreen ) {
         await pipPage.bringToFront(); // make sure pip page is displayed ONLY if we are going into fullscreen mode
-    }
 
-    await pipPage.evaluate( (currentlyInFullscreen) => {
+        await pipPage.evaluate( () => {
 
-        if( currentlyInFullscreen ) {
-            document.querySelector("video").requestPictureInPicture();
-        }
-        else {
             document.querySelector("video").requestFullscreen();
-        }
+            // whenever we exit fullscreen, we will go back to PIP mode.
+            var gsListenerFunction = function() {
+                document.querySelector("video").requestPictureInPicture();
+                window.removeEventListener("blur",gsListenerFunction);
+            };
+            window.addEventListener("blur",gsListenerFunction);
 
-    }, currentlyInFullscreen );
+        } );
+    }
 
     return Promise.resolve(false); 
 
