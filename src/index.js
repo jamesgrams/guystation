@@ -5361,6 +5361,8 @@ async function stopPip() {
     }
 
     try {
+        let currentlyInFullscreen = await pipPage.evaluate( () => document.fullscreenElement && document.fullscreenElement == document.querySelector("video") );
+        if( currentlyInFullscreen ) await goHome();
         await pipPage.evaluate( () => document.exitPictureInPicture() );
     }
     catch(err) {
@@ -5392,6 +5394,7 @@ async function toggleFullscreenPip() {
     await goHome(); // this will ensure our game is paused.
     // we always need to go home - in pip mode? we'll pause the game, in fullscreen mode? don't want to be on a non-full
     // screen pip page.
+    // this will exit fullscreen
 
     if( !currentlyInFullscreen ) {
         await pipPage.bringToFront(); // make sure pip page is displayed ONLY if we are going into fullscreen mode
@@ -5400,16 +5403,10 @@ async function toggleFullscreenPip() {
     await pipPage.evaluate( (currentlyInFullscreen) => {
 
         if( currentlyInFullscreen ) {
-            document.exitFullscreen();
+            document.querySelector("video").requestPictureInPicture();
         }
         else {
             document.querySelector("video").requestFullscreen();
-            // whenever we exit fullscreen, we will go back to PIP mode.
-            var gsListenerFunction = function() {
-                document.querySelector("video").requestPictureInPicture();
-                document.removeEventListener("fullscreenchange",gsListenerFunction);
-            };
-            document.addEventListener("fullscreenchange",gsListenerFunction);
         }
 
     }, currentlyInFullscreen );
