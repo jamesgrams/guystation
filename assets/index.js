@@ -3793,6 +3793,19 @@ function displayPictureInPicture() {
         );
 
     } ) );
+    form.appendChild( createButton("Toggle Fullscreen", function() {
+        if( this.classList.contains("inactive") ) return;
+        form.querySelectorAll("button").forEach( function(el) { el.classList.add("inactive") } );
+        
+        makeRequest( "POST", "/pip/fullscreen", {},
+            function( responseText ) { standardSuccess(responseText, "PIP fullscreen toggled") },
+            function( responseText ) { 
+                standardFailure( responseText );
+                form.querySelectorAll("button").forEach( function(el) { el.classList.remove("inactive") } );
+            }
+        );
+
+    } ) );
 
     launchModal( form );
 }

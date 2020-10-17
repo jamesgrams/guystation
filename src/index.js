@@ -997,6 +997,27 @@ app.post("/pip/stop", async function(request, response) {
     }
 });
 
+// Toggle Fullscreen PIP
+app.post("/pip/fullscreen", async function(request, response) {
+    console.log("app serving /pip/fullscreen");
+    if( ! requestLocked ) {
+        requestLocked = true;
+        try {
+            let errorMessage = await toggleFullscreenPip();
+            requestLocked = false;
+            writeActionResponse( response, errorMessage );
+        }
+        catch(err) {
+            console.log(err);
+            requestLocked = false;
+            writeActionResponse( response, ERROR_MESSAGES.genericError );
+        }
+    }
+    else {
+        writeLockedResponse( response );
+    }
+});
+
 // Change the mute mode
 app.post("/mute-mode", async function(request, response) {
     console.log("app serving /mute-mode");
@@ -5350,4 +5371,49 @@ async function stopPip() {
     setMuteMode( previousMuteMode );
 
     return Promise.resolve(false);
+}
+
+/**
+ * Toggle the PIP video to become fullscreen.
+ * @returns {Promise} A promise containing an error message if there is one or false if there is not.
+ */
+async function toggleFullscreenPip() {
+
+    clearInterval( tryPipInterval );
+    if( !pipPage || pipPage.isClosed() ) {
+        return Promise.resolve( ERROR_MESSAGES.pipPageClosed );
+    }
+
+    let videoPlaying = await pipPage.evaluate( () => document.querySelector("video") != null );
+    if( !videoPlaying ) return Promise.resolve( ERROR_MESSAGES.couldNotFindVideo );
+
+    await goHome(); // this will ensure our game is paused.
+    // we always need to go home - in pip mode? we'll pause the game, in fullscreen mode? don't want to be on a non-full
+    // screen pip page.
+
+    let currentlyInFullscreen = await pipPage.evaluate( () => document.fullscreenElement && document.fullscreenElement == document.querySelector("video") );
+
+    if( !currentlyInFullscreen ) {
+        await pipPage.bringToFront(); // make sure pip page is displayed ONLY if we are going into fullscreen mode
+    }
+
+    await pipPage.evaluate( () => {
+
+        if( document.fullscreenElement && document.fullscreenElement == document.querySelector("video") ) {
+            document.exitFullscreen();
+        }
+        else {
+            document.querySelector("video").requestFullscreen();
+            // whenever we exit fullscreen, we will go back to PIP mode.
+            var gsListenerFunction = function() {
+                document.querySelector("video").requestPictureInPicture();
+                document.removeEventListener("fullscreenchange",gsListenerFunction);
+            };
+            document.addEventListener("fullscreenchange",gsListenerFunction);
+        }
+
+    } );
+
+    return Promise.resolve(false); 
+
 }
