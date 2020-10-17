@@ -2149,6 +2149,8 @@ async function quitGame() {
         currentGame = null;
         currentParentsString = null;
         currentSystem = null;
+
+        await menuPage.bringToFront(); // for pip
         return Promise.resolve(false);
     }
     else {
