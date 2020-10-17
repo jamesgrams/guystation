@@ -3747,9 +3747,11 @@ async function goHome() {
             if( currentEmulator && currentGame == BROWSER && browsePage && !browsePage.isClosed() ) await browsePage.evaluate( () => document.exitFullscreen() );
         }
         pauseRemoteMedia();
-        ensurePipNotFullscreen();
     }
     catch(err) {/*ok*/}
+
+    ensurePipNotFullscreen();
+
     return Promise.resolve( { "didPause": needsPause } );
 }
 
