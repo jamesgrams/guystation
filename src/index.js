@@ -244,6 +244,7 @@ const MUTE_MODES = {
 const PIP_LOAD_TIME = 100;
 const TRY_PIP_INTERVAL = 100;
 const ENSURE_MUTE_TIMEOUT_TIME = 6000;
+const PIP_WAIT_TO_ENSURE_NOT_FULLSCREEN = 100;
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -2113,7 +2114,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         }, FAILSAFE_TRIES_INTERVAL );
     }
 
-    ensurePipNotFullscreen();
+    await ensurePipNotFullscreen();
 
     return Promise.resolve(false);
 }
@@ -3733,7 +3734,7 @@ async function goHome() {
 
     clearInterval(continueInterval);
 
-    ensurePipNotFullscreen();
+    await ensurePipNotFullscreen();
 
     var needsPause = true;
     if( menuPageIsActive() ) {
@@ -5434,12 +5435,15 @@ async function ensurePipNotFullscreen() {
         return Promise.resolve( ERROR_MESSAGES.pipPageClosed );
     }
     try {
-        await pipPage.evaluate( () => {
+        let waitNeeded = await pipPage.evaluate( () => {
             if( document.fullscreenElement && document.fullscreenElement == document.querySelector("video") ) {
                 document.exitFullscreen();
                 document.querySelector("video").requestPictureInPicture();
+                return true;
             }
+            return false;
         } );
+        if( waitNeeded ) await pipPage.waitFor(PIP_WAIT_TO_ENSURE_NOT_FULLSCREEN); // we need to make sure we're still on the pip page while we request picture in picture.
     }
     catch(err) {
         return Promise.resolve(ERROR_MESSAGES.couldNotFindVideo);
