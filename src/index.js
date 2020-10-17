@@ -5367,7 +5367,10 @@ async function stopPip() {
 
     try {
         let currentlyInFullscreen = await pipPage.evaluate( () => document.fullscreenElement && document.fullscreenElement == document.querySelector("video") );
-        if( currentlyInFullscreen ) await goHome();
+        if( currentlyInFullscreen ) {
+            await pipPage.evaluate( () => document.exitFullscreen() );
+            await goHome();
+        }
         await pipPage.evaluate( () => document.exitPictureInPicture() );
     }
     catch(err) {
@@ -5395,6 +5398,7 @@ async function toggleFullscreenPip() {
     if( !videoPlaying ) return Promise.resolve( ERROR_MESSAGES.couldNotFindVideo );
 
     let currentlyInFullscreen = await pipPage.evaluate( () => document.fullscreenElement && document.fullscreenElement == document.querySelector("video") );
+    if( currentlyInFullscreen ) await pipPage.evaluate( () => document.exitFullscreen() );
 
     await goHome(); // this will ensure our game is paused.
     // we always need to go home - in pip mode? we'll pause the game, in fullscreen mode? don't want to be on a non-full
@@ -5428,7 +5432,8 @@ async function ensurePipNotFullscreen() {
     }
     try {
         await pipPage.evaluate( () => {
-            if( document.querySelector("video") ) {
+            if( document.fullscreenElement && document.fullscreenElement == document.querySelector("video") ) {
+                document.exitFullscreen();
                 document.querySelector("video").requestPictureInPicture();
             }
         } );
