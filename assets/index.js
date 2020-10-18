@@ -3811,6 +3811,9 @@ function displayPictureInPicture() {
     stopBreak = document.createElement("div");
     stopBreak.classList.add("break");
     form.appendChild(stopBreak);
+    
+    let pipControls = document.createElement("div");
+    pipControls.classList.add("pip-controls");
 
     let pauseButton = createButton('<i class="fas fa-pause"></i>', function() {
         if( this.classList.contains("inactive") ) return;
@@ -3825,10 +3828,7 @@ function displayPictureInPicture() {
         );
     } );
     pauseButton.setAttribute("id","pause-pip");
-    form.appendChild( pauseButton );
-
-    let pipControls = document.createElement("div");
-    pipControls.classList.add("pip-controls");
+    pipControls.appendChild( pauseButton );
 
     let toggleFsButton = createButton('<i class="fas fa-expand"></i>', function() {
         if( this.classList.contains("inactive") ) return;
