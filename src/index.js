@@ -4815,21 +4815,26 @@ async function screencastPrepare(alreadyStarted) {
         let currentlyFullscreenPip = fullscreenPip;
 
         await goHome();
-        if( !properResolution ) {	
-            saveCurrentResolution();	
+
+        if( currentlyFullscreenPip ) {
+            needToRefocusPip = true;
         }
-        if( !properEmulatorResolution ) {
-            saveCurrentEmulatorResolution();
-        }
-        // Update the home resolution before we start the stream, so when we start the start it gets the right resolution for the emulator	
-        if( properResolution != properEmulatorResolution ) {
-            try {
-                proc.execSync(SET_RESOLUTION_COMMAND + properEmulatorResolution);	
+        else {
+            if( !properResolution ) {	
+                saveCurrentResolution();	
             }
-            catch(err) {}
+            if( !properEmulatorResolution ) {
+                saveCurrentEmulatorResolution();
+            }
+            // Update the home resolution before we start the stream, so when we start the start it gets the right resolution for the emulator	
+            if( properResolution != properEmulatorResolution ) {
+                try {
+                    proc.execSync(SET_RESOLUTION_COMMAND + properEmulatorResolution);	
+                }
+                catch(err) {}
+            }
+            needToRefocusGame = true;
         }
-        if( currentlyFullscreenPip ) needToRefocusPip = true;
-        else needToRefocusGame = true; 
     }
 
     return Promise.resolve(false);
