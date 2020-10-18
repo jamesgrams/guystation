@@ -32,6 +32,7 @@ var MAX_JOYSTICK_VALUE = 128;
 var MOUSE_MOVE_SEND_INTERVAL = 100;
 var AXIS_MIN_TO_BE_BUTTON = 0.5; // we have to be at least 0.5 beyond the last value to set
 var EZ_AXIS_ALLOW_FOR_NEXT_INPUT = 0.2; // we will set the last value within this much (allowing for another set), or when we set
+var CHANGES_DETECTED = "Changes detected";
 var KEYCODES = {
     '0': 48,
     '1': 49,
@@ -779,11 +780,15 @@ function load() {
                 makeRequest( "GET", serverIsSamba ? "/data-quick" : "/data", {}, function(responseText) {
                     var response = JSON.parse(responseText);
                     var newSystemsDict = response.systems;
-                    fullscreenPip = response.fullscreenPip;
                     if( JSON.stringify(newSystemsDict) != JSON.stringify(systemsDict) ) {
-                        createToast( "Changes detected" );
+                        createToast( CHANGES_DETECTED );
                         systemsDict = newSystemsDict;
                         redraw();
+                    }
+                    else if(response.fullscreenPip !== fullscreenPip) {
+                        createToast( CHANGES_DETECTED );
+                        fullscreenPip = response.fullscreenPip;
+                        toggleButtons();
                     }
                 } );
             }
@@ -5261,6 +5266,7 @@ function deleteSave( system, game, save, parents ) {
 function standardSuccess( responseText, message, oldSystemName, newSystemName, oldGameName, newGameName, oldParents, newParents, preventModalClose ) {
     var response = JSON.parse(responseText);
     systemsDict = response.systems;
+    fullscreenPip = response.fullscreenPip;
     redraw(oldSystemName, newSystemName, oldGameName, newGameName, oldParents, newParents);
     if(message) alertSuccess(message);
     endRequest();
