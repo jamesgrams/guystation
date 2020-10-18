@@ -3807,7 +3807,27 @@ function displayPictureInPicture() {
         );
 
     } ) );
-    form.appendChild( createButton("Toggle FS", function() {
+
+    stopBreak = document.createElement("div");
+    stopBreak.classList.add("break");
+    form.appendChild(stopBreak);
+
+    let pauseButton = createButton('<i class="fas fa-pause"></i>', function() {
+        if( this.classList.contains("inactive") ) return;
+        form.querySelectorAll("button").forEach( function(el) { el.classList.add("inactive") } );
+        
+        makeRequest( "POST", "/pip/pause", {},
+            function( responseText ) { standardSuccess(responseText, "PIP paused", null, null, null, null, null, null, true) },
+            function( responseText ) { 
+                standardFailure( responseText );
+                form.querySelectorAll("button").forEach( function(el) { el.classList.remove("inactive") } );
+            }
+        );
+    } );
+    pauseButton.setAttribute("id","pause-pip");
+    form.appendChild( pauseButton );
+
+    let toggleFsButton = createButton('<i class="fas fa-expand"></i>', function() {
         if( this.classList.contains("inactive") ) return;
         form.querySelectorAll("button").forEach( function(el) { el.classList.add("inactive") } );
         
@@ -3818,8 +3838,24 @@ function displayPictureInPicture() {
                 form.querySelectorAll("button").forEach( function(el) { el.classList.remove("inactive") } );
             }
         );
+    } );
+    toggleFsButton.setAttribute("id","toggle-fs-pip");
+    form.appendChild( toggleFsButton );
 
-    } ) );
+    let playButton = createButton('<i class="fas fa-play"></i>', function() {
+        if( this.classList.contains("inactive") ) return;
+        form.querySelectorAll("button").forEach( function(el) { el.classList.add("inactive") } );
+        
+        makeRequest( "POST", "/pip/play", {},
+            function( responseText ) { standardSuccess(responseText, "PIP started", null, null, null, null, null, null, true) },
+            function( responseText ) { 
+                standardFailure( responseText );
+                form.querySelectorAll("button").forEach( function(el) { el.classList.remove("inactive") } );
+            }
+        );
+    } );
+    playButton.setAttribute("id","pause-pip");
+    form.appendChild( playButton );
 
     launchModal( form );
 }

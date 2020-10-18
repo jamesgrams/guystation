@@ -1019,6 +1019,32 @@ app.post("/pip/fullscreen", async function(request, response) {
     }
 });
 
+// Play pip
+app.post("/pip/play", async function(request, response) {
+    console.log("app serving /pip/play");
+    try {
+        let errorMessage = await playPip();
+        writeActionResponse( response, errorMessage );
+    }
+    catch(err) {
+        console.log(err);
+        writeActionResponse( response, ERROR_MESSAGES.genericError );
+    }
+});
+
+// Pause pip
+app.post("/pip/pause", async function(request, response) {
+    console.log("app serving /pip/pause");
+    try {
+        let errorMessage = await pausePip();
+        writeActionResponse( response, errorMessage );
+    }
+    catch(err) {
+        console.log(err);
+        writeActionResponse( response, ERROR_MESSAGES.genericError );
+    }
+});
+
 // Change the mute mode
 app.post("/mute-mode", async function(request, response) {
     console.log("app serving /mute-mode");
@@ -5464,5 +5490,37 @@ async function ensurePipNotFullscreen() {
     catch(err) {
         return Promise.resolve(ERROR_MESSAGES.couldNotFindVideo);
     }
+    return Promise.resolve(false);
+}
+
+/**
+ * Play PIP video.
+ * @returns {Promise} A promise containing an error message if there is one or false if there is not.
+ */
+async function playPip() {
+    if( !pipPage || pipPage.isClosed() ) {
+        return Promise.resolve( ERROR_MESSAGES.pipPageClosed );
+    }
+    await pipPage.evaluate( () => {
+        if( document.querySelector("video") ) {
+            document.querySelector("video").play();
+        }
+    } );
+    return Promise.resolve(false);
+}
+
+/**
+ * Pause PIP video.
+ * @returns {Promise} A promise containing an error message if there is one or false if there is not.
+ */
+async function pausePip() {
+    if( !pipPage || pipPage.isClosed() ) {
+        return Promise.resolve( ERROR_MESSAGES.pipPageClosed );
+    }
+    await pipPage.evaluate( () => {
+        if( document.querySelector("video") ) {
+            document.querySelector("video").pause();
+        }
+    } );
     return Promise.resolve(false);
 }

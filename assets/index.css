@@ -560,7 +560,7 @@ h1 {
     display:none !important;
 }
 
-#remote-media-form #previous-media, #remote-media-form #next-media, #remote-media-form-screenshots #previous-screenshot, #remote-media-form-screenshots #next-screenshot {
+#remote-media-form #previous-media, #remote-media-form #next-media, #remote-media-form-screenshots #previous-screenshot, #remote-media-form-screenshots #next-screenshot, #pip-form #toggle-fs-pip, #pip-form #play-pip, #pip-form #pause-pip {
     width: 80px;
     height: 58px;
     margin: 10px 0 0 0;
@@ -978,6 +978,15 @@ readers do not read off random characters that represent icons */
 
 .fa-clone:before {
     content: "\f24d"; }
+
+.fa-expand:before {
+    content: "\f065"; }
+
+.fa-play:before {
+    content: "\f04b"; }
+
+.fa-pause:before {
+    content: "\f04c"; }
 
 .sr-only-focusable:active, .sr-only-focusable:focus {
   clip: auto;
