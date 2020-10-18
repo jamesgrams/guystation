@@ -5363,7 +5363,12 @@ async function startPip( url, pipMuteMode ) {
             clearInterval(tryPipInterval);
             let tryPip = async (success, failure) => {
                 try {
-                    await pipPage.evaluate( () => document.querySelector("video").requestPictureInPicture() );
+                    await pipPage.evaluate( () => {
+                        if( document.querySelector("video") ) { // it should be there from from waitForSelector, but just in case it is removed, we don't want an infinite loop.
+                            document.querySelector("video").requestPictureInPicture();
+                            document.querySelector("video").play();
+                        }
+                    } );
                 }
                 catch(err) {
                     if( failure ) failure();
@@ -5501,6 +5506,8 @@ async function playPip() {
     if( !pipPage || pipPage.isClosed() ) {
         return Promise.resolve( ERROR_MESSAGES.pipPageClosed );
     }
+    let videoPlaying = await pipPage.evaluate( () => document.querySelector("video") != null );
+    if( !videoPlaying ) return Promise.resolve( ERROR_MESSAGES.couldNotFindVideo );
     await pipPage.evaluate( () => {
         if( document.querySelector("video") ) {
             document.querySelector("video").play();
@@ -5517,6 +5524,8 @@ async function pausePip() {
     if( !pipPage || pipPage.isClosed() ) {
         return Promise.resolve( ERROR_MESSAGES.pipPageClosed );
     }
+    let videoPlaying = await pipPage.evaluate( () => document.querySelector("video") != null );
+    if( !videoPlaying ) return Promise.resolve( ERROR_MESSAGES.couldNotFindVideo );
     await pipPage.evaluate( () => {
         if( document.querySelector("video") ) {
             document.querySelector("video").pause();
