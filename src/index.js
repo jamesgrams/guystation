@@ -356,6 +356,7 @@ let continueInterval = null;
 let pcChangeLoop = null;
 let tryPipInterval = null;
 let ensureMuteTimeout = null;
+let fullscreenPip = false;
 
 let desktopUser = proc.execSync(GET_USER_COMMAND).toString().trim();
 const PC_WATCH_FOLDERS = [
@@ -1133,7 +1134,7 @@ function writeResponse( response, status, object, code, contentType ) {
     if( !object ) { object = {}; }
     response.writeHead(code, {'Content-Type': 'application/json'});
     
-    let responseObject = Object.assign( {status:status, systems: systemsDict, ip: IP}, object );
+    let responseObject = Object.assign( {status:status, systems: systemsDict, fullscreenPip: fullscreenPip, ip: IP}, object );
     response.end(JSON.stringify(responseObject));
 }
 
@@ -5340,7 +5341,7 @@ async function startPip( url, pipMuteMode ) {
                 } );
             } );
             await tryPipPromise;
-            await goHome();
+            await goHome(); // this will set fullscreenpip to false if needed
             if( pipRefocusGame && currentEmulator ) {
                 await launchGame( currentSystem, currentGame, false, currentParentsString.split(SEPARATOR).filter(el => el != ''), true );
             } 
@@ -5371,7 +5372,7 @@ async function stopPip() {
         let currentlyInFullscreen = await pipPage.evaluate( () => document.fullscreenElement && document.fullscreenElement == document.querySelector("video") );
         if( currentlyInFullscreen ) {
             await pipPage.evaluate( () => document.exitFullscreen() );
-            await goHome();
+            await goHome(); // this will set fullscreenpip to false if needed
         }
         await pipPage.evaluate( () => document.exitPictureInPicture() );
     }
@@ -5412,12 +5413,14 @@ async function toggleFullscreenPip() {
         await pipPage.evaluate( () => {
             document.querySelector("video").requestFullscreen();
         } );
+        fullscreenPip = true;
     }
     else {
         // might not be necessary due to ensurePipNotFullscreen in goHome()
         await pipPage.evaluate( () => {
             document.querySelector("video").requestPictureInPicture();
         } );
+        fullscreenPip = false;
     }
 
     return Promise.resolve(false); 
@@ -5444,6 +5447,7 @@ async function ensurePipNotFullscreen() {
                 document.querySelector("video").requestPictureInPicture();
             }
         } );
+        fullscreenPip = false;
     }
     catch(err) {
         return Promise.resolve(ERROR_MESSAGES.couldNotFindVideo);

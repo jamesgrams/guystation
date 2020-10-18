@@ -356,6 +356,7 @@ var fetchedMessages = false;
 var swRegistration;
 var autoplayMedia = false; // manually force autoplay on remote media
 var scaleDownByTimeouts = {};
+var fullscreenPip = false;
 
 var screencastButtonsPressed = {};
 var screencastAxisLastValues = {};
@@ -746,6 +747,7 @@ function load() {
     makeRequest( "GET", "/data", {}, function(responseText) {
         var response = JSON.parse(responseText);
         systemsDict = response.systems;
+        fullscreenPip = response.fullscreenPip;
 
         var startSystem = {};
         if( window.localStorage.guystationStartSystem ) {
@@ -777,6 +779,7 @@ function load() {
                 makeRequest( "GET", serverIsSamba ? "/data-quick" : "/data", {}, function(responseText) {
                     var response = JSON.parse(responseText);
                     var newSystemsDict = response.systems;
+                    fullscreenPip = response.fullscreenPip;
                     if( JSON.stringify(newSystemsDict) != JSON.stringify(systemsDict) ) {
                         createToast( "Changes detected" );
                         systemsDict = newSystemsDict;
@@ -1419,12 +1422,16 @@ function toggleButtons() {
     if( !document.querySelector(".system.playing, .game.playing") ) {
         quitGameButton.classList.add("inactive");
         quitGameButton.onclick = null;
-        goHomeButton.classList.add("inactive");
-        goHomeButton.onclick = null;
     }
     else {
         quitGameButton.classList.remove("inactive");
         quitGameButton.onclick = function(e) { e.stopPropagation(); quitGame(); };
+    }
+    if( !document.querySelector(".system.playing, .game.playing") && !fullscreenPip ) {
+        goHomeButton.classList.add("inactive");
+        goHomeButton.onclick = null;
+    }
+    else {
         goHomeButton.classList.remove("inactive");
         goHomeButton.onclick = function(e) { e.stopPropagation(); goHome(); };
     }
