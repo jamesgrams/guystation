@@ -3774,7 +3774,9 @@ function displayPictureInPicture() {
                 url: url,
                 muteMode: muteMode
             },
-            function( responseText ) { standardSuccess(responseText, "PIP enabled") },
+            // don't close pip modal when working with it, since often multiple operations will be done,
+            // or we'll want to leave it up on the phone so we can change videos.
+            function( responseText ) { standardSuccess(responseText, "PIP enabled", null, null, null, null, null, null, true) },
             function( responseText ) { 
                 standardFailure( responseText );
                 form.querySelectorAll("button").forEach( function(el) { el.classList.remove("inactive") } );
@@ -3784,7 +3786,7 @@ function displayPictureInPicture() {
             makeRequest( "POST", "/mute-mode", {
                 muteMode: muteMode
             },
-            function( responseText ) { standardSuccess(responseText, "Mute change made") },
+            function( responseText ) { standardSuccess(responseText, "Mute change made", null, null, null, null, null, null, true) },
             function( responseText ) { 
                 standardFailure( responseText );
                 form.querySelectorAll("button").forEach( function(el) { el.classList.remove("inactive") } );
@@ -3797,7 +3799,7 @@ function displayPictureInPicture() {
         form.querySelectorAll("button").forEach( function(el) { el.classList.add("inactive") } );
         
         makeRequest( "POST", "/pip/stop", {},
-            function( responseText ) { standardSuccess(responseText, "PIP disabled") },
+            function( responseText ) { standardSuccess(responseText, "PIP disabled", null, null, null, null, null, null, true) },
             function( responseText ) { 
                 standardFailure( responseText );
                 form.querySelectorAll("button").forEach( function(el) { el.classList.remove("inactive") } );
@@ -3810,7 +3812,7 @@ function displayPictureInPicture() {
         form.querySelectorAll("button").forEach( function(el) { el.classList.add("inactive") } );
         
         makeRequest( "POST", "/pip/fullscreen", {},
-            function( responseText ) { standardSuccess(responseText, "PIP fullscreen toggled") },
+            function( responseText ) { standardSuccess(responseText, "PIP fullscreen toggled", null, null, null, null, null, null, true) },
             function( responseText ) { 
                 standardFailure( responseText );
                 form.querySelectorAll("button").forEach( function(el) { el.classList.remove("inactive") } );
