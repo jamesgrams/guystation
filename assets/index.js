@@ -5140,6 +5140,10 @@ function goHome() {
             try {
                 let message = JSON.parse(responseText);
                 systemsDict = message.systems;
+                if( fullscreenPip != message.fullscreenPip ) {
+                    fullscreenPip = message.fullscreenPip;
+                    toggleButtons();
+                }
                 if( message && message.didPause === false ) {
                     goToPlayingGame(); // this won't redraw if we are already on the item. But why would we need it to?
                 }
