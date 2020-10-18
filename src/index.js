@@ -4802,7 +4802,7 @@ async function screencastPrepare(alreadyStarted) {
     if( typeof alreadyStarted === 'undefined' ) alreadyStarted = startedClientIds.length;
     // starting a screencast will activate the home tab
     // it is best to predict that and to it anyway
-    if( currentEmulator && !alreadyStarted && ( !menuPageIsActive() || (await menuPage.evaluate(() => isRemoteMediaActive())) ) ) { 
+    if( (currentEmulator || fullscreenPip) && !alreadyStarted && ( !menuPageIsActive() || (await menuPage.evaluate(() => isRemoteMediaActive())) ) ) { 
         // Get the current resolution of the emulator	
         // I was getting an error where, despite the n64 emulator being active, it hadn't yet changed the screen resolution
         // by the time we were getting the screen resolution to determine the "emulatorResolution"
@@ -4811,6 +4811,8 @@ async function screencastPrepare(alreadyStarted) {
         // Additionally, sometimes when done here it was reported wrong.
         // We really only ever need it on launch, however, so thats where we do it. Once we've launched and
         // we're sure it's been fullscreened.
+
+        let currentlyFullscreenPip = fullscreenPip;
 
         await goHome();
         if( !properResolution ) {	
@@ -4826,7 +4828,8 @@ async function screencastPrepare(alreadyStarted) {
             }
             catch(err) {}
         }
-        needToRefocusGame = true; 
+        if( currentlyFullscreenPip ) needToRefocusPip = true;
+        else needToRefocusGame = true; 
     }
 
     return Promise.resolve(false);
@@ -4880,6 +4883,10 @@ async function screencastFix(alreadyStarted) {
     if( currentEmulator && !alreadyStarted && needToRefocusGame ) {
         await launchGame( currentSystem, currentGame, false, currentParentsString.split(SEPARATOR).filter(el => el != ''), true ); 
         needToRefocusGame = false;
+    }
+    else if( !alreadyStarted && needToRefocusPip ) {
+        // this will check to make sure the pip video is indeed still there
+        await toggleFullscreenPip();
     }
     else if( !alreadyStarted ) await goHome(); // focus on chrome from any screen share info popups
 
