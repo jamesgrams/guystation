@@ -3827,6 +3827,9 @@ function displayPictureInPicture() {
     pauseButton.setAttribute("id","pause-pip");
     form.appendChild( pauseButton );
 
+    let pipControls = document.createElement("div");
+    pipControls.classList.add("pip-controls");
+
     let toggleFsButton = createButton('<i class="fas fa-expand"></i>', function() {
         if( this.classList.contains("inactive") ) return;
         form.querySelectorAll("button").forEach( function(el) { el.classList.add("inactive") } );
@@ -3840,7 +3843,7 @@ function displayPictureInPicture() {
         );
     } );
     toggleFsButton.setAttribute("id","toggle-fs-pip");
-    form.appendChild( toggleFsButton );
+    pipControls.appendChild( toggleFsButton );
 
     let playButton = createButton('<i class="fas fa-play"></i>', function() {
         if( this.classList.contains("inactive") ) return;
@@ -3855,7 +3858,9 @@ function displayPictureInPicture() {
         );
     } );
     playButton.setAttribute("id","pause-pip");
-    form.appendChild( playButton );
+    pipControls.appendChild( playButton );
+
+    form.appendChild(pipControls);
 
     launchModal( form );
 }
