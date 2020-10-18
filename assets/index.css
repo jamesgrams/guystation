@@ -798,6 +798,7 @@ h1 {
 
 #pip-form .pip-controls {
     text-align: center;
+    clear: both;
 }
 
 #pip-form .pip-controls button {
