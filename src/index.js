@@ -5413,7 +5413,12 @@ async function stopPip() {
 
     try {
         if( fullscreenPip ) {
-            await pipPage.evaluate( () => document.exitFullscreen() );
+            try {
+                await pipPage.evaluate( () => document.exitFullscreen() );
+            }
+            catch(err) {
+                // ok
+            }
             await goHome(); // this will set fullscreenpip to false if needed
         }
         await pipPage.evaluate( () => document.exitPictureInPicture() );
@@ -5443,7 +5448,14 @@ async function toggleFullscreenPip() {
     if( !videoPlaying ) return Promise.resolve( ERROR_MESSAGES.couldNotFindVideo );
 
     let currentlyInFullscreen = fullscreenPip; // go home will change fullscreen pip, so we need to save the value here
-    if( currentlyInFullscreen ) await pipPage.evaluate( () => document.exitFullscreen() );
+    if( currentlyInFullscreen ) {
+        try {
+            await pipPage.evaluate( () => document.exitFullscreen() );
+        }
+        catch(err) {
+            // ok
+        }
+    }
 
     await goHome(); // this will ensure our game is paused.
     // we always need to go home - in pip mode? we'll pause the game, in fullscreen mode? don't want to be on a non-full
