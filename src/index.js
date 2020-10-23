@@ -127,7 +127,8 @@ const PLATFORM_LOOKUP = {
     "ngc": [21],
     "gba": [33, 22, 24], // gb, gbc, & gba
     "psp": [38],
-    "3ds": [37, 137] // 3ds & new 3ds
+    "3ds": [37, 137], // 3ds & new 3ds
+    "pc": [6, 13] // pc & dos
 }
 const IGDB_CLIENT_ID = process.env.GUYSTATION_IGDB_CLIENT_ID;
 const IGDB_CLIENT_SECRET = process.env.GUYSTATION_IGDB_CLIENT_SECRET;
