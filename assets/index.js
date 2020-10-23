@@ -3748,6 +3748,21 @@ function displayPictureInPicture() {
     var pipUrlInput = createInput(null, "pip-url-input", "URL: ");
     form.appendChild( pipUrlInput );
 
+    var selectedSystem = document.querySelector(".system.selected");
+    var selectedGame = selectedSystem.querySelector(".game.selected:not([data-status])");
+    if( selectedSystem && selectedGame && selectedSystem.getAttribute("data-system") == "media" ) {
+        var selected = getSelectedValues();
+        var path = "http://localhost/" + ["systems", encodeURIComponent(selected.system), "games"].concat(selected.parents).concat([encodeURIComponent(selected.game), encodeURIComponent(getGamesInFolder(selected.parents, selected.system, true)[selected.game].rom)]).join("/");
+        form.appendChild( createButton("Use Media", function() {
+            pipUrlInput.value = path;
+        }) );
+
+        var buttonBreak = document.createElement("div");
+        buttonBreak.classList.add("break");
+        buttonBreak.classList.add("clear");
+        form.appendChild(buttonBreak);
+    }
+
     var muteGame = createInput(null, "pip-mute-game-input", "Mute Game", "radio");
     muteGame.classList.add("inline");
     var muteGameInput = muteGame.querySelector("input");
@@ -3807,10 +3822,6 @@ function displayPictureInPicture() {
         );
 
     } ) );
-
-    stopBreak = document.createElement("div");
-    stopBreak.classList.add("break");
-    form.appendChild(stopBreak);
     
     let pipControls = document.createElement("div");
     pipControls.classList.add("pip-controls");

@@ -390,6 +390,10 @@ h1 {
     margin-top: 70px;
 }
 
+.modal .clear.break, .dying-modal .clear.break {
+    clear: both;
+}
+
 .toast {
     position: absolute;
     z-index: 1000;
