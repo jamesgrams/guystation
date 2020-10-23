@@ -3754,7 +3754,7 @@ function displayPictureInPicture() {
         var selected = getSelectedValues();
         var path = "http://localhost/" + ["systems", encodeURIComponent(selected.system), "games"].concat(selected.parents).concat([encodeURIComponent(selected.game), encodeURIComponent(getGamesInFolder(selected.parents, selected.system, true)[selected.game].rom)]).join("/");
         form.appendChild( createButton("Use Media", function() {
-            pipUrlInput.value = path;
+            pipUrlInput.querySelector("input").value = path;
         }) );
 
         var buttonBreak = document.createElement("div");
