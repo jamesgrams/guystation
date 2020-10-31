@@ -1,5 +1,8 @@
 ![GuyStation Logo](https://raw.githubusercontent.com/jamesgrams/guystation/master/assets/logo.png)
 
+[![Stargazers repo roster for @jamesgrams/guystation](https://reporoster.com/stars/jamesgrams/guystation)](https://github.com/jamesgrams/guystation/stargazers)
+[![Forkers repo roster for @jamesgrams/guystation](https://reporoster.com/forks/jamesgrams/guystation)](https://github.com/jamesgrams/guystation/network/members)
+
 # GuyStation
 An Emulator Hub for Ubuntu. This is a small frontend for emulators designed to be easily installable and accessible on Ubuntu. In addition to having several emulators, GuyStation's major highlights include the ability to stream games to and access the menu from any device on the same network, the ability create seperate save files for the same game (designed for Pokémon :)), a media player that lets you play music or videos on any device on the same network, and an internet browser that can be controlled remotely.
 
