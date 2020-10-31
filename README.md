@@ -13,7 +13,7 @@ An Emulator Hub for Ubuntu. This is a small frontend for emulators designed to b
 GuyStation is designed to run on Ubuntu (working on version 18.04) and to basically be the sole purpose of the machine. The steps to get it running are as follows:
 1. Clone this repository into your home directory
 2. `cd` into this repository
-3. Run `./scripts/setup.sh` (don't run as root)
+3. Run `./scripts/setup.sh` (don't run as root) - you may want to run the last line in this script before running it, as that will prevent the script waiting for your password when sudo is required.
 4. Optionally get an register a Twitch developer application for GuyStation and set the `GUYSTATION_IGDB_CLIENT_ID` and `GUYSTATION_IGDB_CLIENT_SECRET` environment variables. See the Extras section for more info.
 5. Restart your computer, and GuyStation should boot automatically.
 6. Connect and setup any controllers or other devices that you want to use to control the emulators. You will have to go into the emulators to edit the controls if you do not want to use their default controls.
@@ -267,6 +267,8 @@ Multiple monitors are not supported. Using multiple monitors will cause issues w
 * Mobile Virtual Controller Keycode options don't extend beyond main keyboard area, F keys, and arrow keys.
 * YoutubeDL fails to download currently (7/7/20). It is an issue with their website and you can fix it by doing the following: https://github.com/ytdl-org/youtube-dl/issues/25491#issuecomment-637192267, and then running `rm -rf node_modules/youtube-dl && npm install` in the `guystation` directory again.
 * The short summary could be made shorter.
+* The remote controller sometimes does not work until you touch the GuyStation screen on mobile.
+* The resolution is incorrect for a PIP video for N64
 
 ## Credits and Special Thanks
 * Game Boy Advance and DS Lite icons: [David Pérez](https://thenounproject.com/david730/)
