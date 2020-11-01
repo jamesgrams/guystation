@@ -1496,7 +1496,10 @@ async function closeBrowseTabs() {
     let pages = await browser.pages();
     for( let page of pages ) {
         if( page.mainFrame()._id !== menuPage.mainFrame()._id && page.mainFrame()._id !== pipPage.mainFrame()._id ) {
-            await closePage( page );
+            try {
+                await closePage( page );
+            }
+            catch(err) {/*ok*/}
         }
     }
     await menuPage.bringToFront();
