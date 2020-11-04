@@ -72,7 +72,7 @@ DEP_64="$DEP_GENERAL $DEP_FCEUX $DEP_DESMUME $DEP_VBAM $DEP_MUPEN $DEP_DOLPHIN $
 sudo apt-get -y install $DEP_64
 
 # Install FCEUX
-if [ $TYPE != "complete" ]
+if [ $TYPE == "complete" ]
 then
     git clone https://github.com/jamesgrams/fceux.git
     cd fceux
@@ -86,7 +86,7 @@ cd ~
 
 # Install DeSmuME
 # https://wiki.desmume.org/index.php?title=Installing_DeSmuME_from_source_on_Linux
-if [ $TYPE != "complete" ]
+if [ $TYPE == "complete" ]
 then
     git clone https://github.com/jamesgrams/desmume.git
     cd desmume/desmume/src/frontend/posix/
@@ -103,7 +103,7 @@ fi
 cd ~
 
 # Install VisualBoyAdvance
-if [ $TYPE != "complete" ]
+if [ $TYPE == "complete" ]
     mkdir src && cd src
     git clone https://github.com/jamesgrams/visualboyadvance-m.git
     cd visualboyadvance-m
@@ -122,7 +122,7 @@ sudo apt-get -y install wmctrl
 cd ~
 
 # Install Mupen64
-if [ $TYPE != "complete" ]
+if [ $TYPE == "complete" ]
     sudo ./guystation/scripts/m64p_helper_scripts/m64p_get.sh && sudo ./guystation/scripts/m64p_helper_scripts/m64p_build.sh && sudo ./guystation/scripts/m64p_helper_scripts/m64p_install.sh
     git clone https://github.com/jamesgrams/mupen64plus-ui-python.git
     cd mupen64plus-ui-python
@@ -134,7 +134,7 @@ fi
 cd ~
 
 # Install Dolphin
-if [ $TYPE != "complete" ]
+if [ $TYPE == "complete" ]
     git clone https://github.com/jamesgrams/dolphin.git
     cd dolphin
     mkdir build && cd build
@@ -147,7 +147,7 @@ fi
 cd ~
 
 # Install Citra
-if [ $TYPE != "complete" ]
+if [ $TYPE == "complete" ]
     git clone --recursive https://github.com/jamesgrams/citra.git
     cd citra
     git submodule update --init --recursive
@@ -161,7 +161,7 @@ fi
 cd ~
 
 # Instal PPSSPP
-if [ $TYPE != "complete" ]
+if [ $TYPE == "complete" ]
     git clone --recursive https://github.com/jamesgrams/ppsspp.git
     cd ppsspp
     ./b.sh --qt
@@ -171,7 +171,7 @@ fi
 cd ~
 
 # Instal snes9x
-if [ $TYPE != "complete" ]
+if [ $TYPE == "complete" ]
     git clone https://github.com/jamesgrams/snes9x.git
     cd snes9x/gtk
     meson builddir
@@ -190,7 +190,7 @@ cd ~
 sudo apt-get -y remove libsoundtouch-dev:amd64 libmirclient-dev:amd64
 # These are the libraries needed by PCSX2
 sudo apt-get -y install libaio-dev:i386 libbz2-dev:i386 libcggl:i386 libegl1-mesa-dev:i386 libglew-dev:i386 libgles2-mesa-dev libgtk2.0-dev:i386 libjpeg-dev:i386 libsdl1.2-dev:i386 libsoundtouch-dev:i386 libwxgtk3.0-dev:i386 nvidia-cg-toolkit portaudio19-dev:i386 zlib1g-dev:i386 libsdl2-dev:i386 libjack-jackd2-dev:i386 libportaudiocpp0:i386 liblzma-dev:i386 libpango1.0-dev:i386
-if [ $TYPE != "complete" ]
+if [ $TYPE == "complete" ]
     git clone https://github.com/jamesgrams/pcsx2.git
     cd pcsx2
     sudo ./build.sh
