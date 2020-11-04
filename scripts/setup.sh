@@ -27,6 +27,7 @@ sudo apt-get -y install git
 # when running the pre-built setup, they will just download this file directly and run it.
 if [ $TYPE != "complete" ]
 then
+    cd ~
     sudo apt-get install -y libsfml-dev # vbam and dolphin
     sudo apt-get install -y libavdevice57 # dolphin
     git clone https://github.com/jamesgrams/guystation
@@ -46,7 +47,7 @@ then
     sudo mv libmupen64plus.so.2.0.0 /usr/local/lib/
     cd /usr/local/lib
     sudo ln -s libmupen64plus.so.2.0.0 libmupen64plus.so.2
-    cd ~
+    cd ~/guystation-builds
     sudo mv snes9x-gtk /usr/local/bin/
     sudo mv visualboyadvance-m /usr/bin/
     mkdir ~/ppsspp
@@ -55,6 +56,7 @@ then
     mv PPSSPPQt ~/ppsspp/build/
     mkdir ~/pcsx2
     mv bin ~/pcsx2/
+    cd ~
 fi
 
 # Install dependencies needed
