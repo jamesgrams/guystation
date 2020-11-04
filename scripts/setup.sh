@@ -104,6 +104,7 @@ cd ~
 
 # Install VisualBoyAdvance
 if [ $TYPE == "complete" ]
+then
     mkdir src && cd src
     git clone https://github.com/jamesgrams/visualboyadvance-m.git
     cd visualboyadvance-m
@@ -123,6 +124,7 @@ cd ~
 
 # Install Mupen64
 if [ $TYPE == "complete" ]
+then
     sudo ./guystation/scripts/m64p_helper_scripts/m64p_get.sh && sudo ./guystation/scripts/m64p_helper_scripts/m64p_build.sh && sudo ./guystation/scripts/m64p_helper_scripts/m64p_install.sh
     git clone https://github.com/jamesgrams/mupen64plus-ui-python.git
     cd mupen64plus-ui-python
@@ -135,6 +137,7 @@ cd ~
 
 # Install Dolphin
 if [ $TYPE == "complete" ]
+then
     git clone https://github.com/jamesgrams/dolphin.git
     cd dolphin
     mkdir build && cd build
@@ -148,6 +151,7 @@ cd ~
 
 # Install Citra
 if [ $TYPE == "complete" ]
+then
     git clone --recursive https://github.com/jamesgrams/citra.git
     cd citra
     git submodule update --init --recursive
@@ -162,6 +166,7 @@ cd ~
 
 # Instal PPSSPP
 if [ $TYPE == "complete" ]
+then
     git clone --recursive https://github.com/jamesgrams/ppsspp.git
     cd ppsspp
     ./b.sh --qt
@@ -172,6 +177,7 @@ cd ~
 
 # Instal snes9x
 if [ $TYPE == "complete" ]
+then
     git clone https://github.com/jamesgrams/snes9x.git
     cd snes9x/gtk
     meson builddir
@@ -191,6 +197,7 @@ sudo apt-get -y remove libsoundtouch-dev:amd64 libmirclient-dev:amd64
 # These are the libraries needed by PCSX2
 sudo apt-get -y install libaio-dev:i386 libbz2-dev:i386 libcggl:i386 libegl1-mesa-dev:i386 libglew-dev:i386 libgles2-mesa-dev libgtk2.0-dev:i386 libjpeg-dev:i386 libsdl1.2-dev:i386 libsoundtouch-dev:i386 libwxgtk3.0-dev:i386 nvidia-cg-toolkit portaudio19-dev:i386 zlib1g-dev:i386 libsdl2-dev:i386 libjack-jackd2-dev:i386 libportaudiocpp0:i386 liblzma-dev:i386 libpango1.0-dev:i386
 if [ $TYPE == "complete" ]
+then
     git clone https://github.com/jamesgrams/pcsx2.git
     cd pcsx2
     sudo ./build.sh
