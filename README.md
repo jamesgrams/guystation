@@ -13,7 +13,7 @@ An Emulator Hub for Ubuntu. This is a small frontend for emulators designed to b
 GuyStation is designed to run on Ubuntu (working on version 18.04) and to basically be the sole purpose of the machine. The steps to get it running are as follows:
 
 ### Quick
-1. Download and run [https://raw.githubusercontent.com/jamesgrams/guystation/master/scripts/setup.sh] on Ubuntu 18.04.
+1. Download and run [this script](https://raw.githubusercontent.com/jamesgrams/guystation/master/scripts/setup.sh) on Ubuntu 18.04.
 2. Restart your computer, and GuyStation should boot automatically.
 3. Read the [Short Summary]('#short-summary') Section of [Emulator Specific Setup]('#emulator-specific-setup') and complete the few setup steps listed.
 4. Connect and setup any controllers or other devices that you want to use to control the emulators. 
