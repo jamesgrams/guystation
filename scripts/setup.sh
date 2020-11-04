@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Setup script for Ubuntu
 # Clone guystation in your home directory and run this.
 # Run this as your user, not root
