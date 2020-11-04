@@ -11,62 +11,25 @@ An Emulator Hub for Ubuntu. This is a small frontend for emulators designed to b
 
 ## Run
 GuyStation is designed to run on Ubuntu (working on version 18.04) and to basically be the sole purpose of the machine. The steps to get it running are as follows:
+
+### Quick
+1. Download and run [https://raw.githubusercontent.com/jamesgrams/guystation/master/scripts/setup.sh] on Ubuntu 18.04.
+2. Restart your computer, and GuyStation should boot automatically.
+3. Read the [Short Summary]('#short-summary') Section of [Emulator Specific Setup]('#emulator-specific-setup') and complete the few setup steps listed.
+4. Connect and setup any controllers or other devices that you want to use to control the emulators. 
+5. Add games and have fun! You should be able to access the GuyStation frontend on any device within the same network by going to the IP that GuyStation displays in your browser.
+
+### Full Build
 1. Clone this repository into your home directory
 2. `cd` into this repository
-3. Run `./scripts/setup.sh` (don't run as root) - you may want to run the last line in this script before running it, as that will prevent the script waiting for your password when sudo is required.
-4. Optionally get an register a Twitch developer application for GuyStation and set the `GUYSTATION_IGDB_CLIENT_ID` and `GUYSTATION_IGDB_CLIENT_SECRET` environment variables. See the Extras section for more info.
-5. Restart your computer, and GuyStation should boot automatically.
-6. Connect and setup any controllers or other devices that you want to use to control the emulators. You will have to go into the emulators to edit the controls if you do not want to use their default controls.
-7. Add games and have fun! You should be able to access the GuyStation frontend on any device within the same network by going to the IP that GuyStation displays in your browser.
+3. Run `./scripts/setup.sh complete` (don't run as root).
+4. Read the [Short Summary]('#short-summary') Section of [Emulator Specific Setup]('#emulator-specific-setup') and complete the few setup steps listed.
+5. Optionally get an register a Twitch developer application for GuyStation and set the `GUYSTATION_IGDB_CLIENT_ID` and `GUYSTATION_IGDB_CLIENT_SECRET` environment variables. See the Extras section for more info.
+6. Restart your computer, and GuyStation should boot automatically.
+7. Connect and setup any controllers or other devices that you want to use to control the emulators. 
+8. Add games and have fun! You should be able to access the GuyStation frontend on any device within the same network by going to the IP that GuyStation displays in your browser.
 
 Note: You can press F11 to get GuyStation out of full screen mode at any time.
-
-### Quick Setup
-There is a pre-built Ubuntu image that you can use to install GuyStation in the Github releases section. Here are the steps to do so.
-Note: This is if you want to wipe the hard drive of a computer and start with a fresh installation of GuyStation!
-1. Make sure you have a USB drive with at least 16GB of space nad plug it into the computer you will use to create the bootable USB.
-2. Download and unzip the files in the releases section. It should produce a file called `GuyStation.dd`.
-    * The files are a split zip file. You may need a program to to assist with unzipping them such as 7-Zip. Here is a guide that provides more information: https://rastsound.com/openning-your-split-zip-files-in-windows-and-mac/. There is lots of information on how to unzip a split archive on the web.
-3. Burn the file to your flash drive.
-    * Linux
-        1. Run `lsblk` to find your USB drive name (usually looking at the size is the easiest way to identify) (e.g. `sdb`).
-            * You will want the whole USB drive, not a partition of it (e.g. look for `sdb` rather than `sdb1` or `sdb2`).
-        2. Run `sudo dd bs=4M if=/<folder-containing-guystation-dd>/GuyStation.dd of=/dev/<usb-drive-name> status=progress` to burn the image to the USB.
-    * MacOS
-        1. Run `diskutil list` and find the name/number of your disk (e.g. `/dev/disk2`).
-        2. Run `diskutil unmountDisk /dev/disk<number>`.
-        3. Run `sudo dd bs=4m if=/<folder-containing-guystation-dd>/GuyStation.dd of=/dev/disk<number>` to burn the image to the USB.
-        4. Press Ctrl+T to see the progress of your transfer.
-    * Windows
-        1. Download dd for Windows (http://www.chrysocome.net/dd).
-        2. Navigate to the directory of the downloaded file in command prompt, and run `dd --list` to find the name of your flash drive (e.g. `\\.\Volume{5cd94d2c-3251-11d9-9444-806d6172696f}`).
-        3. Run `dd bs=4M if=c:\<folder-containing-guystation-dd>\GuyStation.dd of=<usb-name> --progress` to burn the image to the USB.
-4. Plug the flash drive into the computer that you want to use as your GuyStation, and boot to the flash drive.
-5. You will be given the option to launch GuyStation directly from the flash drive or install it on to your computer. Installing is recommended. 
-    * Make sure you install to the correct hard drive on your computer.
-6. After you install, the first thing you will want to do is update GuyStation to make sure you have the latest version!
-    * As of writing this, to get PC to work properly, you'll want to manually run the lines of code in `setup.sh` under the comment `Install Wine` as that isn't in the 1.0 release. Remember to run these lines in your home directory (`~`) and not as root.
-
-The username for this image is `cocoa` and the password is `pup`.
-This template comes with many items listed in the recommendations section including:
-* Screen lock disabled
-* Bluetooth Manager installed
-* AntimicroX installed and set to run on startup
-* Unclutter installed and set to hide the mouse after 2 seconds
-* Apport disabled
-* Notifications turned off
-* Auto-checking of new versions disabled
-
-With that being said, you may still want to set up the following (see the Recommendations section for more details):
-* Set up an IGDB API key
-* Install xwiimote
-* Map your controller with AntimicroX
-* Sync with Google Drive
-* Setup the `controller_connect.sh` and `controller_disconnect.sh` scripts to run on startup.
-* Setup `backup_saves.sh` to run in cron.
-* Set the default input/output audio devices.
-* Provide BIOS for PCSX2 (See Emulator Specific Setup section)
-* Change Mupen64Plus Resolution (See Emulator Specific Setup section)
 
 ## Supported Systems
 * Game Boy
