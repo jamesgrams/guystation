@@ -45,11 +45,11 @@ then
     sudo mv fceux /usr/local/bin/
     sudo mv m64py /usr/local/bin/
     sudo mv m64py-0.2.5-py2.7.egg /usr/local/lib/python2.7/dist-packages/
-    sudo mv mupen64plus /usr/local/bin/
-    sudo mv mupen64plus-lib /usr/local/lib/mupen64plus
-    sudo mv libmupen64plus.so.2.0.0 /usr/local/lib/
-    cd /usr/local/lib
-    sudo ln -s libmupen64plus.so.2.0.0 libmupen64plus.so.2
+    #sudo mv mupen64plus /usr/local/bin/
+    #sudo mv mupen64plus-lib /usr/local/lib/mupen64plus
+    #sudo mv libmupen64plus.so.2.0.0 /usr/local/lib/
+    #cd /usr/local/lib
+    #sudo ln -s libmupen64plus.so.2.0.0 libmupen64plus.so.2
     cd ~/guystation-builds
     sudo mv snes9x-gtk /usr/local/bin/
     sudo mv visualboyadvance-m /usr/bin/
@@ -128,9 +128,9 @@ sudo apt-get -y install wmctrl
 cd ~
 
 # Install Mupen64
+sudo ./guystation/scripts/m64p_helper_scripts/m64p_get.sh && sudo ./guystation/scripts/m64p_helper_scripts/m64p_build.sh && sudo ./guystation/scripts/m64p_helper_scripts/m64p_install.sh
 if [ $TYPE == "complete" ]
 then
-    sudo ./guystation/scripts/m64p_helper_scripts/m64p_get.sh && sudo ./guystation/scripts/m64p_helper_scripts/m64p_build.sh && sudo ./guystation/scripts/m64p_helper_scripts/m64p_install.sh
     git clone https://github.com/jamesgrams/mupen64plus-ui-python.git
     cd mupen64plus-ui-python
     python setup.py build
