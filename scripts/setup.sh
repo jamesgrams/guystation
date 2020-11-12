@@ -39,6 +39,7 @@ then
     unzip guystation-builds.zip
     cd guystation-builds
     sudo mv citra-qt /usr/local/bin/
+    sudo mv citra /usr/local/bin/
     sudo mv dolphin-emu /usr/local/bin/
     sudo mv desmume /usr/local/bin/
     sudo mv fceux /usr/local/bin/
