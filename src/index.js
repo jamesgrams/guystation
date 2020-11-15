@@ -2023,7 +2023,12 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
 
         // PC, check for installation.
         if( system === SYSTEM_PC ) {
-            startPcChangeLoop();
+            try {
+                startPcChangeLoop();
+            }
+            catch(err) {
+                // ok - likely first time setup
+            }
         }
 
         if( !noGame && (systemsDict[system].fullScreenButtons ) ) {

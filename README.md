@@ -230,10 +230,10 @@ Multiple monitors are not supported. Using multiple monitors will cause issues w
 * EZ Config missing print screen and keys around the numpad (+, -, etc.).
 * In addition to the keys that aren't supported on all emulators through EZ Controller Configuration, EZ Controller Configuration does not allow Shift, Ctrl, Alt, and Meta for Citra, Pause, Scroll Lock, Caps Lock, Shift, Ctrl, Alt, and Meta for PCSX2 Hotkeys, and the F keys, Numpad keys, Pause, Scroll Lock, Caps Lock, and Meta for VBAM.
 * Mobile Virtual Controller Keycode options don't extend beyond main keyboard area, F keys, and arrow keys.
-* YoutubeDL fails to download currently (7/7/20). It is an issue with their website and you can fix it by doing the following: https://github.com/ytdl-org/youtube-dl/issues/25491#issuecomment-637192267, and then running `rm -rf node_modules/youtube-dl && npm install` in the `guystation` directory again.
 * The short summary could be made shorter.
 * The remote controller sometimes does not work until you touch the GuyStation screen on mobile.
 * The resolution is incorrect for a PIP video for N64
+* PC games that install won't work in Samba mode unless the installed directory for Wine programs is also mapped.
 
 ## Credits and Special Thanks
 * Game Boy Advance and DS Lite icons: [David Pérez](https://thenounproject.com/david730/)

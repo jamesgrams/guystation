@@ -56,6 +56,7 @@ then
     mkdir ~/ppsspp
     mkdir ~/ppsspp/build
     mv assets ~/ppsspp/build/
+    cp -r ~/ppsspp/build/assets ~/ppsspp/assets
     mv PPSSPPQt ~/ppsspp/build/
     mkdir ~/pcsx2
     mv bin ~/pcsx2/
