@@ -125,7 +125,7 @@ Note: there is also limited support for setting up controls for each emulator al
 
 ### Short Summary
 
-You can use EZ Controller Configuration to set up all the emulator's main controls and screenshot key (must be a keyboard key). Beyond that, you may need to change the resolution of Mupen64Plus, you will need to provide a bios for PCSX2 and perhaps play with its settings to work well on your machine, and you will need to set the Auto-save SRAM setting to a low number on SNES9x. You may also need to start Citra once, before EZ config will work. 
+You can use EZ Controller Configuration to set up all the emulator's main controls and screenshot key (must be a keyboard key). Beyond that, you may need to change the resolution of Mupen64Plus and set the controller ports you want enabled to have "Plugged" be checked, you will need to provide a bios for PCSX2 and perhaps play with its settings to work well on your machine, and you will need to set the Auto-save SRAM setting to a low number on SNES9x. You may also need to start Citra once, before EZ config will work. 
 
 Note: EZ controller configuration will save only the button mapping to the server (not which controller port or nunchuk/classic controller option). The autoload function will save the button mapping AND the nunchuk/classic controller option. It will always set the controls for the first controller port. Additionally, the autoload function will check for any updates to the button mapping on the server prior to setting the controls.
 
@@ -139,6 +139,7 @@ This version of Desmume allows the screenshot key to be mapped.
 ### Mupen64Plus (Nintendo 64)
 You may need to change the Video Plugin for Mupen64Plus. It defaults to `mupen64plus-video-rice.so`, and I changed it to `mupen64plus-video-glide64.so` to work properly on my machine. You can change it in the mupen64 configuration file created after the first time you start Mupen64Plus in `~/.config/mupen64plus/mupen64plus.cfg`.
 * I also had to edit the controller configuration. Mupen64Plus is good at autodetecting controllers, but I had to change the Analog Peak, since the analog stick was too sensitive. If you do this, be sure to set the "mode" for the controller to 0, so your settings do not get overwritten.
+* You will also want to make sure controllers that you want to recognize as plugged in, are set to plugged in (Settings > Plugins > Input Configure > Check Plugged). This can be done in m64py or the config file.
 * This version of Mupen64Plus changes the quit key to F15 rather than Escape (since Escape takes you home) and sets the screenshot key to Ctrl+S by default. Changing the screenshot key to "S" in any settings will actually change it to Ctrl+S.
 * Guystation will install M64Py, a frontend for Mupen64Plus, but will not use it due to it having problems with Fullscreen. You can still use it to esily configure settings, however. It can be opened by running `m64py` in the command line.
 * The best resolution that I have found is 720x576 with aspect set to 2 (stretch). This runs in fullscreen, full-speed, with proper sound. The aspect ratio is an important factor. If it is too high (for me, 1920x1080), games can be very slow, and some games stuggled with sound through HDMI with an aspect ratio of 640x480 in my experience.
@@ -234,6 +235,7 @@ Multiple monitors are not supported. Using multiple monitors will cause issues w
 * The remote controller sometimes does not work until you touch the GuyStation screen on mobile.
 * The resolution is incorrect for a PIP video for N64
 * PC games that install won't work in Samba mode unless the installed directory for Wine programs is also mapped.
+* m64py changes the Mupen64Plus dimensions when you use it.
 
 ## Credits and Special Thanks
 * Game Boy Advance and DS Lite icons: [David Pérez](https://thenounproject.com/david730/)
