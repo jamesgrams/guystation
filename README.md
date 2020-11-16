@@ -193,7 +193,7 @@ force user = root
 force group = root
 #veto files = /*current*/
 ```
-On the client, install (`sudo apt-get`) samba and cfs-utils. Then, update `/etc/fstab` to have the following entry, replacing the values within angle brackets appropriately:
+On the client, install (`sudo apt-get`) samba and cifs-utils. Then, update `/etc/fstab` to have the following entry, replacing the values within angle brackets appropriately:
 ```
 //192.168.1.2/systems   /home/<your_home_name>/guystation/systems  cifs    sfu,rw,username=root,password=<root_password>,vers=1.0       00
 ```
@@ -219,21 +219,20 @@ Note: Since PC games are installed outside of the systems directory, you'll have
         * `metadata.json`
 
 ## Additional Information
-Multiple monitors are not supported. Using multiple monitors will cause issues with ensuring the screen resolution is correct and streaming the screen.
+Multiple monitor support may be limited. GuyStation will aim to use the primary monitor.
 
 ## Known Issues
 * Citra and Mupen64 flicker when hiding the screenshare message. As such, the message is not hidden when these emulators are in use and screenshare is started. It is made transparent, and click event are ignored on it.
-* A program restart is required if you change the screen resolution.
+* A program restart is required if you change the screen resolution or add, change primary, or remove monitors.
 * PS2 can only have keyboard controls set with EZ configuration.
-* NGC will have the device to the virtual keyboard when setting keyboad controls with EZ configuration. There isn't a good way to detect a keyboard. Hopefully, this shouldn't be a problem if you regularly use a game controller. The game controllers are connected if the evdev device name matches one of a set of keyboards (gamepad, joystick, controller, joypad).
+* NGC EZ configuration will set the device to the Dolphin internal name for a virtual keyboard when a control is set to a keyboard key (with the exception of the screenshot control) as Dolphin requires a device name with controls. It will set the device to gamepad when a control is set to a gamepad button/axis a gamepad. The custom version of Dolphin will recognize devices as game controllers if the evdev device name matches one of a set of keywords (gamepad, joystick, controller, joypad). Other devices are recognized as keyboards. This system isn't perfect.
 * EZ Controller Configuration only allows the left version of buttons (control, alt, shift, etc.)
 * PSP maps button names to PSP controls rather than numbers. Names can be different per controller, which can be nice. However, you have to have the mapping (number to name) for the controller listed for it to work properly. PPSSPP itself can do a little better at guessing button names, I believe with the help of the generic controller mapping of the controller plugged in, but we can't get this with the HTML5 Gamepad API. The best we can do is apply a default which likely won't be accurate. Add a controller mapping to `~/ppsspp/assets/gamecontrollerdb.txt` if your controller is not recognized.
 * EZ Config missing print screen and keys around the numpad (+, -, etc.).
 * In addition to the keys that aren't supported on all emulators through EZ Controller Configuration, EZ Controller Configuration does not allow Shift, Ctrl, Alt, and Meta for Citra, Pause, Scroll Lock, Caps Lock, Shift, Ctrl, Alt, and Meta for PCSX2 Hotkeys, and the F keys, Numpad keys, Pause, Scroll Lock, Caps Lock, and Meta for VBAM.
 * Mobile Virtual Controller Keycode options don't extend beyond main keyboard area, F keys, and arrow keys.
-* The short summary could be made shorter.
 * The remote controller sometimes does not work until you touch the GuyStation screen on mobile.
-* The resolution is incorrect for a PIP video for N64
+* The resolution is incorrect for a PIP video for N64.
 * PC games that install won't work in Samba mode unless the installed directory for Wine programs is also mapped.
 * m64py changes the Mupen64Plus dimensions when you use it.
 

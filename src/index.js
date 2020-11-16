@@ -95,13 +95,15 @@ const SCROLL_AMOUNT_MULTIPLIER = 0.8;
 const LINUX_CHROME_PATH = "/usr/bin/google-chrome";
 const HOMEPAGE = "https://game103.net";
 const INVALID_CHARACTERS = ["/"];
-const GET_RESOLUTION_COMMAND = "xrandr | grep '*' | tr -s ' ' |cut -d' ' -f 2"; // e.g. "1920x1080"
-const SET_RESOLUTION_COMMAND = "xrandr -s ";
+const GET_RESOLUTION_COMMAND = "xrandr | grep -A 100 'connected primary' | grep '*' | tr -s ' ' |cut -d' ' -f 2 | sed -n '1p'"; // e.g. "1920x1080"
+const SET_RESOLUTION_COMMAND = "xrandr --output $(xrandr --listmonitors | grep '*' | tr -s ' ' | cut -d' ' -f 5) --mode ";
+const GET_NUM_MONITORS_COMMAND = "xrandr --listmonitors | grep 'Monitors: ' | cut -d' ' -f 2";
 const CHECK_TIMEOUT = 100;
 const ACTIVE_WINDOW_COMMAND = "xdotool getwindowfocus getwindowname";
 const PAGE_TITLE = "GuyStation - Google Chrome";
 const CHECK_MEDIA_PLAYING_INTERVAL = 100;
 const ENTIRE_SCREEN = "Entire screen";
+const SCREEN_ONE = "Screen 1"; // Screen 1 will always be the primary monitor
 const IS_SERVER_PARAM = "is_server";
 const STREAMING_HEARTBEAT_TIME = 10000; // after 10 seconds of no response from the client, we will force close the stream
 const GIT_FETCH_COMMAND = "git -C ~/guystation fetch";
@@ -1183,6 +1185,10 @@ function removeChromeCrashed() {
  */
 async function launchBrowser() {
     removeChromeCrashed();
+    // the autoselect chrome code just uses a c++ string find to find the matching share (when you call getDisplayMedia, look at the label under the option)
+    // when there is only one monitor, there is no label for the screen, so it is called Entire screen
+    // when there are multiple, the label is "Screen 1" for the primary monitor
+    let numMonitors = parseInt(proc.execSync(GET_NUM_MONITORS_COMMAND));
     let options = {
         headless: false,
         defaultViewport: null,
@@ -1190,7 +1196,7 @@ async function launchBrowser() {
             '--start-fullscreen',
             '--no-sandbox',
             '--disable-infobars',
-            `--auto-select-desktop-capture-source=${ENTIRE_SCREEN}` // this has to be like this otherwise the launcher will not read the argument. It has to do with node.js processes and how they handle quotes with shell=true. 
+            `--auto-select-desktop-capture-source=${numMonitors > 1 ? SCREEN_ONE : ENTIRE_SCREEN}` // this has to be like this otherwise the launcher will not read the argument. It has to do with node.js processes and how they handle quotes with shell=true. 
         ],
         userDataDir: USER_DATA_DIR
     };
@@ -4450,7 +4456,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
                 }
                 return value;
              } );
-            if( controlInfo.actualControl != SCREENSHOT_CONTROL) config[padKey][NGC_DEVICE_TYPE_KEY] = NGC_VIRTUAL_KEYBOARD.replace("0", controller);
+            if( controlInfo.actualControl != SCREENSHOT_CONTROL) config[padKey][NGC_DEVICE_TYPE_KEY] = NGC_VIRTUAL_KEYBOARD;//.replace("0", controller); Multiple keyboards probably isn't what we'd excpect, so keep at 0 for device num
         }
     }
 
