@@ -360,6 +360,7 @@ let pcChangeLoop = null;
 let tryPipInterval = null;
 let ensureMuteTimeout = null;
 let fullscreenPip = false;
+let needToRefocusPip = false;
 
 let desktopUser = proc.execSync(GET_USER_COMMAND).toString().trim();
 const PC_WATCH_FOLDERS = [

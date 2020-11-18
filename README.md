@@ -231,7 +231,6 @@ Multiple monitor support may be limited. GuyStation will aim to use the primary 
 * EZ Config missing print screen and keys around the numpad (+, -, etc.).
 * In addition to the keys that aren't supported on all emulators through EZ Controller Configuration, EZ Controller Configuration does not allow Shift, Ctrl, Alt, and Meta for Citra, Pause, Scroll Lock, Caps Lock, Shift, Ctrl, Alt, and Meta for PCSX2 Hotkeys, and the F keys, Numpad keys, Pause, Scroll Lock, Caps Lock, and Meta for VBAM.
 * Mobile Virtual Controller Keycode options don't extend beyond main keyboard area, F keys, and arrow keys.
-* The remote controller sometimes does not work until you touch the GuyStation screen on mobile.
 * The resolution is incorrect for a PIP video for N64.
 * PC games that install won't work in Samba mode unless the installed directory for Wine programs is also mapped.
 * m64py changes the Mupen64Plus dimensions when you use it.
