@@ -23,6 +23,7 @@ const axios = require('axios');
 const robot = require("robotjs");
 const keycode = require("keycode");
 const ioctl = require("ioctl");
+const syncRequest = require("sync-request");
 const uinput = require("./lib/uinput");
 const uinputStructs = require("./lib/uinput_structs");
 const ua = require('all-unpacker');
@@ -362,6 +363,13 @@ let ensureMuteTimeout = null;
 let fullscreenPip = false;
 let needToRefocusPip = false;
 
+let sambaIndex = process.argv.indexOf(SAMBA_FLAG);
+let sambaOn = sambaIndex != -1;
+let sambaUrl = "";
+if( sambaIndex != -1 ) {
+    sambaUrl = process.argv[sambaIndex+1];
+}
+
 let desktopUser = proc.execSync(GET_USER_COMMAND).toString().trim();
 const PC_WATCH_FOLDERS = [
     "/home/"+desktopUser+"/.wine/drive_c/Program Files",
@@ -412,7 +420,7 @@ staticApp.get("/", async function(request, response) {
 // Get Data
 app.get("/data", async function(request, response) {
     console.log("app serving /data (GET)");
-    getData();
+    getData( false, request.query.noPlaying );
     writeResponse( response, SUCCESS, {} );
 });
 
@@ -956,7 +964,6 @@ app.get("/profiles", async function(request, response) {
 // get the samba flag
 app.get("/samba", async function(request, response) {
     console.log("app serving /samba");
-    let sambaOn = process.argv.indexOf(SAMBA_FLAG) != -1;
     writeResponse( response, HTTP_OK, {"samba": sambaOn} );
 } );
 
@@ -1213,9 +1220,8 @@ async function launchBrowser() {
     await menuPage.bringToFront();
 
     let sambaString = "";
-    let sambaIndex = process.argv.indexOf(SAMBA_FLAG);
-    if( sambaIndex != -1 ) {
-        sambaString = "&smb=" + process.argv[sambaIndex+1];
+    if( sambaOn ) {
+        sambaString = "&smb=" + sambaUrl;
     }
 
     await menuPage.goto(LOCALHOST + ":" + STATIC_PORT + "?" + IS_SERVER_PARAM + sambaString);
@@ -1543,11 +1549,42 @@ async function switchBrowseTab(id) {
  * Generate data about available options to the user.
  * The result is cached.
  * This should be called again if the file structure is edited.
- * @param {boolean} startup - True if called on startup.
+ * @param {boolean} [startup] - True if called on startup.
+ * @param {boolean} [noPlaying] - True if no playing indiciation should be made.
  */
-function getData( startup ) {
+function getData( startup, noPlaying ) {
     // Reset the data
     systemsDict = {};
+
+    // samba mode, rather than reading files on a remote server (slow), ask for the information we need from the samba host
+    if( sambaMode ) {
+
+        try {
+            // get this from the samba url
+            let json = syncRequest("GET", HTTP + sambaUrl + ":" + PORT + "/data?noPlaying=1" );
+            systemsDict = JSON.parse(json.getBody("utf8")).systems;
+
+            // also need to set playing to false for all items ...
+            if( currentSystem && !currentGame ) {
+                systemsDict[currentSystem].playing = true;
+            }
+            else if( currentSystem && currentGame ) {
+                let gameDictEntry = getGameDictEntry(system, game, parents);
+                // If the current game is a playlist, set it's parent (the playlist) to playing
+                if( parents.length ) {
+                    let parentGameDictEntry = getGameDictEntry(system, parents.slice(parents.length-1)[0], parents.slice(0, parents.length-1));
+                    if( parentGameDictEntry.isPlaylist ) {
+                        gameDictEntry = parentGameDictEntry;
+                    }
+                }
+                gameDictEntry.playing = true;
+            }
+            return;
+        }
+        catch(err) {
+            console.log(err);
+        }
+    }
 
     // Read all the systems
     let systems = fs.readdirSync( SYSTEMS_DIR_FULL );
@@ -1568,12 +1605,12 @@ function getData( startup ) {
             fs.mkdirSync( gamesDir );
         }
         // Create the games dictionary - the key will be the name of the game
-        let gamesDict = generateGames( system, games, [], startup );
+        let gamesDict = generateGames( system, games, [], startup. noPlaying );
         
         // Set the games for this system
         systemData.games = gamesDict;
 
-        if( isBeingPlayed( system, null, [] ) ) systemData.playing = true;
+        if( !noPlaying && isBeingPlayed( system, null, [] ) ) systemData.playing = true;
 
         // Add this system to the dictionary of systems
         systemsDict[system] = systemData;
@@ -1587,9 +1624,10 @@ function getData( startup ) {
  * @param {Array<string>} games - The games we want to look at (likely just everything in the games folder).
  * @param {Array<string>} [parents] - An array of parent folders.
  * @param {boolean} startup - True if called on startup.
+ * @param {boolean} noPlaying - True if no playing indicator should be added.
  * @returns {Object} An object containing games for a system or for a a specific set of parents within a system.
  */
-function generateGames(system, games, parents=[], startup) {
+function generateGames(system, games, parents=[], startup, noPlaying) {
     let gamesDict = {};
     // For each of the games
     for( let game of games ) {
@@ -1617,7 +1655,7 @@ function generateGames(system, games, parents=[], startup) {
             if( gameData.isPlaylist ) {
                 var tempCurParents = curParents.slice(0);
                 tempCurParents.push(game);
-                gameData.games = generateGames(system, gameDirContents.filter((name) => name != METADATA_FILENAME), tempCurParents, startup);
+                gameData.games = generateGames(system, gameDirContents.filter((name) => name != METADATA_FILENAME), tempCurParents, startup, noPlaying);
                 if( Object.keys(gameData.games).length == 0 ) {
                     deleteGame( MEDIA, game, curParents, true, true ); // will not call getData
                     continue; // don't include in the json
@@ -1657,7 +1695,7 @@ function generateGames(system, games, parents=[], startup) {
             gameData.saves = savesInfo.savesDict;
 
             // If this game is being played, indicate as such
-            if( isBeingPlayed( system, game, curParents ) ) {
+            if( !noPlaying && isBeingPlayed( system, game, curParents ) ) {
                 gameData.playing = true;
             }
         }
@@ -1667,7 +1705,7 @@ function generateGames(system, games, parents=[], startup) {
             let tempParents = parents.slice(0);
             tempParents.push(game);
             for( let childGame of Object.keys(gameData.games) ) {
-                if( isBeingPlayed(system, childGame, tempParents) ) {
+                if( !noPlaying && isBeingPlayed(system, childGame, tempParents) ) {
                     gameData.playing = true; // we will have two items playing with a playlist
                     break;
                 }
