@@ -1557,8 +1557,7 @@ function getData( startup, noPlaying ) {
     systemsDict = {};
 
     // samba mode, rather than reading files on a remote server (slow), ask for the information we need from the samba host
-    if( sambaMode ) {
-
+    if( sambaOn ) {
         try {
             // get this from the samba url
             let json = syncRequest("GET", HTTP + sambaUrl + ":" + PORT + "/data?noPlaying=1" );
