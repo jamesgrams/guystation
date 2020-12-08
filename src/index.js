@@ -1568,10 +1568,11 @@ function getData( startup, noPlaying ) {
                 systemsDict[currentSystem].playing = true;
             }
             else if( currentSystem && currentGame ) {
-                let gameDictEntry = getGameDictEntry(system, game, parents);
+                let currentParents = currentParentsString.split(SEPARATOR).filter(el => el != '');
+                let gameDictEntry = getGameDictEntry(currentSystem, currentGame, currentParents);
                 // If the current game is a playlist, set it's parent (the playlist) to playing
-                if( parents.length ) {
-                    let parentGameDictEntry = getGameDictEntry(system, parents.slice(parents.length-1)[0], parents.slice(0, parents.length-1));
+                if( currentParents.length ) {
+                    let parentGameDictEntry = getGameDictEntry(currentSystem, currentParents.slice(currentParents.length-1)[0], currentParents.slice(0, currentParents.length-1));
                     if( parentGameDictEntry.isPlaylist ) {
                         gameDictEntry = parentGameDictEntry;
                     }
