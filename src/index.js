@@ -1605,7 +1605,7 @@ function getData( startup, noPlaying ) {
             fs.mkdirSync( gamesDir );
         }
         // Create the games dictionary - the key will be the name of the game
-        let gamesDict = generateGames( system, games, [], startup. noPlaying );
+        let gamesDict = generateGames( system, games, [], startup, noPlaying );
         
         // Set the games for this system
         systemData.games = gamesDict;
