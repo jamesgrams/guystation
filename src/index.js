@@ -251,8 +251,6 @@ const TRY_PIP_INTERVAL = 100;
 const ENSURE_MUTE_TIMEOUT_TIME = 6000;
 const LEFT = "left";
 const RIGHT = "right";
-const UP = "up";
-const DOWN = "down";
 const GAMEPAD_MOVE_CURSOR_AMOUNT = 10;
 const BROWSER_GAMEPAD_PATH = "browser-gamepad.json";
 
