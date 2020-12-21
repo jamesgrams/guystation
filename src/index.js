@@ -41,6 +41,7 @@ const vbamMap = require("./lib/vbammap");
 const qtMap = require("./lib/qtmap");
 const citraMap = require("./lib/citramap");
 const pcsx2Map = require('./lib/pcsx2map');
+const { stringify } = require('querystring');
 const ppssppMap = require("./lib/ppssppmap").keys;
 const ppssppButtonsMap = require("./lib/ppssppmap").buttons;
 const generatePpssppControllersMap = require("./lib/ppssppmap").generateControllerMap;
@@ -248,6 +249,12 @@ const MUTE_MODES = {
 const PIP_LOAD_TIME = 100;
 const TRY_PIP_INTERVAL = 100;
 const ENSURE_MUTE_TIMEOUT_TIME = 6000;
+const LEFT = "left";
+const RIGHT = "right";
+const UP = "up";
+const DOWN = "down";
+const GAMEPAD_MOVE_CURSOR_AMOUNT = 10;
+const BROWSER_GAMEPAD_PATH = "browser-gamepad.json";
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -362,6 +369,8 @@ let tryPipInterval = null;
 let ensureMuteTimeout = null;
 let fullscreenPip = false;
 let needToRefocusPip = false;
+let gamepadMousePosition = null;
+let browserControlsCache = null;
 
 let sambaIndex = process.argv.indexOf(SAMBA_FLAG);
 let sambaOn = sambaIndex != -1;
@@ -1218,6 +1227,13 @@ async function launchBrowser() {
     menuPage = await pages[0];
     pipPage = await browser.newPage();
     await menuPage.bringToFront();
+    
+    // for pages besides menu and pip, add controller controls
+    browser.on( 'targetcreated', (target) => {
+        // inject the javascript to allow for the gamepad to be used as a controller.
+        let page = await target.page();
+        if( page ) addGamepadControls(page);
+    } );
 
     let sambaString = "";
     if( sambaOn ) {
@@ -1294,6 +1310,230 @@ async function getUrl() {
     }
 
     return Promise.resolve(browsePage.url());
+}
+
+/**
+ * Add gamepad controls to a page.
+ * @param {Page} page - The page to add controls to.
+ * @returns {Promise<(boolean|string)>} A promise that is false if the action was successful or contains an error message if not.
+ */
+async function addGamepadControls( page ) {
+    if( !page || page.isClosed() ) {
+        return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
+    }
+
+    // move the mouse
+    await page.exposeFunction( "guystationMoveMouse", async (direction, currentPosition, width, height) => {
+        if( !page || page.isClosed() ) {
+            return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
+        }
+
+        if( !gamepadMousePosition ) {
+            // no previous position
+            gamepadMousePosition = {x: width/2, y: height/2};
+        }
+        if( currentPosition.x === null ) {
+            currentPosition = gamepadMousePosition; // set the current position to the previous position - we might be transitioning from pages
+        }
+        gamepadMousePosition = currentPosition; // typically what we will do
+
+        // better to use puppeteer than robot.js here, since puppeteer is within the page and we are only moving the mouse in the page.
+        switch(direction) {
+            case LEFT:
+                await page.mouse.move( gamepadMousePosition.x - GAMEPAD_MOVE_CURSOR_AMOUNT, gamepadMousePosition.y );
+                break;
+            case RIGHT:
+                await page.mouse.move( gamepadMousePosition.x + GAMEPAD_MOVE_CURSOR_AMOUNT, gamepadMousePosition.y );
+                break;
+            case UP:
+                await page.mouse.move( gamepadMousePosition.x, gamepadMousePosition.y - GAMEPAD_MOVE_CURSOR_AMOUNT );
+                break;
+            case DOWN:
+                await page.mouse.move( gamepadMousePosition.x, gamepadMousePosition.y + GAMEPAD_MOVE_CURSOR_AMOUNT );
+                break;
+        }
+
+        return Promise.resolve(false);
+    } );
+
+    // click the mouse
+    await page.exposeFunction( "guystationClick", async right => {
+        if( !page || page.isClosed() ) {
+            return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
+        }
+
+        let button = right ? "right" : "left";
+        await page.mouse.down({button: button});
+        await page.mouse.up({button: button});
+
+        return Promise.resolve(false);
+    } );
+
+    // navigate the page
+    await page.exposeFunction( "guystationNavigate", async forward => {
+        if( !page || page.isClosed() ) {
+            return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
+        }
+
+        if( forward ) await page.goForward();
+        else await page.goBack();
+
+        return Promise.resolve(false);
+    });
+
+    // get joy mapping
+    if( !browserControlsCache ) {
+        try {
+            browserControlsCache = JSON.parse(fs.readFileSync(BROWSER_GAMEPAD_PATH));
+        }
+        catch(err) {}
+    }
+    await page.exposeFunction( "guystationGetJoyMapping", () => {
+        return browserControlsCache;
+    } );
+
+    // accept gamepad input
+    await page.evaluate( () => {
+        function guystationGamepadCursor() {
+            var mousePos = {x: null, y: null}; // keep track of the mouse position
+            document.addEventListener("mousemove", function(e) {mousePos.x = e.clientX;mousePos.y = e.clientY});
+
+            var GAMEPAD_INTERVAL = 100;
+            var GAMEPAD_INPUT_INTERVAL = 10;
+            var gamepadInterval;
+            var buttonsDown = {}; // keys are buttons numbers or axes number + direction
+            var buttonsPressed = {};
+            var buttonsUp = {};
+            var joyMapping = guystationGetJoyMapping() || {};
+            function buttonDown(b) {
+                if (typeof(b) == "object") {
+                    return b.pressed;
+                }
+                return b == 1.0;
+            }
+            function pollGamepads() {
+                var gamepads = navigator.getGamepads ? navigator.getGamepads() : (navigator.webkitGetGamepads ? navigator.webkitGetGamepads : []);
+                for (var i = 0; i < gamepads.length; i++) {
+                    var gp = gamepads[i];
+                    if (gp) {
+                        manageGamepadInput();
+                        clearInterval(gamepadInterval);
+                    }
+                }
+            }
+            function manageGamepadInput() {
+                var gamepads = navigator.getGamepads ? navigator.getGamepads() : (navigator.webkitGetGamepads ? navigator.webkitGetGamepads : []);
+                if(!gamepads || !gamepads[0]) {
+                    gamepadInterval = setInterval(pollGamepads, GAMEPAD_INTERVAL);
+                    return;
+                }
+                
+                try {
+                    for (var i=0; i<gamepads.length; i++) {
+                        var gp = gamepads[i];
+                        if( !gp ) continue;
+        
+                        // initialize buttons down
+                        if( !(i in buttonsDown) ) {
+                            buttonsDown[i] = {};
+                            buttonsPressed[i] = {};
+                            buttonsUp[i] = {};
+                        }
+        
+                        // use the names of EZ_EMULATOR_CONFIG_BUTTONS to be consistent
+                        if( document.hasFocus() && gp && gp.buttons ) {
+        
+                            // set all of buttons down on start
+                            for( var i=0; i<gp.buttons.length; i++ ) {
+                                if( buttonDown(gp.buttons[i]) ) {
+                                    // down = down
+                                    buttonsDown[i] = true;
+                                    // pressed = pressed (only occurs once, turns to false if held down, must release to trigger again)
+                                    if( buttonsUp[i] ) buttonsPressed[i] = true;
+                                    else buttonsPressed[i] = false;
+                                    buttonsUp[i] = false;
+                                }
+                                else {
+                                    buttonsDown[i] = false;
+                                    buttonsPressed[i] = false;
+                                    buttonsUp[i] = true;
+                                }
+                            }
+                            for( var i=0; i<gp.axes.length; i++ ) {
+                                if( Math.abs(gp.axes[i]) > 0.5 ) {
+                                    var dir = "-";
+                                    var oppDir = "+";
+                                    if( gp.axes[i] > 0 ) {
+                                        dir = "+";
+                                        oppDir = "-";
+                                    }
+        
+                                    buttonsDown[i + dir] = true;
+                                    buttonsDown[i + oppDir] = false;
+        
+                                    if( buttonsUp[i + dir] ) buttonsPressed[i + dir] = true;
+                                    else buttonsPressed[i + dir] = false;
+                                    buttonsPressed[i + oppDir] = false;
+        
+                                    buttonsUp[i + dir] = false;
+                                    buttonsUp[i + oppDir] = true;
+                                }
+                                else {
+                                    buttonsDown[i + "+"] = false;
+                                    buttonsDown[i + "-"] = false;
+                                    buttonsPressed[i + "+"] = false;
+                                    buttonsPressed[i + "-"] = false;
+                                    buttonsUp[i + "+"] = true;
+                                    buttonsUp[i + "-"] = true;
+                                }
+                            }
+        
+                            if( buttonsPressed[joyMapping["A"]] ) {
+                                guystationClick();
+                                break;
+                            }
+                            if( buttonsPressed[joyMapping["B"]] ) {
+                                guystationClick(true);
+                                break;
+                            }
+                            if( buttonsPressed[joyMapping["R2"]] ) {
+                                guystationNavigate(true);
+                                break;
+                            }
+                            if( buttonsPressed[joyMapping["L2"]] ) {
+                                guystationNavigate();
+                                break;
+                            }
+                            if( buttonsDown[joyMapping["Axis X+"]] || buttonsDown[joyMapping["Axis X-"]] || buttonsDown[joyMapping["Left"]] || buttonsDown[joyMapping["Right"]] ) {
+                                if( buttonsDown[joyMapping["Axis X+"]] || buttonsDown[joyMapping["Right"]] ) {
+                                    guystationMoveMouse("right", mousePos, window.innerWidth, window.innerHeight);
+                                }
+                                else if( buttonsDown[joyMapping["Left"]] || buttonsDown[joyMapping["Axis X-"]] ) {
+                                    guystationMoveMouse("left", mousePos, window.innerWidth, window.innerHeight);
+                                }
+                            }
+                            if( buttonsDown[joyMapping["Axis Y+"]] || buttonsDown[joyMapping["Axis Y-"]] || buttonsDown[joyMapping["Up"]] || buttonsDown[joyMapping["Down"]] ) {
+                                if( buttonsDown[joyMapping["Axis Y+"]] || buttonsDown[joyMapping["Down"]] ) {
+                                    guystationMoveMouse("down", mousePos, window.innerWidth, window.innerHeight);
+                                }
+                                else if( buttonsDown[joyMapping["Up"]] || buttonsDown[joyMapping["Axis Y-"]] ) {
+                                    guystationMoveMouse("up", mousePos, window.innerWidth, window.innerHeight);
+                                }
+                            }
+                        }
+                    }
+                }
+                catch( err ) {
+                    console.log(err);
+                    gamepadInterval = setInterval(pollGamepads, GAMEPAD_INTERVAL);
+                    return;
+                }
+                setTimeout(manageGamepadInput, GAMEPAD_INPUT_INTERVAL);
+            }
+        
+        }
+        guystationGamepadCursor();
+    });
 }
 
 /**
@@ -4090,6 +4330,18 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
     for( let system of systems ) {
 
         if( !systemsDict[system] ) return ERROR_MESSAGES.noSystem;
+
+        if( system === BROWSER ) { // browser is a simple, special case as it is controlled completely by us
+            let controlsObj = {};
+            for( let key in values ) {
+                if( values[key].type === AXIS_CONTROL_TYPE || values[key].type === BUTTON_CONTROL_TYPE ) controlsObj[key] = values[key].button;
+            }
+            fs.writeFileSync( BROWSER_GAMEPAD_PATH, JSON.stringify(controlsObj) );
+            browserControlsCache = JSON.parse(JSON.stringify(controlsObj)); // update the cache
+            continue;
+        }
+        // end browser special section
+
         if( !systemsDict[system].config ) return ERROR_MESSAGES.configNotAvailable;
 
         // Read all the config files
@@ -4474,7 +4726,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
         let padKey = system == SYSTEM_NGC ? NGC_PAD_KEY : WII_PAD_KEY;
         if( controller && controllers && padKey.match(controllers[0]) ) padKey = padKey.replace(controllers[0], controllers[controller]);
         
-	if( controlInfo.actualControl != SCREENSHOT_CONTROL) {
+	    if( controlInfo.actualControl != SCREENSHOT_CONTROL) {
             if( !config[padKey] ) config[padKey] = {};
 
             config[padKey][NGC_DEVICE_TYPE_KEY] = NGC_GAMEPAD.replace("0", controller); 

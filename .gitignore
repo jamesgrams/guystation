@@ -5,3 +5,4 @@ systems/*/emulators
 systems/*/games/*
 profiles.json
 igdb.json
+browser-gamepad.json

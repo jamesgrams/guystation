@@ -194,6 +194,7 @@ var EZ_EMULATOR_CONFIG_BUTTONS = [
 ];
 var EZ_SYSTEMS = [
     "3ds",
+    "browser",
     "gba",
     "n64",
     "nds",
@@ -5576,26 +5577,32 @@ function manageGamepadInput() {
             
                 var rightTriggerPressed = buttonPressed(gp.buttons[joyMapping["Right Trigger"]]);
                 // Right shoulder or trigger - cycle saves - only if there is a game in front of the user
-                if( rightTriggerPressed && buttonsUp.gamepad[i][joyMapping["Right Trigger"]] && document.querySelector(".system.selected .game.selected") ) {
+                if( rightTriggerPressed && buttonsUp.gamepad[i][joyMapping["Right Trigger"]] ) {
                     buttonsUp.gamepad[i][joyMapping["Right Trigger"]] = false;
-                    cycleSave(1);
-                    menuChangeDelay("right-trigger");
+                    if( document.querySelector(".system.selected .game.selected") ) {
+                        cycleSave(1);
+                        menuChangeDelay("right-trigger");
+                    }
+                    else if( menuDirection == "right-trigger" ) menuDirection = null;
                 }
                 else {
                     if( menuDirection == "right-trigger" ) menuDirection = null;
-                    buttonsUp.gamepad[i][joyMapping["Right Trigger"]] = true;
+                    if( !rightTriggerPressed ) buttonsUp.gamepad[i][joyMapping["Right Trigger"]] = true;
                 }
 
                 var leftTriggerPressed = buttonPressed(gp.buttons[joyMapping["Left Trigger"]]);
                 // Left shoulder or trigger - cycle saves
-                if( leftTriggerPressed && buttonsUp.gamepad[i][joyMapping["Left Trigger"]] && document.querySelector(".system.selected .game.selected") ) {
+                if( leftTriggerPressed && buttonsUp.gamepad[i][joyMapping["Left Trigger"]] ) {
                     buttonsUp.gamepad[i][joyMapping["Left Trigger"]] = false;
-                    cycleSave(-1);
-                    menuChangeDelay("left-trigger");
+                    if( document.querySelector(".system.selected .game.selected") ) {
+                        cycleSave(-1);
+                        menuChangeDelay("left-trigger");
+                    }
+                    else if( menuDirection == "left-trigger" ) menuDirection = null;
                 }
                 else {
                     if( menuDirection == "left-trigger" ) menuDirection = null;
-                    buttonsUp.gamepad[i][joyMapping["Left Trigger"]] = true;
+                    if( !leftTriggerPressed ) buttonsUp.gamepad[i][joyMapping["Left Trigger"]] = true;
                 }
 
                 var leftStickXPosition = gp.axes[0];
