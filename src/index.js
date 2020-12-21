@@ -1230,7 +1230,11 @@ async function launchBrowser() {
     browser.on( 'targetcreated', async (target) => {
         // inject the javascript to allow for the gamepad to be used as a controller.
         let page = await target.page();
-        if( page ) addGamepadControls(page);
+        if( page ) {
+            page.on('load', () => {
+                addGamepadControls(page);
+            });
+        }
     } );
 
     let sambaString = "";
@@ -1392,7 +1396,7 @@ async function addGamepadControls( page ) {
 
     // accept gamepad input
     await page.evaluate( () => {
-        function guystationGamepadCursor() {
+        async function guystationGamepadCursor() {
             var mousePos = {x: null, y: null}; // keep track of the mouse position
             document.addEventListener("mousemove", function(e) {mousePos.x = e.clientX;mousePos.y = e.clientY});
 
@@ -1402,7 +1406,8 @@ async function addGamepadControls( page ) {
             var buttonsDown = {}; // keys are buttons numbers or axes number + direction
             var buttonsPressed = {};
             var buttonsUp = {};
-            var joyMapping = guystationGetJoyMapping() || {};
+            var joyMapping = await guystationGetJoyMapping();
+            if( !joyMapping ) joyMapping = {};
             function buttonDown(b) {
                 if (typeof(b) == "object") {
                     return b.pressed;
@@ -1528,7 +1533,7 @@ async function addGamepadControls( page ) {
                 }
                 setTimeout(manageGamepadInput, GAMEPAD_INPUT_INTERVAL);
             }
-        
+            gamepadInterval = setInterval(pollGamepads, GAMEPAD_INTERVAL);
         }
         guystationGamepadCursor();
     });
@@ -4332,7 +4337,7 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
         if( system === BROWSER ) { // browser is a simple, special case as it is controlled completely by us
             let controlsObj = {};
             for( let key in values ) {
-                if( values[key].type === AXIS_CONTROL_TYPE || values[key].type === BUTTON_CONTROL_TYPE ) controlsObj[key] = values[key].button;
+                if( values[key][0] && values[key][0].type === AXIS_CONTROL_TYPE || values[key][0].type === BUTTON_CONTROL_TYPE ) controlsObj[key] = values[key][0].button;
             }
             fs.writeFileSync( BROWSER_GAMEPAD_PATH, JSON.stringify(controlsObj) );
             browserControlsCache = JSON.parse(JSON.stringify(controlsObj)); // update the cache
