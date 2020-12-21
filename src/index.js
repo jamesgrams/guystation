@@ -1324,75 +1324,78 @@ async function addGamepadControls( page ) {
         return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
     }
 
-    // move the mouse
-    await page.exposeFunction( "guystationMoveMouse", async (direction, currentPosition, width, height) => {
-        if( !page || page.isClosed() ) {
-            return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
+    let alreadyDefined = await page.evaluate( () => typeof guystationMoveMouse !== 'undefined' );
+    if( !alreadyDefined ) { // these functions hang forever if they are already defined (once needed per page context - not on renavigation)
+        // move the mouse
+        await page.exposeFunction( "guystationMoveMouse", async (direction, currentPosition, width, height) => {
+            if( !page || page.isClosed() ) {
+                return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
+            }
+
+            if( !gamepadMousePosition ) {
+                // no previous position
+                gamepadMousePosition = {x: width/2, y: height/2};
+            }
+            if( currentPosition.x === null ) {
+                currentPosition = gamepadMousePosition; // set the current position to the previous position - we might be transitioning from pages
+            }
+            gamepadMousePosition = currentPosition; // typically what we will do
+
+            // better to use puppeteer than robot.js here, since puppeteer is within the page and we are only moving the mouse in the page.
+            switch(direction) {
+                case LEFT:
+                    await page.mouse.move( gamepadMousePosition.x - GAMEPAD_MOVE_CURSOR_AMOUNT, gamepadMousePosition.y );
+                    break;
+                case RIGHT:
+                    await page.mouse.move( gamepadMousePosition.x + GAMEPAD_MOVE_CURSOR_AMOUNT, gamepadMousePosition.y );
+                    break;
+                case UP:
+                    await page.mouse.move( gamepadMousePosition.x, gamepadMousePosition.y - GAMEPAD_MOVE_CURSOR_AMOUNT );
+                    break;
+                case DOWN:
+                    await page.mouse.move( gamepadMousePosition.x, gamepadMousePosition.y + GAMEPAD_MOVE_CURSOR_AMOUNT );
+                    break;
+            }
+
+            return Promise.resolve(false);
+        } );
+
+        // click the mouse
+        await page.exposeFunction( "guystationClick", async right => {
+            if( !page || page.isClosed() ) {
+                return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
+            }
+
+            let button = right ? "right" : "left";
+            await page.mouse.down({button: button});
+            await page.mouse.up({button: button});
+
+            return Promise.resolve(false);
+        } );
+
+        // navigate the page
+        await page.exposeFunction( "guystationNavigate", async forward => {
+            if( !page || page.isClosed() ) {
+                return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
+            }
+
+            if( forward ) await page.goForward();
+            else await page.goBack();
+
+            return Promise.resolve(false);
+        });
+
+        // get joy mapping
+        if( !browserControlsCache ) {
+            try {
+                browserControlsCache = JSON.parse(fs.readFileSync(BROWSER_GAMEPAD_PATH));
+            }
+            catch(err) {}
         }
-
-        if( !gamepadMousePosition ) {
-            // no previous position
-            gamepadMousePosition = {x: width/2, y: height/2};
-        }
-        if( currentPosition.x === null ) {
-            currentPosition = gamepadMousePosition; // set the current position to the previous position - we might be transitioning from pages
-        }
-        gamepadMousePosition = currentPosition; // typically what we will do
-
-        // better to use puppeteer than robot.js here, since puppeteer is within the page and we are only moving the mouse in the page.
-        switch(direction) {
-            case LEFT:
-                await page.mouse.move( gamepadMousePosition.x - GAMEPAD_MOVE_CURSOR_AMOUNT, gamepadMousePosition.y );
-                break;
-            case RIGHT:
-                await page.mouse.move( gamepadMousePosition.x + GAMEPAD_MOVE_CURSOR_AMOUNT, gamepadMousePosition.y );
-                break;
-            case UP:
-                await page.mouse.move( gamepadMousePosition.x, gamepadMousePosition.y - GAMEPAD_MOVE_CURSOR_AMOUNT );
-                break;
-            case DOWN:
-                await page.mouse.move( gamepadMousePosition.x, gamepadMousePosition.y + GAMEPAD_MOVE_CURSOR_AMOUNT );
-                break;
-        }
-
-        return Promise.resolve(false);
-    } );
-
-    // click the mouse
-    await page.exposeFunction( "guystationClick", async right => {
-        if( !page || page.isClosed() ) {
-            return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
-        }
-
-        let button = right ? "right" : "left";
-        await page.mouse.down({button: button});
-        await page.mouse.up({button: button});
-
-        return Promise.resolve(false);
-    } );
-
-    // navigate the page
-    await page.exposeFunction( "guystationNavigate", async forward => {
-        if( !page || page.isClosed() ) {
-            return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
-        }
-
-        if( forward ) await page.goForward();
-        else await page.goBack();
-
-        return Promise.resolve(false);
-    });
-
-    // get joy mapping
-    if( !browserControlsCache ) {
-        try {
-            browserControlsCache = JSON.parse(fs.readFileSync(BROWSER_GAMEPAD_PATH));
-        }
-        catch(err) {}
+        await page.exposeFunction( "guystationGetJoyMapping", () => {
+            return browserControlsCache;
+        } );
     }
-    await page.exposeFunction( "guystationGetJoyMapping", () => {
-        return browserControlsCache;
-    } );
 
     // accept gamepad input
     await page.evaluate( () => {
