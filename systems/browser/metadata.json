@@ -1,1 +1,42 @@
-{}
+{ 
+  "config": {
+    "controls": {
+      "A": {
+        "keys": ["Click"]
+      },
+      "B": {
+        "keys": ["Right Click"]
+      },
+      "L2": {
+        "keys": ["Back"]
+      },
+      "R2": {
+        "keys": ["Forward"]
+      },
+      "Axis Y-": {
+        "keys": ["Cursor Up"]
+      },
+      "Axis Y+": {
+        "keys": ["Cursor Down"]
+      },
+      "Axis X-": {
+        "keys": ["Cursor Left"]
+      },
+      "Axis X+": {
+        "keys": ["Cursor Right"]
+      },
+      "Up": {
+        "keys": ["Cursor Up"]
+      },
+      "Down": {
+        "keys": ["Cursor Down"]
+      },
+      "Left": {
+        "keys": ["Cursor Left"]
+      },
+      "Right": {
+        "keys": ["Cursor Right"]
+      }
+    }
+  }
+}
