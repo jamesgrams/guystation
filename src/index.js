@@ -1227,7 +1227,7 @@ async function launchBrowser() {
     await menuPage.bringToFront();
     
     // for pages besides menu and pip, add controller controls
-    browser.on( 'targetcreated', (target) => {
+    browser.on( 'targetcreated', async (target) => {
         // inject the javascript to allow for the gamepad to be used as a controller.
         let page = await target.page();
         if( page ) addGamepadControls(page);
