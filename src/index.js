@@ -1342,18 +1342,20 @@ async function addGamepadControls( page ) {
             gamepadMousePosition = currentPosition; // typically what we will do
 
             // better to use puppeteer than robot.js here, since puppeteer is within the page and we are only moving the mouse in the page.
+            // but unfortunately puppeteer doesn't seem to work well with moving the cursor on ubuntu, so we will use robot again.
+            // we'll have to be in full screen for this to work properly
             switch(direction) {
                 case LEFT:
-                    await page.mouse.move( gamepadMousePosition.x - GAMEPAD_MOVE_CURSOR_AMOUNT, gamepadMousePosition.y );
+                    robot.moveMouse( gamepadMousePosition.x - GAMEPAD_MOVE_CURSOR_AMOUNT, gamepadMousePosition.y );
                     break;
                 case RIGHT:
-                    await page.mouse.move( gamepadMousePosition.x + GAMEPAD_MOVE_CURSOR_AMOUNT, gamepadMousePosition.y );
+                    robot.moveMouse( gamepadMousePosition.x + GAMEPAD_MOVE_CURSOR_AMOUNT, gamepadMousePosition.y );
                     break;
                 case UP:
-                    await page.mouse.move( gamepadMousePosition.x, gamepadMousePosition.y - GAMEPAD_MOVE_CURSOR_AMOUNT );
+                    robot.moveMouse( gamepadMousePosition.x, gamepadMousePosition.y - GAMEPAD_MOVE_CURSOR_AMOUNT );
                     break;
                 case DOWN:
-                    await page.mouse.move( gamepadMousePosition.x, gamepadMousePosition.y + GAMEPAD_MOVE_CURSOR_AMOUNT );
+                    robot.moveMouse( gamepadMousePosition.x, gamepadMousePosition.y + GAMEPAD_MOVE_CURSOR_AMOUNT );
                     break;
             }
 
