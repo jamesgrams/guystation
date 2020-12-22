@@ -1327,14 +1327,10 @@ async function addGamepadControls( page ) {
     await page.click("body"); // needed for controller to work on start
     if( !alreadyDefined ) { // these functions hang forever if they are already defined (once needed per page context - not on renavigation)
         // move the mouse
-        await page.exposeFunction( "guystationMoveMouse", async (directionX, directionY, width, height) => {
+        await page.exposeFunction( "guystationMouse", async (directionX, directionY, button, down) => {
             if( !page || page.isClosed() ) {
                 return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
             }
-
-            // better to use puppeteer than robot.js here, since puppeteer is within the page and we are only moving the mouse in the page.
-            // but unfortunately puppeteer doesn't seem to work well with moving the cursor on ubuntu, so we will use robot again.
-            // we'll have to be in full screen for this to work properly
 
             let gamepadMousePosition = robot.getMousePos();
             let x = gamepadMousePosition.x;
@@ -1343,19 +1339,23 @@ async function addGamepadControls( page ) {
             else if( directionX === RIGHT ) x += GAMEPAD_MOVE_CURSOR_AMOUNT;
             if( directionY === UP ) y -= GAMEPAD_MOVE_CURSOR_AMOUNT;
             else if( directionY === DOWN ) y += GAMEPAD_MOVE_CURSOR_AMOUNT;
-            robot.moveMouse( x, y );
+            performMouse( x, y, button, down );
 
             return Promise.resolve(false);
         } );
 
-        // click the mouse
-        await page.exposeFunction( "guystationClick", async right => {
+        // scroll
+        await page.exposeFunction( "guystationScroll", async (directionX, directionY) => {
             if( !page || page.isClosed() ) {
                 return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
             }
-
-            let button = right ? "right" : "left";
-            robot.mouseClick( button );
+            let x = 0;
+            let y = 0;
+            if( directionX === LEFT ) x -= GAMEPAD_MOVE_CURSOR_AMOUNT;
+            else if( directionX === RIGHT ) x += GAMEPAD_MOVE_CURSOR_AMOUNT;
+            if( directionY === UP ) y -= GAMEPAD_MOVE_CURSOR_AMOUNT;
+            else if( directionY === DOWN ) y += GAMEPAD_MOVE_CURSOR_AMOUNT;
+            await browsePage.evaluate( (x,y) => { window.scrollBy(x, y) }, x, y ); // can't use existing scroll, since that is a bulk scroll, where this is quick
 
             return Promise.resolve(false);
         } );
@@ -1428,6 +1428,7 @@ async function addGamepadControls( page ) {
                             buttonsDown[i] = {};
                             buttonsPressed[i] = {};
                             buttonsUp[i] = {};
+                            buttonsReleased[i] = {};
                         }
         
                         // use the names of EZ_EMULATOR_CONFIG_BUTTONS to be consistent
@@ -1442,8 +1443,10 @@ async function addGamepadControls( page ) {
                                     if( buttonsUp[i] ) buttonsPressed[i] = true;
                                     else buttonsPressed[i] = false;
                                     buttonsUp[i] = false;
+                                    buttonsReleased[i] = false;
                                 }
                                 else {
+                                    if( buttonsDown[i] ) buttonsReleased[i] = true; // released is kind of like pressed - it is the first release
                                     buttonsDown[i] = false;
                                     buttonsPressed[i] = false;
                                     buttonsUp[i] = true;
@@ -1457,6 +1460,9 @@ async function addGamepadControls( page ) {
                                         dir = "+";
                                         oppDir = "-";
                                     }
+                                    buttonsReleased[i + dir] = false;
+                                    if(buttonsDown[i + oppDir]) buttonsReleased[i + oppDir] = true; //  a quick switch from one direction to the other
+                                    else buttonsReleased[i + oppDir] = false;
         
                                     buttonsDown[i + dir] = true;
                                     buttonsDown[i + oppDir] = false;
@@ -1469,6 +1475,10 @@ async function addGamepadControls( page ) {
                                     buttonsUp[i + oppDir] = true;
                                 }
                                 else {
+                                    if( buttonsDown[i + "+"] ) buttonsReleased[i + "+"] = true;
+                                    else buttonsReleased[i + "+"] = false;
+                                    if( buttonsDown[i + "-"] ) buttonsReleased[i + "-"] = true;
+                                    else buttonsReleased[i + "-"] = false;
                                     buttonsDown[i + "+"] = false;
                                     buttonsDown[i + "-"] = false;
                                     buttonsPressed[i + "+"] = false;
@@ -1477,15 +1487,8 @@ async function addGamepadControls( page ) {
                                     buttonsUp[i + "-"] = true;
                                 }
                             }
-        
-                            if( buttonsPressed[joyMapping["A"]] ) {
-                                guystationClick();
-                                break;
-                            }
-                            if( buttonsPressed[joyMapping["B"]] ) {
-                                guystationClick(true);
-                                break;
-                            }
+
+                            // navigate
                             if( buttonsPressed[joyMapping["R2"]] ) {
                                 guystationNavigate(true);
                                 break;
@@ -1494,7 +1497,24 @@ async function addGamepadControls( page ) {
                                 guystationNavigate();
                                 break;
                             }
-                            let directionX, directionY;
+                            // mouse
+                            let directionX, directionY, button, down;
+                            if( buttonsPressed[joyMapping["A"]] ) {
+                                button = "left";
+                                down = true;
+                            }
+                            else if( buttonsReleased[joyMapping["A"]] ) {
+                                button = "left";
+                                down = false;
+                            }
+                            if( buttonsPressed[joyMapping["B"]] ) {
+                                button = "right";
+                                down = true;
+                            }
+                            else if( buttonsReleased[joyMapping["B"]] ) {
+                                button = "right";
+                                down = false;
+                            }
                             if( buttonsDown[joyMapping["Axis X+"]] || buttonsDown[joyMapping["Axis X-"]] || buttonsDown[joyMapping["Left"]] || buttonsDown[joyMapping["Right"]] ) {
                                 if( buttonsDown[joyMapping["Axis X+"]] || buttonsDown[joyMapping["Right"]] ) {
                                     directionX = "right";
@@ -1511,7 +1531,29 @@ async function addGamepadControls( page ) {
                                     directionY = "up";
                                 }
                             }
-                            if( directionX || directionY ) guystationMoveMouse(directionX, directionY, window.innerWidth, window.innerHeight);
+                            if( directionX || directionY || button || down ) {
+                                guystationMouse(directionX, directionY, button, down);
+                                break;
+                            }
+                            // scroll
+                            let scrollX, scrollY;
+                            if( buttonsDown[joyMapping["Axis X2+"]] || buttonsDown[joyMapping["Axis X2-"]] ) {
+                                if( buttonsDown[joyMapping["Axis X2+"]] ) {
+                                    scrollX = "right";
+                                }
+                                else if( buttonsDown[joyMapping["Axis X2-"]] ) {
+                                    scrollX = "left";
+                                }
+                            }
+                            if( buttonsDown[joyMapping["Axis Y2+"]] || buttonsDown[joyMapping["Axis Y2-"]] ) {
+                                if( buttonsDown[joyMapping["Axis Y2+"]] ) {
+                                    scrollY = "down";
+                                }
+                                else if( buttonsDown[joyMapping["Axis Y2-"]] ) {
+                                    scrollY = "up";
+                                }
+                            }
+                            if( scrollX || scrollY ) guystationScroll(scrollX, scrollY);
                         }
                     }
                 }
@@ -5286,6 +5328,19 @@ async function performScreencastMouse( xPercent, yPercent, button, down ) {
     let x = width * xPercent;
     let y = height * yPercent;
 
+    performMouse(x, y, button, down);
+
+    return Promise.resolve(false);
+}
+
+/**
+ * Peform an action with the mouse on screen.
+ * @param {number} x - The x coordinate.
+ * @param {number} y - The y coordinate.
+ * @param {string} button - left, right, or middle.
+ * @param {boolean} [down] - True if we are pushing the mouse down, false if up.
+ */
+function performMouse( x, y, button, down ) {
     // move the screenshare if we have to
     let windowInfo = proc.execSync(SHARING_PROMPT_GET_WINDOW_INFO_COMMAND).toString();
     let [windowAll, windowLeft, windowTop, windowWidth, windowHeight] = windowInfo.match(/Absolute upper-left X:\s+(\d+).*Absolute upper-left Y:\s+(\d+).*Width:\s+(\d+).*Height:\s+(\d+)/s);
@@ -5301,8 +5356,6 @@ async function performScreencastMouse( xPercent, yPercent, button, down ) {
         robot.dragMouse(x, y);
     }
     robot.mouseToggle(down ? DOWN : UP, button);
-
-    return Promise.resolve(false);
 }
 
 /**

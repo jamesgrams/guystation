@@ -25,6 +25,18 @@
       "Axis X+": {
         "keys": ["Cursor Right"]
       },
+      "Axis Y2-": {
+        "keys": ["Scroll Up"]
+      },
+      "Axis Y2+": {
+        "keys": ["Scroll Down"]
+      },
+      "Axis X2-": {
+        "keys": ["Scroll Left"]
+      },
+      "Axis X2+": {
+        "keys": ["Scroll Right"]
+      },
       "Up": {
         "keys": ["Cursor Up"]
       },
