@@ -1327,6 +1327,7 @@ async function addGamepadControls( page ) {
     await page.mouse.click(0,0); // needed for controller to work on start
     if( !alreadyDefined ) { // these functions hang forever if they are already defined (once needed per page context - not on renavigation)
         // move the mouse
+        let screenResolution = proc.execSync(GET_RESOLUTION_COMMAND).toString().split("x");
         await page.exposeFunction( "guystationMouse", async (directionX, directionY, button, down) => {
             if( !page || page.isClosed() ) {
                 return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
@@ -1339,7 +1340,6 @@ async function addGamepadControls( page ) {
             else if( directionX === RIGHT ) x += GAMEPAD_MOVE_CURSOR_AMOUNT;
             if( directionY === UP ) y -= GAMEPAD_MOVE_CURSOR_AMOUNT;
             else if( directionY === DOWN ) y += GAMEPAD_MOVE_CURSOR_AMOUNT;
-            let screenResolution = proc.execSync(GET_RESOLUTION_COMMAND).toString().split("x");
             if( x < screenResolution[0] && y < screenResolution[1] ) {
                 performMouse( x, y, button ? button : LEFT, down, true );
             }
@@ -1399,6 +1399,11 @@ async function addGamepadControls( page ) {
             var buttonsReleased = {};
             var joyMapping = await guystationGetJoyMapping();
             if( !joyMapping ) joyMapping = {};
+
+            // add the keyboard
+            var keyboardDiv = document.createElement("div");
+            keyboardDiv.classList.add("simple-keyboard");
+            document.body.appendChild(keyboardDiv);
 
             function buttonDown(b) {
                 if (typeof(b) == "object") {
@@ -1576,6 +1581,8 @@ async function addGamepadControls( page ) {
         }
         guystationGamepadCursor();
     });
+
+    await page.addScriptTag({url: "https://cdn.jsdelivr.net/npm/simple-keyboard@latest/build/index.min.js"});
 }
 
 /**
