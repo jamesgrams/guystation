@@ -251,7 +251,7 @@ const TRY_PIP_INTERVAL = 100;
 const ENSURE_MUTE_TIMEOUT_TIME = 6000;
 const LEFT = "left";
 const RIGHT = "right";
-const GAMEPAD_MOVE_CURSOR_AMOUNT = 15;
+const GAMEPAD_MOVE_CURSOR_AMOUNT = 50;
 const BROWSER_GAMEPAD_PATH = "browser-gamepad.json";
 
 const ERROR_MESSAGES = {
@@ -1341,7 +1341,7 @@ async function addGamepadControls( page ) {
             else if( directionY === DOWN ) y += GAMEPAD_MOVE_CURSOR_AMOUNT;
             let screenResolution = proc.execSync(GET_RESOLUTION_COMMAND).toString().split("x");
             if( x < screenResolution[0] && y < screenResolution[1] ) {
-                performMouse( x, y, button ? button : LEFT, down );
+                performMouse( x, y, button ? button : LEFT, down, true );
             }
 
             return Promise.resolve(false);
@@ -1358,7 +1358,7 @@ async function addGamepadControls( page ) {
             else if( directionX === RIGHT ) x += GAMEPAD_MOVE_CURSOR_AMOUNT;
             if( directionY === UP ) y -= GAMEPAD_MOVE_CURSOR_AMOUNT;
             else if( directionY === DOWN ) y += GAMEPAD_MOVE_CURSOR_AMOUNT;
-            await browsePage.evaluate( (x,y) => { window.scrollBy(x, y) }, x, y ); // can't use existing scroll, since that is a bulk scroll, where this is quick
+            await browsePage.evaluate( (x,y) => { window.scrollBy({top: y, left: x, behavior: 'smooth'}) }, x, y ); // can't use existing scroll, since that is a bulk scroll, where this is quick
 
             return Promise.resolve(false);
         } );
@@ -1397,16 +1397,9 @@ async function addGamepadControls( page ) {
             var buttonsPressed = {};
             var buttonsUp = {};
             var buttonsReleased = {};
-            var moveEnabled = true;
-            var moveEnabledTimeout;
             var joyMapping = await guystationGetJoyMapping();
             if( !joyMapping ) joyMapping = {};
 
-            function moveDelay() {
-                clearTimeout(moveEnabledTimeout);
-                moveEnabled = false;
-                moveEnabledTimeout = setTimeout( function() { moveEnabled = true; }, 50 );
-            }
             function buttonDown(b) {
                 if (typeof(b) == "object") {
                     return b.pressed;
@@ -1423,7 +1416,7 @@ async function addGamepadControls( page ) {
                     }
                 }
             }
-            function manageGamepadInput() {
+            async function manageGamepadInput() {
                 var gamepads = navigator.getGamepads ? navigator.getGamepads() : (navigator.webkitGetGamepads ? navigator.webkitGetGamepads : []);
                 if(!gamepads || !gamepads[0]) {
                     gamepadInterval = setInterval(pollGamepads, GAMEPAD_INTERVAL);
@@ -1503,11 +1496,11 @@ async function addGamepadControls( page ) {
 
                             // navigate
                             if( buttonsPressed[i][joyMapping["R2"]] ) {
-                                guystationNavigate(true);
+                                await guystationNavigate(true);
                                 break;
                             }
                             if( buttonsPressed[i][joyMapping["L2"]] ) {
-                                guystationNavigate();
+                                await guystationNavigate();
                                 break;
                             }
                             // mouse
@@ -1544,9 +1537,8 @@ async function addGamepadControls( page ) {
                                     directionY = "up";
                                 }
                             }
-                            if( moveEnabled && (directionX || directionY || button || down) ) {
-                                moveDelay();
-                                guystationMouse(directionX, directionY, button, down);
+                            if( directionX || directionY || button || down ) {
+                                await guystationMouse(directionX, directionY, button, down);
                                 break;
                             }
                             // scroll
@@ -1567,9 +1559,8 @@ async function addGamepadControls( page ) {
                                     scrollY = "up";
                                 }
                             }
-                            if( moveEnabled && (scrollX || scrollY) ) {
-                                moveDelay();
-                                guystationScroll(scrollX, scrollY);
+                            if( scrollX || scrollY ) {
+                                await guystationScroll(scrollX, scrollY);
                             }
                         }
                     }
@@ -5356,8 +5347,9 @@ async function performScreencastMouse( xPercent, yPercent, button, down ) {
  * @param {number} y - The y coordinate.
  * @param {string} button - left, right, or middle.
  * @param {boolean} [down] - True if we are pushing the mouse down, false if up.
+ * @param {string} [smooth] - True if the mouse move should be smooth.
  */
-function performMouse( x, y, button, down ) {
+function performMouse( x, y, button, down, smooth ) {
     // move the screenshare if we have to
     let windowInfo = proc.execSync(SHARING_PROMPT_GET_WINDOW_INFO_COMMAND).toString();
     let [windowAll, windowLeft, windowTop, windowWidth, windowHeight] = windowInfo.match(/Absolute upper-left X:\s+(\d+).*Absolute upper-left Y:\s+(\d+).*Width:\s+(\d+).*Height:\s+(\d+)/s);
@@ -5366,7 +5358,10 @@ function performMouse( x, y, button, down ) {
         proc.execSync(SHARING_PROMPT_MOVE_WINDOW + windowLeft + " " + (windowTop > SHARING_PROMPT_TOP_AREA ? SHARING_PROMPT_MINIMUM : SHARING_PROMPT_MAXIMUM));
     }
 
-    if( down ) {
+    if( smooth ) {
+        robot.moveMouseSmooth(x, y);
+    }
+    else if( down ) { // before you tpgg;e, expect the mouse to be in the other state
         robot.moveMouse(x, y);
     }
     else {
