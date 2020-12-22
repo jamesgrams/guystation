@@ -1323,7 +1323,7 @@ async function addGamepadControls( page ) {
         return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
     }
 
-    let alreadyDefined = await page.evaluate( () => typeof guystationMoveMouse !== 'undefined' );
+    let alreadyDefined = await page.evaluate( () => typeof guystationMouse !== 'undefined' );
     await page.mouse.click(0,0); // needed for controller to work on start
     if( !alreadyDefined ) { // these functions hang forever if they are already defined (once needed per page context - not on renavigation)
         // move the mouse
@@ -1539,16 +1539,16 @@ async function addGamepadControls( page ) {
                             }
                             // scroll
                             let scrollX, scrollY;
-                            if( buttonsDown[joyMapping[i]["Axis X2+"]] || buttonsDown[joyMapping[i]["Axis X2-"]] ) {
-                                if( buttonsDown[joyMapping[i]["Axis X2+"]] ) {
+                            if( buttonsDown[i][joyMapping["Axis X2+"]] || buttonsDown[i][joyMapping["Axis X2-"]] ) {
+                                if( buttonsDown[i][joyMapping["Axis X2+"]] ) {
                                     scrollX = "right";
                                 }
-                                else if( buttonsDown[joyMapping[i]["Axis X2-"]] ) {
+                                else if( buttonsDown[i][joyMapping["Axis X2-"]] ) {
                                     scrollX = "left";
                                 }
                             }
-                            if( buttonsDown[joyMapping[i]["Axis Y2+"]] || buttonsDown[i][joyMapping["Axis Y2-"]] ) {
-                                if( buttonsDown[joyMapping[i]["Axis Y2+"]] ) {
+                            if( buttonsDown[i][joyMapping["Axis Y2+"]] || buttonsDown[i][joyMapping["Axis Y2-"]] ) {
+                                if( buttonsDown[i][joyMapping["Axis Y2+"]] ) {
                                     scrollY = "down";
                                 }
                                 else if( buttonsDown[i][joyMapping["Axis Y2-"]] ) {
