@@ -7,6 +7,9 @@
       "B": {
         "keys": ["Right Click"]
       },
+      "X": {
+        "keys": ["Toggle Keyboard"]
+      },
       "L2": {
         "keys": ["Back"]
       },

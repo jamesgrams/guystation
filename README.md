@@ -236,6 +236,10 @@ Multiple monitor support may be limited. GuyStation will aim to use the primary 
 * PC games that install won't work in Samba mode unless the installed directory for Wine programs is also mapped.
 * m64py changes the Mupen64Plus dimensions when you use it.
 * EZ Controller Configuration for screenshot in Dolphin didn't work in-game until going to the Dolphin Hotkey settings and pressing OK once. It did load the key there, but it wasn't working in-game.
+* The descriptions under EZ Controller Configuration input fields aren't always accurate.
+* Controlling a browser with a gamepad should be optional.
+* Allow multiple keys for browser EZ Controller Configuration.
+* Drag doesn't work with a gamepad controller as dragMouseSmooth doesn't exist in Robot.js.
 
 ## Credits and Special Thanks
 * Game Boy Advance and DS Lite icons: [David Pérez](https://thenounproject.com/david730/)

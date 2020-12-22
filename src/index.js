@@ -253,6 +253,8 @@ const LEFT = "left";
 const RIGHT = "right";
 const GAMEPAD_MOVE_CURSOR_AMOUNT = 50;
 const BROWSER_GAMEPAD_PATH = "browser-gamepad.json";
+const LAUNCH_ONBOARD_COMMAND = "onboard";
+const ENSURE_FLOAT_ONBOARD_COMMAND = "gsettings set org.onboard.window docking-enabled false";
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -368,6 +370,7 @@ let ensureMuteTimeout = null;
 let fullscreenPip = false;
 let needToRefocusPip = false;
 let browserControlsCache = null;
+let onboardInstance = null;
 
 let sambaIndex = process.argv.indexOf(SAMBA_FLAG);
 let sambaOn = sambaIndex != -1;
@@ -1314,6 +1317,21 @@ async function getUrl() {
 }
 
 /**
+ * Blank the Onboard keyboard instance.
+ */
+function blankOnboardInstance() {
+    if( onboardInstance ) {
+        try {
+            proc.execSync(KILL_COMMAND + onboardInstance.pid);
+            onboardInstance = null;
+        }
+        catch(err) {
+            console.log(err);
+        }
+    }
+}
+
+/**
  * Add gamepad controls to a page.
  * @param {Page} page - The page to add controls to.
  * @returns {Promise<(boolean|string)>} A promise that is false if the action was successful or contains an error message if not.
@@ -1377,6 +1395,20 @@ async function addGamepadControls( page ) {
 
             return Promise.resolve(false);
         });
+
+        // toggle keyboard
+        await page.exposeFunction( "guystationToggleKeyboard", async () => {
+            if( onboardInstance ) {
+                blankOnboardInstance();
+            }
+            else {
+                onboardInstance = proc.spawn( LAUNCH_ONBOARD_COMMAND, {detached: true, stdio: 'ignore'} );
+                onboardInstance.on('exit', blankOnboardInstance);
+                proc.execSync(ENSURE_FLOAT_ONBOARD_COMMAND);
+            }
+
+            return Promise.resolve(false);
+        } );
 
         // get joy mapping
         if( !browserControlsCache ) {
@@ -1504,6 +1536,11 @@ async function addGamepadControls( page ) {
                             }
                             if( buttonsPressed[i][joyMapping["L2"]] ) {
                                 await guystationNavigate();
+                                break;
+                            }
+                            // keyboard
+                            if( buttonsPressed[i][joyMapping["X"]] ) {
+                                await guystationToggleKeyboard();
                                 break;
                             }
                             // mouse
@@ -2535,6 +2572,8 @@ function blankCurrentGame() {
     currentSystem = null;
     currentParentsString = null;
     currentEmulator = null;
+
+    blankOnboardInstance();
 }
 
 /**
@@ -4117,6 +4156,8 @@ async function goHome() {
         pauseRemoteMedia();
     }
     catch(err) {/*ok*/}
+
+    blankOnboardInstance();
 
     return Promise.resolve( { "didPause": needsPause } );
 }
