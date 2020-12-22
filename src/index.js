@@ -1448,6 +1448,7 @@ async function addGamepadControls( page ) {
                                 }
                                 else {
                                     if( buttonsDown[i][j] ) buttonsReleased[i][j] = true; // released is kind of like pressed - it is the first release
+                                    else buttonsReleased[i][j] = false;
                                     buttonsDown[i][j] = false;
                                     buttonsPressed[i][j] = false;
                                     buttonsUp[i][j] = true;
