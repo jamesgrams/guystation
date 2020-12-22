@@ -1339,7 +1339,10 @@ async function addGamepadControls( page ) {
             else if( directionX === RIGHT ) x += GAMEPAD_MOVE_CURSOR_AMOUNT;
             if( directionY === UP ) y -= GAMEPAD_MOVE_CURSOR_AMOUNT;
             else if( directionY === DOWN ) y += GAMEPAD_MOVE_CURSOR_AMOUNT;
-            performMouse( x, y, button ? button : LEFT, down );
+            let screenResolution = proc.execSync(GET_RESOLUTION_COMMAND).toString().split("x");
+            if( x < screenResolution[0] && y < screenResolution[1] ) {
+                performMouse( x, y, button ? button : LEFT, down );
+            }
 
             return Promise.resolve(false);
         } );
@@ -1388,14 +1391,22 @@ async function addGamepadControls( page ) {
     await page.evaluate( () => {
         async function guystationGamepadCursor() {
             var GAMEPAD_INTERVAL = 50;
-            var GAMEPAD_INPUT_INTERVAL = 30;
+            var GAMEPAD_INPUT_INTERVAL = 10;
             var gamepadInterval;
             var buttonsDown = {}; // keys are buttons numbers or axes number + direction
             var buttonsPressed = {};
             var buttonsUp = {};
             var buttonsReleased = {};
+            var moveEnabled = true;
+            var moveEnabledTimeout;
             var joyMapping = await guystationGetJoyMapping();
             if( !joyMapping ) joyMapping = {};
+
+            function moveDelay() {
+                clearTimeout(moveEnabledTimeout);
+                moveEnabled = false;
+                moveEnabledTimeout = setTimeout( function() { moveEnabled = true; }, 50 );
+            }
             function buttonDown(b) {
                 if (typeof(b) == "object") {
                     return b.pressed;
@@ -1533,7 +1544,8 @@ async function addGamepadControls( page ) {
                                     directionY = "up";
                                 }
                             }
-                            if( directionX || directionY || button || down ) {
+                            if( moveEnabled && (directionX || directionY || button || down) ) {
+                                moveDelay();
                                 guystationMouse(directionX, directionY, button, down);
                                 break;
                             }
@@ -1555,7 +1567,10 @@ async function addGamepadControls( page ) {
                                     scrollY = "up";
                                 }
                             }
-                            if( scrollX || scrollY ) guystationScroll(scrollX, scrollY);
+                            if( moveEnabled && (scrollX || scrollY) ) {
+                                moveDelay();
+                                guystationScroll(scrollX, scrollY);
+                            }
                         }
                     }
                 }
