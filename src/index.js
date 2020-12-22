@@ -1339,7 +1339,7 @@ async function addGamepadControls( page ) {
             else if( directionX === RIGHT ) x += GAMEPAD_MOVE_CURSOR_AMOUNT;
             if( directionY === UP ) y -= GAMEPAD_MOVE_CURSOR_AMOUNT;
             else if( directionY === DOWN ) y += GAMEPAD_MOVE_CURSOR_AMOUNT;
-            performMouse( x, y, button, down );
+            performMouse( x, y, button ? button : LEFT, down );
 
             return Promise.resolve(false);
         } );
