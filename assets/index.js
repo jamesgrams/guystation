@@ -2659,8 +2659,10 @@ function parseEzButtonString( buttonString ) {
             if( match[3] ) {
                 obj.vendor = match[4];
                 obj.product = match[5];
+                obj.chrome = remapController( obj.type+"("+obj.button+")", obj.vendor, obj.product );
             }
             buttonsToSet.push( obj );
+console.log(obj);
         }
     }
     return buttonsToSet;
@@ -2860,6 +2862,33 @@ function demapController( buttonOrAxis, vendor, product ) {
         }
     }
     return buttonOrAxis + "-" + vendor + "-" + product;
+}
+
+/**
+ * Remap a controller to what Chrome expects (reverse demapController)
+ * @param {string} buttonOrAxis - The button or axis in a form such as "button(2)" or "axis(3-)".
+ * @param {string} vendor - The 4 character vendor hex code.
+ * @param {string} product - The 4 character product hex code.
+ * @returns {string} - The button or axis(+/-) in the form <number>[<+/->] 
+ */
+function remapController( buttonOrAxis, vendor, product ) {
+    if( demapperTypes && demapperControllers ) { // external script
+        var type = demapperControllers[vendor + "-" + product];
+        // we have a custom mapper
+        if( type ) {
+            var buttonMap = demapperTypes[type];
+            // we should have a button map but do a sanity check here
+            if( buttonMap ) {
+                var buttonMapKeys = Object.keys(buttonMap);
+                for( var i=0; i<buttonMapKeys.length; i++ ) {
+                    if( buttonMap[buttonMapKeys[i]] == buttonOrAxis ) {
+                        return buttonMapKeys[i].replace(/[a-z]|\(|\)/g,"");    
+                    } 
+                }
+            }
+        }
+    }
+    return null;
 }
 
 /**

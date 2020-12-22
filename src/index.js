@@ -251,7 +251,7 @@ const TRY_PIP_INTERVAL = 100;
 const ENSURE_MUTE_TIMEOUT_TIME = 6000;
 const LEFT = "left";
 const RIGHT = "right";
-const GAMEPAD_MOVE_CURSOR_AMOUNT = 10;
+const GAMEPAD_MOVE_CURSOR_AMOUNT = 15;
 const BROWSER_GAMEPAD_PATH = "browser-gamepad.json";
 
 const ERROR_MESSAGES = {
@@ -367,7 +367,6 @@ let tryPipInterval = null;
 let ensureMuteTimeout = null;
 let fullscreenPip = false;
 let needToRefocusPip = false;
-let gamepadMousePosition = null;
 let browserControlsCache = null;
 
 let sambaIndex = process.argv.indexOf(SAMBA_FLAG);
@@ -1325,39 +1324,26 @@ async function addGamepadControls( page ) {
     }
 
     let alreadyDefined = await page.evaluate( () => typeof guystationMoveMouse !== 'undefined' );
+    await page.click("body"); // needed for controller to work on start
     if( !alreadyDefined ) { // these functions hang forever if they are already defined (once needed per page context - not on renavigation)
         // move the mouse
-        await page.exposeFunction( "guystationMoveMouse", async (direction, currentPosition, width, height) => {
+        await page.exposeFunction( "guystationMoveMouse", async (directionX, directionY, width, height) => {
             if( !page || page.isClosed() ) {
                 return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
             }
 
-            if( !gamepadMousePosition ) {
-                // no previous position
-                gamepadMousePosition = {x: width/2, y: height/2};
-            }
-            if( currentPosition.x === null ) {
-                currentPosition = gamepadMousePosition; // set the current position to the previous position - we might be transitioning from pages
-            }
-            gamepadMousePosition = currentPosition; // typically what we will do
-
             // better to use puppeteer than robot.js here, since puppeteer is within the page and we are only moving the mouse in the page.
             // but unfortunately puppeteer doesn't seem to work well with moving the cursor on ubuntu, so we will use robot again.
             // we'll have to be in full screen for this to work properly
-            switch(direction) {
-                case LEFT:
-                    robot.moveMouse( gamepadMousePosition.x - GAMEPAD_MOVE_CURSOR_AMOUNT, gamepadMousePosition.y );
-                    break;
-                case RIGHT:
-                    robot.moveMouse( gamepadMousePosition.x + GAMEPAD_MOVE_CURSOR_AMOUNT, gamepadMousePosition.y );
-                    break;
-                case UP:
-                    robot.moveMouse( gamepadMousePosition.x, gamepadMousePosition.y - GAMEPAD_MOVE_CURSOR_AMOUNT );
-                    break;
-                case DOWN:
-                    robot.moveMouse( gamepadMousePosition.x, gamepadMousePosition.y + GAMEPAD_MOVE_CURSOR_AMOUNT );
-                    break;
-            }
+
+            let gamepadMousePosition = robot.getMousePos();
+            let x = gamepadMousePosition.x;
+            let y = gamepadMousePosition.y;
+            if( directionX === LEFT ) x -= GAMEPAD_MOVE_CURSOR_AMOUNT;
+            else if( directionX === RIGHT ) x += GAMEPAD_MOVE_CURSOR_AMOUNT;
+            if( directionY === UP ) y -= GAMEPAD_MOVE_CURSOR_AMOUNT;
+            else if( directionY === DOWN ) y += GAMEPAD_MOVE_CURSOR_AMOUNT;
+            robot.moveMouse( x, y );
 
             return Promise.resolve(false);
         } );
@@ -1369,8 +1355,7 @@ async function addGamepadControls( page ) {
             }
 
             let button = right ? "right" : "left";
-            await page.mouse.down({button: button});
-            await page.mouse.up({button: button});
+            robot.mouseClick( button );
 
             return Promise.resolve(false);
         } );
@@ -1402,11 +1387,8 @@ async function addGamepadControls( page ) {
     // accept gamepad input
     await page.evaluate( () => {
         async function guystationGamepadCursor() {
-            var mousePos = {x: null, y: null}; // keep track of the mouse position
-            document.addEventListener("mousemove", function(e) {mousePos.x = e.clientX;mousePos.y = e.clientY});
-
-            var GAMEPAD_INTERVAL = 100;
-            var GAMEPAD_INPUT_INTERVAL = 10;
+            var GAMEPAD_INTERVAL = 50;
+            var GAMEPAD_INPUT_INTERVAL = 30;
             var gamepadInterval;
             var buttonsDown = {}; // keys are buttons numbers or axes number + direction
             var buttonsPressed = {};
@@ -1512,22 +1494,24 @@ async function addGamepadControls( page ) {
                                 guystationNavigate();
                                 break;
                             }
+                            let directionX, directionY;
                             if( buttonsDown[joyMapping["Axis X+"]] || buttonsDown[joyMapping["Axis X-"]] || buttonsDown[joyMapping["Left"]] || buttonsDown[joyMapping["Right"]] ) {
                                 if( buttonsDown[joyMapping["Axis X+"]] || buttonsDown[joyMapping["Right"]] ) {
-                                    guystationMoveMouse("right", mousePos, window.innerWidth, window.innerHeight);
+                                    directionX = "right";
                                 }
                                 else if( buttonsDown[joyMapping["Left"]] || buttonsDown[joyMapping["Axis X-"]] ) {
-                                    guystationMoveMouse("left", mousePos, window.innerWidth, window.innerHeight);
+                                    directionX = "left";
                                 }
                             }
                             if( buttonsDown[joyMapping["Axis Y+"]] || buttonsDown[joyMapping["Axis Y-"]] || buttonsDown[joyMapping["Up"]] || buttonsDown[joyMapping["Down"]] ) {
                                 if( buttonsDown[joyMapping["Axis Y+"]] || buttonsDown[joyMapping["Down"]] ) {
-                                    guystationMoveMouse("down", mousePos, window.innerWidth, window.innerHeight);
+                                    directionY = "down";
                                 }
                                 else if( buttonsDown[joyMapping["Up"]] || buttonsDown[joyMapping["Axis Y-"]] ) {
-                                    guystationMoveMouse("up", mousePos, window.innerWidth, window.innerHeight);
+                                    directionY = "up";
                                 }
                             }
+                            if( directionX || directionY ) guystationMoveMouse(directionX, directionY, window.innerWidth, window.innerHeight);
                         }
                     }
                 }
@@ -4342,7 +4326,7 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
         if( system === BROWSER ) { // browser is a simple, special case as it is controlled completely by us
             let controlsObj = {};
             for( let key in values ) {
-                if( values[key][0] && values[key][0].type === AXIS_CONTROL_TYPE || values[key][0].type === BUTTON_CONTROL_TYPE ) controlsObj[key] = values[key][0].button;
+                if( values[key][0] && values[key][0].type === AXIS_CONTROL_TYPE || values[key][0].type === BUTTON_CONTROL_TYPE ) controlsObj[key] = (values[key][0].chrome || values[key][0].chrome === 0) ? values[key][0].chrome : values[key][0].button;
             }
             fs.writeFileSync( BROWSER_GAMEPAD_PATH, JSON.stringify(controlsObj) );
             browserControlsCache = JSON.parse(JSON.stringify(controlsObj)); // update the cache
