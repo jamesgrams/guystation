@@ -1403,11 +1403,6 @@ async function addGamepadControls( page ) {
             var joyMapping = await guystationGetJoyMapping();
             if( !joyMapping ) joyMapping = {};
 
-            // add the keyboard
-            var keyboardDiv = document.createElement("div");
-            keyboardDiv.classList.add("simple-keyboard");
-            document.body.appendChild(keyboardDiv);
-
             function buttonDown(b) {
                 if (typeof(b) == "object") {
                     return b.pressed;
@@ -1584,13 +1579,6 @@ async function addGamepadControls( page ) {
         }
         guystationGamepadCursor();
     });
-
-    await page.addScriptTag({url: "https://cdn.jsdelivr.net/npm/simple-keyboard@latest/build/index.min.js"});
-    await page.evaluate( () => {
-        var guystationKeyboard = new window.SimpleKeyboard.default({
-            onChange: input => onChange(input)
-        });
-    } );
 }
 
 /**
