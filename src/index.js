@@ -1340,7 +1340,7 @@ async function addGamepadControls( page ) {
             else if( directionX === RIGHT ) x += GAMEPAD_MOVE_CURSOR_AMOUNT;
             if( directionY === UP ) y -= GAMEPAD_MOVE_CURSOR_AMOUNT;
             else if( directionY === DOWN ) y += GAMEPAD_MOVE_CURSOR_AMOUNT;
-            if( x < screenResolution[0] && y < screenResolution[1] ) {
+            if( x < screenResolution[0] && y < screenResolution[1] && x > 0 && y > 0 ) {
                 performMouse( x, y, button ? button : LEFT, down, true );
             }
 
@@ -1583,6 +1583,11 @@ async function addGamepadControls( page ) {
     });
 
     await page.addScriptTag({url: "https://cdn.jsdelivr.net/npm/simple-keyboard@latest/build/index.min.js"});
+    await page.evaluate( () => {
+        var guystationKeyboard = new window.SimpleKeyboard.default({
+            onChange: input => onChange(input)
+        });
+    } );
 }
 
 /**
