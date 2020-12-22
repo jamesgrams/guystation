@@ -2662,7 +2662,6 @@ function parseEzButtonString( buttonString ) {
                 obj.chrome = remapController( obj.type+"("+obj.button+")", obj.vendor, obj.product );
             }
             buttonsToSet.push( obj );
-console.log(obj);
         }
     }
     return buttonsToSet;
@@ -3294,7 +3293,7 @@ function createKeyButton( selected, x, y ) {
         if( !lastJoystickValues.length || (Math.abs(lastJoystickValues[0] - xValueForServer)) > SCREENCAST_AXIS_FUZZINESS || (Math.abs(lastJoystickValues[1] - yValueForServer)) > SCREENCAST_AXIS_FUZZINESS || (!e) ) {
             lastJoystickValues = [xValueForServer, yValueForServer];
 
-            // The right axis are 3 & 4
+            // The right axis are 3 & 4 -- just like when we use AXISCODES to forward the fake controller
             var axisAdder = selected.includes("L") ? 0 : 3;
             socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": 0x00 + axisAdder, "value": xValueForServer }, "id": socket.id });
             socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": 0x01 + axisAdder, "value": yValueForServer }, "id": socket.id });
@@ -5505,7 +5504,7 @@ function sendButtonsToServer( clientButton, down ) {
     // we send the codes that correspond with the buttons numbers. So padcodes have A as button 0, so when
     // the client controller presses button 0, we send A, which means button 0 on the server unless a mapping specifies otherwise
     // i is the client controller button
-    var scMapKeys = Object.keys(screencastControllerMap);
+    var scMapKeys = Object.keys(screencastControllerMap); // the keys here are the buttons for the fake controller created on the server, the values are the buttons on the client controller
     var serverButtonsForClientButton = scMapKeys.filter( el => screencastControllerMap[el] == clientButton );
     if( !screencastControllerMap[clientButton] && !clientButton.toString().match(/\+|\-/) && ( ( clientButton.toString().match(/^a/) && parseInt(clientButton.replace("a","")) < Object.keys(AXISCODES).length ) || ( !clientButton.toString().match(/^a/) && parseInt(clientButton) < Object.keys(PADCODES).length ) ) ) serverButtonsForClientButton.push( clientButton ); // if nothing is mapped for this button on the server, send this button. this means 2 == 2 as we intentionally left that blank - sent so long as it is not an axis to a button.
     // also make sure it is a valid server button range
