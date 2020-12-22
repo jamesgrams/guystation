@@ -1393,6 +1393,7 @@ async function addGamepadControls( page ) {
             var buttonsDown = {}; // keys are buttons numbers or axes number + direction
             var buttonsPressed = {};
             var buttonsUp = {};
+            var buttonsReleased = {};
             var joyMapping = await guystationGetJoyMapping();
             if( !joyMapping ) joyMapping = {};
             function buttonDown(b) {
@@ -1435,99 +1436,99 @@ async function addGamepadControls( page ) {
                         if( document.hasFocus() && gp && gp.buttons ) {
         
                             // set all of buttons down on start
-                            for( var i=0; i<gp.buttons.length; i++ ) {
-                                if( buttonDown(gp.buttons[i]) ) {
+                            for( var j=0; j<gp.buttons.length; j++ ) {
+                                if( buttonDown(gp.buttons[j]) ) {
                                     // down = down
-                                    buttonsDown[i] = true;
+                                    buttonsDown[i][j] = true;
                                     // pressed = pressed (only occurs once, turns to false if held down, must release to trigger again)
-                                    if( buttonsUp[i] ) buttonsPressed[i] = true;
-                                    else buttonsPressed[i] = false;
-                                    buttonsUp[i] = false;
-                                    buttonsReleased[i] = false;
+                                    if( buttonsUp[i][j] ) buttonsPressed[i][j] = true;
+                                    else buttonsPressed[i][j] = false;
+                                    buttonsUp[i][j] = false;
+                                    buttonsReleased[i][j] = false;
                                 }
                                 else {
-                                    if( buttonsDown[i] ) buttonsReleased[i] = true; // released is kind of like pressed - it is the first release
-                                    buttonsDown[i] = false;
-                                    buttonsPressed[i] = false;
-                                    buttonsUp[i] = true;
+                                    if( buttonsDown[i][j] ) buttonsReleased[i][j] = true; // released is kind of like pressed - it is the first release
+                                    buttonsDown[i][j] = false;
+                                    buttonsPressed[i][j] = false;
+                                    buttonsUp[i][j] = true;
                                 }
                             }
-                            for( var i=0; i<gp.axes.length; i++ ) {
-                                if( Math.abs(gp.axes[i]) > 0.5 ) {
+                            for( var j=0; j<gp.axes.length; j++ ) {
+                                if( Math.abs(gp.axes[j]) > 0.5 ) {
                                     var dir = "-";
                                     var oppDir = "+";
-                                    if( gp.axes[i] > 0 ) {
+                                    if( gp.axes[j] > 0 ) {
                                         dir = "+";
                                         oppDir = "-";
                                     }
-                                    buttonsReleased[i + dir] = false;
-                                    if(buttonsDown[i + oppDir]) buttonsReleased[i + oppDir] = true; //  a quick switch from one direction to the other
-                                    else buttonsReleased[i + oppDir] = false;
+                                    buttonsReleased[i][j + dir] = false;
+                                    if(buttonsDown[i][j + oppDir]) buttonsReleased[i][j + oppDir] = true; //  a quick switch from one direction to the other
+                                    else buttonsReleased[i][j + oppDir] = false;
         
-                                    buttonsDown[i + dir] = true;
-                                    buttonsDown[i + oppDir] = false;
+                                    buttonsDown[i][j + dir] = true;
+                                    buttonsDown[i][j + oppDir] = false;
         
-                                    if( buttonsUp[i + dir] ) buttonsPressed[i + dir] = true;
-                                    else buttonsPressed[i + dir] = false;
-                                    buttonsPressed[i + oppDir] = false;
+                                    if( buttonsUp[i][j + dir] ) buttonsPressed[i][j + dir] = true;
+                                    else buttonsPressed[i][j + dir] = false;
+                                    buttonsPressed[i][j + oppDir] = false;
         
-                                    buttonsUp[i + dir] = false;
-                                    buttonsUp[i + oppDir] = true;
+                                    buttonsUp[i][j + dir] = false;
+                                    buttonsUp[i][j + oppDir] = true;
                                 }
                                 else {
-                                    if( buttonsDown[i + "+"] ) buttonsReleased[i + "+"] = true;
-                                    else buttonsReleased[i + "+"] = false;
-                                    if( buttonsDown[i + "-"] ) buttonsReleased[i + "-"] = true;
-                                    else buttonsReleased[i + "-"] = false;
-                                    buttonsDown[i + "+"] = false;
-                                    buttonsDown[i + "-"] = false;
-                                    buttonsPressed[i + "+"] = false;
-                                    buttonsPressed[i + "-"] = false;
-                                    buttonsUp[i + "+"] = true;
-                                    buttonsUp[i + "-"] = true;
+                                    if( buttonsDown[i][j + "+"] ) buttonsReleased[i][j + "+"] = true;
+                                    else buttonsReleased[i][j + "+"] = false;
+                                    if( buttonsDown[i][j + "-"] ) buttonsReleased[i][j + "-"] = true;
+                                    else buttonsReleased[i][j + "-"] = false;
+                                    buttonsDown[i][j + "+"] = false;
+                                    buttonsDown[i][j + "-"] = false;
+                                    buttonsPressed[i][j + "+"] = false;
+                                    buttonsPressed[i][j + "-"] = false;
+                                    buttonsUp[i][j + "+"] = true;
+                                    buttonsUp[i][j + "-"] = true;
                                 }
                             }
 
                             // navigate
-                            if( buttonsPressed[joyMapping["R2"]] ) {
+                            if( buttonsPressed[i][joyMapping["R2"]] ) {
                                 guystationNavigate(true);
                                 break;
                             }
-                            if( buttonsPressed[joyMapping["L2"]] ) {
+                            if( buttonsPressed[i][joyMapping["L2"]] ) {
                                 guystationNavigate();
                                 break;
                             }
                             // mouse
                             let directionX, directionY, button, down;
-                            if( buttonsPressed[joyMapping["A"]] ) {
+                            if( buttonsPressed[i][joyMapping["A"]] ) {
                                 button = "left";
                                 down = true;
                             }
-                            else if( buttonsReleased[joyMapping["A"]] ) {
+                            else if( buttonsReleased[i][joyMapping["A"]] ) {
                                 button = "left";
                                 down = false;
                             }
-                            if( buttonsPressed[joyMapping["B"]] ) {
+                            if( buttonsPressed[i][joyMapping["B"]] ) {
                                 button = "right";
                                 down = true;
                             }
-                            else if( buttonsReleased[joyMapping["B"]] ) {
+                            else if( buttonsReleased[i][joyMapping["B"]] ) {
                                 button = "right";
                                 down = false;
                             }
-                            if( buttonsDown[joyMapping["Axis X+"]] || buttonsDown[joyMapping["Axis X-"]] || buttonsDown[joyMapping["Left"]] || buttonsDown[joyMapping["Right"]] ) {
-                                if( buttonsDown[joyMapping["Axis X+"]] || buttonsDown[joyMapping["Right"]] ) {
+                            if( buttonsDown[i][joyMapping["Axis X+"]] || buttonsDown[i][joyMapping["Axis X-"]] || buttonsDown[i][joyMapping["Left"]] || buttonsDown[i][joyMapping["Right"]] ) {
+                                if( buttonsDown[i][joyMapping["Axis X+"]] || buttonsDown[i][joyMapping["Right"]] ) {
                                     directionX = "right";
                                 }
-                                else if( buttonsDown[joyMapping["Left"]] || buttonsDown[joyMapping["Axis X-"]] ) {
+                                else if( buttonsDown[i][joyMapping["Left"]] || buttonsDown[i][joyMapping["Axis X-"]] ) {
                                     directionX = "left";
                                 }
                             }
-                            if( buttonsDown[joyMapping["Axis Y+"]] || buttonsDown[joyMapping["Axis Y-"]] || buttonsDown[joyMapping["Up"]] || buttonsDown[joyMapping["Down"]] ) {
-                                if( buttonsDown[joyMapping["Axis Y+"]] || buttonsDown[joyMapping["Down"]] ) {
+                            if( buttonsDown[i][joyMapping["Axis Y+"]] || buttonsDown[i][joyMapping["Axis Y-"]] || buttonsDown[i][joyMapping["Up"]] || buttonsDown[i][joyMapping["Down"]] ) {
+                                if( buttonsDown[i][joyMapping["Axis Y+"]] || buttonsDown[i][joyMapping["Down"]] ) {
                                     directionY = "down";
                                 }
-                                else if( buttonsDown[joyMapping["Up"]] || buttonsDown[joyMapping["Axis Y-"]] ) {
+                                else if( buttonsDown[i][joyMapping["Up"]] || buttonsDown[i][joyMapping["Axis Y-"]] ) {
                                     directionY = "up";
                                 }
                             }
@@ -1537,19 +1538,19 @@ async function addGamepadControls( page ) {
                             }
                             // scroll
                             let scrollX, scrollY;
-                            if( buttonsDown[joyMapping["Axis X2+"]] || buttonsDown[joyMapping["Axis X2-"]] ) {
-                                if( buttonsDown[joyMapping["Axis X2+"]] ) {
+                            if( buttonsDown[joyMapping[i]["Axis X2+"]] || buttonsDown[joyMapping[i]["Axis X2-"]] ) {
+                                if( buttonsDown[joyMapping[i]["Axis X2+"]] ) {
                                     scrollX = "right";
                                 }
-                                else if( buttonsDown[joyMapping["Axis X2-"]] ) {
+                                else if( buttonsDown[joyMapping[i]["Axis X2-"]] ) {
                                     scrollX = "left";
                                 }
                             }
-                            if( buttonsDown[joyMapping["Axis Y2+"]] || buttonsDown[joyMapping["Axis Y2-"]] ) {
-                                if( buttonsDown[joyMapping["Axis Y2+"]] ) {
+                            if( buttonsDown[joyMapping[i]["Axis Y2+"]] || buttonsDown[i][joyMapping["Axis Y2-"]] ) {
+                                if( buttonsDown[joyMapping[i]["Axis Y2+"]] ) {
                                     scrollY = "down";
                                 }
-                                else if( buttonsDown[joyMapping["Axis Y2-"]] ) {
+                                else if( buttonsDown[i][joyMapping["Axis Y2-"]] ) {
                                     scrollY = "up";
                                 }
                             }
