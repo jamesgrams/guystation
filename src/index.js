@@ -1340,9 +1340,12 @@ async function addGamepadControls( page ) {
             else if( directionX === RIGHT ) x += GAMEPAD_MOVE_CURSOR_AMOUNT;
             if( directionY === UP ) y -= GAMEPAD_MOVE_CURSOR_AMOUNT;
             else if( directionY === DOWN ) y += GAMEPAD_MOVE_CURSOR_AMOUNT;
-            if( x < screenResolution[0] && y < screenResolution[1] && x > 0 && y > 0 ) {
-                performMouse( x, y, button ? button : LEFT, down, true );
-            }
+
+            if( x >= screenResolution[0] ) x = screenResolution[0] - 1;
+            if( y >= screenResolution[1] ) y = screenResolution[1] - 1;
+            if( x <= 0 ) x = 1;
+            if( y <= 0 ) y = 1;
+            performMouse( x, y, button ? button : LEFT, down, true );
 
             return Promise.resolve(false);
         } );
