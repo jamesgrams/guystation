@@ -1324,7 +1324,7 @@ async function addGamepadControls( page ) {
     }
 
     let alreadyDefined = await page.evaluate( () => typeof guystationMoveMouse !== 'undefined' );
-    await page.click("body"); // needed for controller to work on start
+    await page.mouse.click(0,0); // needed for controller to work on start
     if( !alreadyDefined ) { // these functions hang forever if they are already defined (once needed per page context - not on renavigation)
         // move the mouse
         await page.exposeFunction( "guystationMouse", async (directionX, directionY, button, down) => {
