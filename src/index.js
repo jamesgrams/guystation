@@ -251,7 +251,8 @@ const TRY_PIP_INTERVAL = 100;
 const ENSURE_MUTE_TIMEOUT_TIME = 6000;
 const LEFT = "left";
 const RIGHT = "right";
-const GAMEPAD_MOVE_CURSOR_AMOUNT = 50;
+const GAMEPAD_MOVE_CURSOR_AMOUNT = 25;
+const GAMEPAD_SCROLL_AMOUNT = 50;
 const BROWSER_GAMEPAD_PATH = "browser-gamepad.json";
 const LAUNCH_ONBOARD_COMMAND = "onboard";
 const ENSURE_FLOAT_ONBOARD_COMMAND = "gsettings set org.onboard.window docking-enabled false";
@@ -1363,7 +1364,7 @@ async function addGamepadControls( page ) {
             if( y >= screenResolution[1] ) y = screenResolution[1] - 1;
             if( x <= 0 ) x = 1;
             if( y <= 0 ) y = 1;
-            performMouse( x, y, button ? button : LEFT, down, true );
+            performMouse( x, y, button ? button : LEFT, down );
 
             return Promise.resolve(false);
         } );
@@ -1375,11 +1376,11 @@ async function addGamepadControls( page ) {
             }
             let x = 0;
             let y = 0;
-            if( directionX === LEFT ) x -= GAMEPAD_MOVE_CURSOR_AMOUNT;
-            else if( directionX === RIGHT ) x += GAMEPAD_MOVE_CURSOR_AMOUNT;
-            if( directionY === UP ) y -= GAMEPAD_MOVE_CURSOR_AMOUNT;
-            else if( directionY === DOWN ) y += GAMEPAD_MOVE_CURSOR_AMOUNT;
-            await browsePage.evaluate( (x,y) => { window.scrollBy({top: y, left: x, behavior: 'smooth'}) }, x, y ); // can't use existing scroll, since that is a bulk scroll, where this is quick
+            if( directionX === LEFT ) x -= GAMEPAD_SCROLL_AMOUNT;
+            else if( directionX === RIGHT ) x += GAMEPAD_SCROLL_AMOUNT;
+            if( directionY === UP ) y -= GAMEPAD_SCROLL_AMOUNT;
+            else if( directionY === DOWN ) y += GAMEPAD_SCROLL_AMOUNT;
+            await browsePage.evaluate( (x,y) => { window.scrollBy({top: y, left: x}) }, x, y ); // can't use existing scroll, since that is a bulk scroll, where this is quick
 
             return Promise.resolve(false);
         } );
@@ -5391,21 +5392,22 @@ async function performScreencastMouse( xPercent, yPercent, button, down ) {
  * @param {number} y - The y coordinate.
  * @param {string} button - left, right, or middle.
  * @param {boolean} [down] - True if we are pushing the mouse down, false if up.
- * @param {string} [smooth] - True if the mouse move should be smooth.
  */
-function performMouse( x, y, button, down, smooth ) {
-    // move the screenshare if we have to
-    let windowInfo = proc.execSync(SHARING_PROMPT_GET_WINDOW_INFO_COMMAND).toString();
-    let [windowAll, windowLeft, windowTop, windowWidth, windowHeight] = windowInfo.match(/Absolute upper-left X:\s+(\d+).*Absolute upper-left Y:\s+(\d+).*Width:\s+(\d+).*Height:\s+(\d+)/s);
-    // the click is within the window, so move the window before we perform the click
-    if( x > windowLeft && x < (windowLeft + windowWidth) && y > windowTop && y < (windowTop + windowHeight) ) {
-        proc.execSync(SHARING_PROMPT_MOVE_WINDOW + windowLeft + " " + (windowTop > SHARING_PROMPT_TOP_AREA ? SHARING_PROMPT_MINIMUM : SHARING_PROMPT_MAXIMUM));
+function performMouse( x, y, button, down ) {
+    try {
+        // move the screenshare if we have to
+        let windowInfo = proc.execSync(SHARING_PROMPT_GET_WINDOW_INFO_COMMAND).toString();
+        let [windowAll, windowLeft, windowTop, windowWidth, windowHeight] = windowInfo.match(/Absolute upper-left X:\s+(\d+).*Absolute upper-left Y:\s+(\d+).*Width:\s+(\d+).*Height:\s+(\d+)/s);
+        // the click is within the window, so move the window before we perform the click
+        if( x > windowLeft && x < (windowLeft + windowWidth) && y > windowTop && y < (windowTop + windowHeight) ) {
+            proc.execSync(SHARING_PROMPT_MOVE_WINDOW + windowLeft + " " + (windowTop > SHARING_PROMPT_TOP_AREA ? SHARING_PROMPT_MINIMUM : SHARING_PROMPT_MAXIMUM));
+        }
+    }
+    catch(err) {
+        // ok not streaming
     }
 
-    if( smooth ) {
-        robot.moveMouseSmooth(x, y);
-    }
-    else if( down ) { // before you tpgg;e, expect the mouse to be in the other state
+    if( down ) { // before you toggle, expect the mouse to be in the other state
         robot.moveMouse(x, y);
     }
     else {

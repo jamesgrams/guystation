@@ -239,7 +239,7 @@ Multiple monitor support may be limited. GuyStation will aim to use the primary 
 * The descriptions under EZ Controller Configuration input fields aren't always accurate.
 * Controlling a browser with a gamepad should be optional.
 * Allow multiple keys for browser EZ Controller Configuration.
-* Drag doesn't work with a gamepad controller as dragMouseSmooth doesn't exist in Robot.js.
+* YouTubeDL isn't working for YouTube currently.
 
 ## Credits and Special Thanks
 * Game Boy Advance and DS Lite icons: [David Pérez](https://thenounproject.com/david730/)
