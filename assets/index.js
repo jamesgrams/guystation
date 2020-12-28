@@ -3068,22 +3068,24 @@ function fitscreenVideo() {
     var modal = document.querySelector(".modal");
     if( modal && document.querySelector("#remote-screencast-form") ) {
         var button = document.querySelector("#remote-screencast-form button:last-child");
-        if( modal.classList.contains("fit-screen") ) {
-            var width = window.innerWidth - 20; // 20 to still give some space to quit
-            var height = window.innerHeight - 20;
-            var widthRatio = width/modal.clientWidth;
-            var heightRatio = height/modal.clientHeight;
+        var video = modal.querySelector("video");
+        if( !modal.classList.contains("fit-screen") ) {
+            var width = window.innerWidth - (modal.scrollWidth - video.scrollWidth) - 40; // 40 to still give some space to quit
+            var height = window.innerHeight - (modal.scrollHeight - video.scrollHeight) - 40;
+            var widthRatio = width/video.scrollWidth;
+            var heightRatio = height/video.scrollHeight;
             var ratio = Math.min(widthRatio, heightRatio);
-            var newModalWidth = modal.clientWidth * ratio;
-            var newModalHeight = modal.clientHeight * ratio;
-            modal.setAttribute("style","width:" + newModalWidth + "px;height:" + newModalHeight + "px;");
+            var newWidth = video.clientWidth * ratio;
+            var newHeight = video.clientHeight * ratio;
+            video.setAttribute("style","width:" + newWidth + "px;height:" + newHeight + "px;");
             button.innerText = "Default Size";
-            modal.classList.remove("fit-screen");
+            modal.classList.add("fit-screen");
+            // sometimes the buttons on the bbottom can add more height when stacked, so run again if this is the case
         }
         else {
-            modal.removeAttribute("style");
+            video.removeAttribute("style");
             button.innerText = "Fit Screen";
-            modal.classList.add("fit-screen");
+            modal.classList.remove("fit-screen");
         }
     }
 }
@@ -3096,6 +3098,12 @@ function fullscreenVideo( element ) {
     if( isTouch() ) {
         // this should be for iOS safari
         //element.webkitEnterFullScreen();
+        if( element.querySelector("video").hasAttribute("style") ) {
+            try {
+                document.querySelector(".modal button:last-child").click();
+            }
+            catch(err) {}    
+        }
         var oldParent = element.parentNode;
         var nextSibling = element.nextSibling;
         var blackBackground = document.createElement("div");
