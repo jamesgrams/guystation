@@ -3008,6 +3008,7 @@ function displayScreencast( fullscreen ) {
     form.appendChild(scaleMenu);
 
     form.appendChild( createButton("Fullscreen", function() { fullscreenVideo(video) }));
+    form.appendChild( createButton("Fit Screen", fitscreenVideo) );
 
     var connectController = localStorage.guystationConnectController;
     if( connectController ) {
@@ -3058,6 +3059,33 @@ function forceRedraw( element ) {
         element.offsetHeight;
         element.style.display='';
     }, 0 );
+}
+
+/**
+ * Fitscreen the modal element during a screencast.
+ */
+function fitscreenVideo() {
+    var modal = document.querySelector(".modal");
+    if( modal && document.querySelector("#remote-screencast-form") ) {
+        var button = document.querySelector("#remote-screencast-form button:last-child");
+        if( modal.classList.contains("fit-screen") ) {
+            var width = window.innerWidth - 20; // 20 to still give some space to quit
+            var height = window.innerHeight - 20;
+            var widthRatio = width/modal.clientWidth;
+            var heightRatio = height/modal.clientHeight;
+            var ratio = Math.min(widthRatio, heightRatio);
+            var newModalWidth = modal.clientWidth * ratio;
+            var newModalHeight = modal.clientHeight * ratio;
+            modal.setAttribute("style","width:" + newModalWidth + "px;height:" + newModalHeight + "px;");
+            button.innerText = "Default Size";
+            modal.classList.remove("fit-screen");
+        }
+        else {
+            modal.removeAttribute("style");
+            button.innerText = "Fit Screen";
+            modal.classList.add("fit-screen");
+        }
+    }
 }
 
 /**

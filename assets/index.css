@@ -596,6 +596,14 @@ h1 {
     display: none;
 }
 
+.modal.fit-screen #remote-screencast-form {
+    width: initial;
+}
+
+.modal.fit-screen #remote-screencast-form video {
+    width: 100%;
+}
+
 #remote-screencast-form video, #remote-screencast-form {
     width: 550px;
 }
