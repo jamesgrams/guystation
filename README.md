@@ -65,7 +65,7 @@ Note: You can press F11 to get GuyStation out of full screen mode at any time.
         ```
     * The file `helper/browser-scripts/stream.json` can be added as a browser game. Opening it in GuyStation will take you to a page that will stream connected user media. You can use this if you have a capture device on your GuyStation machine. You will be able to play HDMI/AV content such as another video game system through GuyStation and thus stream that to another device if you like.
     * The file `helper/browser-scripts/stream-remote.json` can be used as a browser game to pull up a stream on another guystation. Just be sure to set the url to the right IP address. Make sure the regular stream is called `Stream` if you use this script.
-    * GuyStation has additional functionality that allows you to use a gamepad to navigate the browser (click, move mouse, scroll, back, forward). Simply use EZ controller configuration for browser to set up the controls.
+    * GuyStation has additional functionality that allows you to use a gamepad to navigate the browser (click, move mouse, scroll, back, forward, show/hide on-screen keyboard). Simply use EZ controller configuration for browser to set up the controls.
 * Media - you can play media files or stream them to any device using the GuyStation web interface.
     * You add a media file just like a game. Upload the audio/video file as the ROM file.
     * You can access media remotely by opening the menu and clicking the CD icon under "More".

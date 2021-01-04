@@ -866,7 +866,13 @@ function enableSearch() {
         currentSearch = this.value;
         clearTimeout( searchTimeout );
         searchTimeout = setTimeout( function() {
-            redraw(null, null, null, null, null, null, true);
+            // go to a url
+            if( currentSearch.match(/https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/) ) {
+                launchGame("browser",null,[], function() {
+                    makeRequest("POST", "/browser/navigate", {url: currentSearch});
+                });
+            }
+            else redraw(null, null, null, null, null, null, true);
         }, SEARCH_TIMEOUT_TIME );
     }
 }
@@ -5218,13 +5224,17 @@ function createToast(message, type, html) {
  * @param {string} system - The system to launch the game on.
  * @param {string} game - The game to launch.
  * @param {Array<string>} parents - The parents of the game to launch.
+ * @param {Function} [callback] - The optional callback function.
  */
-function launchGame( system, game, parents ) {
+function launchGame( system, game, parents, callback ) {
     if( !makingRequest ) {
         startRequest(); // Most other functions do this prior since they need to do other things
         var doLaunch = function() {
             makeRequest( "POST", "/launch", { "system": system, "game": game, "parents": parents },
-            function( responseText ) { standardSuccess(responseText, "Game launched", null, null, null, null, null, null, true) },
+            function( responseText ) {
+                if( callback ) callback();
+                standardSuccess(responseText, "Game launched", null, null, null, null, null, null, true)
+            },
             function( responseText ) { standardFailure( responseText ) } );
         };
         // Don't set any controls if we are streaming from another device
