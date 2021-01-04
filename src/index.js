@@ -4421,7 +4421,7 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
         if( system === BROWSER ) { // browser is a simple, special case as it is controlled completely by us
             let controlsObj = {};
             for( let key in values ) {
-                if( values[key][0] && values[key][0].type === AXIS_CONTROL_TYPE || values[key][0].type === BUTTON_CONTROL_TYPE ) controlsObj[key] = (values[key][0].chrome || values[key][0].chrome === 0) ? values[key][0].chrome : values[key][0].button;
+                if( values[key][0] && (values[key][0].type === AXIS_CONTROL_TYPE || values[key][0].type === BUTTON_CONTROL_TYPE) ) controlsObj[key] = (values[key][0].chrome || values[key][0].chrome === 0) ? values[key][0].chrome : values[key][0].button;
             }
             fs.writeFileSync( BROWSER_GAMEPAD_PATH, JSON.stringify(controlsObj) );
             browserControlsCache = JSON.parse(JSON.stringify(controlsObj)); // update the cache
