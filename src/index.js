@@ -1245,7 +1245,7 @@ async function launchBrowser() {
         sambaString = "&smb=" + sambaUrl;
     }
 
-    await menuPage.goto(LOCALHOST + ":" + STATIC_PORT + "?" + IS_SERVER_PARAM + sambaString);
+    await menuPage.goto("http://" + LOCALHOST + ":" + STATIC_PORT + "?" + IS_SERVER_PARAM + sambaString);
     ks.sendKey('tab');
 
     browser.on("targetdestroyed", async function() {
