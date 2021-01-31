@@ -2574,9 +2574,9 @@ function displayJoypadConfig() {
 
             var buttonsToSet = parseEzButtonString( inputs[i].value );
 
-            if( buttonsToSet.length ) {
+            //if( buttonsToSet.length ) {
                 values[guystationButton] = buttonsToSet;
-            }
+            //}
         }
     
         // figure out for which systems we need to send values

@@ -4509,6 +4509,7 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
                     }
                 }
                 
+                if( !userControls.length ) userControls = [{}]; // this will clear out the key
                 for( let userControl of userControls ) {
 
                     // Screenshot only allows keys (not buttons or axis)
@@ -4566,7 +4567,8 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
                     }
    
                     // We'll just update each time
-                    configSetting[finalKey] = curControlParts.join(CONFIG_JOINER);
+                    if( curControlParts.length === 1 && !curControlParts[0] ) delete configSetting[finalKey]; // delete no control
+                    else configSetting[finalKey] = curControlParts.join(CONFIG_JOINER);
                     seenFinalKeys[finalKey] = true;
                 }
             }
@@ -4679,7 +4681,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
             if( controlInfo.actualControl == SCREENSHOT_CONTROL ) controlButtons = controlButtons.map( el => el ? gdkNameMap[el] : el );
             else controlButtons = controlButtons.map( el => el ? gdkMap[el] : el );
         }
-        else {
+        else if( userControl.type ) {
             controlButtons = controlButtons.map( el => codeToDesmumeJoystick(userControl.type, el) );
         }
     }
@@ -4842,7 +4844,8 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
             if( controlInfo.actualControl != SCREENSHOT_CONTROL) config[padKey][NGC_DEVICE_TYPE_KEY] = NGC_VIRTUAL_KEYBOARD;//.replace("0", controller); Multiple keyboards probably isn't what we'd excpect, so keep at 0 for device num
         }
     }
-
+    
+    if( !userControl.type ) return ""; // null control - this is when they enter a blank control and we need to clear it out
 
     // replace each instance of control string
     for( let controlButton of controlButtons ) {
