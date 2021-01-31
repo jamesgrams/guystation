@@ -4476,6 +4476,7 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
             config.UI["Shortcuts\\Main%20Window\\Capture%20Screenshot\\KeySeq\\default"] = false;
         }
 
+        let seenFinalKeys = {};
         // for each of the controls listed
         for( let control in controls ) {
 
@@ -4560,9 +4561,13 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
                     if( system != SYSTEM_GBA && system != SYSTEM_PSP ) {
                         curControlParts = [curControlParts[0]];
                     }
+                    else if(seenFinalKeys[finalKey]) {
+                        curControlParts = [...configSetting[finalKey].split(), ...curControlParts];
+                    }
    
                     // We'll just update each time
                     configSetting[finalKey] = curControlParts.join(CONFIG_JOINER);
+                    seenFinalKeys[finalKey] = true;
                 }
             }
         }

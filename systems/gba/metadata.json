@@ -39,6 +39,18 @@
       "Axis X+": {
         "keys": ["Joypad/1","Right"]
       },
+      "Up": {
+        "keys": ["Joypad/1","Up"]
+      },
+      "Down": {
+        "keys": ["Joypad/1","Down"]
+      },
+      "Left": {
+        "keys": ["Joypad/1","Left"]
+      },
+      "Right": {
+        "keys": ["Joypad/1","Right"]
+      },
       "Start": {
         "keys": ["Joypad/1","Start"]
       },
