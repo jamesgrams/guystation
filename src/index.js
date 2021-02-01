@@ -4563,13 +4563,15 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
                         curControlParts = [curControlParts[0]];
                     }
                     else if(seenFinalKeys[finalKey]) {
-                        curControlParts = [...configSetting[finalKey].split(), ...curControlParts];
+                        curControlParts = [...(configSetting[finalKey].split()), ...curControlParts].filter(el => el);
                     }
    
                     // We'll just update each time
                     if( curControlParts.length === 1 && !curControlParts[0] ) delete configSetting[finalKey]; // delete no control
-                    else configSetting[finalKey] = curControlParts.join(CONFIG_JOINER);
-                    seenFinalKeys[finalKey] = true;
+                    else {
+                        configSetting[finalKey] = curControlParts.join(CONFIG_JOINER);
+                        seenFinalKeys[finalKey] = true;
+                    }
                 }
             }
         }
