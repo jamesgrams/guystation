@@ -4639,7 +4639,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
         // a keyboard key to an axis, but only one direction, the other direction might really correspond to
         // an axis, so we might have key(65,1+) until they change it.
 
-        let match = currentControlValue.match(new RegExp(controlsRegex));
+        let match = currentControlValue ? currentControlValue.match(new RegExp(controlsRegex)) : null;
         let newControl = controlButtons[0];
         if( match ) {
             // only get the matches
