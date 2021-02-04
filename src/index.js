@@ -2008,7 +2008,7 @@ function generateGames(system, games, parents=[], startup, noPlaying) {
                 var tempCurParents = curParents.slice(0);
                 tempCurParents.push(game);
                 gameData.isFolder = true;
-                gameData.games = generateGames(system, gameDirContents, tempCurParents, startup);
+                gameData.games = generateGames(system, gameDirContents, tempCurParents, startup, noPlaying);
             }
         }
 
