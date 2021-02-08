@@ -240,7 +240,6 @@ Multiple monitor support may be limited. GuyStation will aim to use the primary 
 * EZ Controller Configuration for screenshot in Dolphin didn't work in-game until going to the Dolphin Hotkey settings and pressing OK once. It did load the key there, but it wasn't working in-game.
 * The descriptions under EZ Controller Configuration input fields aren't always accurate.
 * Allow multiple keys for browser EZ Controller Configuration.
-* YouTubeDL isn't working for YouTube currently.
 * Fit screen has some overflow when clicking it causes the button to wrap on small landscape screens.
 
 ## Credits and Special Thanks
