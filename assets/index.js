@@ -2778,7 +2778,7 @@ function updateEzControlSimpleView( inputElement ) {
     var simpleText = [];
     for( var i=0; i<buttons.length; i++ ) {
         var match = buttons[i].match(EZ_REGEX);
-        if( match && parseInt(match[2]) ) {
+        if( match && (parseInt(match[2]) || parseInt(match[2]) === 0) ) {
             var type = match[1];
             var typeCapitilized = type.charAt(0).toUpperCase() + type.slice(1);
             var key = parseInt(match[2]);

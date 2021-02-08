@@ -1411,6 +1411,41 @@ async function addGamepadControls( page ) {
             return Promise.resolve(false);
         } );
 
+        // switch tabs
+        await page.exposeFunction( "guystationSwitchTab", async (forward) => {
+            let pages = await browser.pages();
+            let currentPage;
+            let currentPageIndex = 0;
+            // Get the currently visible (active) page
+            for(let page of pages) {
+                if( await isActivePage(page) ) {
+                    currentPage = page;
+                    break;
+                }
+                currentPageIndex ++;
+            }
+            currentPageIndex += forward ? 1 : -1;
+            currentPage = pages[currentPageIndex];
+            // If the current page is the menu page, we need to switch it
+            while( currentPageIndex < 0 || currentPageIndex >= pages.length || currentPage.mainFrame()._id === menuPage.mainFrame()._id || currentPage.mainFrame()._id === pipPage.mainFrame()._id ) {
+                // there is necessarily at least one other browse tab, since the open pages > 2
+                if( forward ) {
+                    currentPageIndex++;
+                    if( currentPageIndex >= pages.length ) {
+                        currentPageIndex = 0;
+                    }
+                }
+                else {
+                    currentPageIndex--;
+                    if( currentPageIndex < 0 ) {
+                        currentPageIndex = pages.length - 1;
+                    }
+                }
+                currentPage = pages[currentPageIndex];
+            }
+            await switchBrowseTab( currentPage.mainFrame()._id );
+        } );
+
         // get joy mapping
         if( !browserControlsCache ) {
             try {
@@ -1435,6 +1470,13 @@ async function addGamepadControls( page ) {
             var buttonsReleased = {};
             var joyMapping = await guystationGetJoyMapping();
             if( !joyMapping ) joyMapping = {};
+
+            window.onblur = function() {
+                buttonsDown = {};
+                buttonsPressed = {};
+                buttonsUp = {};
+                buttonsReleased = {};
+            }
 
             function buttonDown(b) {
                 if (typeof(b) == "object") {
@@ -1530,6 +1572,15 @@ async function addGamepadControls( page ) {
                                 }
                             }
 
+                            // switch tabs
+                            if( buttonsPressed[i][joyMapping["R"]] ) {
+                                await guystationSwitchTab(true);
+                                break;
+                            }
+                            if( buttonsPressed[i][joyMapping["L"]] ) {
+                                await guystationSwitchTab();
+                                break;
+                            }
                             // navigate
                             if( buttonsPressed[i][joyMapping["R2"]] ) {
                                 await guystationNavigate(true);

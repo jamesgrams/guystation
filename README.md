@@ -128,7 +128,7 @@ Note: there is also limited support for setting up controls for each emulator al
 
 ### Short Summary
 
-You can use EZ Controller Configuration to set up all the emulator's main controls and screenshot key (must be a keyboard key). Beyond that, you may need to change the resolution of Mupen64Plus and set the controller ports you want enabled to have "Plugged" be checked, you will need to provide a bios for PCSX2 and perhaps play with its settings to work well on your machine, and you will need to set the Auto-save SRAM setting to a low number on SNES9x. You may also need to start Citra once, before EZ config will work. 
+You can use EZ Controller Configuration to set up all the emulator's main controls and screenshot key (must be a keyboard key). Beyond that, you may need to change the resolution of Mupen64Plus and set the controller ports you want enabled to have "Plugged" be checked, you will need to provide a bios for PCSX2 and perhaps play with its settings to work well on your machine, and you will need to set the Auto-save SRAM setting to a low number on SNES9x. You may also need to start Citra and Dolphin once, before EZ config will work. Taking a look at the known issues section will help too!
 
 Note: EZ controller configuration will save only the button mapping to the server (not which controller port or nunchuk/classic controller option). The autoload function will save the button mapping (of the SAVED profile) AND the nunchuk/classic controller option. It will always set the controls for the first controller port. Additionally, the autoload function will check for any updates to the button mapping on the server prior to setting the controls. Finally, EZ config will delete controls for any unspecified key. That is how you can "remove" the mapping in the emulators. The emulators will then handle a missing control map as they see fit.
 
@@ -237,9 +237,6 @@ Multiple monitor support may be limited. GuyStation will aim to use the primary 
 * The resolution is incorrect for a PIP video for N64.
 * PC games that install won't work in Samba mode unless the installed directory for Wine programs is also mapped.
 * m64py changes the Mupen64Plus dimensions when you use it.
-* EZ Controller Configuration for screenshot in Dolphin didn't work in-game until going to the Dolphin Hotkey settings and pressing OK once. It did load the key there, but it wasn't working in-game.
-* The descriptions under EZ Controller Configuration input fields aren't always accurate.
-* Allow multiple keys for browser EZ Controller Configuration.
 * Fit screen has some overflow when clicking it causes the button to wrap on small landscape screens.
 
 ## Credits and Special Thanks

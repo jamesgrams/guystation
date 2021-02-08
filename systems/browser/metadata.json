@@ -10,6 +10,12 @@
       "X": {
         "keys": ["Toggle Keyboard"]
       },
+      "L": {
+        "keys": ["Previous Tab"]
+      },
+      "R": {
+        "keys": ["Next Tab"]
+      },
       "L2": {
         "keys": ["Back"]
       },
