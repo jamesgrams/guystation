@@ -420,7 +420,7 @@ h1 {
     right: 0;
     text-align: center;
     transform: translateX(100%); /* ~24px shown */
-    width: 1048px; /* 58px to add another icon */
+    width: 1106px; /* 58px to add another icon */
     transition: transform 0.5s, width 0.5s, background-color 1s;
     z-index: 997;
     background-color: #191919;
@@ -868,11 +868,11 @@ h1 {
     }
 }
 
-@media only screen and (max-width: 1146px) {
+@media only screen and (max-width: 1206px) {
     #functions {
         width: 220px;
     }
-    #more-functions .function-row:last-child button {
+    #more-functions .function-row button {
         width: 51px;
     }
     #game-functions, #save-functions, #more-functions {
@@ -1004,6 +1004,9 @@ readers do not read off random characters that represent icons */
 
 .fa-clone:before {
     content: "\f24d"; }
+
+.fa-microphone:before {
+    content: "\f130"; }
 
 .fa-expand:before {
     content: "\f065"; }

@@ -88,6 +88,11 @@ Note: You can press F11 to get GuyStation out of full screen mode at any time.
 * Picture-in-Picture Mode
     * You can play an online video (e.g. YouTube) while you use GuyStation. Simply click the PIP Button under "More" in the menu and enter the URL of the page containing the video and click Apply. You can also choose whether to mute the game or the video in PIP mode. Once you are done, use the Stop button to leave PIP mode. You can switch between the video and the game being muted by selecting one and clicking Apply without entering a value for the URL field.
     * While not the most intuitive way, you can also mute the game without playing a video in PIP mode by leaving the URL blank, having "Mute Game" selected, and clicking "Apply". You can then unmute everything by clicking "Stop". This is helpful if you want to listen to something not controlled by GuyStation and play a game - perhaps you have multiple monitors to do this.
+* Messaging
+    * You can send messages between users of GuyStation through the messaging interface. This feature is available by opening the menu and clicking the envelope icon under "More".
+* Voice Control
+    * You can control GuyStation with your voice by opening the menu and clicking the microphone icon under "More".
+    * You can say "GS play <game>", "GS stop", or "GS go home".
 
 ## Recommendations
 Here are some recommendedations to make your experience better on Ubuntu.

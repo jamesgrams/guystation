@@ -359,6 +359,7 @@ var swRegistration;
 var autoplayMedia = false; // manually force autoplay on remote media
 var scaleDownByTimeouts = {};
 var fullscreenPip = false;
+var voiceRecording = false;
 
 var screencastButtonsPressed = {};
 var screencastAxisLastValues = {};
@@ -1553,6 +1554,7 @@ function toggleButtons() {
     var updateSaveButton = document.getElementById("update-save");
     var deleteSaveButton = document.getElementById("delete-save");
     var joypadConfigButton = document.getElementById("joypad-config");
+    var voiceButton = document.getElementById("voice");
     //var messagingButton = document.getElementById("messaging");
     if( !anyGame ) {
         updateGameButton.onclick = null; 
@@ -1601,6 +1603,16 @@ function toggleButtons() {
 
     // always allow pip
     document.getElementById("picture-in-picture").onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#pip-form") ) displayPictureInPicture(); }
+
+    // allow microphone if not already recording
+    if( !voiceRecording ) {
+        voiceButton.onclick = function(e) { e.stopPropagation(); speechInput(); }
+        voiceButton.classList.remove("inactive");
+    }
+    else {
+        voiceButton.classList.add("inactive");
+        voiceButton.onclick = null;
+    }
 }
 
 /**
@@ -5918,6 +5930,53 @@ function buttonPressed(b) {
         return b.pressed;
     }
     return b == 1.0;
+}
+
+/**
+ * Listen for a speech input.
+ */
+function speechInput() {
+    voiceRecording = true;
+    toggleButtons();
+    var speechRecognition = new webkitSpeechRecognition();
+    speechRecognition.onresult = function(event) {
+        var transcript = event.results[0][0].transcript;
+        if( transcript.match(/^GS/i) ) {
+            var playMatch = transcript.match(/^GS play (.+)/i);
+            if( playMatch ) {
+                var game = playMatch[1];
+                console.log("Speech input: " + game);
+                function lookForMatch( gameTitles ) {
+                    for( var i=0; i<gameTitles.length; i++ ) {
+                        if( termsMatch(game, gameTitles[i].innerText) ) {
+                            var gameElement = gameTitles[i].closest(".game");
+                            launchGame( gameElement.closest(".system").getAttribute( "data-system" ), decodeURIComponent( gameElement.getAttribute( "data-game" ) ), parentsStringToArray( gameElement.getAttribute( "data-parents" ) ) );
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+                var found = lookForMatch( document.querySelectorAll(".system.selected .game:not([data-is-folder]) .game-title") );
+                if( !found ) {
+                    lookForMatch( document.querySelectorAll(".game:not([data-is-folder]) .game-title") );
+                }
+            }
+            else {
+                console.log(transcript);
+                if( transcript.match(/^GS stop/i) ) {
+                    quitGame();
+                }
+                else if( transcript.match(/^GS (go )?home/i) ) {
+                    goHome(); 
+                }
+            }
+        }
+    };
+    speechRecognition.onend = function() {
+        voiceRecording = false;
+        toggleButtons();
+    }
+    speechRecognition.start();
 }
 
 // Handles mobile input
