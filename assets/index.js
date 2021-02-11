@@ -5941,33 +5941,34 @@ function speechInput() {
     var speechRecognition = new webkitSpeechRecognition();
     speechRecognition.onresult = function(event) {
         var transcript = event.results[0][0].transcript;
-        if( transcript.match(/^GS/i) ) {
-            var playMatch = transcript.match(/^GS play (.+)/i);
-            if( playMatch ) {
-                var game = playMatch[1];
-                console.log("Speech input: " + game);
-                function lookForMatch( gameTitles ) {
-                    for( var i=0; i<gameTitles.length; i++ ) {
-                        if( termsMatch(game, gameTitles[i].innerText) ) {
-                            var gameElement = gameTitles[i].closest(".game");
-                            launchGame( gameElement.closest(".system").getAttribute( "data-system" ), decodeURIComponent( gameElement.getAttribute( "data-game" ) ), parentsStringToArray( gameElement.getAttribute( "data-parents" ) ) );
-                            return true;
-                        }
+        console.log(transcript);
+        var playMatch = transcript.match(/^play (.+)/i);
+        if( playMatch ) {
+            var game = playMatch[1];
+            function lookForMatch( gameTitles ) {
+                for( var i=0; i<gameTitles.length; i++ ) {
+                    if( termsMatch(game, gameTitles[i].innerText) ) {
+                        var gameElement = gameTitles[i].closest(".game");
+                        launchGame( gameElement.closest(".system").getAttribute( "data-system" ), decodeURIComponent( gameElement.getAttribute( "data-game" ) ), parentsStringToArray( gameElement.getAttribute( "data-parents" ) ) );
+                        return true;
                     }
-                    return false;
                 }
-                var found = lookForMatch( document.querySelectorAll(".system.selected .game:not([data-is-folder]) .game-title") );
-                if( !found ) {
-                    lookForMatch( document.querySelectorAll(".game:not([data-is-folder]) .game-title") );
-                }
+                return false;
             }
+            var found = lookForMatch( document.querySelectorAll(".system.selected .game:not([data-is-folder]) .game-title") );
+            if( !found ) {
+                lookForMatch( document.querySelectorAll(".game:not([data-is-folder]) .game-title") );
+            }
+        }
+        else {
+            if( transcript.match(/^stop/i) ) quitGame();
+            else if( transcript.match(/^(go )?home/i) ) goHome();
             else {
-                console.log(transcript);
-                if( transcript.match(/^GS stop/i) ) {
-                    quitGame();
-                }
-                else if( transcript.match(/^GS (go )?home/i) ) {
-                    goHome(); 
+                var searchMatch = transcript.match(/^search (.+)/);
+                if( searchMatch ) {
+                    launchGame("browser", null, [], function() {
+                        makeRequest("POST", "/browser/navigate", {url: searchMatch[1]});
+                    });
                 }
             }
         }

@@ -92,7 +92,7 @@ Note: You can press F11 to get GuyStation out of full screen mode at any time.
     * You can send messages between users of GuyStation through the messaging interface. This feature is available by opening the menu and clicking the envelope icon under "More".
 * Voice Control
     * You can control GuyStation with your voice by opening the menu and clicking the microphone icon under "More".
-    * You can say "GS play <game>", "GS stop", or "GS go home".
+    * You can say "play <game>", "stop", "go home", or "search <term>".
 
 ## Recommendations
 Here are some recommendedations to make your experience better on Ubuntu.
