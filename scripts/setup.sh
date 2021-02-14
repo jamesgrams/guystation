@@ -41,6 +41,7 @@ then
     sudo mv citra-qt /usr/local/bin/
     sudo mv citra /usr/local/bin/
     sudo mv dolphin-emu /usr/local/bin/
+    sudo mv dolphin-emu-nogui /usr/local/bin/
     sudo mv desmume /usr/local/bin/
     sudo mv fceux /usr/local/bin/
     sudo mv m64py /usr/local/bin/
