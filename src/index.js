@@ -1079,6 +1079,19 @@ app.post("/mute-mode", async function(request, response) {
     }
 });
 
+// Pause pip
+app.post("/listen", async function(request, response) {
+    console.log("app serving /listen");
+    try {
+        let errorMessage = await listenMic();
+        writeActionResponse( response, errorMessage );
+    }
+    catch(err) {
+        console.log(err);
+        writeActionResponse( response, ERROR_MESSAGES.genericError );
+    }
+});
+
 // endpoints to set up to stream what is coming through the microphone and webcam
 
 // set up the proper microphone input to the stream
@@ -6012,5 +6025,21 @@ async function pausePip() {
             document.querySelector("video").pause();
         }
     } );
+    return Promise.resolve(false);
+}
+
+/**
+ * Make the microphone on GuyStation listen for input.
+ * @returns {Promise} A promise containing an error message if there is one or false if there is not.
+ */
+async function listenMic() {
+    if( !menuPage || menuPage.isClosed() ) {
+        return Promise.resolve(ERROR_MESSAGES.menuPageClosed);
+    }
+
+    await menuPage.evaluate( () => {
+        document.querySelector("#voice").click();
+    });
+
     return Promise.resolve(false);
 }

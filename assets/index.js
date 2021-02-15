@@ -1606,7 +1606,23 @@ function toggleButtons() {
 
     // allow microphone if not already recording
     if( !voiceRecording ) {
-        voiceButton.onclick = function(e) { e.stopPropagation(); speechInput(); }
+        voiceButton.onclick = function(e) {
+            e.stopPropagation();
+            if( isServer ) {
+                if( !voiceRecording ) {
+                    speechInput();
+                }
+            }
+            else {
+                voiceRecording = true;
+                toggleButtons();
+                var voiceDone = function() {
+                    voiceRecording = false;
+                    toggleButtons();
+                }
+                makeRequest("POST", "/listen", {}, voiceDone, voiceDone);
+            }
+        }
         voiceButton.classList.remove("inactive");
     }
     else {

@@ -93,6 +93,8 @@ Note: You can press F11 to get GuyStation out of full screen mode at any time.
 * Voice Control
     * You can control GuyStation with your voice by opening the menu and clicking the microphone icon under "More".
     * You can say "play <game>", "stop", "go home", or "search <term>".
+    * The microphone used will be the one on the GuyStation machine, not your device.
+        * The reason for this is that the web speech API is not allowed over http unless using localhost.
 
 ## Recommendations
 Here are some recommendedations to make your experience better on Ubuntu.
