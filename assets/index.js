@@ -6349,6 +6349,20 @@ function gotIceCandidate(id, event) {
  */
 function createdDescription(id, description) {
     var peerConnection = peerConnections.filter(el => el.id==id)[0].peerConnection;
+    // remove the max birate cap for availableOutgoingBitrate
+    var arr = description.sdp.split('\r\n');
+    arr.forEach((str, i) => {
+        if (/^a=fmtp:\d*/.test(str)) {
+            arr[i] = str + ';x-google-max-bitrate=10000;x-google-min-bitrate=0;x-google-start-bitrate=6000';
+        }
+        else if (/^a=mid:(1|video)/.test(str)) {
+            arr[i] += '\r\nb=AS:10000';
+        }
+    });
+    description = new RTCSessionDescription({
+        type: description.type,
+        sdp: arr.join('\r\n'),
+    });
     peerConnection.setLocalDescription(description).then(function() {
         socket.emit("sdp", {id: id, description: peerConnection.localDescription});
     }).catch(errorHandler);
