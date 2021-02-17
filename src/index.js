@@ -324,6 +324,7 @@ const ERROR_MESSAGES = {
     "invalidSiteJson": "Invalid JSON for site",
     "siteUrlRequired": "The siteUrl key is required for site JSON",
     "couldNotSetScale": "Could not set scale",
+    "couldNotSetMute": "Could not set mute",
     "invalidFilepath": "Invalid filepath",
     "couldNotFetchIGDBInfo": "Could not fetch IGDB information",
     "pipPageClosed": "The PIP page is closed",
@@ -822,6 +823,13 @@ app.post("/screencast/gamepad", async function(request, response) {
 app.post("/screencast/scale", async function(request, response) {
     console.log("app serving /screencast/scale with body: " + JSON.stringify(request.body));
     let errorMessage = await setScreencastScale( request.body.id, request.body.factor );
+    writeActionResponse( response, errorMessage );
+});
+
+// Set the mute of the screencast
+app.post("/screencast/mute", async function(request, response) {
+    console.log("app serving /screencast/mute with body: " + JSON.stringify(request.body));
+    let errorMessage = await setScreencastMute( request.body.id, request.body.mute );
     writeActionResponse( response, errorMessage );
 });
 
@@ -5548,6 +5556,26 @@ async function setScreencastScale( id, factor ) {
     }
     catch(err) {
         return Promise.resolve(ERROR_MESSAGES.couldNotSetScale);
+    }
+}
+
+/**
+ * Set the screencast mute.
+ * @param {string} id - The client to scale down for.
+ * @param {boolean} mute - Whether to set mute or not.
+ * @returns {Promise<boolean|string>} A promise containing false if the action was successful or an error message if not.
+ */
+async function setScreencastMute( id, mute ) {
+    if( !menuPage || menuPage.isClosed() ) {
+        return Promise.resolve(ERROR_MESSAGES.menuPageClosed);
+    }
+
+    try {
+        await menuPage.evaluate( (id, mute) => setScreencastMute(id, mute), id, mute );
+        return Promise.resolve(false);
+    }
+    catch(err) {
+        return Promise.resolve(ERROR_MESSAGES.couldNotSetMute);
     }
 }
 

@@ -3041,6 +3041,14 @@ function displayScreencast( fullscreen ) {
     } );
     form.appendChild(scaleMenu);
 
+    var muteBox = createInput( window.localStorage.guystationScreencastMute === "true", "screencast-mute-checkbox", "Mute", "checkbox"  );
+    var muteBoxInput = muteBox.querySelector("input");
+    muteBoxInput.onchange = function() {
+        window.localStorage.guystationScreencastMute = muteBoxInput.checked;
+        makeRequest( "POST", "/screencast/mute", { id: socket.id, mute: muteBoxInput.checked } );
+    }
+    form.appendChild(muteBox);
+
     form.appendChild( createButton("Fullscreen", function() { fullscreenVideo(video) }));
     form.appendChild( createButton("Fit Screen", fitscreenVideo) );
 
@@ -6217,6 +6225,19 @@ function setScaleDownBy( id, factor ) {
     sender.setParameters(parameters);
 }
 
+/**
+ * Set the screencast mute.
+ * @param {string} id - The id of the peer to scale.
+ * @param {boolean} mute - True if the stream should be muted to save speed/reduce jitter buffer delay.
+ */
+function setScreencastMute( id, mute ) {
+    var peerConnection = peerConnections.filter(el => el.id == id)[0];
+    var senders = peerConnection.peerConnection.getSenders().filter( el => el.track.kind == "audio" );
+    for( var sender of senders ) {
+        sender.track.enabled = !mute;
+    }
+}
+
 /** 
  * Renegotiate screenshare with the clients.
  * We actually don't need to do a true renegotiation since we can just change tracks.
@@ -6353,10 +6374,10 @@ function createdDescription(id, description) {
     var arr = description.sdp.split('\r\n');
     arr.forEach((str, i) => {
         if (/^a=fmtp:\d*/.test(str)) {
-            arr[i] = str + ';x-google-max-bitrate=10000;x-google-min-bitrate=0;x-google-start-bitrate=6000';
+            arr[i] = str + ';x-google-max-bitrate=20000;x-google-min-bitrate=0;x-google-start-bitrate=12000';
         }
         else if (/^a=mid:(1|video)/.test(str)) {
-            arr[i] += '\r\nb=AS:10000';
+            arr[i] += '\r\nb=AS:20000';
         }
     });
     description = new RTCSessionDescription({
@@ -6379,8 +6400,10 @@ function gotRemoteStream(event) {
     event.receiver.playoutDelayHint = 0;
     document.querySelector(".modal #remote-screencast-form video, .modal #browser-controls-form video").srcObject = event.streams[0];
     // scale the screencast on the server to the previous setting
+    // we want to do this after the sender already exists, so we can only do it to this client
     var scale = parseFloat(window.localStorage.guystationScaleDownFactor);
     makeRequest( "POST", "/screencast/scale", { id: socket.id, factor: scale ? scale : SCALE_OPTIONS[0] } );
+    makeRequest( "POST", "/screencast/mute", { id: socket.id, mute: window.localStorage.guystationScreencastMute === "true" } );
 }
 
 /**
