@@ -3685,9 +3685,12 @@ function createInteractiveScreencast() {
         event.preventDefault();
         return false;
     };
+    var audio = document.createElement("audio");
+    audio.setAttribute("autoplay", "true");
     var wrapper = document.createElement("div");
     wrapper.classList.add("screencast-wrapper");
     wrapper.appendChild(video);
+    wrapper.appendChild(audio);
     wrapper.addEventListener("fullscreenchange", function() {
         forceRedraw(video);
     });
@@ -6198,7 +6201,8 @@ function startConnectionToPeer( isStreamer, id ) {
     }
     // Only the streamer needs to add its own local sctream
     if( isStreamer ) {
-        peerConnection.addStream(localStream);
+        peerConnection.addTrack(localStream.getVideoTracks()[0]);
+        peerConnection.addTrack(localStream.getAudioTracks()[0]);
         // the streamer will create an offer once it creates its peer connection
         peerConnection.createOffer({offerToReceiveVideo: true, offerToReceiveAudio: true}).then(function(data) {createdDescription(id, data)}).catch(errorHandler);
     }
@@ -6398,8 +6402,14 @@ function gotRemoteStream(event) {
     // See here: https://stackoverflow.com/questions/56510151/change-playout-delay-in-webrtc-stream
     // https://github.com/w3c/webrtc-extensions/issues/8
     event.receiver.playoutDelayHint = 0;
-    document.querySelector(".modal #remote-screencast-form video, .modal #browser-controls-form video").srcObject = event.streams[0];
-    // scale the screencast on the server to the previous setting
+    var stream = new MediaStream( [event.track] );
+    if( event.track.kind === "video" ) {
+        document.querySelector(".modal #remote-screencast-form video, .modal #browser-controls-form video").srcObject = stream;
+    }
+    else {
+        document.querySelector(".modal #remote-screencast-form audio, .modal #browser-controls-form audio").srcObject = stream;
+    }
+    // scale the screencas44t on the server to the previous setting
     // we want to do this after the sender already exists, so we can only do it to this client
     var scale = parseFloat(window.localStorage.guystationScaleDownFactor);
     makeRequest( "POST", "/screencast/scale", { id: socket.id, factor: scale ? scale : SCALE_OPTIONS[0] } );
