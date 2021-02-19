@@ -146,11 +146,11 @@ var PADCODES = {
     'Ⓡ': 0x137,
     '🅛': 0x138,
     '🅡': 0x139, // right trigger 2
-    '🅻': 0x13d,
-    '🆁': 0x13e, // thumb right trigger
     '🔘': 0x13a, // select
     '⭐': 0x13b, // start
     '🏠': 0x13c, //mode 
+    '🅻': 0x13d,
+    '🆁': 0x13e, // thumb right trigger
     '▲': 0x220, // dpad up
     '▼': 0x221, // dpad down
     '◀': 0x222, // dpad left
@@ -176,10 +176,10 @@ var EZ_EMULATOR_CONFIG_BUTTONS = [
     'R',
     'L2',
     'R2',
-    'L3',
-    'R3',
     'Select',
     'Start',
+    'L3',
+    'R3',
     'Up',
     'Down',
     'Left',

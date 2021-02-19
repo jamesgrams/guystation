@@ -266,10 +266,10 @@ const DEFAULT_PROFILES_DICT = {
         "R":"button(5)-0003-0003",
         "L2":"button(6)-0003-0003",
         "R2":"button(7)-0003-0003",
-        "L3":"button(8)-0003-0003",
-        "R3":"button(9)-0003-0003",
-        "Select":"button(10)-0003-0003",
-        "Start":"button(11)-0003-0003",
+        "Select":"button(8)-0003-0003",
+        "Start":"button(9)-0003-0003",
+        "L3":"button(11)-0003-0003",
+        "R3":"button(12)-0003-0003",
         "Up":"button(13)-0003-0003",
         "Down":"button(14)-0003-0003",
         "Left":"button(15)-0003-0003",
@@ -5049,7 +5049,7 @@ function createVirtualGamepad( id ) {
     }
     // This is currently set to be the same order as PADCODES on the client, and thus the default
     // order that linux expects.
-    // Note that the order buttons are registered corresponds to the button number (0, 1, 2, etc.)
+    // Note that the button number is just the buttons order when they are sorted by their hex value
     // as registered with GuyStation and the emulators
     // We strongly recommend that users autoload a profile that will include a 1-1 mapping
     // e.g. (A in dolphin is button 0, B is button 1)
@@ -5067,11 +5067,11 @@ function createVirtualGamepad( id ) {
     ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_TR);
     ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_TL2);
     ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_TR2);
-    ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_THUMBL);
-    ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_THUMBR);
     ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_SELECT);
     ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_START);
     ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_MODE);
+    ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_THUMBL);
+    ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_THUMBR);
     ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_DPAD_UP);
     ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_DPAD_DOWN);
     ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_DPAD_LEFT);
