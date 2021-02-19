@@ -5282,48 +5282,63 @@ io.on('connection', function(socket) {
 
     // rtmp endpoints
     socket.on("rtmp-start", function( destination ) {
-        if( rtmpOn() ) return;
-        let ops = [
-            '-i','-',
-			'-c:v', 'libx264', '-preset', 'ultrafast', '-tune', 'zerolatency',  // video codec config: low latency, adaptive bitrate
-			'-c:a', 'aac', '-ar', 44100, '-b:a', "44k", // audio codec config: sampling frequency (11025, 22050, 44100), bitrate 64 kbits
-			'-bufsize', '5000',
-			'-f', 'flv', destination
-        ];
-        ffmpegProcess = proc.spawn("ffmpeg", ops);
-        feedStream = function(data) {
-            try {
-                ffmpegProcess.stdin.write(data);
+        try {
+            if( rtmpOn() ) return;
+            let ops = [
+                '-i','-',
+                '-c:v', 'libx264', '-preset', 'ultrafast', '-tune', 'zerolatency',  // video codec config: low latency, adaptive bitrate
+                '-c:a', 'aac', '-ar', 44100, '-b:a', "44k", // audio codec config: sampling frequency (11025, 22050, 44100), bitrate 64 kbits
+                '-bufsize', '5000',
+                '-f', 'flv', destination
+            ];
+            ffmpegProcess = proc.spawn("ffmpeg", ops);
+            feedStream = function(data) {
+                try {
+                    ffmpegProcess.stdin.write(data);
+                }
+                catch(err) {
+                    console.log(err);
+                    // ok, may happen
+                }
             }
-            catch(err) {
-                console.log(err);
-                // ok, may happen
-            }
+            ffmpegProcess.on("error", function(e) {
+                feedStream = false;
+                // if feedStream is nullified because of an error, and we are still receiving media recorder information,
+                // stop the stream on the menuPage. This will stop sending unecessary information.
+                // this will stop the recorder on the menuPage, then call the stop endpoint to set feedStream to false.
+                stopRtmp();
+            });
+            ffmpegProcess.on("exit", function(e) {
+                feedStream = false;
+                stopRtmp();
+            });
         }
-        ffmpegProcess.on("error", function(e) {
-            feedStream = false;
-            // if feedStream is nullified because of an error, and we are still receiving media recorder information,
-            // stop the stream on the menuPage. This will stop sending unecessary information.
-            // this will stop the recorder on the menuPage, then call the stop endpoint to set feedStream to false.
-            stopRtmp();
-        });
-        ffmpegProcess.on("exit", function(e) {
-            feedStream = false;
-            stopRtmp();
-        });
+        catch(err) {
+            console.log(err);
+        }
     });
     socket.on("rtmp-binarydata", function( data ) {
-        if( !feedStream ) {
-            return;
+        try {
+            if( !feedStream ) {
+                return;
+            }
+            feedStream( data );
         }
-        feedStream( data );
+        catch(err) {
+            console.log(err);
+        }
     });
     socket.on("rtmp-stop", function() {
-        feedStream = false;
-        if( ffmpegProcess ) {
-            ffmpegProcess.stdin.end();
-            ffmpegProcess.kill("SIGINT");
-            ffmpegProcess = null;
+        try {
+            feedStream = false;
+            if( ffmpegProcess ) {
+                ffmpegProcess.stdin.end();
+                ffmpegProcess.kill("SIGINT");
+                ffmpegProcess = null;
+            }
+        }
+        catch(err) {
+            console.log(err);
         }
     });
 } );
