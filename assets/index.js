@@ -2483,7 +2483,7 @@ function displayJoypadConfig() {
         form.appendChild( label );
     }
     var warning = createWarning("Virtual Controller Configuration");
-    warning.setAttribute("title", "The client-connected controller maps to a virtual server controller while streaming.");
+    warning.setAttribute("title", "The client-connected controller maps to a virtual server controller while streaming. Note: it is recommended to autoload the \"GuyStation Virtual Controller\" EZ config when using a remote controller. This will set up the emulators to know button 0 is A, button 1 is B, etc - the correct mapping for the GuyStation virtual controller. Your controller will be mapped to the GuyStation virtual controller using the mapping below, but it is the GuyStation virtual controller that will be interacting with the emulators.");
     form.appendChild(warning);
     var padcodeKeys = Object.keys(PADCODES);
     // allow padcode mapping for the padcodes that we use

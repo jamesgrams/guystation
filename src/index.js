@@ -256,6 +256,34 @@ const GAMEPAD_SCROLL_AMOUNT = 50;
 const BROWSER_GAMEPAD_PATH = "browser-gamepad.json";
 const LAUNCH_ONBOARD_COMMAND = "onboard";
 const ENSURE_FLOAT_ONBOARD_COMMAND = "gsettings set org.onboard.window docking-enabled false";
+const DEFAULT_PROFILES_DICT = {
+    "GuyStation Virtual Controller": {
+        "A":"button(0)-0003-0003",
+        "B":"button(1)-0003-0003",
+        "X":"button(2)-0003-0003",
+        "Y":"button(3)-0003-0003",
+        "L":"button(4)-0003-0003",
+        "R":"button(5)-0003-0003",
+        "L2":"button(6)-0003-0003",
+        "R2":"button(7)-0003-0003",
+        "L3":"button(8)-0003-0003",
+        "R3":"button(9)-0003-0003",
+        "Select":"button(10)-0003-0003",
+        "Start":"button(11)-0003-0003",
+        "Up":"button(13)-0003-0003",
+        "Down":"button(14)-0003-0003",
+        "Left":"button(15)-0003-0003",
+        "Right":"button(16)-0003-0003",
+        "Axis X-":"axis(0-)-0003-0003",
+        "Axis X+":"axis(0+)-0003-0003",
+        "Axis Y-":"axis(1-)-0003-0003",
+        "Axis Y+":"axis(1+)-0003-0003",
+        "Axis X2-":"axis(2-)-0003-0003",
+        "Axis X2+":"axis(2+)-0003-0003",
+        "Axis Y2-":"axis(3-)-0003-0003",
+        "Axis Y2+":"axis(3+)-0003-0003"
+    }
+};
 
 const ERROR_MESSAGES = {
     "noSystem" : "System does not exist",
@@ -5018,12 +5046,17 @@ function createVirtualGamepad( id ) {
     catch(err) {
         return ERROR_MESSAGES.couldNotCreateGamepad;
     }
-    // This is currently set to be the same configuration as a Wii U pro controller
+    // This is currently set to be the same order as PADCODES on the client, and thus the default
+    // order that linux expects.
     // Note that the order buttons are registered corresponds to the button number (0, 1, 2, etc.)
     // as registered with GuyStation and the emulators
-    // I'm not sure how much the event codes from uinput (last parameter) matter...
-    // I guess they only matter for when receiving them from the fake controller.
-    // So we go from event code > button number > program input.
+    // We strongly recommend that users autoload a profile that will include a 1-1 mapping
+    // e.g. (A in dolphin is button 0, B is button 1)
+    // The client will detect a button press, say 2.
+    // The client will see that button 2 is mapped to button 4.
+    // The client will see button 4 is Y in PADCODES, and thus send a Y press to the server
+    // Since this is the same order as PADCODES, we will see that Y is indeed button 4, and press it
+    // button 4 may not actually be Y to the emulator, button 4 will be whatever it is set to in the EZ config
     ioctl(gamepadFileDescriptor, uinput.UI_SET_EVBIT, uinput.EV_KEY);
     ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_A);
     ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_B);
@@ -5033,11 +5066,11 @@ function createVirtualGamepad( id ) {
     ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_TR);
     ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_TL2);
     ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_TR2);
+    ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_THUMBL);
+    ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_THUMBR);
     ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_SELECT);
     ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_START);
     ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_MODE);
-    ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_THUMBL);
-    ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_THUMBR);
     ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_DPAD_UP);
     ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_DPAD_DOWN);
     ioctl(gamepadFileDescriptor, uinput.UI_SET_KEYBIT, uinput.BTN_DPAD_LEFT);
@@ -5048,8 +5081,8 @@ function createVirtualGamepad( id ) {
     ioctl(gamepadFileDescriptor, uinput.UI_SET_ABSBIT, uinput.ABS_RX);
     ioctl(gamepadFileDescriptor, uinput.UI_SET_ABSBIT, uinput.ABS_RY);
     // hat axis
-    ioctl(gamepadFileDescriptor, uinput.UI_SET_ABSBIT, uinput.ABS_HAT0X);
-    ioctl(gamepadFileDescriptor, uinput.UI_SET_ABSBIT, uinput.ABS_HAT0Y);
+    //ioctl(gamepadFileDescriptor, uinput.UI_SET_ABSBIT, uinput.ABS_HAT0X);
+    //ioctl(gamepadFileDescriptor, uinput.UI_SET_ABSBIT, uinput.ABS_HAT0Y);
     uidev = new uinputStructs.uinput_user_dev;
     uidev_buffer = uidev.ref();
     uidev_buffer.fill(0);
@@ -5058,7 +5091,7 @@ function createVirtualGamepad( id ) {
     uidev.id.vendor = 0x3;
     uidev.id.product = 0x3;
     uidev.id.version = 2;
-    for( let axis of [uinput.ABS_X, uinput.ABS_Y, uinput.ABS_RX, uinput.ABS_RY, uinput.ABS_HAT0X, uinput.ABS_HAT0Y] ) {
+    for( let axis of [uinput.ABS_X, uinput.ABS_Y, uinput.ABS_RX, uinput.ABS_RY/*, uinput.ABS_HAT0X, uinput.ABS_HAT0Y*/] ) {
         uidev.absmax[axis] = 128;
         uidev.absmin[axis] = -128;
         uidev.absfuzz[axis] = 0;
@@ -5163,7 +5196,7 @@ function deleteEzControlProfile( name ) {
  * Load EZ Controls Profiles.
  */
 function loadEzControlsProfiles() {
-    if( !fs.existsSync( EZ_CONTROL_PATH ) ) fs.writeFileSync( EZ_CONTROL_PATH, JSON.stringify(profilesDict) );
+    if( !fs.existsSync( EZ_CONTROL_PATH ) ) saveEzControlsProfiles();
     profilesDict = JSON.parse( fs.readFileSync( EZ_CONTROL_PATH ) );
 }
 
@@ -5171,6 +5204,10 @@ function loadEzControlsProfiles() {
  * Save EZ Controls Profiles.
  */
 function saveEzControlsProfiles() {
+    if( !fs.existsSync( EZ_CONTROL_PATH ) ) {
+        // Add the default profile
+        profilesDict = DEFAULT_PROFILES_DICT;
+    }
     fs.writeFileSync( EZ_CONTROL_PATH, JSON.stringify(profilesDict) );
 }
 
