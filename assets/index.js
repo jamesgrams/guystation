@@ -3042,7 +3042,6 @@ function displayScreencast( fullscreen ) {
         window.localStorage.guystationScaleDownFactor = this.options[this.selectedIndex].value;
         makeRequest( "POST", "/screencast/scale", { id: socket.id, factor: window.localStorage.guystationScaleDownFactor } );
     } );
-    form.appendChild(scaleMenu);
 
     // mute box
     var muteBox = createInput( window.localStorage.guystationScreencastMute === "true", "screencast-mute-checkbox", "Mute", "checkbox"  );
@@ -3051,12 +3050,10 @@ function displayScreencast( fullscreen ) {
         window.localStorage.guystationScreencastMute = muteBoxInput.checked;
         makeRequest( "POST", "/screencast/mute", { id: socket.id, mute: muteBoxInput.checked } );
     }
-    form.appendChild(muteBox);
 
     // rtmp stream
     var rtmpInput = createInput( null, "screencast-rtmp-input", "RTMP URL", "text" );
     var rtmpInputElement = rtmpInput.querySelector("input");
-    form.appendChild(rtmpInput);
     var startRtmp = function() {
         makeRequest( "POST", "/rtmp/start", { url: rtmpInputElement.value }, function() {
             createToast("Stream started");
@@ -3065,7 +3062,6 @@ function displayScreencast( fullscreen ) {
         } );
     };
     var startRtmpButton = createButton("Start RTMP", startRtmp, [rtmpInputElement]);
-    form.appendChild( startRtmpButton );
     var stopRtmp = function() {
         makeRequest( "POST", "/rtmp/stop", {}, function() {
             createToast("Stream stopped");
@@ -3074,16 +3070,11 @@ function displayScreencast( fullscreen ) {
         } );
     };
     var stopRtmpButton = createButton("Stop RTMP", stopRtmp);
-    form.appendChild( stopRtmpButton );
     var optionsElements = [muteBox, scaleMenu, rtmpInput, startRtmpButton, stopRtmpButton];
     optionsElements.forEach( function(el) {
         el.classList.add("hidden");
     });
 
-    var buttonBreak = document.createElement("div");
-    buttonBreak.classList.add("break");
-    buttonBreak.classList.add("clear");
-    form.appendChild(buttonBreak);
     form.appendChild( createButton("Toggle Options", function() { 
         if( optionsElements[0].classList.contains("hidden") ) {
             optionsElements.forEach( function(el) {
@@ -3096,6 +3087,17 @@ function displayScreencast( fullscreen ) {
             })
         } 
     }));
+    var buttonBreak = document.createElement("div");
+    buttonBreak.classList.add("break");
+    buttonBreak.classList.add("clear");
+    form.appendChild(buttonBreak);
+
+    form.appendChild(scaleMenu);
+    form.appendChild(muteBox);
+    form.appendChild(rtmpInput);
+    form.appendChild( startRtmpButton );
+    form.appendChild( stopRtmpButton );
+    
     buttonBreak = document.createElement("div");
     buttonBreak.classList.add("break");
     buttonBreak.classList.add("clear");
