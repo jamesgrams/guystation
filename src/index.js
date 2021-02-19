@@ -984,7 +984,7 @@ app.get("/profiles", async function(request, response) {
 // get the samba flag
 app.get("/samba", async function(request, response) {
     console.log("app serving /samba");
-    writeResponse( response, HTTP_OK, {"samba": sambaOn} );
+    writeResponse( response, SUCCESS, {"samba": sambaOn} );
 } );
 
 // Start PIP
@@ -1131,7 +1131,7 @@ app.post("/rtmp/stop", async function(request, response) {
 // RTMP status
 app.get("/rtmp/status", async function(request, response) {
     console.log("app serving /rtmp/status");
-    writeResponse( response, HTTP_OK, {"rtmp": rtmpOn()} );
+    writeResponse( response, SUCCESS, {"rtmp": rtmpOn()} );
 });
 
 // endpoints to set up to stream what is coming through the microphone and webcam
@@ -1139,7 +1139,7 @@ app.get("/rtmp/status", async function(request, response) {
 // set up the proper microphone input to the stream
 app.get("/stream/microphone", async function(request, response) {
     bindMicrophoneToChromeInput();
-    writeResponse( response, HTTP_OK );
+    writeResponse( response, SUCCESS );
 } );
 
 // Create the fake microphone
