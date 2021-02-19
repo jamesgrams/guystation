@@ -281,7 +281,8 @@ const DEFAULT_PROFILES_DICT = {
         "Axis X2-":"axis(2-)-0003-0003",
         "Axis X2+":"axis(2+)-0003-0003",
         "Axis Y2-":"axis(3-)-0003-0003",
-        "Axis Y2+":"axis(3+)-0003-0003"
+        "Axis Y2+":"axis(3+)-0003-0003",
+        "Screenshot": ""
     }
 };
 
