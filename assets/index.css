@@ -116,7 +116,7 @@ h1 {
     opacity: 0;
 }
 
-.game.hidden, .hidden {
+.game.hidden, .hidden, .hidden-alt {
     display: none !important;
 }
 

@@ -5281,6 +5281,9 @@ io.on('connection', function(socket) {
     } );
 
     // rtmp endpoints
+    socket.on("error", function(err) {
+        console.log(err);
+    });
     socket.on("rtmp-start", function( destination ) {
         try {
             if( rtmpOn() ) return;
@@ -5332,8 +5335,13 @@ io.on('connection', function(socket) {
         try {
             feedStream = false;
             if( ffmpegProcess ) {
-                ffmpegProcess.stdin.end();
-                ffmpegProcess.kill("SIGINT");
+                try {
+                    ffmpegProcess.stdin.end();
+                    ffmpegProcess.kill("SIGINT");
+                }
+                catch(err) {
+                    console.log(err);
+                }
                 ffmpegProcess = null;
             }
         }
@@ -5342,6 +5350,11 @@ io.on('connection', function(socket) {
         }
     });
 } );
+process.on('uncaughtException', function(err) {
+    console.log(err);
+    // Note: after client disconnect, the subprocess will cause an Error EPIPE, which can only be caught this way.
+});
+
 
 /**
  * Reset the streaming timeout heartbeat time.
@@ -5732,7 +5745,14 @@ async function stopRtmp() {
  * @returns {boolean} True if we are streaming, false if not.
  */
 function rtmpOn() {
-    return feedStream || ffmpegProcess;
+    // feedStream should be sufficient. Given queueing, they'd usually be on the same page
+    // the only time they wouldn't would be on an error/disconnect when it is the menuPage
+    // that calls out to stop even though we instantly canceled out feedStream. Should be ok, because
+    // the user won't restart faster than the menu page and server sending a couple of near-instant
+    // socket messages to each other.
+    // even if they did, they'd get the already started error message, since the ffmpegProcess would still be there
+    // they couldn't restart
+    return (feedStream || ffmpegProcess) ? true : false;
 }
 
 /**

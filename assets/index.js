@@ -3080,6 +3080,10 @@ function displayScreencast( fullscreen ) {
         el.classList.add("hidden");
     });
 
+    var buttonBreak = document.createElement("div");
+    buttonBreak.classList.add("break");
+    buttonBreak.classList.add("clear");
+    form.appendChild(buttonBreak);
     form.appendChild( createButton("Toggle Options", function() { 
         if( optionsElements[0].classList.contains("hidden") ) {
             optionsElements.forEach( function(el) {
@@ -3092,7 +3096,7 @@ function displayScreencast( fullscreen ) {
             })
         } 
     }));
-    var buttonBreak = document.createElement("div");
+    buttonBreak = document.createElement("div");
     buttonBreak.classList.add("break");
     buttonBreak.classList.add("clear");
     form.appendChild(buttonBreak);
@@ -3120,15 +3124,15 @@ function displayScreencast( fullscreen ) {
                         var rtmp = JSON.parse(data).rtmp;
                         if( rtmp ) {
                             startRtmpButton.onclick = null;
-                            startRtmpButton.classList.add("inactive");
+                            startRtmpButton.classList.add("hidden-alt");
                             stopRtmpButton.onclick = stopRtmp;
-                            stopRtmpButton.classList.remove("inactive");
+                            stopRtmpButton.classList.remove("hidden-alt");
                         }
                         else {
                             stopRtmpButton.onclick = null;
-                            stopRtmpButton.classList.add("inactive");
+                            stopRtmpButton.classList.add("hidden-alt");
                             startRtmpButton.onclick = startRtmp;
-                            startRtmpButton.classList.remove("inactive");
+                            startRtmpButton.classList.remove("hidden-alt");
                         }
                     }
                     catch(err) {
