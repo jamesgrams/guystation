@@ -330,7 +330,8 @@ const ERROR_MESSAGES = {
     "pipPageClosed": "The PIP page is closed",
     "couldNotFindVideo": "Could not find video on page",
     "couldNotMuteProperly": "Could not mute properly",
-    "invalidMuteMode": "Invalid mute mode"
+    "invalidMuteMode": "Invalid mute mode",
+    "alreadyStreamingRtmp": "Already streaming RTMP"
 }
 // http://jsfiddle.net/vWx8V/ - keycode
 // http://robotjs.io/docs/syntax - robotjs
@@ -1092,6 +1093,32 @@ app.post("/listen", async function(request, response) {
     console.log("app serving /listen");
     try {
         let errorMessage = await listenMic();
+        writeActionResponse( response, errorMessage );
+    }
+    catch(err) {
+        console.log(err);
+        writeActionResponse( response, ERROR_MESSAGES.genericError );
+    }
+});
+
+// Start RTMP
+app.post("/rtmp/start", async function(request, response) {
+    console.log("app serving /rtmp/start with body: " + JSON.stringify(request.body));
+    try {
+        let errorMessage = await startRtmp( request.body.url );
+        writeActionResponse( response, errorMessage );
+    }
+    catch(err) {
+        console.log(err);
+        writeActionResponse( response, ERROR_MESSAGES.genericError );
+    }
+});
+
+// Stop RTMP
+app.post("/rtmp/stop", async function(request, response) {
+    console.log("app serving /rtmp/stop");
+    try {
+        let errorMessage = await stopRtmp();
         writeActionResponse( response, errorMessage );
     }
     catch(err) {
@@ -5160,6 +5187,9 @@ let serverSocketId;
 let clientSocketIds = [];
 let startedClientIds = [];
 let cancelStreamingTimeouts = {};
+// The signal server is also used as an rmtp converter, those variables are below
+let ffmpegProcess = null;
+let feedStream = false;
 io.on('connection', function(socket) {
     socket.on("connect-screencast-streamer", function() {
         if( !serverSocketId ) {
@@ -5242,6 +5272,53 @@ io.on('connection', function(socket) {
             headers: []
         }); 
     } );
+
+    // rtmp endpoints
+    socket.on("rtmp-start", function( destination ) {
+        if( ffmpegProcess || feedStream ) return;
+        let ops = [
+            '-i','-',
+			'-c:v', 'libx264', '-preset', 'ultrafast', '-tune', 'zerolatency',  // video codec config: low latency, adaptive bitrate
+			'-c:a', 'aac', '-ar', 44100, '-b:a', "44k", // audio codec config: sampling frequency (11025, 22050, 44100), bitrate 64 kbits
+			'-bufsize', '5000',
+			'-f', 'flv', destination
+        ];
+        ffmpegProcess = proc.spawn("ffmpeg", ops);
+        feedStream = function(data) {
+            try {
+                ffmpegProcess.stdin.write(data);
+            }
+            catch(err) {
+                console.log(err);
+                // ok, may happen
+            }
+        }
+        ffmpegProcess.on("error", function(e) {
+            feedStream = false;
+            // if feedStream is nullified because of an error, and we are still receiving media recorder information,
+            // stop the stream on the menuPage. This will stop sending unecessary information.
+            // this will stop the recorder on the menuPage, then call the stop endpoint to set feedStream to false.
+            stopRtmp();
+        });
+        ffmpegProcess.on("exit", function(e) {
+            feedStream = false;
+            stopRtmp();
+        });
+    });
+    socket.on("rtmp-binarydata", function( data ) {
+        if( !feedStream ) {
+            return;
+        }
+        feedStream( data );
+    });
+    socket.on("rtmp-stop", function() {
+        feedStream = false;
+        if( ffmpegProcess ) {
+            ffmpegProcess.stdin.end();
+            ffmpegProcess.kill("SIGINT");
+            ffmpegProcess = null;
+        }
+    });
 } );
 
 /**
@@ -5422,6 +5499,7 @@ async function stopScreencast(id) {
     delete cancelStreamingTimeouts[id];
 
     disconnectVirtualGamepad( id ); // Disconnect the virtual gamepad.
+    stopRtmp(); // stop any rtmp streams
 
     try {
         await menuPage.evaluate( (id) => stopConnectionToPeer(true, id), id );
@@ -5589,6 +5667,42 @@ async function renegotiate() {
 }
 
 /**
+ * Instruct the menuPage to start streaming RTMP.
+ * @param {string} url - The URL of the menuPage.
+ * @returns {Promise<boolean|string>} A promise containing an error message if there is one or false if there is not.
+ */
+async function startRtmp( url ) {
+    if( !menuPage || menuPage.isClosed() ) {
+        return Promise.resolve(ERROR_MESSAGES.menuPageClosed);
+    }
+    if( ffmpegProcess || feedStream ) {
+        return Promise.resolve(ERROR_MESSAGES.alreadyStreamingRtmp);
+    }
+
+    await menuPage.evaluate( (url) => {
+        streamToRtmp( url );
+    }, url);
+
+    return Promise.resolve(false);
+}
+
+/**
+ * Instruct the menuPage to stop streaming RTMP.
+ * @returns {Promise<boolean|string>} A promise containing an error message if there is one or false if there is not.
+ */
+async function stopRtmp() {
+    if( !menuPage || menuPage.isClosed() ) {
+        return Promise.resolve(ERROR_MESSAGES.menuPageClosed);
+    }
+
+    await menuPage.evaluate( () => {
+        stopStreamtoRtmp();
+    });
+
+    return Promise.resolve(false);
+}
+
+/**
 * Create a fake microphone, so Chrome will allow us to record audio.
 * Calling this again should not create a new Microphone.
 */
@@ -5731,7 +5845,7 @@ function startPcChangeLoop() {
 /**
  * Set the saved mute mode.
  * @param {string} mode - The mute mode.
- * @returns {boolean} false or an error message if the mute mode is invalid..
+ * @returns {boolean} false or an error message if the mute mode is invalid.
  */
 function setMuteMode( mode ) {
     if( ! Object.values(MUTE_MODES).filter(el => el === mode).length ) return ERROR_MESSAGES.invalidMuteMode;
@@ -6058,7 +6172,7 @@ async function pausePip() {
 
 /**
  * Make the microphone on GuyStation listen for input.
- * @returns {Promise} A promise containing an error message if there is one or false if there is not.
+ * @returns {Promise<boolean|string>} A promise containing an error message if there is one or false if there is not.
  */
 async function listenMic() {
     if( !menuPage || menuPage.isClosed() ) {

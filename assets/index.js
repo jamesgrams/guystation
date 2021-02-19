@@ -33,6 +33,7 @@ var MOUSE_MOVE_SEND_INTERVAL = 100;
 var AXIS_MIN_TO_BE_BUTTON = 0.5; // we have to be at least 0.5 beyond the last value to set
 var EZ_AXIS_ALLOW_FOR_NEXT_INPUT = 0.2; // we will set the last value within this much (allowing for another set), or when we set
 var CHANGES_DETECTED = "Changes detected";
+var MEDIA_RECORDER_TIMESLICE = 250;
 var KEYCODES = {
     '0': 48,
     '1': 49,
@@ -360,6 +361,7 @@ var autoplayMedia = false; // manually force autoplay on remote media
 var scaleDownByTimeouts = {};
 var fullscreenPip = false;
 var voiceRecording = false;
+var rtmpRecorder = null;
 
 var screencastButtonsPressed = {};
 var screencastAxisLastValues = {};
@@ -3033,7 +3035,6 @@ function displayScreencast( fullscreen ) {
     form.appendChild(video);
 
     // we will make sure the server scales down once the video starts - see gotRemoteStream
-
     // Handle the onchange event for the select scale
     var scaleMenu = createMenu( parseFloat(window.localStorage.guystationScaleDownFactor), SCALE_OPTIONS, "screencast-scale-select", "Scale Down By", function() {
         window.localStorage.guystationScaleDownFactor = this.options[this.selectedIndex].value;
@@ -3048,6 +3049,39 @@ function displayScreencast( fullscreen ) {
         makeRequest( "POST", "/screencast/mute", { id: socket.id, mute: muteBoxInput.checked } );
     }
     form.appendChild(muteBox);
+
+    var rtmpInput = createInput( null, "screencast-rtmp-input", "RTMP URL", "text" );
+    var rtmpInputElement = rtmpInput.querySelector("input");
+    form.appendChild(rtmpInput);
+    var startRtmpButton = createButton("Start RTMP", function() {
+        makeRequest( "POST", "/rtmp/start", { url: rtmpInputElement.value } );
+    }, [rtmpInputElement]);
+    form.appendChild( startRtmpButton );
+    var stopRtmpButton = createButton("Stop RTMP", function() {
+        makeRequest( "POST", "/rtmp/stop", {} );
+    });
+    form.appendChild( stopRtmpButton );
+    var optionsElements = [muteBox, scaleMenu, rtmpInput, startRtmpButton, stopRtmpButton];
+    optionsElements.forEach( function(el) {
+        el.classList.add("hidden");
+    });
+
+    form.appendChild( createButton("Toggle Options", function() { 
+        if( optionsElements[0].classList.contains("hidden") ) {
+            optionsElements.forEach( function(el) {
+                el.classList.remove("hidden");
+            })
+        }
+        else {
+            optionsElements.forEach( function(el) {
+                el.classList.add("hidden");
+            })
+        } 
+    }));
+    var buttonBreak = document.createElement("div");
+    buttonBreak.classList.add("break");
+    buttonBreak.classList.add("clear");
+    form.appendChild(buttonBreak);
 
     form.appendChild( createButton("Fullscreen", function() { fullscreenVideo(video) }));
     form.appendChild( createButton("Fit Screen", fitscreenVideo) );
@@ -6426,3 +6460,58 @@ function errorHandler(error) {
 
 
 // End screencast section
+
+// The menu page will always start and stop rtmp.
+// When the client indiciates they want to start, the server will tell the menuPage
+// When the server detects we need to stop (no more clients), it will tell the menuPage
+// The menuPage will communicate back with the server as need be.
+/**
+ * Stream to RTMP.
+ * This is done on the server.
+ * This will significantly decrease data transfer time between the webrtc stream and ffmpeg.
+ * @param {string} url - The rtmp url to stream to. 
+ */
+function streamToRtmp( url ) {
+    if( !isServer ) return;
+    if( !localStream ) return;
+    socket.emit("rtmp-start", url);
+
+    var startRecording = function() {
+        rtmpRecorder = new MediaRecorder(localStream); // if there is already a media recorder, this will still have its state
+        rtmpRecorder.start(MEDIA_RECORDER_TIMESLICE);
+        rtmpRecorder.ondataavailable = function(e) {
+            socket.emit("rtmp-binarydata", e.data);
+        }
+    }
+    if( rtmpRecorder ) {
+        try {
+            rtmpRecorder.onstop = startRecording;
+            rtmpRecorder.stop();
+        }
+        catch(err) {
+            console.log(err);
+            // ok
+            startRecording();
+        }
+    }
+    else {
+        startRecording();
+    }
+}
+
+/**
+ * Stop streaming to RTMP.
+ */
+function stopStreamtoRtmp() {
+    if( !isServer ) return;
+    if( rtmpRecorder ) {
+        try {
+            rtmpRecorder.onstop = null;
+            rtmpRecorder.stop();
+        }
+        catch(err) {
+            // ok
+        }
+    }
+    socket.emit("rtmp-stop");
+}

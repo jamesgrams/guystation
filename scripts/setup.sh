@@ -66,7 +66,7 @@ fi
 
 # Install dependencies needed
 # Build tools are needed for most items, jdk is needed for some system control from node as is xdotool
-DEP_GENERAL="build-essential autoconf cmake automake default-jdk gcc gcc-multilib g++ g++-multilib xdotool nasm onboard"
+DEP_GENERAL="build-essential autoconf cmake automake default-jdk gcc gcc-multilib g++ g++-multilib xdotool nasm onboard ffmpeg"
 DEP_FCEUX="libxtst-dev libpng++-dev scons"
 DEP_DESMUME="libgtk2.0-dev libglu1-mesa-dev libsdl1.2-dev libglade2-dev gettext zlib1g-dev libosmesa6-dev intltool libagg-dev libasound2-dev libsoundtouch-dev libpcap-dev"
 DEP_VBAM="" # installed by vbam
