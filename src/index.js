@@ -4562,6 +4562,18 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
             browserControlsCache = JSON.parse(JSON.stringify(controlsObj)); // update the cache
             continue;
         }
+        else if( system === MENU ) { // menu is a simple, special case as it is controlled completely by us
+            let controlsObj = {};
+            for( let key in values ) {
+                if( values[key][0].type === BUTTON_CONTROL_TYPE ) controlsObj[key] = (values[key][0].chrome || values[key][0].chrome === 0) ? values[key][0].chrome : values[key][0].button;
+            }
+            menuPage.evaluate( (controlsObj) => {
+                window.localStorage.guystationJoyMapping = controlsObj;
+                joyMapping = JSON.parse(window.localStorage.guystationJoyMapping);
+            }, JSON.stringify(controlsObj) );
+
+            continue;
+        }
         // end browser special section
 
         if( !systemsDict[system].config ) return ERROR_MESSAGES.configNotAvailable;

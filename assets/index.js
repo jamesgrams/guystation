@@ -386,16 +386,17 @@ var enterDown = null;
 var startDown = {};
 
 // These buttons need to be pressed again to trigger the action again
+// These use the same keys as EZ config
 var joyMapping = {
     "A": 1,
     "Start": 9,
     "Select": 8,
-    "Right Trigger": 7,
-    "Left Trigger": 6,
-    "D-pad Up": 13,
-    "D-pad Down": 14,
-    "D-pad Left": 15,
-    "D-pad Right": 16
+    "R2": 7,
+    "L2": 6,
+    "Up": 13,
+    "Down": 14,
+    "Left": 15,
+    "Right": 16
 }
 // This will be used for buttons that we need to be up again before calling what they do again
 // This is specifically for the local GuyStation - the screencast keeps track in a different way (screencastButtonsPressed)
@@ -2473,15 +2474,9 @@ function displayBrowserControls() {
 function displayJoypadConfig() {
     var form = document.createElement("div");
     form.setAttribute("id", "joypad-config-form");
-    var joyButtons = Object.keys(joyMapping);
     form.appendChild( createFormTitle("Joypad Configuration") );
     form.appendChild( createWarning("Click a field, then press a button on the controller.") );
-    form.appendChild( createWarning("Menu Controls") );
-    for( var i=0; i<joyButtons.length; i++ ) {
-        var label = createInput( joyMapping[joyButtons[i]], "input-" + i, joyButtons[i] + ": ", "number", true );
-        label.setAttribute("data-button", joyButtons[i]);
-        form.appendChild( label );
-    }
+
     var warning = createWarning("Virtual Controller Configuration");
     warning.setAttribute("title", "The client-connected controller maps to a virtual server controller while streaming. Note: it is recommended to autoload the \"GuyStation Virtual Controller\" EZ config when using a remote controller. This will set up the emulators to know button 0 is A, button 1 is B, etc - the correct mapping for the GuyStation virtual controller. Your controller will be mapped to the GuyStation virtual controller using the mapping below, but it is the GuyStation virtual controller that will be interacting with the emulators.");
     form.appendChild(warning);
@@ -2501,13 +2496,6 @@ function displayJoypadConfig() {
         form.appendChild( label ); 
     }
     form.appendChild( createButton( "Save", function() {
-        var inputs = document.querySelectorAll("#joypad-config-form label[data-button] input");
-        for(var i=0; i<inputs.length; i++) {
-            var button = inputs[i].parentElement.getAttribute("data-button");
-            joyMapping[button] = inputs[i].value;
-        }
-        window.localStorage.guystationJoyMapping = JSON.stringify(joyMapping);
-
         var inputs = document.querySelectorAll("#joypad-config-form label[data-virtual-button] input");
         var newScreencastControllerMap = {};
         for(var i=0; i<inputs.length; i++) {
@@ -5731,8 +5719,8 @@ function manageGamepadInput() {
                 buttonsUp.gamepad[i][joyMapping["A"]] = true;
                 buttonsUp.gamepad[i][joyMapping["Start"]] = true;
                 buttonsUp.gamepad[i][joyMapping["Select"]] = true;
-                buttonsUp.gamepad[i][joyMapping["Right Trigger"]] = true;
-                buttonsUp.gamepad[i][joyMapping["Left Trigger"]] = true;
+                buttonsUp.gamepad[i][joyMapping["R2"]] = true;
+                buttonsUp.gamepad[i][joyMapping["L2"]] = true;
             }
 
             if( !disableMenuControls && document.hasFocus() && gp && gp.buttons ) {
@@ -5765,10 +5753,10 @@ function manageGamepadInput() {
                     startDown[i] = null;
                 }
             
-                var rightTriggerPressed = buttonPressed(gp.buttons[joyMapping["Right Trigger"]]);
+                var rightTriggerPressed = buttonPressed(gp.buttons[joyMapping["R2"]]);
                 // Right shoulder or trigger - cycle saves - only if there is a game in front of the user
-                if( rightTriggerPressed && buttonsUp.gamepad[i][joyMapping["Right Trigger"]] ) {
-                    buttonsUp.gamepad[i][joyMapping["Right Trigger"]] = false;
+                if( rightTriggerPressed && buttonsUp.gamepad[i][joyMapping["R2"]] ) {
+                    buttonsUp.gamepad[i][joyMapping["R2"]] = false;
                     if( document.querySelector(".system.selected .game.selected") ) {
                         cycleSave(1);
                         menuChangeDelay("right-trigger");
@@ -5777,13 +5765,13 @@ function manageGamepadInput() {
                 }
                 else {
                     if( menuDirection == "right-trigger" ) menuDirection = null;
-                    if( !rightTriggerPressed ) buttonsUp.gamepad[i][joyMapping["Right Trigger"]] = true;
+                    if( !rightTriggerPressed ) buttonsUp.gamepad[i][joyMapping["R2"]] = true;
                 }
 
-                var leftTriggerPressed = buttonPressed(gp.buttons[joyMapping["Left Trigger"]]);
+                var leftTriggerPressed = buttonPressed(gp.buttons[joyMapping["L2"]]);
                 // Left shoulder or trigger - cycle saves
-                if( leftTriggerPressed && buttonsUp.gamepad[i][joyMapping["Left Trigger"]] ) {
-                    buttonsUp.gamepad[i][joyMapping["Left Trigger"]] = false;
+                if( leftTriggerPressed && buttonsUp.gamepad[i][joyMapping["L2"]] ) {
+                    buttonsUp.gamepad[i][joyMapping["L2"]] = false;
                     if( document.querySelector(".system.selected .game.selected") ) {
                         cycleSave(-1);
                         menuChangeDelay("left-trigger");
@@ -5792,28 +5780,28 @@ function manageGamepadInput() {
                 }
                 else {
                     if( menuDirection == "left-trigger" ) menuDirection = null;
-                    if( !leftTriggerPressed ) buttonsUp.gamepad[i][joyMapping["Left Trigger"]] = true;
+                    if( !leftTriggerPressed ) buttonsUp.gamepad[i][joyMapping["L2"]] = true;
                 }
 
                 var leftStickXPosition = gp.axes[0];
                 var leftStickYPosition = gp.axes[1];
                 // Right
-                if( leftStickXPosition > 0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Right"]]) ) {
+                if( leftStickXPosition > 0.5 || buttonPressed(gp.buttons[joyMapping["Right"]]) ) {
                     moveMenu( -1 );
                     menuChangeDelay("right-stick");
                 }
                 // Left
-                else if( leftStickXPosition < -0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Left"]]) ) {
+                else if( leftStickXPosition < -0.5 || buttonPressed(gp.buttons[joyMapping["Left"]]) ) {
                     moveMenu( 1 );
                     menuChangeDelay("left-stick");
                 }
                 // Up
-                else if( leftStickYPosition < -0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Up"]]) ) {
+                else if( leftStickYPosition < -0.5 || buttonPressed(gp.buttons[joyMapping["Up"]]) ) {
                     moveSubMenu( -1 );
                     menuChangeDelay("up-stick");
                 }
                 // Down
-                else if( leftStickYPosition > 0.5 || buttonPressed(gp.buttons[joyMapping["D-pad Down"]]) ) {
+                else if( leftStickYPosition > 0.5 || buttonPressed(gp.buttons[joyMapping["Down"]]) ) {
                     moveSubMenu( 1 );
                     menuChangeDelay("down-stick");
                 }
@@ -5962,25 +5950,25 @@ function manageGamepadInput() {
                 }
 
                 // Right trigger will got to next
-                var rightTriggerPressed = buttonPressed(gp.buttons[joyMapping["Right Trigger"]]);
-                if( rightTriggerPressed && buttonsUp.gamepad[i][joyMapping["Right Trigger"]] ) {
-                    buttonsUp.gamepad[i][joyMapping["Right Trigger"]] = false;
+                var rightTriggerPressed = buttonPressed(gp.buttons[joyMapping["R2"]]);
+                if( rightTriggerPressed && buttonsUp.gamepad[i][joyMapping["R2"]] ) {
+                    buttonsUp.gamepad[i][joyMapping["R2"]] = false;
 
                     playNextMedia(1);
                 }
                 else if(!rightTriggerPressed) {
-                    buttonsUp.gamepad[i][joyMapping["Right Trigger"]] = true;
+                    buttonsUp.gamepad[i][joyMapping["R2"]] = true;
                 }
 
                 // Left trigger will go to previous
-                var leftTriggerPressed = buttonPressed(gp.buttons[joyMapping["Left Trigger"]]);
-                if( leftTriggerPressed && buttonsUp.gamepad[i][joyMapping["Left Trigger"]] ) {
-                    buttonsUp.gamepad[i][joyMapping["Left Trigger"]] = false;
+                var leftTriggerPressed = buttonPressed(gp.buttons[joyMapping["L2"]]);
+                if( leftTriggerPressed && buttonsUp.gamepad[i][joyMapping["L2"]] ) {
+                    buttonsUp.gamepad[i][joyMapping["L2"]] = false;
 
                     previousMedia();
                 }
                 else if(!leftTriggerPressed) {
-                    buttonsUp.gamepad[i][joyMapping["Left Trigger"]] = true;
+                    buttonsUp.gamepad[i][joyMapping["L2"]] = true;
                 }
             }
         }
@@ -6387,9 +6375,12 @@ function stopConnectionToPeer( isStreamer, id, useIdAsSocketId ) {
         }
     }
     // stop streaming if this was the last connection
-    else if(localStream && !peerConnections.length) {
-        localStream.getTracks().forEach( function(tr) {tr.stop();} ); // should be idempotent, tracks aren't started again, localStream is just overwritten
-        localStream = null;
+    else if(!peerConnections.length) {
+        autoloadEzProfile();
+        if( localStream ) {
+            localStream.getTracks().forEach( function(tr) {tr.stop();} ); // should be idempotent, tracks aren't started again, localStream is just overwritten
+            localStream = null;
+        }
     }
 }
  
