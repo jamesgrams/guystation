@@ -34,6 +34,7 @@ var AXIS_MIN_TO_BE_BUTTON = 0.5; // we have to be at least 0.5 beyond the last v
 var EZ_AXIS_ALLOW_FOR_NEXT_INPUT = 0.2; // we will set the last value within this much (allowing for another set), or when we set
 var CHANGES_DETECTED = "Changes detected";
 var MEDIA_RECORDER_TIMESLICE = 250;
+var RTMP_STATUS_INTERVAL = 1000;
 var KEYCODES = {
     '0': 48,
     '1': 49,
@@ -362,6 +363,7 @@ var scaleDownByTimeouts = {};
 var fullscreenPip = false;
 var voiceRecording = false;
 var rtmpRecorder = null;
+var rtmpStatusInterval = null;
 
 var screencastButtonsPressed = {};
 var screencastAxisLastValues = {};
@@ -3042,6 +3044,7 @@ function displayScreencast( fullscreen ) {
     } );
     form.appendChild(scaleMenu);
 
+    // mute box
     var muteBox = createInput( window.localStorage.guystationScreencastMute === "true", "screencast-mute-checkbox", "Mute", "checkbox"  );
     var muteBoxInput = muteBox.querySelector("input");
     muteBoxInput.onchange = function() {
@@ -3050,16 +3053,27 @@ function displayScreencast( fullscreen ) {
     }
     form.appendChild(muteBox);
 
+    // rtmp stream
     var rtmpInput = createInput( null, "screencast-rtmp-input", "RTMP URL", "text" );
     var rtmpInputElement = rtmpInput.querySelector("input");
     form.appendChild(rtmpInput);
-    var startRtmpButton = createButton("Start RTMP", function() {
-        makeRequest( "POST", "/rtmp/start", { url: rtmpInputElement.value } );
-    }, [rtmpInputElement]);
+    var startRtmp = function() {
+        makeRequest( "POST", "/rtmp/start", { url: rtmpInputElement.value }, function() {
+            createToast("Stream started");
+        }, function(responseText) {
+            standardFailure(responseText, true);
+        } );
+    };
+    var startRtmpButton = createButton("Start RTMP", startRtmp, [rtmpInputElement]);
     form.appendChild( startRtmpButton );
-    var stopRtmpButton = createButton("Stop RTMP", function() {
-        makeRequest( "POST", "/rtmp/stop", {} );
-    });
+    var stopRtmp = function() {
+        makeRequest( "POST", "/rtmp/stop", {}, function() {
+            createToast("Stream stopped");
+        }, function(responseText) {
+            standardFailure(responseText, true);
+        } );
+    };
+    var stopRtmpButton = createButton("Stop RTMP", stopRtmp);
     form.appendChild( stopRtmpButton );
     var optionsElements = [muteBox, scaleMenu, rtmpInput, startRtmpButton, stopRtmpButton];
     optionsElements.forEach( function(el) {
@@ -3100,6 +3114,29 @@ function displayScreencast( fullscreen ) {
             resetCancelStreamingInterval = setInterval( function() {
                 makeRequest( "GET", "/screencast/reset-cancel", { id: socket.id } );
             }, RESET_CANCEL_STREAMING_INTERVAL );
+            rtmpStatusInterval = setInterval( function() {
+                makeRequest( "GET", "/rtmp/status", {}, function(data) {
+                    try {
+                        var rtmp = JSON.parse(data).rtmp;
+                        if( rtmp ) {
+                            startRtmpButton.onclick = null;
+                            startRtmpButton.classList.add("inactive");
+                            stopRtmpButton.onclick = stopRtmp;
+                            stopRtmpButton.classList.remove("inactive");
+                        }
+                        else {
+                            stopRtmpButton.onclick = null;
+                            stopRtmpButton.classList.add("inactive");
+                            startRtmpButton.onclick = startRtmp;
+                            startRtmpButton.classList.remove("inactive");
+                        }
+                    }
+                    catch(err) {
+                        //ok
+                    }
+                } );
+            }, RTMP_STATUS_INTERVAL );
+
             launchModal( form, function() { stopConnectionToPeer(false, "server"); } );
             connectToSignalServer(false);
             if( fullscreen ) fullscreenVideo( video );
@@ -6325,6 +6362,8 @@ function stopConnectionToPeer( isStreamer, id, useIdAsSocketId ) {
     }
     if( !isStreamer ) {
         var stopLettingServerKnowWeExist = function() { clearInterval(resetCancelStreamingInterval); };
+        clearInterval(rtmpStatusInterval); // either way, stop rtmp status interval check
+        
         // stop letting the server know we exist once it stops expecting us
         // this will only stop the server if this is the last connection
         makeRequest("GET", "/screencast/stop", {id: useIdAsSocketId ? id : socket.id}, stopLettingServerKnowWeExist, stopLettingServerKnowWeExist);

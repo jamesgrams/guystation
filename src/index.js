@@ -331,7 +331,8 @@ const ERROR_MESSAGES = {
     "couldNotFindVideo": "Could not find video on page",
     "couldNotMuteProperly": "Could not mute properly",
     "invalidMuteMode": "Invalid mute mode",
-    "alreadyStreamingRtmp": "Already streaming RTMP"
+    "alreadyStreamingRtmp": "Already streaming RTMP",
+    "rtmpUrl": "Please enter a RTMP url"
 }
 // http://jsfiddle.net/vWx8V/ - keycode
 // http://robotjs.io/docs/syntax - robotjs
@@ -1125,6 +1126,12 @@ app.post("/rtmp/stop", async function(request, response) {
         console.log(err);
         writeActionResponse( response, ERROR_MESSAGES.genericError );
     }
+});
+
+// RTMP status
+app.get("/rtmp/status", async function(request, response) {
+    console.log("app serving /rtmp/status");
+    writeResponse( response, HTTP_OK, {"rtmp": rtmpOn()} );
 });
 
 // endpoints to set up to stream what is coming through the microphone and webcam
@@ -5275,7 +5282,7 @@ io.on('connection', function(socket) {
 
     // rtmp endpoints
     socket.on("rtmp-start", function( destination ) {
-        if( ffmpegProcess || feedStream ) return;
+        if( rtmpOn() ) return;
         let ops = [
             '-i','-',
 			'-c:v', 'libx264', '-preset', 'ultrafast', '-tune', 'zerolatency',  // video codec config: low latency, adaptive bitrate
@@ -5675,8 +5682,11 @@ async function startRtmp( url ) {
     if( !menuPage || menuPage.isClosed() ) {
         return Promise.resolve(ERROR_MESSAGES.menuPageClosed);
     }
-    if( ffmpegProcess || feedStream ) {
+    if( rtmpOn() ) {
         return Promise.resolve(ERROR_MESSAGES.alreadyStreamingRtmp);
+    }
+    if( !url.match(/^rtmp:\/\//) ) {
+        return Promise.resolve(ERROR_MESSAGES.rtmpUrl);
     }
 
     await menuPage.evaluate( (url) => {
@@ -5700,6 +5710,14 @@ async function stopRtmp() {
     });
 
     return Promise.resolve(false);
+}
+
+/**
+ * Check if RTMP is currently streaming.
+ * @returns {boolean} True if we are streaming, false if not.
+ */
+function rtmpOn() {
+    return feedStream || ffmpegProcess;
 }
 
 /**
