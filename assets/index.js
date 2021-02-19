@@ -198,6 +198,7 @@ var EZ_SYSTEMS = [
     "3ds",
     "browser",
     "gba",
+    "menu",
     "n64",
     "nds",
     "nes",

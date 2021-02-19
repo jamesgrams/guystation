@@ -89,6 +89,7 @@ const TMP_ROM_LOCATION = "/tmp/tmprom";
 const NAND_ROM_FILE_PLACEHOLDER = "ROM_FILE_PLACEHOLDER";
 const BROWSER = "browser";
 const MEDIA = "media";
+const MENU = "menu";
 const GOOGLE_SEARCH_URL = "https://google.com/search?q=";
 const HTTP = "http://";
 const UP = "up";
@@ -4551,7 +4552,7 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
 
     for( let system of systems ) {
 
-        if( !systemsDict[system] ) return ERROR_MESSAGES.noSystem;
+        if( !systemsDict[system] && system !== MENU ) return ERROR_MESSAGES.noSystem;
 
         if( system === BROWSER ) { // browser is a simple, special case as it is controlled completely by us
             let controlsObj = {};
@@ -4565,7 +4566,7 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
         else if( system === MENU ) { // menu is a simple, special case as it is controlled completely by us
             let controlsObj = {};
             for( let key in values ) {
-                if( values[key][0].type === BUTTON_CONTROL_TYPE ) controlsObj[key] = (values[key][0].chrome || values[key][0].chrome === 0) ? values[key][0].chrome : values[key][0].button;
+                if( values[key][0] &&  values[key][0].type === BUTTON_CONTROL_TYPE ) controlsObj[key] = (values[key][0].chrome || values[key][0].chrome === 0) ? values[key][0].chrome : values[key][0].button;
             }
             menuPage.evaluate( (controlsObj) => {
                 window.localStorage.guystationJoyMapping = controlsObj;
