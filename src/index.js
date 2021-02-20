@@ -5340,7 +5340,7 @@ io.on('connection', function(socket) {
             if( rtmpOn() ) return;
             let ops = [
                 '-i','-',
-                '-c:v', 'libx264', '-preset', 'ultrafast', '-tune', 'zerolatency',  // video codec config: low latency, adaptive bitrate
+                '-c:v', 'libx264', '-preset', 'ultrafast', '-tune', 'zerolatency',   // video codec config: low latency, adaptive bitrate
                 '-c:a', 'aac', '-ar', 44100, '-b:a', "44k", // audio codec config: sampling frequency (11025, 22050, 44100), bitrate 64 kbits
                 '-bufsize', '5000',
                 '-f', 'flv', destination
@@ -5355,7 +5355,11 @@ io.on('connection', function(socket) {
                     // ok, may happen
                 }
             }
+            ffmpegProcess.stderr.on('data', function( data ) {
+                console.log( "ffmpeg stderr: " + data);
+            });
             ffmpegProcess.on("error", function(e) {
+                console.log( "ffmpeg error " + e );
                 feedStream = false;
                 // if feedStream is nullified because of an error, and we are still receiving media recorder information,
                 // stop the stream on the menuPage. This will stop sending unecessary information.
@@ -5363,6 +5367,7 @@ io.on('connection', function(socket) {
                 stopRtmp();
             });
             ffmpegProcess.on("exit", function(e) {
+                console.log( "ffmpeg exit " + e );
                 feedStream = false;
                 stopRtmp();
             });
