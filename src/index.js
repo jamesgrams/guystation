@@ -5340,7 +5340,7 @@ io.on('connection', function(socket) {
             if( rtmpOn() ) return;
             let ops = [
                 '-i','-',
-                '-c:v', 'libx264', '-preset', 'ultrafast', '-tune', 'zerolatency',   // video codec config: low latency, adaptive bitrate
+                '-c:v', 'copy',   // video codec config: low latency, adaptive bitrate
                 '-c:a', 'aac', '-ar', 44100, '-b:a', "44k", // audio codec config: sampling frequency (11025, 22050, 44100), bitrate 64 kbits
                 '-bufsize', '5000',
                 '-f', 'flv', destination

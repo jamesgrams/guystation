@@ -6317,7 +6317,10 @@ function renegotiate() {
     var oldLocalStream = localStream;
     oldLocalStream.getVideoTracks().forEach(track => track.stop())
     getDisplayMedia().then(function(stream) {
-        localStream = stream;
+        var av = new MediaStream();
+        av.addTrack(stream.getTracks()[0]);
+        av.addTrack(localStream.getAudioTracks()[0]);
+        localStream = av;
         for( let peerConnection of peerConnections ) {
             var newTrack = localStream.getVideoTracks()[0];
             var sender = peerConnection.peerConnection.getSenders().filter( el => el.track.kind == newTrack.kind )[0];
@@ -6513,10 +6516,8 @@ function streamToRtmp( url ) {
     if( !localStream ) return;
     socket.emit("rtmp-start", url);
 
-    localStream.getVideoTracks()[0].applyConstraints( {cursor: "never", width: 640, height: 360, frameRate: 20} );
-
     var startRecording = function() {
-        rtmpRecorder = new MediaRecorder(localStream); // if there is already a media recorder, this will still have its state
+        rtmpRecorder = new MediaRecorder(localStream, {mimeType: "video/webm\;codecs=h264", audioBitsPerSecond: 44100}); // if there is already a media recorder, this will still have its state
         rtmpRecorder.start(MEDIA_RECORDER_TIMESLICE);
         rtmpRecorder.ondataavailable = function(e) {
             socket.emit("rtmp-binarydata", e.data);
@@ -6543,8 +6544,6 @@ function streamToRtmp( url ) {
  */
 function stopStreamtoRtmp() {
     if( !isServer ) return;
-
-    localStream.getVideoTracks()[0].applyConstraints( {cursor: "never"} );
 
     if( rtmpRecorder ) {
         try {
