@@ -6513,6 +6513,8 @@ function streamToRtmp( url ) {
     if( !localStream ) return;
     socket.emit("rtmp-start", url);
 
+    localStream.getVideoTracks()[0].applyConstraints( {cursor: "never", width: 640, height: 360, frameRate: 20} );
+
     var startRecording = function() {
         rtmpRecorder = new MediaRecorder(localStream); // if there is already a media recorder, this will still have its state
         rtmpRecorder.start(MEDIA_RECORDER_TIMESLICE);
@@ -6541,6 +6543,9 @@ function streamToRtmp( url ) {
  */
 function stopStreamtoRtmp() {
     if( !isServer ) return;
+
+    localStream.getVideoTracks()[0].applyConstraints( {cursor: "never"} );
+
     if( rtmpRecorder ) {
         try {
             rtmpRecorder.onstop = null;
