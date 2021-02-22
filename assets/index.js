@@ -5886,7 +5886,15 @@ function manageGamepadInput() {
                     for( var j=0; j<inputs.length; j++ ) {
                         if( inputs[j] === document.activeElement ) {
                             var isEz = inputs[j].getAttribute("type") == "search";
-                            var gamepadButtonsDownKeys = Object.keys(gamepadButtonsDown[i]);
+                            var gamepadButtonsDownKeys = Object.keys(gamepadButtonsDown[0]).sort( function(a,b) {
+                                var aMatch = a.match(/^\d+$/);
+                                var bMatch = b.match(/^\d+$/);
+                                if( aMatch && !bMatch ) return -1;
+                                if( bMatch && !aMatch ) return 1;
+                                if( a < b ) return -1;
+                                if( a > b ) return 1;
+                                return 0;
+                            } ); // we want buttons to get priority and go first
                             for( var k=0; k<gamepadButtonsDownKeys.length; k++ ) {
                                 var currentButton = gamepadButtonsDownKeys[k];
                                 if( gamepadButtonsDown[i][currentButton] ) {
