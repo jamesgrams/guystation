@@ -4543,7 +4543,7 @@ function generateMessageUserName( id ) {
  *   }
  * } );
  * @param {Array<string>} system - The systems to set controls for.
- * @param {Object} values - An object with keys being GuyStation buttons and values being an array of objects (each item is another control) containing a key for type and the button (can be axis+-/key) to set them to, or an array for multiple values (will be inserted for each $CONTROL in the control format) relating to a single control (note: we really only should ever receive one value, and we'll only use the first value).
+ * @param {Object} values - An object with keys being GuyStation buttons and values being an array of objects (each item is another control) containing a key for type and the button (can be axis+-/key) to set them to, or an array for multiple values (will be inserted for each $CONTROL in the control format) relating to a single control (note: we really only should ever receive one value, and we'll only use the first value - search for controlButtons for more).
  * @param {number} [controller] - The controller number to set controls for. 0,1,2, etc.
  * @param {boolean} [nunchuk] - True if we are setting the Wii to use the nunchuk extension.
  * @returns {boolean|string} An error message if there is an error, false if not.
@@ -4554,25 +4554,29 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
 
         if( !systemsDict[system] && system !== MENU ) return ERROR_MESSAGES.noSystem;
 
-        if( system === BROWSER ) { // browser is a simple, special case as it is controlled completely by us
+        if( system === BROWSER || system === MENU ) { // browser is a simple, special case as it is controlled completely by us
+            // unset keys will be deleted (search for: delete no control)
             let controlsObj = {};
             for( let key in values ) {
-                if( values[key][0] && (values[key][0].type === AXIS_CONTROL_TYPE || values[key][0].type === BUTTON_CONTROL_TYPE) ) controlsObj[key] = (values[key][0].chrome || values[key][0].chrome === 0) ? values[key][0].chrome : values[key][0].button;
+                for( let value of values[key] ) {
+                    if( value && (value.type === AXIS_CONTROL_TYPE || value.type === BUTTON_CONTROL_TYPE) ) {
+                        if( !controlsObj[key] ) controlsObj[key] = [];
+                        let newVal = (value.chrome || value.chrome === 0) ? value.chrome : value.button;
+                        if( typeof newVal === OBJECT_TYPE ) newVal = newVal[0];
+                        controlsObj[key].push( newVal );
+                    }
+                }
             }
-            fs.writeFileSync( BROWSER_GAMEPAD_PATH, JSON.stringify(controlsObj) );
-            browserControlsCache = JSON.parse(JSON.stringify(controlsObj)); // update the cache
-            continue;
-        }
-        else if( system === MENU ) { // menu is a simple, special case as it is controlled completely by us
-            let controlsObj = {};
-            for( let key in values ) {
-                if( values[key][0] &&  values[key][0].type === BUTTON_CONTROL_TYPE ) controlsObj[key] = (values[key][0].chrome || values[key][0].chrome === 0) ? values[key][0].chrome : values[key][0].button;
+            if( system === BROWSER ) {
+                fs.writeFileSync( BROWSER_GAMEPAD_PATH, JSON.stringify(controlsObj) );
+                browserControlsCache = JSON.parse(JSON.stringify(controlsObj)); // update the cache
             }
-            menuPage.evaluate( (controlsObj) => {
-                window.localStorage.guystationJoyMapping = controlsObj;
-                joyMapping = JSON.parse(window.localStorage.guystationJoyMapping);
-            }, JSON.stringify(controlsObj) );
-
+            else {
+                menuPage.evaluate( (controlsObj) => {
+                    window.localStorage.guystationJoyMapping = controlsObj;
+                    joyMapping = JSON.parse(window.localStorage.guystationJoyMapping);
+                }, JSON.stringify(controlsObj) );
+            }
             continue;
         }
         // end browser special section

@@ -366,8 +366,6 @@ var voiceRecording = false;
 var rtmpRecorder = null;
 var rtmpStatusInterval = null;
 
-var screencastButtonsPressed = {};
-var screencastAxisLastValues = {};
 // keys are server values, values are client values
 // it's a map of numbers so 0:2, 3:3:, etc. PADCODES index to controller button number.
 // these are only used for the client's controller. No mapping is used for the virtual joypad created on phones. A sends button 0 and that's that.
@@ -389,25 +387,33 @@ var startDown = {};
 // These buttons need to be pressed again to trigger the action again
 // These use the same keys as EZ config
 var joyMapping = {
-    "A": 1,
-    "Start": 9,
-    "Select": 8,
-    "R2": 7,
-    "L2": 6,
-    "Up": 13,
-    "Down": 14,
-    "Left": 15,
-    "Right": 16
+    "A": [1],
+    "Start": [9],
+    "Select": [8],
+    "R2": [7],
+    "L2": [6],
+    "Up": [13],
+    "Down": [14],
+    "Left": [15],
+    "Right": [16],
+    "Axis X-": ["0-"],
+    "Axis X+": ["0+"],
+    "Axis Y-": ["1-"],
+    "Axis Y+": ["1+"]
 }
 // This will be used for buttons that we need to be up again before calling what they do again
-// This is specifically for the local GuyStation - the screencast keeps track in a different way (screencastButtonsPressed)
+// This is specifically for the local GuyStation keyboard controls
 var buttonsUp = {
-    "gamepad": {},
     "keyboard": {
         "13": true, // Enter
         "32": true // Spacebar
     }
 };
+// This is an object with keys for each gamepad, and each gamepad having keys for each button
+// which can be a number or a number+/- for an axis
+var gamepadButtonsDown = {};
+var gamepadButtonsPressed = {}; // same as down, but false after initial go through
+var gamepadAxisLastValues = {};
 
 /**
  * Bubble screenshots on the screen for the selected game.
@@ -970,9 +976,9 @@ function enableControls() {
                 // only go on enter
                 if( event.keyCode == 13 ) document.querySelector(".modal #go-button").click();
             }
-            else if( buttonsUp[event.keyCode.toString()] || buttonsUp[event.keyCode.toString()] === undefined ) {
+            else if( buttonsUp.keyboard[event.keyCode.toString()] || buttonsUp.keyboard[event.keyCode.toString()] === undefined ) {
                 socket.emit("/screencast/buttons", { "down": true, "buttons": [event.keyCode] } );
-                buttonsUp[event.keyCode.toString()] = false;
+                buttonsUp.keyboard[event.keyCode.toString()] = false;
             }
         }
         // Prevent Ctrl + S
@@ -1020,9 +1026,9 @@ function enableControls() {
         // for the video
         if( enableModalControls && document.querySelector(".modal #remote-screencast-form video, .modal #browser-controls-form video, .black-background video") ) {
             // Allow enter for the browser address bar
-            if( !(document.querySelector(".modal #address-bar") && document.querySelector(".modal #address-bar") === document.activeElement && !navigating) && !buttonsUp[event.keyCode.toString()] ) {
+            if( !(document.querySelector(".modal #address-bar") && document.querySelector(".modal #address-bar") === document.activeElement && !navigating) && !buttonsUp.keyboard[event.keyCode.toString()] ) {
                 socket.emit("/screencast/buttons", { "down": false, "buttons": [event.keyCode] } );
-                buttonsUp[event.keyCode.toString()] = true;
+                buttonsUp.keyboard[event.keyCode.toString()] = true;
             }
         }
     }
@@ -5649,7 +5655,7 @@ function makeRequest(type, url, parameters, callback, errorCallback, useFormData
  * Send screencast buttons to a server from a client gamepad (not the virtual gamepad).
  * This function translates the client gamepad button with the button mapping.
  * @param {string} clientButton - Either the button number or the axis number and a direction.
- * @param {boolean} [down] - Optional parameter to force a direction (used for axis whose states aren't tracked in screencastButtonsPressed)
+ * @param {boolean} [down] - Optional parameter to force a direction (used for axis whose states aren't tracked in gamepadButtonsDown)
  */
 function sendButtonsToServer( clientButton, down ) {
     // we send the codes that correspond with the buttons numbers. So padcodes have A as button 0, so when
@@ -5664,7 +5670,8 @@ function sendButtonsToServer( clientButton, down ) {
             for( var k=0; k<serverButtonsForClientButton.length; k++ ) {
                 // note whether the client axis or button, it is mapped to a server button, and thus serverButtonsForClientButton[k] will always be a number indicating the button number on the server
                 var buttonCode = Object.values(PADCODES)[serverButtonsForClientButton[k]];
-                socket.emit("/screencast/gamepad", { "event": { "type": 0x01, "code": buttonCode, "value": down !== undefined ? down : screencastButtonsPressed[clientButton] }, "id": socket.id } );
+                console.log(buttonCode);
+                socket.emit("/screencast/gamepad", { "event": { "type": 0x01, "code": buttonCode, "value": down !== undefined ? down : gamepadButtonsDown[0][clientButton] }, "id": socket.id } );
             }
         }
         // this is a full axis being sent on the client (not just an axis direction) - it must be mapped to a server axis
@@ -5673,7 +5680,7 @@ function sendButtonsToServer( clientButton, down ) {
             for( var k=0; k<serverButtonsForClientButton.length; k++ ) {
                 var index = parseInt( serverButtonsForClientButton[k].replace("a","") );
                 var axisCode = Object.values(AXISCODES)[index];
-                socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": axisCode, "value": screencastAxisLastValues[ parseInt(clientButton.replace("a","")) ] }, "id": socket.id } );
+                socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": axisCode, "value": gamepadAxisLastValues[0][ parseInt(clientButton.replace("a","")) ] }, "id": socket.id } );
             }
         }
     }
@@ -5714,50 +5721,85 @@ function manageGamepadInput() {
             var gp = gamepads[i];
             if( !gp ) continue;
 
-            // initialize buttons up
-            if( !buttonsUp.gamepad[i] ) {
-                buttonsUp.gamepad[i] = {};
-                buttonsUp.gamepad[i][joyMapping["A"]] = true;
-                buttonsUp.gamepad[i][joyMapping["Start"]] = true;
-                buttonsUp.gamepad[i][joyMapping["Select"]] = true;
-                buttonsUp.gamepad[i][joyMapping["R2"]] = true;
-                buttonsUp.gamepad[i][joyMapping["L2"]] = true;
+            var isMenu = !disableMenuControls && document.hasFocus() && gp && gp.buttons;
+            var isJoypadConfigForm = document.hasFocus() && document.querySelector("#joypad-config-form");
+            var isScreencast = document.hasFocus() && document.querySelector(".screencast-wrapper");
+            var isMedia = document.hasFocus() && document.querySelector(".modal #remote-media-form");
+
+            if(!gamepadButtonsDown[i]) {
+                gamepadButtonsDown[i] = {};
+                gamepadAxisLastValues[i] = {};
+            }
+            // reset each time
+            gamepadButtonsPressed[i] = {};
+
+            // Check the gamepad's buttons
+            // First we will determine what buttons are pressed, then we will use those buttons
+            for( var j=0; j<gp.buttons.length; j++ ) {
+                if( ( !gamepadButtonsDown[i][j] && buttonPressed(gp.buttons[j]) ) || ( gamepadButtonsDown[i][j] && !buttonPressed(gp.buttons[j]) ) ) {
+                    if( !gamepadButtonsDown[i][j] ) {
+                        gamepadButtonsDown[i][j] = true;
+                        gamepadButtonsPressed[i][j] = true;
+                    }
+                    else {
+                        gamepadButtonsDown[i][j] = false;
+                    }
+                    if( isScreencast ) sendButtonsToServer( j );
+                }
             }
 
-            if( !disableMenuControls && document.hasFocus() && gp && gp.buttons ) {
+            // Check the gamepad's axes
+            for( var j=0; j<gp.axes.length; j++ ) {
 
+                // the axis is mapped to a button
+                var direction = gp.axes[j] >= 0 ? "+" : "-";
+                var previousDirection = gamepadAxisLastValues[i][j] >= 0 ? "+" : "-";
+                if( Math.abs(gp.axes[j]) >= AXIS_MIN_TO_BE_BUTTON && ( Math.abs(gamepadAxisLastValues[i][j]/MAX_JOYSTICK_VALUE) < AXIS_MIN_TO_BE_BUTTON || previousDirection != direction ) ) {
+                    if( isScreencast ) {
+                        sendButtonsToServer( j + direction, true );
+                        // in case we rapidly switched directions and it didn't get cleared out
+                        sendButtonsToServer( j + (direction == "+" ? "-" : "+"), false );
+                    }
+                    gamepadButtonsDown[i][ j + direction ] = true;
+                    gamepadButtonsPressed[i][ j + direction ] = true;
+                }
+                else if( Math.abs(gp.axes[j]) < AXIS_MIN_TO_BE_BUTTON && Math.abs(gamepadAxisLastValues[i][j]/MAX_JOYSTICK_VALUE) >= AXIS_MIN_TO_BE_BUTTON ) {
+                    if( isScreencast ) {
+                        sendButtonsToServer( j + "+", false );
+                        sendButtonsToServer( j + "-", false );
+                    }
+                    gamepadButtonsDown[i][ j + direction ] = false;
+                }
+
+                // the axis is mapped to an axis
+                var serverAxisValue = Math.round(gp.axes[j] * MAX_JOYSTICK_VALUE);
+                // if within 1, its ok, unless it is 0
+                if( (!gamepadAxisLastValues[i][j] && gamepadAxisLastValues[i][j] !== 0) || Math.abs(serverAxisValue - gamepadAxisLastValues[i][j]) > SCREENCAST_AXIS_FUZZINESS || (serverAxisValue == 0 && gamepadAxisLastValues[i][j] != 0) ) {
+                    gamepadAxisLastValues[i][j] = serverAxisValue;
+
+                    if( isScreencast ) sendButtonsToServer( "a" + j ); // the client button is "a" + j, could be multiple server buttons
+                }
+            }
+
+            // Handle the menu controls
+            if( isMenu ) {
                 // See this helpful image for mappings: https://www.html5rocks.com/en/tutorials/doodles/gamepad/gamepad_diagram.png
-                
-                var aPressed = buttonPressed(gp.buttons[joyMapping["A"]]);
-                var startPressed = buttonPressed(gp.buttons[joyMapping["Start"]]);
                 // A or Start - launch a game (no need to quit a game, since they should have escape mapped to a key so they can go back to the menu)
-                if( (aPressed && buttonsUp.gamepad[i][joyMapping["A"]]) 
-                    || (startPressed && buttonsUp.gamepad[i][joyMapping["Start"]]) ) {
-                    
-                    if( aPressed ) buttonsUp.gamepad[i][joyMapping["A"]] = false;
-                    if( startPressed ) buttonsUp.gamepad[i][joyMapping["Start"]] = false;
-                    
+                if( (joyMapping["A"] && joyMapping["A"].filter(el => gamepadButtonsPressed[i][el]).length) || (joyMapping["Start"] && joyMapping["Start"].filter(el => gamepadButtonsPressed[i][el]).length) ) {
                     document.querySelector("#launch-game").click();
-
                     if( !isServer && !startDown[i] ) {
                         startDown[i] = setTimeout(function() {
                             if( !document.querySelector("#remote-screencast-form") ) displayScreencast(true);
                         }, SCREENCAST_TIME);
-                    }
+                    };
                     break;
                 }
                 else {
-                    if(!aPressed) buttonsUp.gamepad[i][joyMapping["A"]] = true;
-                    if(!startPressed) buttonsUp.gamepad[i][joyMapping["Start"]] = true;
-
                     clearTimeout(startDown[i]);
                     startDown[i] = null;
                 }
-            
-                var rightTriggerPressed = buttonPressed(gp.buttons[joyMapping["R2"]]);
-                // Right shoulder or trigger - cycle saves - only if there is a game in front of the user
-                if( rightTriggerPressed && buttonsUp.gamepad[i][joyMapping["R2"]] ) {
-                    buttonsUp.gamepad[i][joyMapping["R2"]] = false;
+                // Cycle save
+                if( joyMapping["R2"] && joyMapping["R2"].filter(el => gamepadButtonsDown[i][el]).length ) {
                     if( document.querySelector(".system.selected .game.selected") ) {
                         cycleSave(1);
                         menuChangeDelay("right-trigger");
@@ -5766,13 +5808,8 @@ function manageGamepadInput() {
                 }
                 else {
                     if( menuDirection == "right-trigger" ) menuDirection = null;
-                    if( !rightTriggerPressed ) buttonsUp.gamepad[i][joyMapping["R2"]] = true;
                 }
-
-                var leftTriggerPressed = buttonPressed(gp.buttons[joyMapping["L2"]]);
-                // Left shoulder or trigger - cycle saves
-                if( leftTriggerPressed && buttonsUp.gamepad[i][joyMapping["L2"]] ) {
-                    buttonsUp.gamepad[i][joyMapping["L2"]] = false;
+                if( joyMapping["L2"] && joyMapping["L2"].filter(el => gamepadButtonsDown[i][el]).length ) {
                     if( document.querySelector(".system.selected .game.selected") ) {
                         cycleSave(-1);
                         menuChangeDelay("left-trigger");
@@ -5781,146 +5818,75 @@ function manageGamepadInput() {
                 }
                 else {
                     if( menuDirection == "left-trigger" ) menuDirection = null;
-                    if( !leftTriggerPressed ) buttonsUp.gamepad[i][joyMapping["L2"]] = true;
                 }
-
-                var leftStickXPosition = gp.axes[0];
-                var leftStickYPosition = gp.axes[1];
-                // Right
-                if( leftStickXPosition > 0.5 || buttonPressed(gp.buttons[joyMapping["Right"]]) ) {
+                // Move menu
+                if( (joyMapping["Right"] && joyMapping["Right"].filter(el => gamepadButtonsDown[i][el]).length) || (joyMapping["Axis X+"] && joyMapping["Axis X+"].filter(el => gamepadButtonsDown[i][el]).length) ) {
                     moveMenu( -1 );
                     menuChangeDelay("right-stick");
                 }
-                // Left
-                else if( leftStickXPosition < -0.5 || buttonPressed(gp.buttons[joyMapping["Left"]]) ) {
+                else if( (joyMapping["Left"] && joyMapping["Left"].filter(el => gamepadButtonsDown[i][el]).length) || (joyMapping["Axis X-"] && joyMapping["Axis X-"].filter(el => gamepadButtonsDown[i][el]).length) ) {
                     moveMenu( 1 );
                     menuChangeDelay("left-stick");
                 }
-                // Up
-                else if( leftStickYPosition < -0.5 || buttonPressed(gp.buttons[joyMapping["Up"]]) ) {
+                else if( (joyMapping["Up"] && joyMapping["Up"].filter(el => gamepadButtonsDown[i][el]).length) || (joyMapping["Axis Y-"] && joyMapping["Axis Y-"].filter(el => gamepadButtonsDown[i][el]).length) ) {
                     moveSubMenu( -1 );
                     menuChangeDelay("up-stick");
                 }
-                // Down
-                else if( leftStickYPosition > 0.5 || buttonPressed(gp.buttons[joyMapping["Down"]]) ) {
+                else if( (joyMapping["Down"] && joyMapping["Down"].filter(el => gamepadButtonsDown[i][el]).length) || (joyMapping["Axis Y+"] && joyMapping["Axis Y+"].filter(el => gamepadButtonsDown[i][el]).length) ) {
                     moveSubMenu( 1 );
                     menuChangeDelay("down-stick");
                 }
-                // no buttons are pressed
                 else if( menuDirection && menuDirection.match(/-stick$/) ) {
                     menuDirection = null;
                 }
             }
-            // Check if we are setting a key, and register the current gamepad key down
-            else if( document.hasFocus() && document.querySelector("#joypad-config-form") ) {
+            else if( isJoypadConfigForm ) {
                 var inputs = document.querySelectorAll("#joypad-config-form input:not(#ez-profile-input):not([type='checkbox'])");
-                // Check if an input is focused
                 if( !focusInterval ) {
                     for( var j=0; j<inputs.length; j++ ) {
                         if( inputs[j] === document.activeElement ) {
                             var isEz = inputs[j].getAttribute("type") == "search";
-                            var isVirtualConfig = inputs[j].parentElement.getAttribute("data-virtual-button") ? true : false;
+                            var gamepadButtonsDownKeys = Object.keys(gamepadButtonsDown[i]);
+                            for( var k=0; k<gamepadButtonsDownKeys.length; k++ ) {
+                                var currentButton = gamepadButtonsDownKeys[k];
+                                if( gamepadButtonsDown[i][currentButton] ) {
+                                    // axis - gets priority, sicne chrome gives it priority
+                                    if( !currentButton.match(/^\d+$/)) {
 
-                            // If so, check if any buttons are pressed
-                            for( var k=0; k<gp.buttons.length; k++ ) {
-                                // If so, set the input's value to be that of the pressed button
-                                if(buttonPressed(gp.buttons[k])) {
-
-                                    // we have a special syntax for ez buttons
-                                    if( isEz )
-                                        appendEzInput(inputs[j], k, "button", gp.id);
-                                    else
-                                        inputs[j].value = k;
-
-                                    focusNextInput(inputs[j + 1]);
-                                    break;
-                                }
-                            }
-
-                            if( isEz || isVirtualConfig ) {
-                                for( var k=0; k<gp.axes.length; k++ ) {                                    
-                                    var value = gp.axes[k];
-
-                                    // trigger buttons
-                                    // according to the spec, they should not be giving -1 as a value...
-                                    // if( gp.axes.length == 6 ) {
-                                    //     if( k == 2 || k == 5 ) value = (value + 1)/2;
-                                    // }
-
-                                    // we have to have enough change set set this value
-                                    if( Math.abs(value) >= AXIS_MIN_TO_BE_BUTTON ) {
-                                        var direction = value < 0 ? "-" : "+";
                                         if( isEz ) {
-                                            appendEzInput(inputs[j], k + direction, "axis", gp.id);
+                                            appendEzInput(inputs[j], currentButton, "axis", gp.id);
                                         }
                                         else {
+                                            // the full axis
                                             if( inputs[j].parentElement.getAttribute("data-virtual-button").match(/^a/) ) {
-                                                inputs[j].value = "a" + k;
+                                                inputs[j].value = "a" + currentButton.replace(/\+|-/,"");
                                             }
-                                            else inputs[j].value = k + direction;
+                                            else inputs[j].value = currentButton;
                                         }
+                                        focusNextInput(inputs[j + 1]);
+                                        break;
+                                    }
+                                    // button
+                                    else {
+                                        // we have a special syntax for ez buttons
+                                        if( isEz )
+                                            appendEzInput(inputs[j], currentButton, "button", gp.id);
+                                        else
+                                            inputs[j].value = currentButton;
 
                                         focusNextInput(inputs[j + 1]);
                                         break;
                                     }
                                 }
                             }
-
-                            break;
                         }
                     }
                 }
-            }
-            // Check if we are on a screencast - forward buttons
-            else if( document.hasFocus() && document.querySelector(".screencast-wrapper") ) {
-                for( var j=0; j<gp.buttons.length; j++ ) {
-                    if( ( !screencastButtonsPressed[j] && buttonPressed(gp.buttons[j]) ) || ( screencastButtonsPressed[j] && !buttonPressed(gp.buttons[j]) ) ) {
-                        if( !screencastButtonsPressed[j] ) {
-                            screencastButtonsPressed[j] = true;
-                        }
-                        else {
-                            screencastButtonsPressed[j] = false;
-                        }
-                        sendButtonsToServer( j );
-                    }
-                }
-
-                for( var j=0; j<gp.axes.length; j++ ) {
-
-                    // the axis is mapped to a button
-                    var direction = gp.axes[j] >= 0 ? "+" : "-";
-                    var previousDirection = screencastAxisLastValues[j] >= 0 ? "+" : "-";
-                    if( Math.abs(gp.axes[j]) >= AXIS_MIN_TO_BE_BUTTON && ( Math.abs(screencastAxisLastValues[j]/MAX_JOYSTICK_VALUE) < AXIS_MIN_TO_BE_BUTTON || previousDirection != direction ) ) {
-                        sendButtonsToServer( j + direction, true );
-                        // in case we rapidly switched directions and it didn't get cleared out
-                        sendButtonsToServer( j + (direction == "+" ? "-" : "+"), false );
-                    }
-                    else if( Math.abs(gp.axes[j]) < AXIS_MIN_TO_BE_BUTTON && Math.abs(screencastAxisLastValues[j]/MAX_JOYSTICK_VALUE) >= AXIS_MIN_TO_BE_BUTTON ) {
-                        sendButtonsToServer( j + "+", false );
-                        sendButtonsToServer( j + "-", false );
-                    }
-
-                    var serverAxisValue = Math.round(gp.axes[j] * MAX_JOYSTICK_VALUE);
-                    // if within 1, its ok, unless it is 0
-                    if( !screencastAxisLastValues[j] || Math.abs(serverAxisValue - screencastAxisLastValues[j]) > SCREENCAST_AXIS_FUZZINESS || (serverAxisValue == 0 && screencastAxisLastValues[j] != 0) ) {
-                        screencastAxisLastValues[j] = serverAxisValue;
-
-                        sendButtonsToServer( "a" + j ); // the client button is "a" + j, could be multiple server buttons
-                    }
-                }
-
             }
             // Check if we are controlling media
-            else if( document.hasFocus() && document.querySelector(".modal #remote-media-form") ) {
-                var aPressed = buttonPressed(gp.buttons[joyMapping["A"]]);
-                var startPressed = buttonPressed(gp.buttons[joyMapping["Start"]]);
+            else if( isMedia ) {
                 // A or Start - will pause/play
-                if( (aPressed && buttonsUp.gamepad[i][joyMapping["A"]]) 
-                    || (startPressed && buttonsUp.gamepad[i][joyMapping["Start"]]) ) {
-                    
-                    if( aPressed ) buttonsUp.gamepad[i][joyMapping["A"]] = false;
-                    if( startPressed ) buttonsUp.gamepad[i][joyMapping["Start"]] = false;
-                    
+                if( (joyMapping["A"] && joyMapping["A"].filter(el => gamepadButtonsPressed[i][el]).length) || (joyMapping["Start"] && joyMapping["Start"].filter(el => gamepadButtonsPressed[i][el]).length) ) {
                     var video = document.querySelector(".modal #remote-media-form video");
                     if( video.paused ) {
                         video.play();
@@ -5929,16 +5895,9 @@ function manageGamepadInput() {
                         video.pause();
                     }
                 }
-                else {
-                    if(!aPressed) buttonsUp.gamepad[i][joyMapping["A"]] = true;
-                    if(!startPressed) buttonsUp.gamepad[i][joyMapping["Start"]] = true;
-                }
 
                 // Select will go full screen
-                var selectPressed = buttonPressed(gp.buttons[joyMapping["Select"]]);
-                if( selectPressed && buttonsUp.gamepad[i][joyMapping["Select"]] ) {
-                    buttonsUp.gamepad[i][joyMapping["Select"]] = false;
-
+                if( joyMapping["Select"] && joyMapping["Select"].filter(el => gamepadButtonsPressed[i][el]).length ) {
                     if(document.fullscreenElement && document.fullscreenElement == document.querySelector(".modal #remote-media-form video")) {
                         document.exitFullscreen();
                     }
@@ -5946,31 +5905,10 @@ function manageGamepadInput() {
                         fullscreenVideo( document.querySelector(".modal #remote-media-form video") );
                     }
                 }
-                else if(!selectPressed) {
-                    buttonsUp.gamepad[i][joyMapping["Select"]] = true;
-                }
 
-                // Right trigger will got to next
-                var rightTriggerPressed = buttonPressed(gp.buttons[joyMapping["R2"]]);
-                if( rightTriggerPressed && buttonsUp.gamepad[i][joyMapping["R2"]] ) {
-                    buttonsUp.gamepad[i][joyMapping["R2"]] = false;
-
-                    playNextMedia(1);
-                }
-                else if(!rightTriggerPressed) {
-                    buttonsUp.gamepad[i][joyMapping["R2"]] = true;
-                }
-
-                // Left trigger will go to previous
-                var leftTriggerPressed = buttonPressed(gp.buttons[joyMapping["L2"]]);
-                if( leftTriggerPressed && buttonsUp.gamepad[i][joyMapping["L2"]] ) {
-                    buttonsUp.gamepad[i][joyMapping["L2"]] = false;
-
-                    previousMedia();
-                }
-                else if(!leftTriggerPressed) {
-                    buttonsUp.gamepad[i][joyMapping["L2"]] = true;
-                }
+                // Right trigger will go to next
+                if( joyMapping["R2"] && joyMapping["R2"].filter(el => gamepadButtonsPressed[i][el]).length ) playNextMedia(1);
+                if( joyMapping["L2"] && joyMapping["L2"].filter(el => gamepadButtonsPressed[i][el]).length ) playNextMedia(-1);
             }
         }
     }
