@@ -214,7 +214,7 @@ var EZ_SYSTEMS_NO_LOCAL_MENU = [];
 for( var i=0; i<EZ_SYSTEMS.length; i++ ) {
     if( EZ_SYSTEMS[i] != MENU_LOCAL ) EZ_SYSTEMS_NO_LOCAL_MENU.push( EZ_SYSTEMS[i] );
 } 
-var EZ_REGEX = /([^\(]+)\(([^\)]+)\)(-([^\-]+)-(.*))?/;
+var EZ_REGEX = /([^\(]+)\(([^\)]+)\)(-([^\-]+)-([^\-]+)(-([^\(]+)\(([^\)]+)\))?)?/;
 var KEYCODE_MAP = {
     32: "Space", // space
     222: "Apostrophe", // single quote
@@ -2730,7 +2730,8 @@ function parseEzButtonString( buttonString ) {
             if( match[3] ) {
                 obj.vendor = match[4];
                 obj.product = match[5];
-                obj.chrome = remapController( obj.type+"("+obj.button+")", obj.vendor, obj.product );
+                if( !match[6] ) obj.chrome = remapController( obj.type+"("+obj.button+")", obj.vendor, obj.product ); // try to use the map
+                else obj.chrome = match[8] // use what it tells us is for chrome
             }
             buttonsToSet.push( obj );
         }
@@ -2916,6 +2917,7 @@ function appendEzInput(inputElement, value, type, controller) {
  * @returns {string} The controller string to be used in the form <buttonOrAxis>-<vendor>-<product>
  */
 function demapController( buttonOrAxis, vendor, product ) {
+    var chromeButtonOrAxis = buttonOrAxis;
     if( demapperTypes && demapperControllers ) { // external script
         var type = demapperControllers[vendor + "-" + product];
         // we have a custom mapper
@@ -2931,7 +2933,7 @@ function demapController( buttonOrAxis, vendor, product ) {
             }
         }
     }
-    return buttonOrAxis + "-" + vendor + "-" + product;
+    return buttonOrAxis + "-" + vendor + "-" + product + "-" + chromeButtonOrAxis;
 }
 
 /**
@@ -5888,9 +5890,21 @@ function manageGamepadInput() {
                             for( var k=0; k<gamepadButtonsDownKeys.length; k++ ) {
                                 var currentButton = gamepadButtonsDownKeys[k];
                                 if( gamepadButtonsDown[i][currentButton] ) {
-                                    // axis - gets priority, sicne chrome gives it priority - comes up in demapper first
-                                    if( !currentButton.match(/^\d+$/)) {
-
+                                    // button
+                                    if( currentButton.match(/^\d+$/)) {
+                                        // we have a special syntax for ez buttons
+                                        if( isEz ) {
+                                            appendEzInput(inputs[j], currentButton, "button", gp.id);
+                                            focusNextInput(inputs[j + 1]);
+                                        }
+                                        else if( !inputs[j].parentElement.getAttribute("data-virtual-button").match(/^a/) ) {
+                                            inputs[j].value = currentButton;
+                                            focusNextInput(inputs[j + 1]);
+                                        }
+                                        break;
+                                    }
+                                    // axis
+                                    else {
                                         if( isEz ) {
                                             appendEzInput(inputs[j], currentButton, "axis", gp.id);
                                         }
@@ -5902,19 +5916,6 @@ function manageGamepadInput() {
                                             else inputs[j].value = currentButton;
                                         }
                                         focusNextInput(inputs[j + 1]);
-                                        break;
-                                    }
-                                    // button
-                                    else {
-                                        // we have a special syntax for ez buttons
-                                        if( isEz ) {
-                                            appendEzInput(inputs[j], currentButton, "button", gp.id);
-                                            focusNextInput(inputs[j + 1]);
-                                        }
-                                        else if( !inputs[j].parentElement.getAttribute("data-virtual-button").match(/^a/) ) {
-                                            inputs[j].value = currentButton;
-                                            focusNextInput(inputs[j + 1]);
-                                        }
                                         break;
                                     }
                                 }
