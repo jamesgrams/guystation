@@ -1658,61 +1658,71 @@ async function addGamepadControls( page ) {
                             }
 
                             // switch tabs
-                            if( buttonsPressed[i][joyMapping["R"]] ) {
+                            if( joyMapping["R"] && joyMapping["R"].filter(el => buttonsDown[i][el]).length ) {
                                 await guystationSwitchTab(true);
                                 break;
                             }
-                            if( buttonsPressed[i][joyMapping["L"]] ) {
+                            if( joyMapping["L"] && joyMapping["L"].filter(el => buttonsDown[i][el]).length ) {
                                 await guystationSwitchTab();
                                 break;
                             }
                             // navigate
-                            if( buttonsPressed[i][joyMapping["R2"]] ) {
+                            if( joyMapping["R2"] && joyMapping["R2"].filter(el => buttonsDown[i][el]).length ) {
                                 await guystationNavigate(true);
                                 break;
                             }
-                            if( buttonsPressed[i][joyMapping["L2"]] ) {
+                            if( joyMapping["L2"] && joyMapping["L2"].filter(el => buttonsDown[i][el]).length ) {
                                 await guystationNavigate();
                                 break;
                             }
                             // keyboard
-                            if( buttonsPressed[i][joyMapping["X"]] ) {
+                            if( joyMapping["X"] && joyMapping["X"].filter(el => buttonsDown[i][el]).length ) {
                                 await guystationToggleKeyboard();
                                 break;
                             }
                             // mouse
                             let directionX, directionY, button, down;
-                            if( buttonsPressed[i][joyMapping["A"]] ) {
+                            if( joyMapping["A"] && joyMapping["A"].filter(el => buttonsPressed[i][el]).length ) {
                                 button = "left";
                                 down = true;
                             }
-                            else if( buttonsReleased[i][joyMapping["A"]] ) {
+                            else if( joyMapping["A"] && joyMapping["A"].filter(el => buttonsReleased[i][el]).length ) {
                                 button = "left";
                                 down = false;
                             }
-                            if( buttonsPressed[i][joyMapping["B"]] ) {
+                            if( joyMapping["B"] && joyMapping["B"].filter(el => buttonsPressed[i][el]).length ) {
                                 button = "right";
                                 down = true;
                             }
-                            else if( buttonsReleased[i][joyMapping["B"]] ) {
+                            else if( joyMapping["B"] && joyMapping["B"].filter(el => buttonsReleased[i][el]).length ) {
                                 button = "right";
                                 down = false;
                             }
-                            if( buttonsDown[i][joyMapping["Axis X+"]] || buttonsDown[i][joyMapping["Axis X-"]] || buttonsDown[i][joyMapping["Left"]] || buttonsDown[i][joyMapping["Right"]] ) {
-                                if( buttonsDown[i][joyMapping["Axis X+"]] || buttonsDown[i][joyMapping["Right"]] ) {
-                                    directionX = "right";
-                                }
-                                else if( buttonsDown[i][joyMapping["Left"]] || buttonsDown[i][joyMapping["Axis X-"]] ) {
-                                    directionX = "left";
-                                }
+                            if( (joyMapping["Axis X-"] && joyMapping["Axis X-"].filter(el => buttonsDown[i][el]).length)
+                                || (joyMapping["Axis X+"] && joyMapping["Axis X+"].filter(el => buttonsDown[i][el]).length)
+                                || (joyMapping["Left"] && joyMapping["Left"].filter(el => buttonsDown[i][el]).length)
+                                || (joyMapping["Right"] && joyMapping["Right"].filter(el => buttonsDown[i][el]).length) ) {
+                                    if( (joyMapping["Axis X+"] && joyMapping["Axis X+"].filter(el => buttonsDown[i][el]).length)
+                                        || (joyMapping["Right"] && joyMapping["Right"].filter(el => buttonsDown[i][el]).length) ) {
+                                        directionX = "right";
+                                    }
+                                    else if( (joyMapping["Left"] && joyMapping["Left"].filter(el => buttonsDown[i][el]).length)
+                                        || (joyMapping["Axis X-"] && joyMapping["Axis X-"].filter(el => buttonsDown[i][el]).length) ) {
+                                        directionX = "left";
+                                    }
                             }
-                            if( buttonsDown[i][joyMapping["Axis Y+"]] || buttonsDown[i][joyMapping["Axis Y-"]] || buttonsDown[i][joyMapping["Up"]] || buttonsDown[i][joyMapping["Down"]] ) {
-                                if( buttonsDown[i][joyMapping["Axis Y+"]] || buttonsDown[i][joyMapping["Down"]] ) {
-                                    directionY = "down";
-                                }
-                                else if( buttonsDown[i][joyMapping["Up"]] || buttonsDown[i][joyMapping["Axis Y-"]] ) {
-                                    directionY = "up";
-                                }
+                            if( (joyMapping["Axis Y-"] && joyMapping["Axis Y-"].filter(el => buttonsDown[i][el]).length)
+                                || (joyMapping["Axis Y+"] && joyMapping["Axis Y+"].filter(el => buttonsDown[i][el]).length)
+                                || (joyMapping["Up"] && joyMapping["Up"].filter(el => buttonsDown[i][el]).length)
+                                || (joyMapping["Down"] && joyMapping["Down"].filter(el => buttonsDown[i][el]).length) ) {
+                                    if( (joyMapping["Axis Y+"] && joyMapping["Axis Y+"].filter(el => buttonsDown[i][el]).length)
+                                        || (joyMapping["Down"] && joyMapping["Down"].filter(el => buttonsDown[i][el]).length) ) {
+                                        directionY = "down";
+                                    }
+                                    else if( (joyMapping["Up"] && joyMapping["Up"].filter(el => buttonsDown[i][el]).length)
+                                        || (joyMapping["Axis Y-"] && joyMapping["Axis Y-"].filter(el => buttonsDown[i][el]).length) ) {
+                                        directionY = "up";
+                                    }
                             }
                             if( directionX || directionY || button || down ) {
                                 await guystationMouse(directionX, directionY, button, down);
@@ -1720,19 +1730,21 @@ async function addGamepadControls( page ) {
                             }
                             // scroll
                             let scrollX, scrollY;
-                            if( buttonsDown[i][joyMapping["Axis X2+"]] || buttonsDown[i][joyMapping["Axis X2-"]] ) {
-                                if( buttonsDown[i][joyMapping["Axis X2+"]] ) {
+                            if( (joyMapping["Axis X2+"] && joyMapping["Axis X2+"].filter(el => buttonsDown[i][el]).length)
+                                || (joyMapping["Axis X2-"] && joyMapping["Axis X2-"].filter(el => buttonsDown[i][el]).length) ) {
+                                if( (joyMapping["Axis X2+"] && joyMapping["Axis X2+"].filter(el => buttonsDown[i][el]).length) ) {
                                     scrollX = "right";
                                 }
-                                else if( buttonsDown[i][joyMapping["Axis X2-"]] ) {
+                                else if( (joyMapping["Axis X2-"] && joyMapping["Axis X2-"].filter(el => buttonsDown[i][el]).length) ) {
                                     scrollX = "left";
                                 }
                             }
-                            if( buttonsDown[i][joyMapping["Axis Y2+"]] || buttonsDown[i][joyMapping["Axis Y2-"]] ) {
-                                if( buttonsDown[i][joyMapping["Axis Y2+"]] ) {
+                            if( (joyMapping["Axis Y2+"] && joyMapping["Axis Y2+"].filter(el => buttonsDown[i][el]).length)
+                                || (joyMapping["Axis Y2-"] && joyMapping["Axis Y2-"].filter(el => buttonsDown[i][el]).length) ) {
+                                if( (joyMapping["Axis Y2+"] && joyMapping["Axis Y2+"].filter(el => buttonsDown[i][el]).length) ) {
                                     scrollY = "down";
                                 }
-                                else if( buttonsDown[i][joyMapping["Axis Y2-"]] ) {
+                                else if( (joyMapping["Axis Y2-"] && joyMapping["Axis Y2-"].filter(el => buttonsDown[i][el]).length) ) {
                                     scrollY = "up";
                                 }
                             }
@@ -5594,7 +5606,6 @@ async function stopScreencast(id) {
     delete cancelStreamingTimeouts[id];
 
     disconnectVirtualGamepad( id ); // Disconnect the virtual gamepad.
-    stopRtmp(); // stop any rtmp streams
 
     try {
         await menuPage.evaluate( (id) => stopConnectionToPeer(true, id), id );
@@ -5613,6 +5624,7 @@ async function stopScreencast(id) {
         if( menuPageIsActive() ) ensureProperResolution(); // we might have gone home and changed to resolution in preparation to go back to the emulator. If there was an error, we might not have gone back to the emulator. In this case, once the reset timeout fails, we should make sure we have the correct resolution.
     }
     catch(err) { /* ok */ }
+    stopRtmp(); // stop any rtmp streams
     return Promise.resolve(false);
 }
 

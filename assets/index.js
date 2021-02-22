@@ -2484,57 +2484,8 @@ function displayJoypadConfig() {
     form.appendChild( createFormTitle("Joypad Configuration") );
     form.appendChild( createWarning("Click a field, then press a button on the controller.") );
 
-    var warning = createWarning("Virtual Controller Configuration");
-    warning.setAttribute("title", "The client-connected controller maps to a virtual server controller while streaming. Note: it is recommended to autoload the \"GuyStation Virtual Controller\" EZ config when using a remote controller. This will set up the emulators to know button 0 is A, button 1 is B, etc - the correct mapping for the GuyStation virtual controller. Your controller will be mapped to the GuyStation virtual controller using the mapping below, but it is the GuyStation virtual controller that will be interacting with the emulators.");
-    form.appendChild(warning);
-    var padcodeKeys = Object.keys(PADCODES);
-    // allow padcode mapping for the padcodes that we use
-    for( var i=0; i<padcodeKeys.length-2; i++ ) {
-        var label = createInput( screencastControllerMap[i] ? screencastControllerMap[i].toString() : i.toString(), "virtual-input-" + i, padcodeKeys[i] + " (button " + i + "): ", "string", true );
-        label.setAttribute("data-virtual-button", i);
-        form.appendChild( label ); 
-    }
-    // allow axis mapping
-    var axiscodeKeys = Object.keys(AXISCODES);
-    for( var i=0; i<axiscodeKeys.length; i++ ) {
-        var index = "a"+i;
-        var label = createInput( screencastControllerMap[index] ? screencastControllerMap[index].toString() : (index), "virtual-input-" + index, axiscodeKeys[i] + " (axis " + i + "): ", "string", true );
-        label.setAttribute("data-virtual-button", index);
-        form.appendChild( label ); 
-    }
-    form.appendChild( createButton( "Save", function() {
-        var inputs = document.querySelectorAll("#joypad-config-form label[data-virtual-button] input");
-        var newScreencastControllerMap = {};
-        for(var i=0; i<inputs.length; i++) {
-            var usedPadcodesLength = (Object.keys(PADCODES).length-2);
-            var index = i < usedPadcodesLength ? i : ("a"+(i-usedPadcodesLength));
-            // if say button 0 != button 0
-            if( inputs[i].value != index ) {
-                // the mapping is server to client
-                newScreencastControllerMap[ index ] = inputs[i].value;
-            }
-        }
-        screencastControllerMap = newScreencastControllerMap;
-        window.localStorage.guystationScreencastControllerMap = JSON.stringify(screencastControllerMap);
-        closeModal();
-    } ) );
-
-    var connectController = localStorage.guystationConnectController;
-    if( connectController ) {
-        // it might be "true" or "false"
-        connectController = connectController == "true" ? true : false;
-    }
-    else {
-        connectController = !desktopAndNoClientGamepad();
-    }
-    var connectCheckbox = createInput( connectController, "connect-controller-checkbox", "Virtual Controller", "checkbox" );
-    connectCheckbox.querySelector("input").onchange = function() {
-        localStorage.guystationConnectController = this.checked.toString();
-    }
-    form.appendChild(connectCheckbox);
-
     // EZ config section
-    warning = createWarning("EZ Emulator Controller Configuration");
+    var warning = createWarning("EZ Emulator Controller Configuration");
     warning.setAttribute("title", "This section can be used to set controls for multiple emulators at once. For example, you might map \"A\" to button 1 on your controller. GuyStation would then map button 1 to A for GBA, A for N64, Circle for PSP, etc. if those emulators are selected.");
     form.appendChild(warning);
     for( var i=0; i<EZ_EMULATOR_CONFIG_BUTTONS.length; i++ ) {
@@ -2660,13 +2611,71 @@ function displayJoypadConfig() {
             setCurrentAutoloadProfile( { "name": currentProfile.name, "nunchuk": currentProfile.nunchuk, "profile": profilesDict[currentProfile.name] } );
         }
         var setAutoloadButton = createButton( "Autoload Profile", saveAutoloadEzProfile );
+        if( currentProfile ) {
+            setAutoloadButton.setAttribute("title", "Current Profile:\nName: " + currentProfile.name + "\nWii Extension: " + (currentProfile.nunchuk ? "Nunchuk" : "Classic Controller"));
+        }
     
-        form.appendChild(profileInput);
-        form.appendChild(saveProfileButton);
-        form.appendChild(profilesMenu);
-        form.appendChild(deleteProfileButton);
-        form.appendChild(setAutoloadButton);
+        var apply = form.querySelector("button");
+        apply.after(profileInput);
+        profileInput.after(saveProfileButton);
+        warning.after(profilesMenu);
+        profilesMenu.after(deleteProfileButton);
+        deleteProfileButton.after(setAutoloadButton);
     } );
+
+    // Virtual controller section
+    var warningSecond = createWarning("Virtual Controller Configuration");
+    warningSecond.setAttribute("title", "The client-connected controller maps to a virtual server controller while streaming. Note: it is recommended to autoload the \"GuyStation Virtual Controller\" EZ config when using a remote controller. This will set up the emulators to know button 0 is A, button 1 is B, etc - the correct mapping for the GuyStation virtual controller. Your controller will be mapped to the GuyStation virtual controller using the mapping below, but it is the GuyStation virtual controller that will be interacting with the emulators.");
+    warningSecond.classList.add("break", "clear");
+    form.appendChild(warningSecond);
+
+    var connectController = localStorage.guystationConnectController;
+    if( connectController ) {
+        // it might be "true" or "false"
+        connectController = connectController == "true" ? true : false;
+    }
+    else {
+        connectController = !desktopAndNoClientGamepad();
+    }
+    var connectCheckbox = createInput( connectController, "connect-controller-checkbox", "Virtual Controller", "checkbox" );
+    connectCheckbox.querySelector("input").onchange = function() {
+        connectController = this.checked;
+    }
+    form.appendChild(connectCheckbox);
+
+    var padcodeKeys = Object.keys(PADCODES);
+    // allow padcode mapping for the padcodes that we use
+    for( var i=0; i<padcodeKeys.length-2; i++ ) {
+        var label = createInput( screencastControllerMap[i] ? screencastControllerMap[i].toString() : i.toString(), "virtual-input-" + i, padcodeKeys[i] + " (button " + i + "): ", "string", true );
+        label.setAttribute("data-virtual-button", i);
+        form.appendChild( label ); 
+    }
+    // allow axis mapping
+    var axiscodeKeys = Object.keys(AXISCODES);
+    for( var i=0; i<axiscodeKeys.length; i++ ) {
+        var index = "a"+i;
+        var label = createInput( screencastControllerMap[index] ? screencastControllerMap[index].toString() : (index), "virtual-input-" + index, axiscodeKeys[i] + " (axis " + i + "): ", "string", true );
+        label.setAttribute("data-virtual-button", index);
+        form.appendChild( label ); 
+    }
+    form.appendChild( createButton( "Save", function() {
+        localStorage.guystationConnectController = connectController.toString();
+
+        var inputs = document.querySelectorAll("#joypad-config-form label[data-virtual-button] input");
+        var newScreencastControllerMap = {};
+        for(var i=0; i<inputs.length; i++) {
+            var usedPadcodesLength = (Object.keys(PADCODES).length-2);
+            var index = i < usedPadcodesLength ? i : ("a"+(i-usedPadcodesLength));
+            // if say button 0 != button 0
+            if( inputs[i].value != index ) {
+                // the mapping is server to client
+                newScreencastControllerMap[ index ] = inputs[i].value;
+            }
+        }
+        screencastControllerMap = newScreencastControllerMap;
+        window.localStorage.guystationScreencastControllerMap = JSON.stringify(screencastControllerMap);
+        closeModal();
+    } ) );
     
     launchModal( form );
 }
@@ -5850,7 +5859,7 @@ function manageGamepadInput() {
                             for( var k=0; k<gamepadButtonsDownKeys.length; k++ ) {
                                 var currentButton = gamepadButtonsDownKeys[k];
                                 if( gamepadButtonsDown[i][currentButton] ) {
-                                    // axis - gets priority, sicne chrome gives it priority
+                                    // axis - gets priority, sicne chrome gives it priority - comes up in demapper first
                                     if( !currentButton.match(/^\d+$/)) {
 
                                         if( isEz ) {
@@ -5869,12 +5878,14 @@ function manageGamepadInput() {
                                     // button
                                     else {
                                         // we have a special syntax for ez buttons
-                                        if( isEz )
+                                        if( isEz ) {
                                             appendEzInput(inputs[j], currentButton, "button", gp.id);
-                                        else
+                                            focusNextInput(inputs[j + 1]);
+                                        }
+                                        else if( !inputs[j].parentElement.getAttribute("data-virtual-button").match(/^a/) ) {
                                             inputs[j].value = currentButton;
-
-                                        focusNextInput(inputs[j + 1]);
+                                            focusNextInput(inputs[j + 1]);
+                                        }
                                         break;
                                     }
                                 }
