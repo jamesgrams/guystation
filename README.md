@@ -249,6 +249,7 @@ Multiple monitor support may be limited. GuyStation will aim to use the primary 
 * Fit screen has some overflow when clicking it causes the button to wrap on small landscape screens.
 * Muting a screencast mutes it on all devices streaming, not just the device being used.
 * Wii doesn't save properly over Samba.
+* Some emulators don't respond well to axes for the D-Pad. EZ Config defaults to detecting D-Pad axes (rather than buttons, if available). Users may have to enter in button numbers manually into EZ config for D-Pads as they won't be picked up from the controller.
 
 ## Credits and Special Thanks
 * Game Boy Advance and DS Lite icons: [David Pérez](https://thenounproject.com/david730/)
