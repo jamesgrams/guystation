@@ -1,0 +1,16 @@
+[1mdiff --git a/src/index.js b/src/index.js[m
+[1mindex 34c3359..9f3d323 100755[m
+[1m--- a/src/index.js[m
+[1m+++ b/src/index.js[m
+[36m@@ -5246,7 +5246,10 @@[m [mioHook.on("keydown", async function(event) {[m
+     if( event.keycode == ESCAPE_KEY ) {[m
+         if( !hookLocked ) {[m
+             hookLocked = true;[m
+[31m-            await goHome();[m
+[32m+[m[32m            // If the menu page is open, but not focused and we're not playing a game or video[m
+[32m+[m[32m            // that's OK, the user may be using the computer for something else[m
+[32m+[m[32m            // A glitch may have left them not focused, but usually not[m
+[32m+[m[32m            if( currentEmulator || fullscreenPip ) await goHome();[m
+             hookLocked = false[m
+         }[m
+     }[m

@@ -5246,7 +5246,10 @@ ioHook.on("keydown", async function(event) {
     if( event.keycode == ESCAPE_KEY ) {
         if( !hookLocked ) {
             hookLocked = true;
-            await goHome();
+            // If the menu page is open, but not focused and we're not playing a game or video
+            // that's OK, the user may be using the computer for something else
+            // A glitch may have left them not focused, but usually not
+            if( currentEmulator || fullscreenPip ) await goHome();
             hookLocked = false
         }
     }
