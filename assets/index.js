@@ -194,11 +194,13 @@ var EZ_EMULATOR_CONFIG_BUTTONS = [
     'Axis Y2+',
     'Screenshot'
 ];
+var MENU_LOCAL = "local menu"
 var EZ_SYSTEMS = [
     "3ds",
     "browser",
     "gba",
     "menu",
+    MENU_LOCAL,
     "n64",
     "nds",
     "nes",
@@ -208,6 +210,10 @@ var EZ_SYSTEMS = [
     "snes",
     "wii"
 ];
+var EZ_SYSTEMS_NO_LOCAL_MENU = [];
+for( var i=0; i<EZ_SYSTEMS.length; i++ ) {
+    if( EZ_SYSTEMS[i] != MENU_LOCAL ) EZ_SYSTEMS_NO_LOCAL_MENU.push( EZ_SYSTEMS[i] );
+} 
 var EZ_REGEX = /([^\(]+)\(([^\)]+)\)(-([^\-]+)-(.*))?/;
 var KEYCODE_MAP = {
     32: "Space", // space
@@ -2529,8 +2535,9 @@ function displayJoypadConfig() {
     // Create the systems section
     var systemsSection = document.createElement("div");
     systemsSection.classList.add("systems-checkboxes");
-    for( var i=0; i<EZ_SYSTEMS.length; i++ ) {
-        var checkbox = createInput("", "ez-checkbox-" + i, EZ_SYSTEMS[i], "checkbox", false );
+    var ezSystems = isServer ? EZ_SYSTEMS_NO_LOCAL_MENU : EZ_SYSTEMS;
+    for( var i=0; i<ezSystems.length; i++ ) {
+        var checkbox = createInput("", "ez-checkbox-" + i, ezSystems[i], "checkbox", false );
         checkbox.classList.add("inline");
         systemsSection.appendChild(checkbox);
     }
@@ -2562,7 +2569,29 @@ function displayJoypadConfig() {
         var checkboxes = document.querySelectorAll("#joypad-config-form .systems-checkboxes input[type='checkbox']");
         for( var i=0; i<checkboxes.length; i++) {
             if( checkboxes[i].checked ) {
-                systems.push( checkboxes[i].parentNode.querySelector("span").innerText );
+                var systemName = checkboxes[i].parentNode.querySelector("span").innerText;
+                if( systemName != MENU_LOCAL ) {
+                    systems.push( systemName );
+                }
+                else {
+                    console.log("hello");
+                    var controlsObj = {};
+                    var valueKeys = Object.keys(values);
+                    for( var i=0; i<valueKeys.length; i++ ) {
+                        var key = valueKeys[i];
+                        for( var j=0; j<values[key].length; j++ ) {
+                            var value = values[key][j];
+                            if( value && (value.type === "axis" || value.type === "button") ) {
+                                if( !controlsObj[key] ) controlsObj[key] = [];
+                                var newVal = (value.chrome || value.chrome === 0) ? value.chrome : value.button;
+                                if( typeof newVal === "object" ) newVal = newVal[0];
+                                controlsObj[key].push( newVal );
+                            }
+                        }
+                    }
+                    window.localStorage.guystationJoyMapping = JSON.stringify(controlsObj);
+                    joyMapping = controlsObj;
+                }
             }
         }
 
@@ -2723,7 +2752,7 @@ function autoloadEzProfile( callback ) {
             profile = getCurrentAutoloadProfile();
         }
         if( profile ) {
-            var sendObject = { "systems": EZ_SYSTEMS, "values": profile.profile, "controller": 0, "nunchuk": profile.nunchuk };
+            var sendObject = { "systems": EZ_SYSTEMS_NO_LOCAL_MENU, "values": profile.profile, "controller": 0, "nunchuk": profile.nunchuk };
             makeRequest("POST", "/controls", sendObject, function() {
                 createToast(CONTROLS_SET_MESSAGE);
                 if( callback ) callback();
