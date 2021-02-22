@@ -5767,7 +5767,8 @@ function manageGamepadInput() {
                         sendButtonsToServer( j + "+", false );
                         sendButtonsToServer( j + "-", false );
                     }
-                    gamepadButtonsDown[i][ j + direction ] = false;
+                    gamepadButtonsDown[i][ j + "+" ] = false;
+                    gamepadButtonsDown[i][ j + "-" ] = false;
                 }
 
                 // the axis is mapped to an axis
