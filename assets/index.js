@@ -5670,7 +5670,6 @@ function sendButtonsToServer( clientButton, down ) {
             for( var k=0; k<serverButtonsForClientButton.length; k++ ) {
                 // note whether the client axis or button, it is mapped to a server button, and thus serverButtonsForClientButton[k] will always be a number indicating the button number on the server
                 var buttonCode = Object.values(PADCODES)[serverButtonsForClientButton[k]];
-                console.log(buttonCode);
                 socket.emit("/screencast/gamepad", { "event": { "type": 0x01, "code": buttonCode, "value": down !== undefined ? down : gamepadButtonsDown[0][clientButton] }, "id": socket.id } );
             }
         }
