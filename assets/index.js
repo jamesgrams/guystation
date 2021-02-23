@@ -796,7 +796,7 @@ function load() {
         enableSearch();
         // Check for changes every 10 seconds
         setInterval( function() {
-            if( !makingRequest && (!document.querySelector(".screencast-wrapper")) ) {
+            if( !makingRequest ) {
                 makeRequest( "GET", "/data", {}, function(responseText) {
                     var response = JSON.parse(responseText);
                     var newSystemsDict = response.systems;
@@ -5794,13 +5794,17 @@ function manageGamepadInput() {
                 var direction = gp.axes[j] >= 0 ? "+" : "-";
                 var previousDirection = gamepadAxisLastValues[i][j] >= 0 ? "+" : "-";
                 if( Math.abs(gp.axes[j]) >= AXIS_MIN_TO_BE_BUTTON && ( Math.abs(gamepadAxisLastValues[i][j]/MAX_JOYSTICK_VALUE) < AXIS_MIN_TO_BE_BUTTON || previousDirection != direction ) ) {
+                    var oppositeDirection = direction == "+" ? "-" : "+";
                     if( isScreencast ) {
                         sendButtonsToServer( j + direction, true );
                         // in case we rapidly switched directions and it didn't get cleared out
-                        sendButtonsToServer( j + (direction == "+" ? "-" : "+"), false );
+                        sendButtonsToServer( j + oppositeDirection, false );
                     }
                     gamepadButtonsDown[i][ j + direction ] = true;
                     gamepadButtonsPressed[i][ j + direction ] = true;
+                    // in case we rapidly switched directions and it didn't get cleared out
+                    gamepadButtonsDown[i][ oppositeDirection ] = false;
+                    gamepadButtonsPressed[i][ oppositeDirection ] = false;
                 }
                 else if( Math.abs(gp.axes[j]) < AXIS_MIN_TO_BE_BUTTON && Math.abs(gamepadAxisLastValues[i][j]/MAX_JOYSTICK_VALUE) >= AXIS_MIN_TO_BE_BUTTON ) {
                     if( isScreencast ) {
@@ -6291,7 +6295,9 @@ function setScreencastMute( id, mute ) {
     var peerConnection = peerConnections.filter(el => el.id == id)[0];
     var senders = peerConnection.peerConnection.getSenders().filter( el => el.track.kind == "audio" );
     for( var sender of senders ) {
-        sender.track.enabled = !mute;
+        var clonedTrack = sender.track.clone();
+        clonedTrack.enabled = !mute;
+        sender.replaceTrack( clonedTrack );
     }
 }
 

@@ -5,4 +5,5 @@ systems/*/emulators
 systems/*/games/*
 profiles.json
 igdb.json
+twitch.json
 browser-gamepad.json

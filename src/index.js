@@ -137,8 +137,14 @@ const PLATFORM_LOOKUP = {
 }
 const IGDB_CLIENT_ID = process.env.GUYSTATION_IGDB_CLIENT_ID;
 const IGDB_CLIENT_SECRET = process.env.GUYSTATION_IGDB_CLIENT_SECRET;
+const TWITCH_CODE = process.env.GUYSTATION_TWITCH_CODE;
 const IGDB_PATH = "igdb.json";
 const IGDB_TWITCH_OAUTH_URL= `https://id.twitch.tv/oauth2/token?client_id=${IGDB_CLIENT_ID}&client_secret=${IGDB_CLIENT_SECRET}&grant_type=client_credentials`;
+const TWITCH_CODE_TO_TOKEN_URL = `https://id.twitch.tv/oauth2/token?client_id=${IGDB_CLIENT_ID}&client_secret=${IGDB_CLIENT_SECRET}&code=${TWITCH_CODE}&grant_type=authorization_code&redirect_uri=http://localhost`;
+const TWITCH_REFRESH_TOKEN_URL = `https://id.twitch.tv/oauth2/token?grant_type=refresh_token&client_id=${IGDB_CLIENT_ID}&client_secret=${IGDB_CLIENT_SECRET}&refresh_token=`;
+const TWITCH_CATEGORIES_ENDPOINT = "https://api.twitch.tv/helix/search/categories?first=1&query=";
+const TWITCH_VALIDATION_ENDPOINT = "https://id.twitch.tv/oauth2/validate";
+const TWITCH_CHANNELS_ENDPOINT = "https://api.twitch.tv/helix/channels";
 const IGBD_API_URL = "https://api.igdb.com/v4/";
 const GAMES_ENDPOINT = IGBD_API_URL + "games";
 const GAMES_FIELDS = "fields cover, name, first_release_date, summary;";
@@ -146,6 +152,9 @@ const COVERS_ENDPOINT = IGBD_API_URL + "covers";
 const COVERS_FIELDS = "fields url, width, height;";
 const IGDB_HEADERS = { 
     'Content-Type': 'text/plain'
+}
+const TWITCH_HEADERS = {
+    'Content-Type': 'application/json'
 }
 const THUMB_IMAGE_SIZE = "thumb";
 const COVER_IMAGE_SIZE = "cover_big";
@@ -362,7 +371,13 @@ const ERROR_MESSAGES = {
     "couldNotMuteProperly": "Could not mute properly",
     "invalidMuteMode": "Invalid mute mode",
     "alreadyStreamingRtmp": "Already streaming RTMP",
-    "rtmpUrl": "Please enter a RTMP url"
+    "rtmpUrl": "Please enter a RTMP url",
+    "twitchNoValidate": "Could not validate Twitch",
+    "notStreamingRTMP": "No current RTMP stream",
+    "noTwitchInfo": "No Twitch code foun in environment variables",
+    "couldNotFetchTwitchInfo": "Could not fetch Twitch information",
+    "couldNotFindTwitchUsername": "Could not find Twitch username",
+    "invalidTwitchCode": "Invalid Twitch code"
 }
 // http://jsfiddle.net/vWx8V/ - keycode
 // http://robotjs.io/docs/syntax - robotjs
@@ -2536,6 +2551,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         currentGame = game;
         currentSystem = system;
         currentParentsString = parents.join(SEPARATOR);
+        await updateTwitchStream();
 
         // PC, check for installation.
         if( system === SYSTEM_PC ) {
@@ -4320,24 +4336,24 @@ async function goHome() {
  * @param {Array<string>} parents - The parents of the game.
  * @param {Object} currentMetadataContents - The current contents of the metadata file to avoid having to fetch it again.
  * @param {boolean} force - Fetch even if fetched in the past week.
- * @returns {(boolean|string)} An error message if there is one, or false if not.
+ * @returns {Promise<(boolean|string)>} An error message if there is one, or false if not.
  */
 async function fetchGameData( system, game, parents, currentMetadataContents, force ) {
     //let isInvalid = isInvalidGame( system, game, parents );
     //if( isInvalid ) return isInvalid;
 
     if( system == MEDIA || system == BROWSER ) {
-        return ERROR_MESSAGES.noGamesForMediaOrBrowser;
+        return Promise.resolve(ERROR_MESSAGES.noGamesForMediaOrBrowser);
     }
     let headers = await getIgdbHeaders();
-    if( typeof headers === STRING_TYPE ) return headers; // An error ocurred
+    if( typeof headers === STRING_TYPE ) return Promise.resolve(headers); // An error ocurred
 
     let metaDataLocation = generateGameMetaDataLocation(system, game, parents);
     if( !currentMetadataContents ) currentMetadataContents = JSON.parse(fs.readFileSync(metaDataLocation));
     let currentTime = new Date().getTime();
     
     if( !force && currentMetadataContents.lastFetched && parseInt(currentMetadataContents.lastFetched) > currentTime - ONE_WEEK_MILLISECONDS ) {
-        return ERROR_MESSAGES.alreadyFetchedWithinWeek;
+        return Promise.resolve(ERROR_MESSAGES.alreadyFetchedWithinWeek);
     }
 
     delete currentMetadataContents.summary
@@ -4371,28 +4387,28 @@ async function fetchGameData( system, game, parents, currentMetadataContents, fo
             }
             currentMetadataContents.lastFetched = currentTime; // update the time fetched
             fs.writeFileSync(metaDataLocation, JSON.stringify(currentMetadataContents));
-            return false;
+            return Promise.resolve(false);
         }
         else {
             currentMetadataContents.lastFetched = currentTime; // update the time fetched
             fs.writeFileSync(metaDataLocation, JSON.stringify(currentMetadataContents));
-            return false;
+            return Promise.resolve(false);
         }
     }
     else {
         currentMetadataContents.lastFetched = currentTime; // update the time fetched
         fs.writeFileSync(metaDataLocation, JSON.stringify(currentMetadataContents));
-        return ERROR_MESSAGES.noGameInfo;
+        return Promise.resolve(ERROR_MESSAGES.noGameInfo);
     }
 }
 
 /**
  * Get the IGDB headers.
- * @returns {Object|string} - The object that can be uses as the headers for IGDB requests or an error message.
+ * @returns {Promise<Object|string>} - The object that can be uses as the headers for IGDB requests or an error message.
  */
 async function getIgdbHeaders() {
     if( !IGDB_CLIENT_ID || !IGDB_CLIENT_SECRET ) {
-        return ERROR_MESSAGES.noApiKey;
+        return Promise.resolve(ERROR_MESSAGES.noApiKey);
     }
 
     let timeSeconds = Math.floor(Date.now()/1000);
@@ -4422,13 +4438,68 @@ async function getIgdbHeaders() {
             fs.writeFileSync( IGDB_PATH, JSON.stringify(igdbContent) );
         }
         else {
-            return ERROR_MESSAGES.couldNotFetchIGDBInfo;
+            return Promise.resolve(ERROR_MESSAGES.couldNotFetchIGDBInfo);
         }
     }
 
     delete igdbContent.expires;
     igdbContent["Client-ID"] = IGDB_CLIENT_ID;
-    return Object.assign( igdbContent, IGDB_HEADERS );
+    return Promise.resolve(Object.assign( igdbContent, IGDB_HEADERS ));
+}
+
+/**
+ * Get the Twitch headers.
+ * We need a user access token as opposed to an app access token.
+ * https://dev.twitch.tv/docs/authentication/getting-tokens-oauth/#oauth-authorization-code-flow
+ * @returns {Promise<Object|string>} - The object that can be uses as the headers for Twitch requests or an error message.
+ */
+async function getTwitchHeaders() {
+    if( !IGDB_CLIENT_ID || !IGDB_CLIENT_SECRET ) {
+        return Promise.resolve(ERROR_MESSAGES.noApiKey);
+    }
+
+    let twitchContent = null;
+    // refresh the token
+    try {
+        twitchContent = JSON.parse( fs.readFileSync(TWITCH_PATH).toString() );
+        let fetched = await axios.post( TWITCH_REFRESH_TOKEN_URL + twitchContent.refresh_token );
+        if( fetched.data ) {
+            twitchContent = {
+                refresh_token: fetched.data.refresh_token,
+                access_token: fetched.data.access_token
+            }
+            fs.writeFileSync( TWITCH_PATH, JSON.stringify(twitchContent) );
+        }
+        else {
+            return Promise.resolve(ERROR_MESSAGES.couldNotFetchTwitchInfo);
+        }
+    }
+    // get a new token
+    catch(err) {
+        if( !TWITCH_CODE ) return Promise.resolve(ERROR_MESSAGES.noTwitchInfo);
+        // We have a code, we need to fetch the access tokens for the first time
+        try {
+            let fetched = await axios.post( TWITCH_CODE_TO_TOKEN_URL );
+            if( fetched.data ) {
+                twitchContent = {
+                    refresh_token: fetched.data.refresh_token,
+                    access_token: fetched.data.access_token
+                }
+                fs.writeFileSync( TWITCH_PATH, JSON.stringify(twitchContent) );
+            }
+            else {
+                return Promise.resolve(ERROR_MESSAGES.invalidTwitchCode);
+            }
+        }
+        catch(err) {
+            return Promise.resolve(ERROR_MESSAGES.invalidTwitchCode);
+        }
+    }
+
+    return Promise.resolve(Object.assign( {
+        "Authorization": "Bearer " + twitchContent.access_token,
+        "Client-Id": IGDB_CLIENT_ID
+    }, TWITCH_HEADERS ));
 }
 
 /**
@@ -5828,6 +5899,53 @@ function rtmpOn() {
     // even if they did, they'd get the already started error message, since the ffmpegProcess would still be there
     // they couldn't restart
     return (feedStream || ffmpegProcess) ? true : false;
+}
+
+/**
+ * Update a Twitch Stream's title and category.
+* @returns {Promise<boolean|string>} A promise containing an error message if there is one or false if there is not.
+ */
+function updateTwitchStream() {
+    if( !rtmpOn() ) return Promise.resolve(ERROR_MESSAGES.notStreamingRTMP);
+
+    // Get the twitch headers - refresh the access token
+    let headers = await getTwitchHeaders();
+    if( typeof headers === STRING_TYPE ) return Promise.resolve(headers); // An error ocurred
+
+    let userId = null;
+    // validate for updating the account
+    // https://dev.twitch.tv/docs/authentication
+    try {
+        let userInfo = await axios.get( TWITCH_VALIDATION_ENDPOINT, { headers: headers } );
+        if( userInfo.data && userInfo.user_id ) {
+            userId = userInfo.user_id;
+        }
+        else {
+            return Promise.resolve(ERROR_MESSAGES.couldNotFindTwitchUsername);
+        }
+    }
+    catch(err) {
+        return Promise.resolve(ERROR_MESSAGES.twitchNoValidate);
+    }
+
+    // Search for the category
+    let gameName = customName ? customName : currentGame;
+    let gameId = 0;
+    if( gameName ) {
+        let gameInfo = await axios.get( TWITCH_CATEGORIES_ENDPOINT + gameName, { headers: headers } );
+        if( gameInfo.data && gameInfo.data.data && gameInfo.data.data.length ) {
+            gameId = gameInfo.data.data[0].id;
+        }
+    }
+
+    // Update the stream
+    await axios.patch( TWITCH_CHANNELS_ENDPOINT, {
+        "broadcaster_id": userId,
+        "game_id": gameId,
+        "title": gameName
+    }, { headers: headers } );
+
+    return Promise.resolve(false);
 }
 
 /**
