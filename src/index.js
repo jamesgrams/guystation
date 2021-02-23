@@ -5905,7 +5905,7 @@ function rtmpOn() {
  * Update a Twitch Stream's title and category.
 * @returns {Promise<boolean|string>} A promise containing an error message if there is one or false if there is not.
  */
-function updateTwitchStream() {
+async function updateTwitchStream() {
     if( !rtmpOn() ) return Promise.resolve(ERROR_MESSAGES.notStreamingRTMP);
 
     // Get the twitch headers - refresh the access token
