@@ -3105,6 +3105,7 @@ function displayScreencast( fullscreen ) {
         } );
     };
     var stopRtmpButton = createButton("Stop RTMP", stopRtmp);
+    stopRtmpButton.classList.add("hidden-alt");
     var optionsElements = [muteBox, scaleMenu, rtmpInput, startRtmpButton, stopRtmpButton];
     optionsElements.forEach( function(el) {
         el.classList.add("hidden");

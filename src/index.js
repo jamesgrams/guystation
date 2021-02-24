@@ -138,7 +138,9 @@ const PLATFORM_LOOKUP = {
 const IGDB_CLIENT_ID = process.env.GUYSTATION_IGDB_CLIENT_ID;
 const IGDB_CLIENT_SECRET = process.env.GUYSTATION_IGDB_CLIENT_SECRET;
 const TWITCH_CODE = process.env.GUYSTATION_TWITCH_CODE;
+const DEFAULT_TWITCH_GAME_NAME = "GuyStation";
 const IGDB_PATH = "igdb.json";
+const TWITCH_PATH = "twitch.json";
 const IGDB_TWITCH_OAUTH_URL= `https://id.twitch.tv/oauth2/token?client_id=${IGDB_CLIENT_ID}&client_secret=${IGDB_CLIENT_SECRET}&grant_type=client_credentials`;
 const TWITCH_CODE_TO_TOKEN_URL = `https://id.twitch.tv/oauth2/token?client_id=${IGDB_CLIENT_ID}&client_secret=${IGDB_CLIENT_SECRET}&code=${TWITCH_CODE}&grant_type=authorization_code&redirect_uri=http://localhost`;
 const TWITCH_REFRESH_TOKEN_URL = `https://id.twitch.tv/oauth2/token?grant_type=refresh_token&client_id=${IGDB_CLIENT_ID}&client_secret=${IGDB_CLIENT_SECRET}&refresh_token=`;
@@ -154,8 +156,10 @@ const IGDB_HEADERS = {
     'Content-Type': 'text/plain'
 }
 const TWITCH_HEADERS = {
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    'Host': 'id.twitch.tv'
 }
+const TWITCH_API_HOST = "api.twitch.tv";
 const THUMB_IMAGE_SIZE = "thumb";
 const COVER_IMAGE_SIZE = "cover_big";
 const COVER_FILENAME = "cover.jpg";
@@ -2551,7 +2555,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         currentGame = game;
         currentSystem = system;
         currentParentsString = parents.join(SEPARATOR);
-        await updateTwitchStream();
+        updateTwitchStream();
 
         // PC, check for installation.
         if( system === SYSTEM_PC ) {
@@ -5866,6 +5870,7 @@ async function startRtmp( url ) {
     await menuPage.evaluate( (url) => {
         streamToRtmp( url );
     }, url);
+    updateTwitchStream();
 
     return Promise.resolve(false);
 }
@@ -5903,30 +5908,40 @@ function rtmpOn() {
 
 /**
  * Update a Twitch Stream's title and category.
-* @returns {Promise<boolean|string>} A promise containing an error message if there is one or false if there is not.
+ * @param {string} customName - A custom name to use.
+ * @returns {Promise<boolean|string>} A promise containing an error message if there is one or false if there is not.
  */
-async function updateTwitchStream() {
+async function updateTwitchStream( customName ) {
     if( !rtmpOn() ) return Promise.resolve(ERROR_MESSAGES.notStreamingRTMP);
 
     // Get the twitch headers - refresh the access token
     let headers = await getTwitchHeaders();
+    console.log("JAMES: " + headers);
     if( typeof headers === STRING_TYPE ) return Promise.resolve(headers); // An error ocurred
+
+    console.log("JAMES: " + headers);
 
     let userId = null;
     // validate for updating the account
     // https://dev.twitch.tv/docs/authentication
     try {
         let userInfo = await axios.get( TWITCH_VALIDATION_ENDPOINT, { headers: headers } );
-        if( userInfo.data && userInfo.user_id ) {
-            userId = userInfo.user_id;
+        console.log("JAMES: " + JSON.stringify(userInfo.data));
+        if( userInfo.data && userInfo.data.user_id ) {
+            userId = userInfo.data.user_id;
         }
         else {
             return Promise.resolve(ERROR_MESSAGES.couldNotFindTwitchUsername);
         }
     }
     catch(err) {
+        console.log("JAMES: " + err);
         return Promise.resolve(ERROR_MESSAGES.twitchNoValidate);
     }
+
+    console.log("JAMES: " + userId);
+
+    headers.Host = TWITCH_API_HOST;
 
     // Search for the category
     let gameName = customName ? customName : currentGame;
@@ -5938,11 +5953,13 @@ async function updateTwitchStream() {
         }
     }
 
+    console.log("JAMES: " + gameName);
+
     // Update the stream
     await axios.patch( TWITCH_CHANNELS_ENDPOINT, {
         "broadcaster_id": userId,
         "game_id": gameId,
-        "title": gameName
+        "title": gameName ? gameName : DEFAULT_TWITCH_GAME_NAME
     }, { headers: headers } );
 
     return Promise.resolve(false);
