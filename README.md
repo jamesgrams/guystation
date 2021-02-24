@@ -89,7 +89,7 @@ Note: You can press F11 to get GuyStation out of full screen mode at any time.
         * Next, you need to set the set the environment variables `GUYSTATION_IGDB_CLIENT_ID, GUYSTATION_IGDB_CLIENT_SECRET, and GUYSTATION_TWITCH_CODE` in `/etc/environment`. The first two are described in more detail below. The last variable, `GUYSTATION_TWITCH_CODE` should be the value of the code you copied.
         * After this, you need to restart GuyStation. GuyStation will now be able to communicate with Twitch.
         * To remove this functionality, delete the file `~/guystation/twitch.json`, delete the `GUYSTATION_TWITCH_CODE` environment variable, and restart.
-    * You can also set a custom Twitch Stream name under "Toggle Options" using the "Set Twitch Stream Name" feature.
+    * You can also set a custom Twitch Stream name and game under "Toggle Options" using the Twitch name and game inputs and "Set Info" button.
         * To go back to having GuyStation autoset the name, simply submit with a blank value.
 * You can update, restart, or reboot the system by clicking the power button under "More" in the menu.
 * GuyStation has IGDB integration to display information about games. To display information, you must first generate a client ID and secret by creating an application on Twitch's developer site (Twitch owns IGDB). For information on how to do this, see [here](https://api-docs.igdb.com/#about). Then, you must set the environment variables, GUYSTATION_IGDB_CLIENT_ID and GUYSTATION_IGDB_CLIENT_SECRET, to these values. The easiest way to do this is to add the lines `GUYSTATION_IGDB_CLIENT_ID=<client id>` and `GUYSTATION_IGDB_CLIENT_SECRET=<client secret>` to `/etc/environment`. After a system reboot, GuyStation should start fetching game metadata.

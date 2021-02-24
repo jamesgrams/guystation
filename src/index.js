@@ -1187,10 +1187,10 @@ app.get("/rtmp/status", function(request, response) {
 });
 
 // stream
-app.post("/twitch/name", function(request, response) {
-    console.log("app serving /twitch/name with body: " + JSON.stringify(request.body));
+app.post("/twitch/info", function(request, response) {
+    console.log("app serving /twitch/info with body: " + JSON.stringify(request.body));
     try {
-        let errorMessage = updateTwitchStreamName( request.body.name );
+        let errorMessage = updateTwitchStreamInfo( request.body.name, request.body.game );
         writeActionResponse( response, errorMessage );
     }
     catch(err) {
@@ -1200,10 +1200,15 @@ app.post("/twitch/name", function(request, response) {
 });
 
 // get all ez control profiles
-app.get("/twitch/name", async function(request, response) {
-    console.log("app serving /twitch/name");
+app.get("/twitch/info", async function(request, response) {
+    console.log("app serving /twitch/info");
     try {
-        writeResponse( response, SUCCESS, { "name": getTwitchStreamName(), "twitch": (TWITCH_CODE || fs.existsSync(TWITCH_STREAM_PATH)) ? true : false } );
+        let streamInfo = getTwitchStreamInfo();
+        writeResponse( response, SUCCESS, { 
+            "name": streamInfo.name, 
+            "game": streamInfo.game, 
+            "twitch": (TWITCH_CODE || fs.existsSync(TWITCH_STREAM_PATH)) ? true : false } 
+        );
     }
     catch(err) {
         console.log(err);
@@ -5971,8 +5976,9 @@ async function updateTwitchStream() {
     headers.Host = TWITCH_API_HOST;
 
     // Search for the category
-    let customName = getTwitchStreamName();
-    let gameName = customName ? customName : currentGame;
+    let custom = getTwitchStreamInfo();
+    let gameName = custom.game ? custom.game : currentGame;
+    let streamName = custom.name ? custom.name : gameName;
     let gameId = 0;
     if( gameName ) {
         let gameInfo = await axios.get( TWITCH_CATEGORIES_ENDPOINT + gameName, { headers: headers } );
@@ -5987,7 +5993,7 @@ async function updateTwitchStream() {
     await axios.patch( TWITCH_CHANNELS_ENDPOINT, {
         "broadcaster_id": userId,
         "game_id": gameId,
-        "title": gameName ? gameName : DEFAULT_TWITCH_GAME_NAME
+        "title": streamName ? streamName : DEFAULT_TWITCH_GAME_NAME
     }, { headers: headers } );
 
     return Promise.resolve(false);
@@ -5996,21 +6002,23 @@ async function updateTwitchStream() {
 /**
  * Update the Custom Stream name for Twitch.
  * @param {string} name - The name of the stream.
+ * @param {string} game - The name of the game being played.
  */
-function updateTwitchStreamName( name ) {
+function updateTwitchStreamInfo( name, game ) {
     fs.writeFileSync( TWITCH_STREAM_PATH, JSON.stringify({
-        name: name
+        name: name,
+        game: game
     }) );
     updateTwitchStream();
 }
 
 /**
  * Get the current Twitch stream name.
- * @returns {string} The current name of the stream.
+ * @returns {Object} An Object containing the name and game of the twitch stream.
  */
-function getTwitchStreamName() {
+function getTwitchStreamInfo() {
     try {
-        return JSON.parse( fs.readFileSync(TWITCH_STREAM_PATH) ).name;
+        return JSON.parse( fs.readFileSync(TWITCH_STREAM_PATH) );
     }
     catch(err) {
         return null; // no name set

@@ -3109,27 +3109,34 @@ function displayScreencast( fullscreen ) {
     stopRtmpButton.classList.add("hidden-alt", "no-top");
 
     var twitchNameInput = createInput(null, "twitch-stream-name-input", "Twitch Name");
-    var setTwitchNameButton = createButton("Set Name", function() {
-        makeRequest("POST", "/twitch/name", {
-            name: twitchNameInput.querySelector("input").value
+    var twitchGameInput = createInput(null, "twitch-stream-game-input", "Twitch Game");
+    var setTwitchInfoButton = createButton("Set Info", function() {
+        makeRequest("POST", "/twitch/info", {
+            name: twitchNameInput.querySelector("input").value,
+            game: twitchGameInput.querySelector("input").value
         }, function() {
-            alertSuccess("Stream name updated");
+            alertSuccess("Stream info updated");
         }, function() {
             alertError();
         });
     });
     twitchNameInput.classList.add("hidden-alt");
-    setTwitchNameButton.classList.add("hidden-alt");
-    setTwitchNameButton.classList.add("no-top");
-    // Get the current stream name
-    makeRequest( "GET", "/twitch/name", {}, function(data) {
+    twitchGameInput.classList.add("hidden-alt");
+    setTwitchInfoButton.classList.add("hidden-alt");
+    setTwitchInfoButton.classList.add("no-top");
+    // Get the current stream info
+    makeRequest( "GET", "/twitch/info", {}, function(data) {
         try {
             var json = JSON.parse(data);
             if( json.twitch ) {
                 twitchNameInput.classList.remove("hidden-alt");
-                setTwitchNameButton.classList.remove("hidden-alt");
+                twitchGameInput.classList.remove("hidden-alt");
+                setTwitchInfoButton.classList.remove("hidden-alt");
                 if( json.name ) {
                     twitchNameInput.querySelector("input").value = json.name;
+                }
+                if( json.game ) {
+                    twitchGameInput.querySelector("input").value = json.game;
                 }
             }
         }
@@ -3138,7 +3145,7 @@ function displayScreencast( fullscreen ) {
         }
     });
 
-    var optionsElements = [muteBox, scaleMenu, rtmpInput, startRtmpButton, stopRtmpButton, twitchNameInput, setTwitchNameButton];
+    var optionsElements = [muteBox, scaleMenu, rtmpInput, startRtmpButton, stopRtmpButton, twitchNameInput, twitchGameInput, setTwitchInfoButton];
     optionsElements.forEach( function(el) {
         el.classList.add("hidden");
     });
@@ -3167,7 +3174,8 @@ function displayScreencast( fullscreen ) {
     form.appendChild( stopRtmpButton );
     form.appendChild(buttonBreak.cloneNode());
     form.appendChild(twitchNameInput);
-    form.appendChild(setTwitchNameButton);
+    form.appendChild(twitchGameInput);
+    form.appendChild(setTwitchInfoButton);
     
     form.appendChild(buttonBreak.cloneNode());
 
