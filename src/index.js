@@ -141,6 +141,7 @@ const TWITCH_CODE = process.env.GUYSTATION_TWITCH_CODE;
 const DEFAULT_TWITCH_GAME_NAME = "GuyStation";
 const IGDB_PATH = "igdb.json";
 const TWITCH_PATH = "twitch.json";
+const TWITCH_STREAM_PATH = "twitch-stream.json";
 const IGDB_TWITCH_OAUTH_URL= `https://id.twitch.tv/oauth2/token?client_id=${IGDB_CLIENT_ID}&client_secret=${IGDB_CLIENT_SECRET}&grant_type=client_credentials`;
 const TWITCH_CODE_TO_TOKEN_URL = `https://id.twitch.tv/oauth2/token?client_id=${IGDB_CLIENT_ID}&client_secret=${IGDB_CLIENT_SECRET}&code=${TWITCH_CODE}&grant_type=authorization_code&redirect_uri=http://localhost`;
 const TWITCH_REFRESH_TOKEN_URL = `https://id.twitch.tv/oauth2/token?grant_type=refresh_token&client_id=${IGDB_CLIENT_ID}&client_secret=${IGDB_CLIENT_SECRET}&refresh_token=`;
@@ -378,10 +379,11 @@ const ERROR_MESSAGES = {
     "rtmpUrl": "Please enter a RTMP url",
     "twitchNoValidate": "Could not validate Twitch",
     "notStreamingRTMP": "No current RTMP stream",
-    "noTwitchInfo": "No Twitch code foun in environment variables",
+    "noTwitchCode": "No Twitch code found",
+    "invalidTwitchCode": "Invalid Twitch code",
     "couldNotFetchTwitchInfo": "Could not fetch Twitch information",
     "couldNotFindTwitchUsername": "Could not find Twitch username",
-    "invalidTwitchCode": "Invalid Twitch code"
+    "anotherTwitchRequest": "Twitch request outdated"
 }
 // http://jsfiddle.net/vWx8V/ - keycode
 // http://robotjs.io/docs/syntax - robotjs
@@ -424,6 +426,7 @@ let fullscreenPip = false;
 let needToRefocusPip = false;
 let browserControlsCache = null;
 let onboardInstance = null;
+let currentTwitchRequest = 0;
 
 let sambaIndex = process.argv.indexOf(SAMBA_FLAG);
 let sambaOn = sambaIndex != -1;
@@ -1178,9 +1181,34 @@ app.post("/rtmp/stop", async function(request, response) {
 });
 
 // RTMP status
-app.get("/rtmp/status", async function(request, response) {
+app.get("/rtmp/status", function(request, response) {
     console.log("app serving /rtmp/status");
     writeResponse( response, SUCCESS, {"rtmp": rtmpOn()} );
+});
+
+// stream
+app.post("/twitch/name", function(request, response) {
+    console.log("app serving /twitch/name with body: " + JSON.stringify(request.body));
+    try {
+        let errorMessage = updateTwitchStreamName( request.body.name );
+        writeActionResponse( response, errorMessage );
+    }
+    catch(err) {
+        console.log(err);
+        writeActionResponse( response, ERROR_MESSAGES.genericError );
+    }
+});
+
+// get all ez control profiles
+app.get("/twitch/name", async function(request, response) {
+    console.log("app serving /twitch/name");
+    try {
+        writeResponse( response, SUCCESS, { "name": getTwitchStreamName(), "twitch": (TWITCH_CODE || fs.existsSync(TWITCH_STREAM_PATH)) ? true : false } );
+    }
+    catch(err) {
+        console.log(err);
+        writeActionResponse( response, ERROR_MESSAGES.genericError );
+    }
 });
 
 // endpoints to set up to stream what is coming through the microphone and webcam
@@ -2721,6 +2749,7 @@ async function quitGame() {
         currentGame = null;
         currentParentsString = null;
         currentSystem = null;
+        updateTwitchStream();
 
         await menuPage.bringToFront(); // for pip
         return Promise.resolve(false);
@@ -4480,7 +4509,7 @@ async function getTwitchHeaders() {
     }
     // get a new token
     catch(err) {
-        if( !TWITCH_CODE ) return Promise.resolve(ERROR_MESSAGES.noTwitchInfo);
+        if( !TWITCH_CODE ) return Promise.resolve(ERROR_MESSAGES.noTwitchCode);
         // We have a code, we need to fetch the access tokens for the first time
         try {
             let fetched = await axios.post( TWITCH_CODE_TO_TOKEN_URL );
@@ -5908,25 +5937,24 @@ function rtmpOn() {
 
 /**
  * Update a Twitch Stream's title and category.
- * @param {string} customName - A custom name to use.
  * @returns {Promise<boolean|string>} A promise containing an error message if there is one or false if there is not.
  */
-async function updateTwitchStream( customName ) {
+async function updateTwitchStream() {
     if( !rtmpOn() ) return Promise.resolve(ERROR_MESSAGES.notStreamingRTMP);
+    currentTwitchRequest ++; // this way we can cancel out other requests
+    let myTwitchRequest = currentTwitchRequest;
 
     // Get the twitch headers - refresh the access token
     let headers = await getTwitchHeaders();
-    console.log("JAMES: " + headers);
     if( typeof headers === STRING_TYPE ) return Promise.resolve(headers); // An error ocurred
 
-    console.log("JAMES: " + headers);
+    if( myTwitchRequest != currentTwitchRequest ) return Promise.resolve(ERROR_MESSAGES.anotherTwitchRequest);
 
     let userId = null;
     // validate for updating the account
     // https://dev.twitch.tv/docs/authentication
     try {
         let userInfo = await axios.get( TWITCH_VALIDATION_ENDPOINT, { headers: headers } );
-        console.log("JAMES: " + JSON.stringify(userInfo.data));
         if( userInfo.data && userInfo.data.user_id ) {
             userId = userInfo.data.user_id;
         }
@@ -5935,15 +5963,15 @@ async function updateTwitchStream( customName ) {
         }
     }
     catch(err) {
-        console.log("JAMES: " + err);
         return Promise.resolve(ERROR_MESSAGES.twitchNoValidate);
     }
 
-    console.log("JAMES: " + userId);
+    if( myTwitchRequest != currentTwitchRequest ) return Promise.resolve(ERROR_MESSAGES.anotherTwitchRequest);
 
     headers.Host = TWITCH_API_HOST;
 
     // Search for the category
+    let customName = getTwitchStreamName();
     let gameName = customName ? customName : currentGame;
     let gameId = 0;
     if( gameName ) {
@@ -5953,7 +5981,7 @@ async function updateTwitchStream( customName ) {
         }
     }
 
-    console.log("JAMES: " + gameName);
+    if( myTwitchRequest != currentTwitchRequest ) return Promise.resolve(ERROR_MESSAGES.anotherTwitchRequest);
 
     // Update the stream
     await axios.patch( TWITCH_CHANNELS_ENDPOINT, {
@@ -5963,6 +5991,30 @@ async function updateTwitchStream( customName ) {
     }, { headers: headers } );
 
     return Promise.resolve(false);
+}
+
+/**
+ * Update the Custom Stream name for Twitch.
+ * @param {string} name - The name of the stream.
+ */
+function updateTwitchStreamName( name ) {
+    fs.writeFileSync( TWITCH_STREAM_PATH, JSON.stringify({
+        name: name
+    }) );
+    updateTwitchStream();
+}
+
+/**
+ * Get the current Twitch stream name.
+ * @returns {string} The current name of the stream.
+ */
+function getTwitchStreamName() {
+    try {
+        return JSON.parse( fs.readFileSync(TWITCH_STREAM_PATH) ).name;
+    }
+    catch(err) {
+        return null; // no name set
+    }
 }
 
 /**

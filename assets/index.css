@@ -622,7 +622,7 @@ h1 {
     height: 100% !important;
 }
 
-#remote-screencast-form button {
+#remote-screencast-form button:not(.no-top) {
     margin-top: 20px;
 }
 

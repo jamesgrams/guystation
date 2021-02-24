@@ -3097,6 +3097,7 @@ function displayScreencast( fullscreen ) {
         } );
     };
     var startRtmpButton = createButton("Start RTMP", startRtmp, [rtmpInputElement]);
+    startRtmpButton.classList.add("no-top");
     var stopRtmp = function() {
         makeRequest( "POST", "/rtmp/stop", {}, function() {
             createToast("Stream stopped");
@@ -3105,8 +3106,39 @@ function displayScreencast( fullscreen ) {
         } );
     };
     var stopRtmpButton = createButton("Stop RTMP", stopRtmp);
-    stopRtmpButton.classList.add("hidden-alt");
-    var optionsElements = [muteBox, scaleMenu, rtmpInput, startRtmpButton, stopRtmpButton];
+    stopRtmpButton.classList.add("hidden-alt", "no-top");
+
+    var twitchNameInput = createInput(null, "twitch-stream-name-input", "Twitch Name");
+    var setTwitchNameButton = createButton("Set Name", function() {
+        makeRequest("POST", "/twitch/name", {
+            name: twitchNameInput.querySelector("input").value
+        }, function() {
+            alertSuccess("Stream name updated");
+        }, function() {
+            alertError();
+        });
+    });
+    twitchNameInput.classList.add("hidden-alt");
+    setTwitchNameButton.classList.add("hidden-alt");
+    setTwitchNameButton.classList.add("no-top");
+    // Get the current stream name
+    makeRequest( "GET", "/twitch/name", {}, function(data) {
+        try {
+            var json = JSON.parse(data);
+            if( json.twitch ) {
+                twitchNameInput.classList.remove("hidden-alt");
+                setTwitchNameButton.classList.remove("hidden-alt");
+                if( json.name ) {
+                    twitchNameInput.querySelector("input").value = json.name;
+                }
+            }
+        }
+        catch(err) {
+            console.log(err);
+        }
+    });
+
+    var optionsElements = [muteBox, scaleMenu, rtmpInput, startRtmpButton, stopRtmpButton, twitchNameInput, setTwitchNameButton];
     optionsElements.forEach( function(el) {
         el.classList.add("hidden");
     });
@@ -3133,11 +3165,11 @@ function displayScreencast( fullscreen ) {
     form.appendChild(rtmpInput);
     form.appendChild( startRtmpButton );
     form.appendChild( stopRtmpButton );
+    form.appendChild(buttonBreak.cloneNode());
+    form.appendChild(twitchNameInput);
+    form.appendChild(setTwitchNameButton);
     
-    buttonBreak = document.createElement("div");
-    buttonBreak.classList.add("break");
-    buttonBreak.classList.add("clear");
-    form.appendChild(buttonBreak);
+    form.appendChild(buttonBreak.cloneNode());
 
     form.appendChild( createButton("Fullscreen", function() { fullscreenVideo(video) }));
     form.appendChild( createButton("Fit Screen", fitscreenVideo) );

@@ -6,4 +6,5 @@ systems/*/games/*
 profiles.json
 igdb.json
 twitch.json
+twitch-stream.json
 browser-gamepad.json
