@@ -2574,7 +2574,6 @@ function displayJoypadConfig() {
                     systems.push( systemName );
                 }
                 else {
-                    console.log("hello");
                     var controlsObj = {};
                     var valueKeys = Object.keys(values);
                     for( var i=0; i<valueKeys.length; i++ ) {

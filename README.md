@@ -252,6 +252,7 @@ Multiple monitor support may be limited. GuyStation will aim to use the primary 
 * m64py changes the Mupen64Plus dimensions when you use it.
 * Wii doesn't save properly over Samba.
 * NES fullscreen spans multiple monitors when they are connected.
+* Controlling the menu seems to break for one of the controllers when connecting multiple virtual controllers via multiple screencasts.
 * EZ Config Issues
     * PS2 can only have keyboard controls set with EZ configuration.
     * NGC EZ configuration will set the device to the Dolphin internal name for a virtual keyboard when a control is set to a keyboard key (with the exception of the screenshot control) as Dolphin requires a device name with controls. It will set the device to gamepad when a control is set to a gamepad button/axis a gamepad. The custom version of Dolphin will recognize devices as game controllers if the evdev device name matches one of a set of keywords (gamepad, joystick, controller, joypad). Other devices are recognized as keyboards. This system isn't perfect.
