@@ -5891,7 +5891,7 @@ async function renegotiate() {
         turnOnRtmp = true;
         await stopRtmp();
         let promise = new Promise( (resolve, reject) => {
-            setTimeout( () => {
+            setInterval( () => {
                 if( !rtmpOn() ) resolve();
             }, RENEGOTIATE_RTMP_INTERVAL );
         } );
