@@ -5025,7 +5025,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
         }
         else if( userControl.type == KEY_CONTROL_TYPE ) {
             controlButtons = controlButtons.map( el => el ? sdlMap[el] : el );
-            config[controllerKey] = NES_KEYBOARD;
+            if( controlInfo.actualControl != SCREENSHOT_CONTROL ) config[controllerKey] = NES_KEYBOARD;
         }
     }
     // for psp
