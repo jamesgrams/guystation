@@ -271,6 +271,7 @@ const GAMEPAD_SCROLL_AMOUNT = 50;
 const BROWSER_GAMEPAD_PATH = "browser-gamepad.json";
 const LAUNCH_ONBOARD_COMMAND = "onboard";
 const ENSURE_FLOAT_ONBOARD_COMMAND = "gsettings set org.onboard.window docking-enabled false";
+const RENEGOTIATE_RTMP_INTERVAL = 50;
 const DEFAULT_PROFILES_DICT = {
     "GuyStation Virtual Controller": {
         "A":"button(0)-0003-0003",
@@ -427,6 +428,7 @@ let needToRefocusPip = false;
 let browserControlsCache = null;
 let onboardInstance = null;
 let currentTwitchRequest = 0;
+let lastRtmpUrl = null;
 
 let sambaIndex = process.argv.indexOf(SAMBA_FLAG);
 let sambaOn = sambaIndex != -1;
@@ -5881,8 +5883,27 @@ async function setScreencastMute( id, mute ) {
  */
 async function renegotiate() {
     await screencastPrepare(false);
+
+    // When you replace a track, you must stop media recording
+    // https://stackoverflow.com/questions/57838283/is-it-possible-to-change-mediarecorders-stream
+    let turnOnRtmp = false;
+    if( rtmpOn() ) {
+        turnOnRtmp = true;
+        await stopRtmp();
+        let promise = new Promise( (resolve, reject) => {
+            setTimeout( () => {
+                if( !rtmpOn() ) resolve();
+            }, RENEGOTIATE_RTMP_INTERVAL );
+        } );
+        await promise;
+    }
+
     await menuPage.evaluate( () => renegotiate() );
     await screencastFix(false);
+
+    if( turnOnRtmp ) {
+        await startRtmp( lastRtmpUrl );
+    }
 }
 
 /**
@@ -5900,6 +5921,8 @@ async function startRtmp( url ) {
     if( !url.match(/^rtmp:\/\//) ) {
         return Promise.resolve(ERROR_MESSAGES.rtmpUrl);
     }
+
+    lastRtmpUrl = url;
 
     await menuPage.evaluate( (url) => {
         streamToRtmp( url );
