@@ -3276,6 +3276,15 @@ function fitscreenVideo() {
             button.innerText = "Default Size";
             modal.classList.add("fit-screen");
             // sometimes the buttons on the bbottom can add more height when stacked, so run again if this is the case
+            if( modal.scrollHeight > window.innerHeight - 40 ) {
+                var height = window.innerHeight - (modal.scrollHeight - video.scrollHeight) - 40;
+                if( height < 1 ) return; // can't set to less than 0
+                var ratio = height/video.scrollHeight;
+                var newWidth = video.clientWidth * ratio;
+                var newHeight = video.clientHeight * ratio;
+                console.log(ratio, newWidth, newHeight);
+                video.setAttribute("style","width:" + newWidth + "px;height:" + newHeight + "px;");
+            }
         }
         else {
             video.removeAttribute("style");
@@ -5791,7 +5800,7 @@ function pollGamepads() {
 function manageGamepadInput() {
 
     var gamepads = navigator.getGamepads ? navigator.getGamepads() : (navigator.webkitGetGamepads ? navigator.webkitGetGamepads : []);
-    if(!gamepads || !gamepads[0]) {
+    if(!gamepads) {
         gamePadInterval = setInterval(pollGamepads, GAMEPAD_INTERVAL);
         return;
     }
@@ -5806,12 +5815,14 @@ function manageGamepadInput() {
             var isScreencast = document.hasFocus() && document.querySelector(".screencast-wrapper");
             var isMedia = document.hasFocus() && document.querySelector(".modal #remote-media-form");
 
-            if(!gamepadButtonsDown[i]) {
+            if(!gamepadButtonsDown[i] || !document.hasFocus()) {
                 gamepadButtonsDown[i] = {};
                 gamepadAxisLastValues[i] = {};
             }
             // reset each time
             gamepadButtonsPressed[i] = {};
+
+            if( !document.hasFocus() ) continue;
 
             // Check the gamepad's buttons
             // First we will determine what buttons are pressed, then we will use those buttons

@@ -250,8 +250,8 @@ Multiple monitor support may be limited. GuyStation will aim to use the primary 
 * The resolution is incorrect for a PIP video for N64.
 * PC games that install won't work in Samba mode unless the installed directory for Wine programs is also mapped.
 * m64py changes the Mupen64Plus dimensions when you use it.
-* Fit screen has some overflow when clicking it causes the button to wrap on small landscape screens.
 * Wii doesn't save properly over Samba.
+* NES fullscreen spans multiple monitors when they are connected.
 * EZ Config Issues
     * PS2 can only have keyboard controls set with EZ configuration.
     * NGC EZ configuration will set the device to the Dolphin internal name for a virtual keyboard when a control is set to a keyboard key (with the exception of the screenshot control) as Dolphin requires a device name with controls. It will set the device to gamepad when a control is set to a gamepad button/axis a gamepad. The custom version of Dolphin will recognize devices as game controllers if the evdev device name matches one of a set of keywords (gamepad, joystick, controller, joypad). Other devices are recognized as keyboards. This system isn't perfect.
