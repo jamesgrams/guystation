@@ -1712,25 +1712,25 @@ async function addGamepadControls( page ) {
                             }
 
                             // switch tabs
-                            if( joyMapping["R"] && joyMapping["R"].filter(el => buttonsDown[i][el]).length ) {
+                            if( joyMapping["R"] && joyMapping["R"].filter(el => buttonsPressed[i][el]).length ) {
                                 await guystationSwitchTab(true);
                                 break;
                             }
-                            if( joyMapping["L"] && joyMapping["L"].filter(el => buttonsDown[i][el]).length ) {
+                            if( joyMapping["L"] && joyMapping["L"].filter(el => buttonsPressed[i][el]).length ) {
                                 await guystationSwitchTab();
                                 break;
                             }
                             // navigate
-                            if( joyMapping["R2"] && joyMapping["R2"].filter(el => buttonsDown[i][el]).length ) {
+                            if( joyMapping["R2"] && joyMapping["R2"].filter(el => buttonsPressed[i][el]).length ) {
                                 await guystationNavigate(true);
                                 break;
                             }
-                            if( joyMapping["L2"] && joyMapping["L2"].filter(el => buttonsDown[i][el]).length ) {
+                            if( joyMapping["L2"] && joyMapping["L2"].filter(el => buttonsPressed[i][el]).length ) {
                                 await guystationNavigate();
                                 break;
                             }
                             // keyboard
-                            if( joyMapping["X"] && joyMapping["X"].filter(el => buttonsDown[i][el]).length ) {
+                            if( joyMapping["X"] && joyMapping["X"].filter(el => buttonsPressed[i][el]).length ) {
                                 await guystationToggleKeyboard();
                                 break;
                             }
