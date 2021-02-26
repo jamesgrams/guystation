@@ -146,6 +146,7 @@ const IGDB_TWITCH_OAUTH_URL= `https://id.twitch.tv/oauth2/token?client_id=${IGDB
 const TWITCH_CODE_TO_TOKEN_URL = `https://id.twitch.tv/oauth2/token?client_id=${IGDB_CLIENT_ID}&client_secret=${IGDB_CLIENT_SECRET}&code=${TWITCH_CODE}&grant_type=authorization_code&redirect_uri=http://localhost`;
 const TWITCH_REFRESH_TOKEN_URL = `https://id.twitch.tv/oauth2/token?grant_type=refresh_token&client_id=${IGDB_CLIENT_ID}&client_secret=${IGDB_CLIENT_SECRET}&refresh_token=`;
 const TWITCH_CATEGORIES_ENDPOINT = "https://api.twitch.tv/helix/search/categories?first=1&query=";
+const TWITCH_GAMES_ENDPOINT = "https://api.twitch.tv/helix/games?name=";
 const TWITCH_VALIDATION_ENDPOINT = "https://id.twitch.tv/oauth2/validate";
 const TWITCH_CHANNELS_ENDPOINT = "https://api.twitch.tv/helix/channels";
 const IGBD_API_URL = "https://api.igdb.com/v4/";
@@ -6004,9 +6005,15 @@ async function updateTwitchStream() {
     let streamName = custom.name ? custom.name : gameName;
     let gameId = 0;
     if( gameName ) {
-        let gameInfo = await axios.get( TWITCH_CATEGORIES_ENDPOINT + gameName, { headers: headers } );
+        let gameInfo = await axios.get( TWITCH_GAMES_ENDPOINT + gameName, { headers: headers } );
         if( gameInfo.data && gameInfo.data.data && gameInfo.data.data.length ) {
             gameId = gameInfo.data.data[0].id;
+        }
+        else {
+            gameInfo = await axios.get( TWITCH_CATEGORIES_ENDPOINT + gameName, { headers: headers } );
+            if( gameInfo.data && gameInfo.data.data && gameInfo.data.data.length ) {
+                gameId = gameInfo.data.data[0].id;
+            }
         }
     }
 
