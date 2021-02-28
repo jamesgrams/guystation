@@ -262,3 +262,8 @@ sudo sh -c "echo '{\"CommandLineFlagSecurityWarningsEnabled\": false}' > /etc/op
 # Setup autostart
 mkdir -p ~/.config/autostart
 bash -c "ln -s ~/guystation/helper/autostart/guystation.desktop ~/.config/autostart/guystation.desktop"
+
+# Add icon
+mkdir -p ~/.icons
+bash -c "ln -s ~/guystation/assets/icons/android-icon-192x192.png ~/.icons/guystation.png"
+bash -c "ln -s ~/guystation/helper/autostart/guystation.desktop ~/.local/share/applications/guystation.desktop"
