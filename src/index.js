@@ -826,7 +826,7 @@ app.get("/screencast/connect", async function(request, response) {
     if( ! requestLocked ) {
         requestLocked = true;
         try {
-            let errorMessage = await connectScreencast( request.query.id, request.query.noController === 'true' );
+            let errorMessage = await connectScreencast( request.query.id, parseInt(request.query.numControllers) );
             requestLocked = false;
             writeActionResponse( response, errorMessage );
         }
@@ -872,7 +872,7 @@ app.post("/screencast/buttons", async function(request, response) {
 // Press some gamepad input on a screencast
 app.post("/screencast/gamepad", async function(request, response) {
     console.log("app serving /screencast/gamepad with body: " + JSON.stringify(request.body));
-    let errorMessage = await performScreencastGamepad( request.body.event, request.body.id );
+    let errorMessage = await performScreencastGamepad( request.body.event, request.body.id, parseInt(request.body.controllerNum) );
     writeActionResponse( response, errorMessage );
 });
 
@@ -5177,13 +5177,15 @@ function codeToDesmumeJoystick( type, button ) {
  * Create the virtual gamepad.
  * Modified from here: https://github.com/hyamanieu/node-custom-virtual-gamepads/blob/master/app/virtual_gamepad.js
  * @param {string} id - The id of the connecting client.
+ * @param {number} controllerNum - The controller number from a particular client.
  * @returns {boolean|string} An error message if there is an error, false if not.
  */
-function createVirtualGamepad( id ) {
+function createVirtualGamepad( id, controllerNum ) {
     let gamepadFileDescriptor;
     try {
         gamepadFileDescriptor = fs.openSync(UINPUT_PATH, UINPUT_MODE);
-        gamepadFileDescriptors[id] = gamepadFileDescriptor;
+        if( !gamepadFileDescriptors[id] ) gamepadFileDescriptors[id] = {};
+        gamepadFileDescriptors[id][controllerNum] = gamepadFileDescriptor;
     }
     catch(err) {
         return ERROR_MESSAGES.couldNotCreateGamepad;
@@ -5244,7 +5246,8 @@ function createVirtualGamepad( id ) {
     }
     catch(err) {
         fs.closeSync(gamepadFileDescriptor);
-        delete gamepadFileDescriptors[id];
+        delete gamepadFileDescriptors[id][controllerNum];
+        if( !Object.keys(gamepadFileDescriptors[id]).length ) delete gamepadFileDescriptors[id];
         return ERROR_MESSAGES.couldNotCreateGamepad;
     }
     try {
@@ -5252,7 +5255,8 @@ function createVirtualGamepad( id ) {
     }
     catch(err) {
         fs.closeSync(gamepadFileDescriptor);
-        delete gamepadFileDescriptors[id];
+        delete gamepadFileDescriptors[id][controllerNum];
+        if( !Object.keys(gamepadFileDescriptors[id]).length ) delete gamepadFileDescriptors[id];
         return ERROR_MESSAGES.couldNotCreateGamepad;
     }
     return false;
@@ -5265,12 +5269,15 @@ function createVirtualGamepad( id ) {
  * @returns {boolean|string} An error message if there is an error, false if not.
  */
 function disconnectVirtualGamepad( id ) {
-    let gamepadFileDescriptor = gamepadFileDescriptors[id];
-    if( !gamepadFileDescriptor ) {
+    let idControllers = gamepadFileDescriptors[id];
+    if( !idControllers ) {
         return ERROR_MESSAGES.gamepadNotConnected;
     }
-    ioctl(gamepadFileDescriptor, uinput.UI_DEV_DESTROY);
-    fs.closeSync(gamepadFileDescriptor);
+    for( let controllerNum in idControllers ) {
+        let gamepadFileDescriptor = idControllers[controllerNum];
+        ioctl(gamepadFileDescriptor, uinput.UI_DEV_DESTROY);
+        fs.closeSync(gamepadFileDescriptor);
+    }
     delete gamepadFileDescriptors[id];
 }
 
@@ -5561,10 +5568,10 @@ function resetScreencastTimeout( id ) {
 /**
  * Connect the menuPage to the signal server.
  * @param {string} id - The id of the socket asking the menuPage to connect.
- * @param {boolean} [noController] - True if we should not create a controller.  
+ * @param {number} [noController] - True if we should not create a controller.  
  * @returns {Promise<(boolean|string)>} An error message if there is one or false if there is not.
  */
-async function connectScreencast( id, noController ) {
+async function connectScreencast( id, numControllers ) {
     if( !menuPage || menuPage.isClosed() ) {
         return Promise.resolve(ERROR_MESSAGES.menuPageClosed);
     }
@@ -5574,8 +5581,10 @@ async function connectScreencast( id, noController ) {
     // so it never disconnects
 
     // connect the virtual gamepad if necessary
-    if( !gamepadFileDescriptors[id] && !noController ) {
-        createVirtualGamepad( id );
+    if( !gamepadFileDescriptors[id] && numControllers ) {
+        for( let i=0; i<numControllers; i++ ) {
+            createVirtualGamepad( id, i );
+        }
     }
 
     // do not connect again if we are already connected
@@ -5822,17 +5831,19 @@ async function performScreencastButtons( buttons, down ) {
  * Perform a virtual gamepad event.
  * @param {Object} event - The event generated by the client.
  * @param {string} id - The id of the streaming client.
+ * @param {number} [controllerNum] - The controller number to use from the particular id.
  * @returns {boolean|string} False if the action was successful or an error message if not.
  */
-async function performScreencastGamepad( event, id ) {
-    let gamepadFileDescriptor = gamepadFileDescriptors[id];
+async function performScreencastGamepad( event, id, controllerNum=0 ) {
+    let idControllers = gamepadFileDescriptors[id];
     // set to not make a new controller, so use the first controller
-    if( !gamepadFileDescriptor  ) {
+    if( !idControllers  ) {
         let keys = Object.keys(gamepadFileDescriptors);
         if( keys ) {
-            gamepadFileDescriptor = gamepadFileDescriptors[keys[0]];
+            idControllers = gamepadFileDescriptors[keys[0]];
         }
     }
+    let gamepadFileDescriptor = idControllers[controllerNum];
     if( !gamepadFileDescriptor ) {
         return ERROR_MESSAGES.gamepadNotConnected;
     }

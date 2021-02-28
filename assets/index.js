@@ -328,6 +328,7 @@ var CONTROLS_SET_MESSAGE = "Controls set";
 var COULD_NOT_SET_CONTROLS_MESSAGE = "Could not set controls";
 var SCALE_DOWN_TIMEOUT = 1000;
 var SCALE_OPTIONS = [1,1.5,2,3,4,6]; // 1080p, 720p, 540p, 360p, 270p, 180p
+var CONTROLLER_CONNECT_OPTIONS = ["auto",0,1,2,3,4];
 
 var expandCountLeft; // We always need to have a complete list of systems, repeated however many times we want, so the loop works properly
 var expandCountRight;
@@ -371,6 +372,7 @@ var fullscreenPip = false;
 var voiceRecording = false;
 var rtmpRecorder = null;
 var rtmpStatusInterval = null;
+var currentConnectedVirtualControllers = 0;
 
 // keys are server values, values are client values
 // it's a map of numbers so 0:2, 3:3:, etc. PADCODES index to controller button number.
@@ -2371,7 +2373,7 @@ function displayBrowserControls() {
     //video
     var video = createInteractiveScreencast();
     
-    makeRequest( "GET", "/screencast/connect", { id: socket.id, noController: true }, function() {
+    makeRequest( "GET", "/screencast/connect", { id: socket.id, numControllers: 0 }, function() {
         // start letting the server know we exist after it is now looking for us i.e. won't accept another connection
         // (serverSocketId is set)
         resetCancelStreamingInterval = setInterval( function() {
@@ -2659,17 +2661,15 @@ function displayJoypadConfig() {
 
     var connectController = localStorage.guystationConnectController;
     if( connectController ) {
-        // it might be "true" or "false"
-        connectController = connectController == "true" ? true : false;
+        connectController = parseInt(connectController); // parseInt of "auto" will fail into default
+        if( !connectController && connectController !== 0 ) connectController = CONTROLLER_CONNECT_OPTIONS[0];
     }
-    else {
-        connectController = !desktopAndNoClientGamepad();
-    }
-    var connectCheckbox = createInput( connectController, "connect-controller-checkbox", "Virtual Controller", "checkbox" );
-    connectCheckbox.querySelector("input").onchange = function() {
-        connectController = this.checked;
-    }
-    form.appendChild(connectCheckbox);
+    else connectController = CONTROLLER_CONNECT_OPTIONS[0];
+
+    var connectMenu = createMenu( connectController.toString(), CONTROLLER_CONNECT_OPTIONS, "connect-controller-select", "Virtual Controllers", function() {
+        connectController = this.options[this.selectedIndex].value;
+    } );
+    form.appendChild(connectMenu);
 
     var padcodeKeys = Object.keys(PADCODES);
     // allow padcode mapping for the padcodes that we use
@@ -2687,7 +2687,7 @@ function displayJoypadConfig() {
         form.appendChild( label ); 
     }
     form.appendChild( createButton( "Save", function() {
-        localStorage.guystationConnectController = connectController.toString();
+        localStorage.guystationConnectController = connectController;
 
         var inputs = document.querySelectorAll("#joypad-config-form label[data-virtual-button] input");
         var newScreencastControllerMap = {};
@@ -2826,6 +2826,17 @@ function getCurrentAutoloadProfile() {
  */
 function desktopAndNoClientGamepad() {
     return !(isTouch()) && (navigator.getGamepads ? ( (navigator.getGamepads() && navigator.getGamepads()[0]) ? false : true) : true);
+}
+
+/**
+ * Get the default (auto) virtual controller count.
+ * @returns {number} - The default virtual controller count.
+ */
+function defaultVirtualControllerCount() {
+    if( desktopAndNoClientGamepad() ) return 0;
+    if( isTouch() ) return 1;
+    var gamepads = navigator.getGamepads();
+    return Object.keys(gamepads).filter( el => gamepads[el] ).length;
 }
 
 /**
@@ -3183,13 +3194,14 @@ function displayScreencast( fullscreen ) {
 
     var connectController = localStorage.guystationConnectController;
     if( connectController ) {
-        // it might be "true" or "false"
-        connectController = connectController == "true" ? true : false;
+        connectController = parseInt(connectController); // parseInt of "auto" will fail into default
+        if( !connectController && connectController !== 0 ) connectController = defaultVirtualControllerCount();
     }
-    else connectController = !desktopAndNoClientGamepad();
+    else connectController = defaultVirtualControllerCount();
+    currentConnectedVirtualControllers = connectController;
 
     autoloadEzProfile( function() {
-        makeRequest( "GET", "/screencast/connect", { id: socket.id, noController: !connectController }, function() {
+        makeRequest( "GET", "/screencast/connect", { id: socket.id, numControllers: connectController }, function() {
             // start letting the server know we exist after it is now looking for us i.e. won't accept another connection
             // (serverSocketId is set)
             resetCancelStreamingInterval = setInterval( function() {
@@ -3218,7 +3230,7 @@ function displayScreencast( fullscreen ) {
                 } );
             }, RTMP_STATUS_INTERVAL );
 
-            launchModal( form, function() { stopConnectionToPeer(false, "server"); } );
+            launchModal( form, function() { stopConnectionToPeer(false, "server"); currentConnectedVirtualControllers = 0; } );
             connectToSignalServer(false);
             if( fullscreen ) fullscreenVideo( video );
         }, function(responseText) { standardFailure(responseText, true) } );
@@ -3534,8 +3546,8 @@ function createKeyButton( selected, x, y ) {
 
             // The right axis are 3 & 4 -- just like when we use AXISCODES to forward the fake controller
             var axisAdder = selected.includes("L") ? 0 : 3;
-            socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": 0x00 + axisAdder, "value": xValueForServer }, "id": socket.id });
-            socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": 0x01 + axisAdder, "value": yValueForServer }, "id": socket.id });
+            socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": 0x00 + axisAdder, "value": xValueForServer }, "id": socket.id, "controllerNum": 0 });
+            socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": 0x01 + axisAdder, "value": yValueForServer }, "id": socket.id, "controllerNum": 0 });
         }
     }
 
@@ -3606,7 +3618,7 @@ function handleKeyButton(keyButton, down, callback) {
     var displayValue = keyButton.querySelector(".key-display").innerText;
     // it's a gamepad key
     if( PADCODES[displayValue] ) {
-        socket.emit("/screencast/gamepad", { "event": { "type": 0x01, "code": PADCODES[displayValue], "value": down ? 1 : 0 }, "id": socket.id },
+        socket.emit("/screencast/gamepad", { "event": { "type": 0x01, "code": PADCODES[displayValue], "value": down ? 1 : 0 }, "id": socket.id, "controllerNum": 0 },
         function() { if(callback) callback(); } );
     }
     // it's a keyboard key
@@ -5745,8 +5757,12 @@ function makeRequest(type, url, parameters, callback, errorCallback, useFormData
  * This function translates the client gamepad button with the button mapping.
  * @param {string} clientButton - Either the button number or the axis number and a direction.
  * @param {boolean} [down] - Optional parameter to force a direction (used for axis whose states aren't tracked in gamepadButtonsDown)
+ * @param {number} [clientControllerNum] - The client controller index that we should inform the server of (may be 1 even if 2 controllers connected).
+ * @param {number} [actualControllerNum] - The actual controller index on the client.
  */
-function sendButtonsToServer( clientButton, down ) {
+function sendButtonsToServer( clientButton, down, clientControllerNum, actualControllerNum ) {
+    if( !clientControllerNum ) clientControllerNum = 0;
+    if( clientControllerNum < 0 ) return;
     // we send the codes that correspond with the buttons numbers. So padcodes have A as button 0, so when
     // the client controller presses button 0, we send A, which means button 0 on the server unless a mapping specifies otherwise
     // i is the client controller button
@@ -5759,7 +5775,7 @@ function sendButtonsToServer( clientButton, down ) {
             for( var k=0; k<serverButtonsForClientButton.length; k++ ) {
                 // note whether the client axis or button, it is mapped to a server button, and thus serverButtonsForClientButton[k] will always be a number indicating the button number on the server
                 var buttonCode = Object.values(PADCODES)[serverButtonsForClientButton[k]];
-                socket.emit("/screencast/gamepad", { "event": { "type": 0x01, "code": buttonCode, "value": down !== undefined ? down : gamepadButtonsDown[0][clientButton] }, "id": socket.id } );
+                socket.emit("/screencast/gamepad", { "event": { "type": 0x01, "code": buttonCode, "value": down !== undefined ? down : gamepadButtonsDown[actualControllerNum][clientButton] }, "id": socket.id, "controllerNum": clientControllerNum } );
             }
         }
         // this is a full axis being sent on the client (not just an axis direction) - it must be mapped to a server axis
@@ -5768,7 +5784,7 @@ function sendButtonsToServer( clientButton, down ) {
             for( var k=0; k<serverButtonsForClientButton.length; k++ ) {
                 var index = parseInt( serverButtonsForClientButton[k].replace("a","") );
                 var axisCode = Object.values(AXISCODES)[index];
-                socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": axisCode, "value": gamepadAxisLastValues[0][ parseInt(clientButton.replace("a","")) ] }, "id": socket.id } );
+                socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": axisCode, "value": gamepadAxisLastValues[actualControllerNum][ parseInt(clientButton.replace("a","")) ] }, "id": socket.id, "controllerNum": clientControllerNum } );
             }
         }
     }
@@ -5823,6 +5839,10 @@ function manageGamepadInput() {
 
             if( !document.hasFocus() ) continue;
 
+            // determine which controller should be sent to the server. If we connect two virtual contollers
+            // controller 1 will go to controller 1 and 2 will go to 2, if one, then both will go to one.
+            var clientControllerNum = Math.min( currentConnectedVirtualControllers - 1, i );
+
             // Check the gamepad's buttons
             // First we will determine what buttons are pressed, then we will use those buttons
             for( var j=0; j<gp.buttons.length; j++ ) {
@@ -5834,7 +5854,7 @@ function manageGamepadInput() {
                     else {
                         gamepadButtonsDown[i][j] = false;
                     }
-                    if( isScreencast ) sendButtonsToServer( j );
+                    if( isScreencast ) sendButtonsToServer( j, undefined, clientControllerNum, i );
                 }
             }
 
@@ -5847,9 +5867,9 @@ function manageGamepadInput() {
                 if( Math.abs(gp.axes[j]) >= AXIS_MIN_TO_BE_BUTTON && ( Math.abs(gamepadAxisLastValues[i][j]/MAX_JOYSTICK_VALUE) < AXIS_MIN_TO_BE_BUTTON || previousDirection != direction ) ) {
                     var oppositeDirection = direction == "+" ? "-" : "+";
                     if( isScreencast ) {
-                        sendButtonsToServer( j + direction, true );
+                        sendButtonsToServer( j + direction, true, clientControllerNum, i );
                         // in case we rapidly switched directions and it didn't get cleared out
-                        sendButtonsToServer( j + oppositeDirection, false );
+                        sendButtonsToServer( j + oppositeDirection, false, clientControllerNum, i );
                     }
                     gamepadButtonsDown[i][ j + direction ] = true;
                     gamepadButtonsPressed[i][ j + direction ] = true;
@@ -5859,8 +5879,8 @@ function manageGamepadInput() {
                 }
                 else if( Math.abs(gp.axes[j]) < AXIS_MIN_TO_BE_BUTTON && Math.abs(gamepadAxisLastValues[i][j]/MAX_JOYSTICK_VALUE) >= AXIS_MIN_TO_BE_BUTTON ) {
                     if( isScreencast ) {
-                        sendButtonsToServer( j + "+", false );
-                        sendButtonsToServer( j + "-", false );
+                        sendButtonsToServer( j + "+", false, clientControllerNum, i );
+                        sendButtonsToServer( j + "-", false, clientControllerNum, i );
                     }
                     gamepadButtonsDown[i][ j + "+" ] = false;
                     gamepadButtonsDown[i][ j + "-" ] = false;
@@ -5872,7 +5892,7 @@ function manageGamepadInput() {
                 if( (!gamepadAxisLastValues[i][j] && gamepadAxisLastValues[i][j] !== 0) || Math.abs(serverAxisValue - gamepadAxisLastValues[i][j]) > SCREENCAST_AXIS_FUZZINESS || (serverAxisValue == 0 && gamepadAxisLastValues[i][j] != 0) ) {
                     gamepadAxisLastValues[i][j] = serverAxisValue;
 
-                    if( isScreencast ) sendButtonsToServer( "a" + j ); // the client button is "a" + j, could be multiple server buttons
+                    if( isScreencast ) sendButtonsToServer( "a" + j, undefined, clientControllerNum, i ); // the client button is "a" + j, could be multiple server buttons
                 }
             }
 
