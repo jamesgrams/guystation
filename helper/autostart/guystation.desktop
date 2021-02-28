@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Exec=bash -c "xhost + local:; sudo npm --prefix=~/guystation start -- --smb 192.168.1.2"
+Exec=bash -c "xhost + local:; sudo npm --prefix=~/guystation start"
 Icon=guystation.png
 Hidden=false
 X-GNOME-Autostart-enabled=true
