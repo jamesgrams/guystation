@@ -33,7 +33,7 @@
     "cryptiles": ">=4.1.2",
     "https-proxy-agent": ">=2.2.3",
     "minimist": ">=0.2.1",
-    "sync-request": ">=6.1.0",
+    "sync-fetch": ">=0.3.0",
     "bl": ">=1.2.3"
   },
   "engines": {

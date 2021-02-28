@@ -4017,6 +4017,28 @@ function displayPowerOptions() {
             }, closeModal);
         }
     }) );
+    makeRequest("GET", "/settings", {}, function(responseText) {
+        var json = JSON.parse(responseText);
+        var label = createInput( json.windowed, "windowed-checkbox", "Windowed: ", "checkbox" );
+        var input = label.querySelector("input");
+        var button = createButton( "Update", function() {
+            makeRequest("PUT", "/settings", {
+                settings: {
+                    windowed: input.checked
+                }
+            }, function() {
+                alertSuccess("Settings updated");
+            }, function() {
+                alertError("Could not update settings");
+            })
+        });
+        button.setAttribute("id", "update-settings-button");
+        var warning = createWarning("Settings");
+        warning.classList.add("clear", "break");
+        form.appendChild( warning );
+        form.appendChild(label);
+        form.appendChild(button);
+    })
     launchModal( form );
 }
 

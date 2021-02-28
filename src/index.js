@@ -23,7 +23,7 @@ const axios = require('axios');
 const robot = require("robotjs");
 const keycode = require("keycode");
 const ioctl = require("ioctl");
-const syncRequest = require("sync-request");
+const syncFetch = require("sync-fetch");
 const uinput = require("./lib/uinput");
 const uinputStructs = require("./lib/uinput_structs");
 const ua = require('all-unpacker');
@@ -141,6 +141,7 @@ const TWITCH_CODE = process.env.GUYSTATION_TWITCH_CODE;
 const DEFAULT_TWITCH_GAME_NAME = "GuyStation";
 const IGDB_PATH = "igdb.json";
 const TWITCH_PATH = "twitch.json";
+const SETTINGS_PATH = "settings.json";
 const TWITCH_STREAM_PATH = "twitch-stream.json";
 const IGDB_TWITCH_OAUTH_URL= `https://id.twitch.tv/oauth2/token?client_id=${IGDB_CLIENT_ID}&client_secret=${IGDB_CLIENT_SECRET}&grant_type=client_credentials`;
 const TWITCH_CODE_TO_TOKEN_URL = `https://id.twitch.tv/oauth2/token?client_id=${IGDB_CLIENT_ID}&client_secret=${IGDB_CLIENT_SECRET}&code=${TWITCH_CODE}&grant_type=authorization_code&redirect_uri=http://localhost`;
@@ -273,6 +274,8 @@ const BROWSER_GAMEPAD_PATH = "browser-gamepad.json";
 const LAUNCH_ONBOARD_COMMAND = "onboard";
 const ENSURE_FLOAT_ONBOARD_COMMAND = "gsettings set org.onboard.window docking-enabled false";
 const RENEGOTIATE_RTMP_INTERVAL = 50;
+const SIGTERM = 'SIGTERM';
+
 const DEFAULT_PROFILES_DICT = {
     "GuyStation Virtual Controller": {
         "A":"button(0)-0003-0003",
@@ -430,6 +433,9 @@ let browserControlsCache = null;
 let onboardInstance = null;
 let currentTwitchRequest = 0;
 let lastRtmpUrl = null;
+let expressStatic = null;
+let expressDynamic = null;
+let socketsServer = null;
 
 let sambaIndex = process.argv.indexOf(SAMBA_FLAG);
 let sambaOn = sambaIndex != -1;
@@ -1219,6 +1225,33 @@ app.get("/twitch/info", async function(request, response) {
     }
 });
 
+// endpoints for settings
+
+// get settings
+app.get("/settings", function(request, response) {
+    console.log("app serving /settingss");
+    try {
+        writeResponse( response, SUCCESS, readSettings() );
+    }
+    catch(err) {
+        console.log(err);
+        writeActionResponse( response, ERROR_MESSAGES.genericError );
+    }
+});
+
+// update settings
+app.put("/settings", function(request, response) {
+    console.log("app serving /settings with body: " + JSON.stringify(request.body));
+    try {
+        updateSettings( request.body.settings );
+        writeActionResponse( response );
+    }
+    catch(err) {
+        console.log(err);
+        writeActionResponse( response, ERROR_MESSAGES.genericError );
+    }
+});
+
 // endpoints to set up to stream what is coming through the microphone and webcam
 
 // set up the proper microphone input to the stream
@@ -1234,9 +1267,31 @@ if(process.argv.indexOf(CHROMIUM_ARG) == -1) {
 }
 
 // START PROGRAM (Launch Browser and Listen)
-server.listen(SOCKETS_PORT); // This is the screencast server
-staticApp.listen(STATIC_PORT); // Launch the static assets first, so the browser can access them
-launchBrowser().then( () => app.listen(PORT) );
+socketsServer = server.listen(SOCKETS_PORT); // This is the screencast server
+expressStatic = staticApp.listen(STATIC_PORT); // Launch the static assets first, so the browser can access them
+launchBrowser().then( () => expressDynamic = app.listen(PORT) );
+process.on(SIGTERM, () => {
+    try {
+        ioHook.unload();
+    }
+    catch(err) {console.log(err);}
+    try {
+        browser.close();
+    }
+    catch(err) {console.log(err);}
+    try {
+        expressDynamic.close();
+    }
+    catch(err) {console.log(err);}
+    try {
+        expressStatic.close();
+    }
+    catch(err) {console.log(err);}
+    try {
+        socketsServer.close();
+    }
+    catch(err) {console.log(err);}
+});
 
 /**************** Express & Puppeteer Functions ****************/
 
@@ -1347,17 +1402,18 @@ async function launchBrowser() {
     // when there is only one monitor, there is no label for the screen, so it is called Entire screen
     // when there are multiple, the label is "Screen 1" for the primary monitor
     let numMonitors = parseInt(proc.execSync(GET_NUM_MONITORS_COMMAND));
+    let settings = readSettings();
     let options = {
         headless: false,
         defaultViewport: null,
         args: [
-            '--start-fullscreen',
             '--no-sandbox',
             '--disable-infobars',
             `--auto-select-desktop-capture-source=${numMonitors > 1 ? SCREEN_ONE : ENTIRE_SCREEN}` // this has to be like this otherwise the launcher will not read the argument. It has to do with node.js processes and how they handle quotes with shell=true. 
         ],
         userDataDir: USER_DATA_DIR
     };
+    if( !settings.windowed ) options.args.push("--start-fullscreen");
     if(process.argv.indexOf(CHROMIUM_ARG) == -1) {
         options.executablePath = LINUX_CHROME_PATH;
     }
@@ -1366,6 +1422,9 @@ async function launchBrowser() {
     context.overridePermissions("http://" + LOCALHOST, ['microphone','camera']);
     let pages = await browser.pages();
     menuPage = await pages[0];
+    menuPage.on('close', () => {
+        process.kill(process.pid, SIGTERM);
+    });
     pipPage = await browser.newPage();
     await menuPage.bringToFront();
     
@@ -1423,6 +1482,33 @@ async function launchBrowser() {
     });
 
     //setTimeout( reloadMenuPage, RELOAD_MENU_PAGE_INTERVAL );
+}
+
+/**
+ * Write settings.
+ * @param {Object} settings - The settings object to write.
+ */
+function writeSettings( settings ) {
+    fs.writeFileSync( SETTINGS_PATH, JSON.stringify(settings) );
+}
+
+/**
+ * Update settings.
+ * @param {Object} settings - The settings object to update.
+ */
+function updateSettings( settings ) {
+    let currentSettings = readSettings();
+    currentSettings = Object.assign( currentSettings, settings );
+    writeSettings( currentSettings );
+}
+
+/**
+ * Read settings.
+ * @returns {Object} The settings object.
+ */
+function readSettings() {
+    if( !fs.existsSync( SETTINGS_PATH ) ) writeSettings({});
+    return JSON.parse( fs.readFileSync( SETTINGS_PATH ) );
 }
 
 /**
@@ -2086,8 +2172,8 @@ function getData( startup, noPlaying ) {
     if( sambaOn ) {
         try {
             // get this from the samba url
-            let json = syncRequest("GET", HTTP + sambaUrl + ":" + PORT + "/data?noPlaying=1" );
-            systemsDict = JSON.parse(json.getBody("utf8")).systems;
+            let json = syncFetch( HTTP + sambaUrl + ":" + PORT + "/data?noPlaying=1" ).json();
+            systemsDict = json.systems;
 
             // also need to set playing to false for all items ...
             if( currentSystem && !currentGame ) {

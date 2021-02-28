@@ -323,7 +323,7 @@ h1 {
     background-color: green;
 }
 
-#power-options-form button {
+#power-options-form button:not(#update-settings-button) {
     width: 100%;
     margin-left: 0;
 }
