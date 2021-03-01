@@ -6405,13 +6405,22 @@ function renegotiate() {
     getDisplayMedia().then(function(stream) {
         var av = new MediaStream();
         av.addTrack(stream.getTracks()[0]);
-        av.addTrack(localStream.getAudioTracks()[0]);
-        localStream = av;
-        for( let peerConnection of peerConnections ) {
-            var newTrack = localStream.getVideoTracks()[0];
-            var sender = peerConnection.peerConnection.getSenders().filter( el => el.track.kind == newTrack.kind )[0];
-            sender.replaceTrack(newTrack);
-        }
+        navigator.mediaDevices.getUserMedia({"audio": true}).then( function(audio) {
+            stream.getTracks()[0].contentHint = "motion"; // See here: https://webrtc.github.io/samples/src/content/capture/video-contenthint/
+            av.addTrack(audio.getTracks()[0]);
+            localStream = av;
+
+            for( let peerConnection of peerConnections ) {
+                // replace video
+                var newTrack = localStream.getVideoTracks()[0];
+                var sender = peerConnection.peerConnection.getSenders().filter( el => el.track.kind == newTrack.kind )[0];
+                sender.replaceTrack(newTrack);
+                // replace audio - not sure why audio needs to be re-fetched, but it does
+                newAudioTrack = localStream.getAudioTracks()[0];
+                sender = peerConnection.peerConnection.getSenders().filter( el => el.track.kind == newTrack.kind )[0];
+                sender.replaceTrack(newTrack);
+            }
+        });
     }).catch(errorHandler);
 }
 
