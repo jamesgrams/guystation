@@ -391,7 +391,8 @@ const ERROR_MESSAGES = {
     "couldNotFetchTwitchInfo": "Could not fetch Twitch information",
     "couldNotFindTwitchUsername": "Could not find Twitch username",
     "anotherTwitchRequest": "Twitch request outdated",
-    "invalidRomCandidate": "Invalid ROM candidate"
+    "invalidRomCandidate": "Invalid ROM candidate",
+    "pcStillLoading": "PC still loading"
 }
 // http://jsfiddle.net/vWx8V/ - keycode
 // http://robotjs.io/docs/syntax - robotjs
@@ -440,6 +441,7 @@ let lastRtmpUrl = null;
 let expressStatic = null;
 let expressDynamic = null;
 let socketsServer = null;
+let pcUnpacking = false;
 
 let sambaIndex = process.argv.indexOf(SAMBA_FLAG);
 let sambaOn = sambaIndex != -1;
@@ -3500,10 +3502,12 @@ function saveUploadedRom( file, system, game, parents ) {
     if( system === SYSTEM_PC && !file.originalname.match(/\.exe$/i) && !file.originalname.match(/\.msi$/i) ) { // PC games may be zipped as they require multiple files.
         // copy files
         fs.copyFileSync( romLocation, DOWNLOAD_PC_PREFIX );
+        pcUnpacking = true;
         unpackGetLargestFile( DOWNLOAD_PC_PREFIX, DOWNLOAD_PC_PREFIX + TMP_FOLDER_EXTENSION, false, true, generateGameDir(system, game, parents) ).then( (name) => {
             if( name ) {
                 fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"rom": name}));
             }
+            pcUnpacking = false;
         } );
     }
 
@@ -4543,6 +4547,9 @@ async function fetchGameData( system, game, parents, currentMetadataContents, fo
     }
     if( currentMetadataContents && currentMetadataContents.status === STATUS_DOWNLOADING ) {
         return Promise.resolve(ERROR_MESSAGES.romNotYetDownloaded);
+    }
+    if( pcUnpacking ) {
+        return Promise.resolve(ERROR_MESSAGES.pcStillLoading);
     }
 
     delete currentMetadataContents.summary
