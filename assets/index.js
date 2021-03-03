@@ -5572,7 +5572,7 @@ function addGame( system, game, file, parents, isFolder, isPlaylist, playlistIte
  * @param {string} [romCandidate] - The ROM candidate for PC games.
  */
 function updateGame( oldSystem, oldGame, oldParents, system, game, file, parents, isFolder, isPlaylist, playlistItems, romCandidate ) {
-    makeRequest( "PUT", "/game", { "oldSystem": oldSystem, "oldGame": oldGame, "oldParents": JSON.stringify(oldParents), "system": system, "game": game, "file": file ? file : "", "parents": JSON.stringify(parents), "isFolder": isFolder ? isFolder : "", "isPlaylist": isPlaylist ? isPlaylist : "", "playlistItems": JSON.stringify(playlistItems) }, 
+    makeRequest( "PUT", "/game", { "oldSystem": oldSystem, "oldGame": oldGame, "oldParents": JSON.stringify(oldParents), "system": system, "game": game, "file": file ? file : "", "parents": JSON.stringify(parents), "isFolder": isFolder ? isFolder : "", "isPlaylist": isPlaylist ? isPlaylist : "", "playlistItems": JSON.stringify(playlistItems), "romCandidate": romCandidate ? romCandidate : "" }, 
     function( responseText ) { standardSuccess(responseText, "Game successfully updated", oldSystem, system ? system : oldSystem, oldGame, game ? game: oldGame, oldParents, parents) },
     function( responseText ) { standardFailure( responseText ) }, true, true );
 }
