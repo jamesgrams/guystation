@@ -6351,7 +6351,7 @@ function startPcChangeLoop() {
                                 foundExe = true;
                                 let stats = fs.statSync(curPath);
                                 if( isBinaryFileSync(curPath) ) {
-                                    if( !largestBinaryPath || stats["size"] > largestBinarySize) ) {
+                                    if( !largestBinaryPath || stats["size"] > largestBinarySize) {
                                         largestBinaryPath = curPath;
                                         largestBinarySize = stats["size"];
                                     }
