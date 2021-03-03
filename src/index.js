@@ -2271,7 +2271,7 @@ function generateGames(system, games, parents=[], startup, noPlaying) {
             var metadataFileContents = JSON.parse(fs.readFileSync(generateGameMetaDataLocation(system, game, curParents)));
             gameData.rom = metadataFileContents.rom;
             gameData.installer = metadataFileContents.installer;
-            gameData.romCandidates = gameData.romCandidates;
+            gameData.romCandidates = metadataFileContents.romCandidates;
             gameData.isPlaylist = metadataFileContents.isPlaylist;
             if( metadataFileContents.siteUrl ) {
                 gameData.siteUrl = metadataFileContents.siteUrl;
