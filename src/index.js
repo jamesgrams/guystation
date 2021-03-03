@@ -3690,7 +3690,22 @@ async function unpackGetLargestFile( file, folder, deleteFolder=false, installer
                 let tmpFiles = fs.readdirSync(folder, {withFileTypes: true});
                 // sometimes zip files have a sole directory, if that is the case, enter it
                 while( tmpFiles.length === 1 && tmpFiles[0].isDirectory() ) {
-                    folder = folder + SEPARATOR + tmpFiles[0].name;
+                    let loneFolderPath = folder + SEPARATOR + tmpFiles[0].name;
+                    let subfiles = fs.readdirSync(loneFolderPath);
+                    let rename = null;
+                    for( let subfile of subfiles ) {
+                        // they have the same name
+                        let newLocation = folder + SEPARATOR + subfile;
+                        if( newLocation === loneFolderPath ) {
+                            newLocation += "1";
+                            rename = newLocation;
+                        }
+                        fs.moveSync( loneFolderPath + SEPARATOR + subfile, newLocation );
+                    }
+                    rimraf.sync( loneFolderPath );
+                    if( rename ) {
+                        fs.moveSync( newLocation, loneFolderPath );
+                    }
                     tmpFiles = fs.readdirSync(folder, {withFileTypes: true});
                 }
                 // Get the largest binary file
