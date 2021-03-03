@@ -1263,13 +1263,22 @@ app.get("/stream/microphone", async function(request, response) {
 // Create the fake microphone
 if(process.argv.indexOf(CHROMIUM_ARG) == -1) {
     createFakeMicrophone();
-    setMuteMode(MUTE_MODES.none);
 }
 
 // START PROGRAM (Launch Browser and Listen)
 socketsServer = server.listen(SOCKETS_PORT); // This is the screencast server
 expressStatic = staticApp.listen(STATIC_PORT); // Launch the static assets first, so the browser can access them
-launchBrowser().then( () => expressDynamic = app.listen(PORT) );
+launchBrowser().then( () => {
+    try {
+        if(process.argv.indexOf(CHROMIUM_ARG) == -1) {
+            setMuteMode(MUTE_MODES.none);
+        }
+    }
+    catch(err) {
+        console.log(err);
+    }
+    expressDynamic = app.listen(PORT)
+} );
 process.on(SIGTERM, () => {
     try {
         ioHook.unload();
@@ -2255,6 +2264,7 @@ function generateGames(system, games, parents=[], startup, noPlaying) {
             // This line will throw the error if there is no metadata file
             var metadataFileContents = JSON.parse(fs.readFileSync(generateGameMetaDataLocation(system, game, curParents)));
             gameData.rom = metadataFileContents.rom;
+            gameData.installer = metadataFileContents.installer;
             gameData.isPlaylist = metadataFileContents.isPlaylist;
             if( metadataFileContents.siteUrl ) {
                 gameData.siteUrl = metadataFileContents.siteUrl;
@@ -2529,6 +2539,7 @@ function getGameDictEntry(system, game, parents) {
  */
 async function launchGame(system, game, restart=false, parents=[], dontSaveResolution) {
 
+    let useInstaller = false;
     let noGame = false;
     if( game === null && system != MEDIA ) {
         noGame = true;
@@ -2549,7 +2560,12 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
             return Promise.resolve(ERROR_MESSAGES.romFailedDownload);
         }
         if( !fs.existsSync(generateRomLocation( system, game, gameDictEntry.rom, parents )) && system != BROWSER && !gameDictEntry.isPlaylist ) {
-            return Promise.resolve(ERROR_MESSAGES.noRomFile);
+            if( !gameDictEntry.installer || !fs.existsSync(generateRomLocation( system, game, gameDictEntry.installer, parents )) ) {
+                return Promise.resolve(ERROR_MESSAGES.noRomFile);
+            }
+            else {
+                useInstaller = true;
+            }
         }
         else if( system == MEDIA && (!menuPage || menuPage.isClosed())) {
             return Promise.resolve(ERROR_MESSAGES.menuPageClosed);
@@ -2629,7 +2645,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         let arguments = [];
 
         if( !noGame ) {
-            arguments.push( generateRomLocation( system, game, getGameDictEntry(system, game, parents).rom, parents ) );
+            arguments.push( generateRomLocation( system, game, getGameDictEntry(system, game, parents)[useInstaller ? "installer" : "rom"], parents ) );
 
             if( systemsDict[system].saveDirFlag ) {
                 if( systemsDict[system].optionPrefix ) { arguments.push( systemsDict[system].optionPrefix ); }
@@ -6277,7 +6293,9 @@ function startPcChangeLoop() {
                                 largestBinaryPath = curPath;
                                 largestBinarySize = stats["size"];
                                 // link metadata to new location
-                                fs.writeFileSync(generateGameMetaDataLocation(mySystem, myGame, myParents), JSON.stringify({"rom": largestBinaryPath}));
+                                let metadataLocation = generateGameMetaDataLocation(system, game, myParents);
+                                let currentMetadataContents = JSON.parse(fs.readFileSync(metadataLocation));
+                                fs.writeFileSync(metadataLocation, JSON.stringify({"rom": largestBinaryPath, "installer": currentMetadataContents.rom}));
                             }
                         }
                     }
