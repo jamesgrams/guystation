@@ -6283,6 +6283,7 @@ function startPcChangeLoop() {
                 let largestBinaryPath = null;
                 let largestBinarySize = 0;
                 let checkFolder = function() {
+                    currentFolderContent = fs.readdirSync(PC_WATCH_FOLDERS[i]); // reget current folder content
                     difference = currentFolderContent.filter(el => !originalFolderContent.includes(el));
                     let newFolderPaths = difference.map(el => PC_WATCH_FOLDERS[i] + SEPARATOR + el);
                     for( let newFolderPath of newFolderPaths ) { // sometimes there will be multiple new folders - one for the company, one for the program.
