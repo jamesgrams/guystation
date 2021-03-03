@@ -6295,7 +6295,7 @@ function startPcChangeLoop() {
                                 // link metadata to new location
                                 let metadataLocation = generateGameMetaDataLocation(mySystem, myGame, myParents);
                                 let currentMetadataContents = JSON.parse(fs.readFileSync(metadataLocation));
-                                fs.writeFileSync(metadataLocation, JSON.stringify({"rom": largestBinaryPath, "installer": currentMetadataContents.rom}));
+                                fs.writeFileSync(metadataLocation, JSON.stringify({"rom": largestBinaryPath, "installer": currentMetadataContents.installer ? currentMetadataContents.installer : currentMetadataContents.rom}));
                             }
                         }
                     }
