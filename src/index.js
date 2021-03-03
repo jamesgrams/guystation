@@ -275,6 +275,8 @@ const LAUNCH_ONBOARD_COMMAND = "onboard";
 const ENSURE_FLOAT_ONBOARD_COMMAND = "gsettings set org.onboard.window docking-enabled false";
 const RENEGOTIATE_RTMP_INTERVAL = 50;
 const SIGTERM = 'SIGTERM';
+const INSTALLSHIELD = "InstallShield Installation Information";
+const COMMON_FILES = "Common Files";
 
 const DEFAULT_PROFILES_DICT = {
     "GuyStation Virtual Controller": {
@@ -6299,7 +6301,7 @@ function startPcChangeLoop() {
     let watchFolders = [];
     for( let watchFolder of PC_WATCH_FOLDERS ) {
         watchFolders.push(watchFolder);
-        watchFolders.push(...(fs.readdirSync(watchFolder, {withFileTypes: true}).filter(el => el.isDirectory() && el.name != "InstallShield Installation Information").map(el => watchFolder + SEPARATOR + el.name)));
+        watchFolders.push(...(fs.readdirSync(watchFolder, {withFileTypes: true}).filter(el => el.isDirectory() && el.name != INSTALLSHIELD && el.name != COMMON_FILES).map(el => watchFolder + SEPARATOR + el.name)));
     }
     // Get the original contents of each folder that contains programs
     let originalFolderContents = watchFolders.map( folder => fs.readdirSync(folder) );
