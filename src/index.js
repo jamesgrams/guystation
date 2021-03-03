@@ -4498,6 +4498,9 @@ async function fetchGameData( system, game, parents, currentMetadataContents, fo
     if( !force && currentMetadataContents.lastFetched && parseInt(currentMetadataContents.lastFetched) > currentTime - ONE_WEEK_MILLISECONDS ) {
         return Promise.resolve(ERROR_MESSAGES.alreadyFetchedWithinWeek);
     }
+    if( currentMetadataContents && currentMetadataContents.status === STATUS_DOWNLOADING ) {
+        return Promise.resolve(ERROR_MESSAGES.romNotYetDownloaded);
+    }
 
     delete currentMetadataContents.summary
     delete currentMetadataContents.releaseDate;
