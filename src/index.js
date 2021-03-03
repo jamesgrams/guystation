@@ -6257,6 +6257,7 @@ function bindMicrophoneToChromeInput() {
 
 /**
  * Start looking for PC installations.
+ * This will update the rom for a PC game. If no installation is needed, this won't do an update.
  */
 function startPcChangeLoop() {
     let mySystem = currentSystem;
@@ -6278,28 +6279,40 @@ function startPcChangeLoop() {
             let difference = currentFolderContent.filter(el => !originalFolderContent.includes(el));
             if( difference.length ) {
                 clearInterval( pcChangeLoop );
-                let newFolderPath = PC_WATCH_FOLDERS[i] + SEPARATOR + difference[0];
+                let newFolderPaths = difference.map(el => PC_WATCH_FOLDERS[i] + SEPARATOR + el);
                 // we've found the new folder, we just have to consistently look for the largest .exe file now
                 let largestBinaryPath = null;
                 let largestBinarySize = 0;
                 let checkFolder = function() {
-                    let installedFiles = fs.readdirSync(newFolderPath);
-                    // Get the largest binary file
-                    for( let installedFile of installedFiles ) {
-                        if( installedFile.match(/\.exe$/i) ) {
-                            let curPath = newFolderPath + SEPARATOR + installedFile;
-                            let stats = fs.statSync(curPath);
-                            if( isBinaryFileSync(curPath) && (!largestBinaryPath || stats["size"] > largestBinarySize) ) {
-                                largestBinaryPath = curPath;
-                                largestBinarySize = stats["size"];
-                                // link metadata to new location
-                                let metadataLocation = generateGameMetaDataLocation(mySystem, myGame, myParents);
-                                let currentMetadataContents = JSON.parse(fs.readFileSync(metadataLocation));
-                                fs.writeFileSync(metadataLocation, JSON.stringify({"rom": largestBinaryPath, "installer": currentMetadataContents.installer ? currentMetadataContents.installer : currentMetadataContents.rom}));
+                    for( let newFolderPath of newFolderPaths ) { // sometimes there will be multiple new folders - one for the company, one for the program.
+                        let installedFiles = fs.readdirSync(newFolderPath, {withFileTypes: true});
+                        let foundExe = false;
+                        let subdirectories = [];
+                        // Get the largest binary file
+                        for( let installedFile of installedFiles ) {
+                            let curPath = newFolderPath + SEPARATOR + installedFile.name;
+
+                            if( installedFile.name.match(/\.exe$/i) ) {
+                                foundExe = true;
+                                let stats = fs.statSync(curPath);
+                                if( isBinaryFileSync(curPath) && (!largestBinaryPath || stats["size"] > largestBinarySize) ) {
+                                    largestBinaryPath = curPath;
+                                    largestBinarySize = stats["size"];
+                                    // link metadata to new location
+                                    let metadataLocation = generateGameMetaDataLocation(mySystem, myGame, myParents);
+                                    let currentMetadataContents = JSON.parse(fs.readFileSync(metadataLocation));
+                                    fs.writeFileSync(metadataLocation, JSON.stringify({"rom": largestBinaryPath, "installer": currentMetadataContents.installer ? currentMetadataContents.installer : currentMetadataContents.rom}));
+                                }
+                            }
+                            else if( installedFile.isDirectory() ) {
+                                subdirectories.push( curPath );
                             }
                         }
+                        // There was no exe in the main directory, add its children
+                        if( !foundExe && subdirectories.length ) {
+                            newFolderPaths.push( ...subdirectories );
+                        }
                     }
-
                 };
                 checkFolder();
                 pcChangeLoop = setInterval( checkFolder, WATCH_FOLDERS_INTERVAL );
