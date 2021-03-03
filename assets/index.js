@@ -4758,10 +4758,10 @@ function ensureRomInputAndPlaylistSelectIsDisplayedOrHidden( modal, old ) {
         }
         romCandidateSelect.parentNode.replaceWith( createRomCandidateMenu(rom, romCandidates) );
         if( !romCandidates ) {
-            romCandidateSelect.classList.add("hidden");
+            romCandidateSelect.parentNode.classList.add("hidden");
         }
         else {
-            romCandidateSelect.classList.remove("hidden");
+            romCandidateSelect.parentNode.classList.remove("hidden");
         }
     }
 }

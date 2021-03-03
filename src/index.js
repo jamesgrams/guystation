@@ -6350,16 +6350,18 @@ function startPcChangeLoop() {
                             if( installedFile.name.match(/\.exe$/i) ) {
                                 foundExe = true;
                                 let stats = fs.statSync(curPath);
-                                if( isBinaryFileSync(curPath) && (!largestBinaryPath || stats["size"] > largestBinarySize) ) {
-                                    largestBinaryPath = curPath;
-                                    largestBinarySize = stats["size"];
+                                if( isBinaryFileSync(curPath) ) {
+                                    if( !largestBinaryPath || stats["size"] > largestBinarySize) ) {
+                                        largestBinaryPath = curPath;
+                                        largestBinarySize = stats["size"];
+                                    }
                                     // link metadata to new location
                                     let metadataLocation = generateGameMetaDataLocation(mySystem, myGame, myParents);
                                     let currentMetadataContents = JSON.parse(fs.readFileSync(metadataLocation));
                                     if( !currentMetadataContents.romCandidates ) {
                                         currentMetadataContents.romCandidates = [];
                                     }
-                                    currentMetadataContents.romCandidates.push(largestBinaryPath);
+                                    currentMetadataContents.romCandidates.push(curPath);
                                     fs.writeFileSync(metadataLocation, JSON.stringify({"rom": largestBinaryPath, "romCandidates": currentMetadataContents.romCandidates, "installer": currentMetadataContents.installer ? currentMetadataContents.installer : currentMetadataContents.rom}));
                                 }
                             }
