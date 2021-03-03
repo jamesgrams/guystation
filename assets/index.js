@@ -4757,6 +4757,7 @@ function ensureRomInputAndPlaylistSelectIsDisplayedOrHidden( modal, old ) {
             playlistSelect.parentNode.replaceWith( createPlaylistMenu( translateSymlinks(getGamesInFolder(oldParents, oldSystem)[oldGame], oldSystem) ) );
         }
         romCandidateSelect.parentNode.replaceWith( createRomCandidateMenu(rom, romCandidates) );
+        romCandidateSelect = modal.querySelector("#rom-candidate-select");
         if( !romCandidates ) {
             romCandidateSelect.parentNode.classList.add("hidden");
         }
