@@ -3687,9 +3687,14 @@ async function unpackGetLargestFile( file, folder, deleteFolder=false, installer
             else if( files ) {
                 let largestBinaryPath = null;
                 let largestBinarySize = 0;
-                let tmpFiles = fs.readdirSync(folder);
+                let tmpFiles = fs.readdirSync(folder, {withFileTypes: true});
+                // sometimes zip files have a sole directory, if that is the case, enter it
+                while( tmpFiles.length === 1 && tmpFiles[0].isDirectory() ) {
+                    folder = folder + SEPARATOR + tmpFiles[0];
+                    tmpFiles = fs.readdirSync(folder, {withFileTypes: true});
+                }
                 // Get the largest binary file
-                for( let tmpFile of tmpFiles ) {
+                for( let tmpFile of tmpFiles.map(el => el.name) ) {
                     let curPath = folder + SEPARATOR + tmpFile;
                     try {
                         if( copyFolderContentsPath ) {
