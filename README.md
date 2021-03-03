@@ -223,7 +223,7 @@ On the client, install (`sudo apt-get`) samba and cifs-utils. Then, update `/etc
 //192.168.1.2/systems   /home/<your_home_name>/guystation/systems  cifs    sfu,rw,username=root,password=<root_password>,vers=1.0       00
 ```
 There are a few important things to note with this. You won't be able to change saves on the client machine. This is simply because you can't update symlinks on a mounted drive. Additionally, you can't use colons or pipes in your game or save names. Samba doesn't like files that have these names, so it is best to avoid them. However, you can tell GuyStation to send save change requests that wouldn't work typically to the GuyStation that you are mounting by starting the client GuyStation with the command `node src/index.js --smb <server GuyStation ip>`. You'll want to update `~/.local/share/applications/guystation.desktop` and `~/.config/autostart/guystation.desktop` if you do this (you may want to un-symlink them).
-Note: Since PC games are installed outside of the systems directory, you'll have to install them on all computers in your cluster.
+Note: Since PC games are installed outside of the systems directory, you'll have to install them on all computers in your cluster. GuyStation will detect you need to reinstall the program and run the installer. However, you need to make sure it installs to the same place as your other computers (including the users home directory name). Unfonrtunately, saves will not be shared here either simply by sharing the systems directory.
 
 ## File Structure for Systems Directory
 * `systems`
@@ -251,7 +251,6 @@ Multiple monitor support may be limited. GuyStation will aim to use the primary 
 * A program restart is required if you change the screen resolution or add, change primary, or remove monitors.
 * Mobile Virtual Controller Keycode options don't extend beyond main keyboard area, F keys, and arrow keys.
 * The resolution is incorrect for a PIP video for N64.
-* PC games that install won't work in Samba mode unless the installed directory for Wine programs is also mapped.
 * m64py changes the Mupen64Plus dimensions when you use it.
 * Wii doesn't save properly over Samba.
 * NES fullscreen spans multiple monitors when they are connected.
