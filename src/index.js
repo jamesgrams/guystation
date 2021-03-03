@@ -3700,11 +3700,11 @@ async function unpackGetLargestFile( file, folder, deleteFolder=false, installer
                             newLocation += "1";
                             rename = newLocation;
                         }
-                        fs.moveSync( loneFolderPath + SEPARATOR + subfile, newLocation );
+                        fsExtra.moveSync( loneFolderPath + SEPARATOR + subfile, newLocation );
                     }
                     rimraf.sync( loneFolderPath );
                     if( rename ) {
-                        fs.moveSync( newLocation, loneFolderPath );
+                        fsExtra.moveSync( newLocation, loneFolderPath );
                     }
                     tmpFiles = fs.readdirSync(folder, {withFileTypes: true});
                 }
