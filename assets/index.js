@@ -4369,6 +4369,7 @@ function displayUpdateGame() {
     var romDownloadInput = createRomDownloadInput();
     form.appendChild( romDownloadInput );
     form.appendChild( createPlaylistMenu( translateSymlinks(getGamesInFolder(selected.parents, selected.system)[selected.game], selected.system) ) );
+    form.appendChild( createRomCandidateMenu( selectedGame.rom, selectedGame.romCandidates ) );
     // Do this here 
     ensureRomInputAndPlaylistSelectIsDisplayedOrHidden( form, true );
     form.appendChild( createButton( "Update Game", function(event) {
@@ -4385,8 +4386,9 @@ function displayUpdateGame() {
             var isFolder = getGamesInFolder(oldParents, oldSystemSelect.options[oldSystemSelect.selectedIndex].value)[oldGameSelect.options[oldGameSelect.selectedIndex].value].isFolder;
             var isPlaylist = getGamesInFolder(oldParents, oldSystemSelect.options[oldSystemSelect.selectedIndex].value)[oldGameSelect.options[oldGameSelect.selectedIndex].value].isPlaylist;
             var playlistItems = extractItemsfromPlaylistContainer();
+            var romCandidateSelect = document.querySelector(".modal #update-game-form #rom-candidate-select");
 
-            updateGame( oldSystemSelect.options[oldSystemSelect.selectedIndex].value, oldGameSelect.options[oldGameSelect.selectedIndex].value, oldParents, systemSelect.options[systemSelect.selectedIndex].value, gameInput.value, romFileInput.files[0] ? romFileInput.files[0] : romDownloadInput.value, parents, isFolder, isPlaylist, playlistItems );
+            updateGame( oldSystemSelect.options[oldSystemSelect.selectedIndex].value, oldGameSelect.options[oldGameSelect.selectedIndex].value, oldParents, systemSelect.options[systemSelect.selectedIndex].value, gameInput.value, romFileInput.files[0] ? romFileInput.files[0] : romDownloadInput.value, parents, isFolder, isPlaylist, playlistItems, romCandidateSelect[romCandidateSelect.selectedIndex].value );
         }
     } ) );
     launchModal( form );
@@ -4728,11 +4730,14 @@ function ensureRomInputAndPlaylistSelectIsDisplayedOrHidden( modal, old ) {
         var romFileInput = modal.querySelector("#rom-file-input");
         var romDownloadInput = modal.querySelector("#rom-download-input");
         var playlistSelect = modal.querySelector("#playlist-container");
+        var romCandidateSelect = modal.querySelector("#rom-candidate-select");
         var oldParents = extractParentsFromFolderMenu(true, modal);
         var oldSystem = oldSystemSelect.options[oldSystemSelect.selectedIndex].value;
         var oldGame = oldGameSelect.options[oldGameSelect.selectedIndex].value;
         var isFolder = getGamesInFolder(oldParents, oldSystem)[oldGame].isFolder;
         var isPlaylist = getGamesInFolder(oldParents, oldSystem)[oldGame].isPlaylist;
+        var romCandidates = getGamesInFolder(oldParents, oldSystem)[oldGame].romCandidates;
+        var rom = getGamesInFolder(oldParents, oldSystem)[oldGame].rom;
         if( isFolder ) {
             romFileInput.parentNode.classList.add("hidden");
             romDownloadInput.parentNode.classList.add("hidden");
@@ -4750,6 +4755,13 @@ function ensureRomInputAndPlaylistSelectIsDisplayedOrHidden( modal, old ) {
         }
         if( !playlistSelect.parentNode.classList.contains("hidden") ) {
             playlistSelect.parentNode.replaceWith( createPlaylistMenu( translateSymlinks(getGamesInFolder(oldParents, oldSystem)[oldGame], oldSystem) ) );
+        }
+        romCandidateSelect.parentNode.replaceWith( createRomCandidateMenu(rom, romCandidates) );
+        if( !romCandidates ) {
+            romCandidateSelect.classList.add("hidden");
+        }
+        else {
+            romCandidateSelect.classList.remove("hidden");
         }
     }
 }
@@ -4921,6 +4933,16 @@ function createPositionIndicator(currentPosition, maxPosition) {
     maxPositionSpan.innerText = maxPosition;
     positionDiv.appendChild(maxPositionSpan);
     return positionDiv;
+}
+
+/**
+ * Create a ROM Candidate menu.
+ * @param {string} rom - The current ROM. 
+ * @param {Array<string>} romCandidates - The list of ROM candidates.
+ * @returns {HTMLElement} A ROM candidate dropdown wrapped by a label.
+ */
+function createRomCandidateMenu( rom, romCandidates ) {
+    return createMenu( rom, romCandidates ? romCandidates : [], "rom-candidate-select", "Installed ROM: " );
 }
 
 /**
@@ -5546,8 +5568,9 @@ function addGame( system, game, file, parents, isFolder, isPlaylist, playlistIte
  * @param {boolean} [isFolder] - True if the "game" is a folder.
  * @param {boolean} [isPlaylist] - True if the "game" is a playlist.
  * @param {Array<Array<string>>} playlistItems - The items in the playlist.
+ * @param {string} [romCandidate] - The ROM candidate for PC games.
  */
-function updateGame( oldSystem, oldGame, oldParents, system, game, file, parents, isFolder, isPlaylist, playlistItems ) {
+function updateGame( oldSystem, oldGame, oldParents, system, game, file, parents, isFolder, isPlaylist, playlistItems, romCandidate ) {
     makeRequest( "PUT", "/game", { "oldSystem": oldSystem, "oldGame": oldGame, "oldParents": JSON.stringify(oldParents), "system": system, "game": game, "file": file ? file : "", "parents": JSON.stringify(parents), "isFolder": isFolder ? isFolder : "", "isPlaylist": isPlaylist ? isPlaylist : "", "playlistItems": JSON.stringify(playlistItems) }, 
     function( responseText ) { standardSuccess(responseText, "Game successfully updated", oldSystem, system ? system : oldSystem, oldGame, game ? game: oldGame, oldParents, parents) },
     function( responseText ) { standardFailure( responseText ) }, true, true );

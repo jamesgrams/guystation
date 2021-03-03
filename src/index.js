@@ -390,7 +390,8 @@ const ERROR_MESSAGES = {
     "invalidTwitchCode": "Invalid Twitch code",
     "couldNotFetchTwitchInfo": "Could not fetch Twitch information",
     "couldNotFindTwitchUsername": "Could not find Twitch username",
-    "anotherTwitchRequest": "Twitch request outdated"
+    "anotherTwitchRequest": "Twitch request outdated",
+    "invalidRomCandidate": "Invalid ROM candidate"
 }
 // http://jsfiddle.net/vWx8V/ - keycode
 // http://robotjs.io/docs/syntax - robotjs
@@ -696,7 +697,7 @@ app.put("/game", upload.single("file"), async function(request, response) {
     if( ! requestLocked ) {
         requestLocked = true;
         try {
-            let errorMessage = updateGame( request.body.oldSystem, request.body.oldGame, JSON.parse(request.body.oldParents), request.body.system, request.body.game, request.file ? request.file : request.body.file, JSON.parse(request.body.parents), request.body.isFolder, request.body.isPlaylist, JSON.parse(request.body.playlistItems) );
+            let errorMessage = updateGame( request.body.oldSystem, request.body.oldGame, JSON.parse(request.body.oldParents), request.body.system, request.body.game, request.file ? request.file : request.body.file, JSON.parse(request.body.parents), request.body.isFolder, request.body.isPlaylist, JSON.parse(request.body.playlistItems), request.body.romCandidate );
             getData(); // Reload data
             requestLocked = false;
             writeActionResponse( response, errorMessage );
@@ -2268,6 +2269,7 @@ function generateGames(system, games, parents=[], startup, noPlaying) {
             var metadataFileContents = JSON.parse(fs.readFileSync(generateGameMetaDataLocation(system, game, curParents)));
             gameData.rom = metadataFileContents.rom;
             gameData.installer = metadataFileContents.installer;
+            gameData.romCandidates = gameData.romCandidates;
             gameData.isPlaylist = metadataFileContents.isPlaylist;
             if( metadataFileContents.siteUrl ) {
                 gameData.siteUrl = metadataFileContents.siteUrl;
@@ -2699,7 +2701,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         updateTwitchStream();
 
         // PC, check for installation.
-        if( system === SYSTEM_PC ) {
+        if( system === SYSTEM_PC && !gameDictEntry.installer ) {
             try {
                 startPcChangeLoop();
             }
@@ -3803,9 +3805,10 @@ function hasSymlinksBeingPlayed( system, game, parents ) {
  * @param {boolean} [isFolder] - True if this game is really a folder of other games.
  * @param {boolean} [isPlaylist] - True if the game is a playlist (will function similarly to a folder).
  * @param {Array<Array<string>>} [playlistItems] - The items in the playlist.
+ * @param {string} [romCandidate] - The new romCandidate to use for PC games.
  * @returns {(boolean|string)} An error message if there was an error, false if there was not.
  */
-function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, parents=[], isFolder, isPlaylist, playlistItems ) {
+function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, parents=[], isFolder, isPlaylist, playlistItems, romCandidate ) {
 
     // Error check
     // Make sure the game and system are valid for old
@@ -3897,6 +3900,12 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
     // isBeingPlayedRecursive will work here since playlists are only one level deep folders
     if( isPlaylist && isBeingPlayedRecursive(oldSystem, oldGame, oldParents)) {
         return ERROR_MESSAGES.playlistHasGameBeingPlayed;
+    }
+    if( !file && romCandidate ) {
+        let gameDictEntry = getGameDictEntry(oldSystem, oldGame, oldParents);
+        if( !gameDictEntry.romCandidates.length || gameDictEntry.romCandidates.indexOf(romCandidate) == -1 ) {
+            return ERROR_MESSAGES.invalidRomCandidate;
+        }
     }
 
     // Get the current game directory
@@ -3991,6 +4000,11 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
         else if( oldRomPath ) {
             fs.unlinkSync( TMP_ROM_LOCATION );
         }
+    }
+    if( !file && romCandidate ) { // for PC games
+        let currentGameDictEntry = getGameDictEntry(oldSystem, oldGame, oldParents);
+        currentGameDictEntry.rom = romCandidate;
+        fs.writeFileSync(generateGameMetaDataLocation(oldSystem, oldGame, oldParents), JSON.stringify(currentGameDictEntry));
     }
     // Move some of the directories around
     if( (system && oldSystem != system) || (game && oldGame != game) || (oldParents.join(SEPARATOR) != parents.join(SEPARATOR)) ) {
@@ -6342,7 +6356,11 @@ function startPcChangeLoop() {
                                     // link metadata to new location
                                     let metadataLocation = generateGameMetaDataLocation(mySystem, myGame, myParents);
                                     let currentMetadataContents = JSON.parse(fs.readFileSync(metadataLocation));
-                                    fs.writeFileSync(metadataLocation, JSON.stringify({"rom": largestBinaryPath, "installer": currentMetadataContents.installer ? currentMetadataContents.installer : currentMetadataContents.rom}));
+                                    if( !currentMetadataContents.romCandidates ) {
+                                        currentMetadataContents.romCandidates = [];
+                                    }
+                                    currentMetadataContents.romCandidates.push(largestBinaryPath);
+                                    fs.writeFileSync(metadataLocation, JSON.stringify({"rom": largestBinaryPath, "romCandidates": currentMetadataContents.romCandidates, "installer": currentMetadataContents.installer ? currentMetadataContents.installer : currentMetadataContents.rom}));
                                 }
                             }
                             else if( installedFile.isDirectory() ) {
