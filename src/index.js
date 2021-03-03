@@ -3630,7 +3630,10 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
         try {
             let tmpFolderPath = tmpFilePath + TMP_FOLDER_EXTENSION;
 
-            filename = await unpackGetLargestFile( tmpFilePath, tmpFolderPath, true );
+            if( system === SYSTEM_PC ) {
+                filename = await unpackGetLargestFile( tmpFilePath, tmpFolderPath, false, true, generateGameDir(system, game, parents) );
+            }
+            else filename = await unpackGetLargestFile( tmpFilePath, tmpFolderPath, true );
         }
         catch(err) {
             // ok
@@ -3638,13 +3641,16 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
         }
 
         try {
-            if( fs.existsSync(tmpFilePath) ) {
-                if( !filename ) {
-                    filename = path.basename(urlLib.parse(url).pathname);
+            let tmpFileExists = fs.existsSync(tmpFilePath);
+            if( tmpFileExists || system === SYSTEM_PC ) {
+                if( tmpFileExists ) {
+                    if( !filename ) {
+                        filename = path.basename(urlLib.parse(url).pathname);
+                    }
+                    fs.renameSync( tmpFilePath, generateRomLocation(system, game, filename, parents) );
+                    // getData(); - should be in all the callbacks
                 }
-                fs.renameSync( tmpFilePath, generateRomLocation(system, game, filename, parents) );
                 fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"rom": filename}));
-                // getData(); - should be in all the callbacks
 
                 if( callback ) {
                     await requestLockedPromise();
@@ -3713,7 +3719,7 @@ async function unpackGetLargestFile( file, folder, deleteFolder=false, installer
                     let curPath = folder + SEPARATOR + tmpFile;
                     try {
                         if( copyFolderContentsPath ) {
-                            fs.copyFileSync( curPath, copyFolderContentsPath + SEPARATOR + tmpFile );
+                            fsExtra.copySync( curPath, copyFolderContentsPath + SEPARATOR + tmpFile );
                         }
                         if( !installersOnly || tmpFile.match(/\.exe$/i) || tmpFile.match(/\.msi$/i) ) {
                             let stats = fs.statSync(curPath);
@@ -3724,7 +3730,7 @@ async function unpackGetLargestFile( file, folder, deleteFolder=false, installer
                             }
                         }
                     }
-                    catch(err) {} // ok we found a directory
+                    catch(err) {} // ok
                 }
 
                 if( copyFolderContentsPath ) {
