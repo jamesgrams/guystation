@@ -6369,7 +6369,6 @@ function startPcChangeLoop() {
                                     if( currentMetadataContents.romCandidates.indexOf(curPath) === -1 ) currentMetadataContents.romCandidates.push(curPath);
                                     currentMetadataContents.installer = currentMetadataContents.installer ? currentMetadataContents.installer : currentMetadataContents.rom;
                                     currentMetadataContents.rom = largestBinaryPath;
-                                    fs.writeFileSync(metadataLocation, JSON.stringify(currentMetadataContents));
                                 }
                             }
                             else if( installedFile.isDirectory() ) {
@@ -6381,6 +6380,7 @@ function startPcChangeLoop() {
                             newFolderPaths.push( ...subdirectories );
                         }
                     }
+                    fs.writeFileSync(metadataLocation, JSON.stringify(currentMetadataContents));
                 };
                 checkFolder();
                 pcChangeLoop = setInterval( checkFolder, WATCH_FOLDERS_INTERVAL );
