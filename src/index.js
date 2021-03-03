@@ -6299,7 +6299,7 @@ function startPcChangeLoop() {
     let watchFolders = [];
     for( let watchFolder of PC_WATCH_FOLDERS ) {
         watchFolders.push(watchFolder);
-        watchFolders.push(...(fs.readdirSync(watchFolders, {withFileTypes: true}).filter(el => el.isDirectory()).map(el => el.name)));
+        watchFolders.push(...(fs.readdirSync(watchFolder, {withFileTypes: true}).filter(el => el.isDirectory() && el.name != "InstallShield Installation Information").map(el => watchFolder + SEPARATOR + el.name)));
     }
     // Get the original contents of each folder that contains programs
     let originalFolderContents = watchFolders.map( folder => fs.readdirSync(folder) );
