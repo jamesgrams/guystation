@@ -425,6 +425,7 @@ let gamepadFileDescriptors = [];
 let properEmulatorResolution = null;
 let continueInterval = null;
 let pcChangeLoop = null;
+let pcChangeClear = null;
 let tryPipInterval = null;
 let ensureMuteTimeout = null;
 let fullscreenPip = false;
@@ -2874,7 +2875,7 @@ async function quitGame() {
  */
 function blankCurrentGame() {
     clearInterval(continueInterval); // put this here just to be safe
-    clearInterval(pcChangeLoop) // stop looking for pc game changes
+    pcChangeClear = setTimeout( () => clearInterval(pcChangeLoop), WATCH_FOLDERS_INTERVAL * 5); // stop looking for pc game changes - give some time to find installed files
 
     currentGame = null;
     currentSystem = null;
@@ -6289,17 +6290,24 @@ function bindMicrophoneToChromeInput() {
  * This will update the rom for a PC game. If no installation is needed, this won't do an update.
  */
 function startPcChangeLoop() {
+    clearInterval( pcChangeLoop );
+    clearTimeout( pcChangeClear );
     let mySystem = currentSystem;
     let myGame = currentGame;
     let myParents = currentParentsString.split(SEPARATOR).filter(el => el != '');
 
+    let watchFolders = [];
+    for( let watchFolder of PC_WATCH_FOLDERS ) {
+        watchFolders.push(watchFolder);
+        watchFolders.push(...(fs.readdirSync(watchFolders, {withFileTypes: true}).filter(el => el.isDirectory()).map(el => el.name)));
+    }
     // Get the original contents of each folder that contains programs
-    let originalFolderContents = PC_WATCH_FOLDERS.map( folder => fs.readdirSync(folder) );
+    let originalFolderContents = watchFolders.map( folder => fs.readdirSync(folder) );
 
     pcChangeLoop = setInterval( function() {
 
         // Get the new contents of each folder that contains programs
-        let currentFolderContents = PC_WATCH_FOLDERS.map( folder => fs.readdirSync(folder) );
+        let currentFolderContents = watchFolders.map( folder => fs.readdirSync(folder) );
 
         for( let i=0; i<originalFolderContents.length; i++ ) {
             let originalFolderContent = originalFolderContents[i];
@@ -6312,9 +6320,9 @@ function startPcChangeLoop() {
                 let largestBinaryPath = null;
                 let largestBinarySize = 0;
                 let checkFolder = function() {
-                    currentFolderContent = fs.readdirSync(PC_WATCH_FOLDERS[i]); // reget current folder content
+                    currentFolderContent = fs.readdirSync(watchFolders[i]); // reget current folder content
                     difference = currentFolderContent.filter(el => !originalFolderContent.includes(el));
-                    let newFolderPaths = difference.map(el => PC_WATCH_FOLDERS[i] + SEPARATOR + el);
+                    let newFolderPaths = difference.map(el => watchFolders[i] + SEPARATOR + el);
                     for( let newFolderPath of newFolderPaths ) { // sometimes there will be multiple new folders - one for the company, one for the program.
                         let installedFiles = fs.readdirSync(newFolderPath, {withFileTypes: true});
                         let foundExe = false;
