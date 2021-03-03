@@ -6361,7 +6361,7 @@ function startPcChangeLoop() {
                                     if( !currentMetadataContents.romCandidates ) {
                                         currentMetadataContents.romCandidates = [];
                                     }
-                                    currentMetadataContents.romCandidates.push(curPath);
+                                    if( currentMetadataContents.romCandidates.indexOf(curPath) === -1 ) currentMetadataContents.romCandidates.push(curPath);
                                     fs.writeFileSync(metadataLocation, JSON.stringify({"rom": largestBinaryPath, "romCandidates": currentMetadataContents.romCandidates, "installer": currentMetadataContents.installer ? currentMetadataContents.installer : currentMetadataContents.rom}));
                                 }
                             }
