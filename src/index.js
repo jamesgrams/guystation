@@ -172,7 +172,7 @@ const MAX_MESSAGES_LENGTH = 100;
 // sharing prompt either starts with http://localhost or GuyStation on older chrome
 const SHARING_PROMPT = "is sharing your screen.";
 const SHARING_PROMPT_DELAY_TIME = 100;
-const SHARING_PROMPT_MAX_TRIES = 5;
+const SHARING_PROMPT_MAX_TRIES = 10;
 const SYSTEM_3DS = '3ds';
 const SYSTEM_N64 = 'n64';
 const SYSTEM_GBA = 'gba';
@@ -6279,11 +6279,12 @@ function startPcChangeLoop() {
             let difference = currentFolderContent.filter(el => !originalFolderContent.includes(el));
             if( difference.length ) {
                 clearInterval( pcChangeLoop );
-                let newFolderPaths = difference.map(el => PC_WATCH_FOLDERS[i] + SEPARATOR + el);
                 // we've found the new folder, we just have to consistently look for the largest .exe file now
                 let largestBinaryPath = null;
                 let largestBinarySize = 0;
                 let checkFolder = function() {
+                    difference = currentFolderContent.filter(el => !originalFolderContent.includes(el));
+                    let newFolderPaths = difference.map(el => PC_WATCH_FOLDERS[i] + SEPARATOR + el);
                     for( let newFolderPath of newFolderPaths ) { // sometimes there will be multiple new folders - one for the company, one for the program.
                         let installedFiles = fs.readdirSync(newFolderPath, {withFileTypes: true});
                         let foundExe = false;
