@@ -6346,6 +6346,10 @@ function startPcChangeLoop() {
                     currentFolderContent = fs.readdirSync(watchFolders[i]); // reget current folder content
                     difference = currentFolderContent.filter(el => !originalFolderContent.includes(el));
                     let newFolderPaths = difference.map(el => watchFolders[i] + SEPARATOR + el);
+                    // link metadata to new location
+                    let metadataLocation = generateGameMetaDataLocation(mySystem, myGame, myParents);
+                    let currentMetadataContents = JSON.parse(fs.readFileSync(metadataLocation));
+                    currentMetadataContents.romCandidates = []; // oreset rom candidates for updating
                     for( let newFolderPath of newFolderPaths ) { // sometimes there will be multiple new folders - one for the company, one for the program.
                         let installedFiles = fs.readdirSync(newFolderPath, {withFileTypes: true});
                         let foundExe = false;
@@ -6361,12 +6365,6 @@ function startPcChangeLoop() {
                                     if( !largestBinaryPath || stats["size"] > largestBinarySize) {
                                         largestBinaryPath = curPath;
                                         largestBinarySize = stats["size"];
-                                    }
-                                    // link metadata to new location
-                                    let metadataLocation = generateGameMetaDataLocation(mySystem, myGame, myParents);
-                                    let currentMetadataContents = JSON.parse(fs.readFileSync(metadataLocation));
-                                    if( !currentMetadataContents.romCandidates ) {
-                                        currentMetadataContents.romCandidates = [];
                                     }
                                     if( currentMetadataContents.romCandidates.indexOf(curPath) === -1 ) currentMetadataContents.romCandidates.push(curPath);
                                     currentMetadataContents.installer = currentMetadataContents.installer ? currentMetadataContents.installer : currentMetadataContents.rom;
