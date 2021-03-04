@@ -3509,9 +3509,13 @@ function saveUploadedRom( file, system, game, parents ) {
         fs.copyFileSync( DOWNLOAD_PC_PREFIX, PC_BACKUP_LOCATION );
         pcUnpacking = true;
         // this will not leave zip, but we'll copy it back if we don't find an installer candidate, so there is still a rom
-        unpackGetLargestFile( DOWNLOAD_PC_PREFIX, DOWNLOAD_PC_PREFIX + TMP_FOLDER_EXTENSION, false, true, generateGameDir(system, game, parents) ).then( (name) => {
-            if( name ) {
-                fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"rom": name}));
+        unpackGetLargestFile( DOWNLOAD_PC_PREFIX, DOWNLOAD_PC_PREFIX + TMP_FOLDER_EXTENSION, false, true, generateGameDir(system, game, parents) ).then( (obj) => {
+            if( obj.name ) {
+                let writeObj = {
+                    rom: object.name
+                };
+                if( obj.candidates && obj.candidates.length ) writeObj.romCandidates = obj.candidates;
+                fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify(writeObj));
                 fs.unlinkSync( PC_BACKUP_LOCATION );
             }
             else {
@@ -3589,6 +3593,7 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
     let tmpFilePath = DOWNLOAD_ROM_PREFIX + index;
     let tmpFileStream = fs.createWriteStream(tmpFilePath);
     let filename = "";
+    let candidates = null;
 
     // Then, try to get the file from YouTube DL
     // Upon testing, this downloads the file even if it is not a YouTube video
@@ -3652,10 +3657,16 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
             let tmpFolderPath = tmpFilePath + TMP_FOLDER_EXTENSION;
 
             if( !shouldNotExtract(url) ) {
+                let obj = null;
                 if( system === SYSTEM_PC ) {
-                    filename = await unpackGetLargestFile( tmpFilePath, tmpFolderPath, false, true, generateGameDir(system, game, parents) );
+                    obj = await unpackGetLargestFile( tmpFilePath, tmpFolderPath, false, true, generateGameDir(system, game, parents) );
+                    if( obj.candidates && obj.candidates.length ) {
+                        candidates = obj.candidates;
+                    }
                 }
-                else filename = await unpackGetLargestFile( tmpFilePath, tmpFolderPath, true );
+                else obj = await unpackGetLargestFile( tmpFilePath, tmpFolderPath, true );
+                filename = obj.filename;
+
             }
         }
         catch(err) {
@@ -3675,7 +3686,11 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
                     fs.renameSync( tmpFilePath, generateRomLocation(system, game, filename, parents) );
                     // getData(); - should be in all the callbacks
                 }
-                fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"rom": filename}));
+                let writeObj = {
+                    "rom": filename
+                }
+                if( candidates ) writeObj.romCandidates = candidates;
+                fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify(writeObj));
 
                 if( callback ) {
                     await requestLockedPromise();
@@ -3710,11 +3725,12 @@ function shouldNotExtract( file ) {
  * @param {boolean} [deleteFolder] - true if the folder should be deleted and largest file extracted to the original location of file
  * @param {boolean} [installersOnly] - true if only pc installers should be considered.
  * @param {string} [copyFolderContentsPath] - the folder contents should be copied to this location, and the file and folder deleted
- * @returns {Promise<string>} - A promise containing the filename.
+ * @returns {Promise<Object>} - A promise containing and object with keys for the filename and an array of candidates.
  */
 async function unpackGetLargestFile( file, folder, deleteFolder=false, installersOnly=false, copyFolderContentsPath ) {
 
     let filename = null;
+    let candidates = [];
     let extractPromise = new Promise( function(resolve, reject) {
 
         ua.unpack( file, {
@@ -3757,10 +3773,13 @@ async function unpackGetLargestFile( file, folder, deleteFolder=false, installer
                         }
                         if( !installersOnly || tmpFile.match(/\.exe$/i) || tmpFile.match(/\.msi$/i) ) {
                             let stats = fs.statSync(curPath);
-                            if( isBinaryFileSync(curPath) && (!largestBinaryPath || stats["size"] > largestBinarySize) ) {
-                                largestBinaryPath = curPath;
-                                largestBinarySize = stats["size"];
-                                filename = tmpFile;
+                            if( isBinaryFileSync(curPath) ) {
+                                if( !largestBinaryPath || stats["size"] > largestBinarySize ) {
+                                    largestBinaryPath = curPath;
+                                    largestBinarySize = stats["size"];
+                                    filename = tmpFile;
+                                }
+                                candidates.push(tmpFile);
                             }
                         }
                     }
@@ -3785,7 +3804,10 @@ async function unpackGetLargestFile( file, folder, deleteFolder=false, installer
     } );
     await extractPromise;
 
-    return Promise.resolve(filename);
+    return Promise.resolve({
+        filename: filename,
+        candidates: candidates
+    });
 }
 
 /**
