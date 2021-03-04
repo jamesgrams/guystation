@@ -3506,7 +3506,7 @@ function saveUploadedRom( file, system, game, parents ) {
     if( system === SYSTEM_PC && !shouldNotExtract(file.originalname) ) { // PC games may be zipped as they require multiple files.
         // copy files
         fs.renameSync( romLocation, DOWNLOAD_PC_PREFIX );
-        fs.copyFileSync( romLocation, PC_BACKUP_LOCATION );
+        fs.copyFileSync( DOWNLOAD_PC_PREFIX, PC_BACKUP_LOCATION );
         pcUnpacking = true;
         // unlike download, this will leave the zip (see copyfileSync above)
         unpackGetLargestFile( DOWNLOAD_PC_PREFIX, DOWNLOAD_PC_PREFIX + TMP_FOLDER_EXTENSION, false, true, generateGameDir(system, game, parents) ).then( (name) => {
@@ -3515,6 +3515,8 @@ function saveUploadedRom( file, system, game, parents ) {
                 fs.unlinkSync( PC_BACKUP_LOCATION );
             }
             else {
+                // if we never got round to deleting it due to error, do it now
+                if( fs.existsSync(DOWNLOAD_PC_PREFIX) ) fs.unlinkSync( DOWNLOAD_PC_PREFIX );
                 fs.renameSync( PC_BACKUP_LOCATION, romLocation );
             }
             pcUnpacking = false;
