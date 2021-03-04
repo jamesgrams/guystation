@@ -293,6 +293,7 @@ Multiple monitor support may be limited. GuyStation will aim to use the primary 
 * SNES emulator: [Snes9X](http://www.snes9x.com/)
 * NES emulator: [FCEUX](http://www.fceux.com/)
 * PC player: [Wine](https://www.winehq.org/)
+* DOS player: [DOSBox](https://www.dosbox.com)
 * Menu Icons: [Font Awesome](https://fontawesome.com/)
 * Blinker font: [Juergen Huber](https://fonts.google.com/specimen/Blinker)
 * Toy Train font: [West Winds Fonts](https://www.dafont.com/west-wind-fonts.d361)
