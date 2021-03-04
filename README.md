@@ -34,6 +34,7 @@ GuyStation is designed to run on Ubuntu (working on version 18.04) and to basica
 Note: You can press F11 to get GuyStation out of full screen mode at any time.
 
 ## Supported Systems
+* DOS
 * Game Boy
 * Game Boy Color
 * Game Boy Advance
@@ -99,6 +100,7 @@ Note: You can press F11 to get GuyStation out of full screen mode at any time.
 * PC - GuyStation installs Wine so you can run PC games. Since these can vary so widely, GuyStation doesn't allow for changing saves or controller mapping. Most PC games have an installer. Simply upload the installer as the ROM file, then run the game. GuyStation will boot up the installer. Install the game. While the game is installing, GuyStation will be monitoring the `~/.wine/c_drive/Program Files` and `~/.wine/c_drive/Program Files (x86)` directories and their immediate subdirectories that contain only files (e.g. `Microsoft Games`) for changes. Once it finds a new folder(s) there, which is likely where your game will be installed, it will look for the largest executable file in that folder and continue to do so while the installation finishes (If no executable files are found, GuyStation will look in subfolders, if still no executable is found, sub-subfolders, and so on). Once it finds this file, it will update your game to run this file rather than the installer, so next time you launch from GuyStation, you will boot directly to the game! Of course, this process is not perfect, so you can choose other potential executable candidates by clicking the `Update Game` icon in the menu.
     * To help with this, you can also specify an absolute path of an exe file in the Rom URL field if you like.
     * Additionally, it's often the case that multiple files are needed to install a PC game. If you have multiple files, you can zip them up and upload them. GuyStation will take the biggest .exe or .msi file found as the installer (or potentially game) file, but all the files will be available in the folder. This will also occur on file download. If multiple candidates are found, you can select one using `Update Game`, so you can use the right .exe or .msi file, just like what happens following an install.
+    * The same unpack feature with candidates in `Update Game` takes place for DOS games, but there is no installer to watch for those.
 * Picture-in-Picture Mode
     * You can play an online video (e.g. YouTube) while you use GuyStation. Simply click the PIP Button under "More" in the menu and enter the URL of the page containing the video and click Apply. You can also choose whether to mute the game or the video in PIP mode. Once you are done, use the Stop button to leave PIP mode. You can switch between the video and the game being muted by selecting one and clicking Apply without entering a value for the URL field.
     * While not the most intuitive way, you can also mute the game without playing a video in PIP mode by leaving the URL blank, having "Mute Game" selected, and clicking "Apply". You can then unmute everything by clicking "Stop". This is helpful if you want to listen to something not controlled by GuyStation and play a game - perhaps you have multiple monitors to do this.
@@ -280,6 +282,7 @@ Multiple monitor support may be limited. GuyStation will aim to use the primary 
 * NES icon: [Icon-Library.net](https://icon-library.net/icon/nes-icon-22.html)
 * Keyboard icon: [Yorlmar Campos](https://thenounproject.com/Yorlmar%20Campos/)
 * Windows icon: [icons8](https://www.iconsdb.com/black-icons/os-windows-icon.html)
+* DOS icon: [icons8](https://www.iconsdb.com/black-icons/dos-icon.html)
 * Game Boy Advance emulator: [VisualBoyAdvance-m](https://vba-m.com/)
 * DS emulator: [DeSmuMe](http://desmume.org/)
 * Nintendo 64 emulator: [Mupen64Plus](https://mupen64plus.org/)
