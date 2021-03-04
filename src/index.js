@@ -2706,7 +2706,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         updateTwitchStream();
 
         // PC, check for installation.
-        if( system === SYSTEM_PC && !gameDictEntry.installer ) {
+        if( system === SYSTEM_PC && gameDictEntry && !gameDictEntry.installer ) {
             try {
                 startPcChangeLoop();
             }
