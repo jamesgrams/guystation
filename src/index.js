@@ -3510,9 +3510,9 @@ function saveUploadedRom( file, system, game, parents ) {
         pcUnpacking = true;
         // this will not leave zip, but we'll copy it back if we don't find an installer candidate, so there is still a rom
         unpackGetLargestFile( DOWNLOAD_PC_PREFIX, DOWNLOAD_PC_PREFIX + TMP_FOLDER_EXTENSION, false, true, generateGameDir(system, game, parents) ).then( (obj) => {
-            if( obj.name ) {
+            if( obj.filename ) {
                 let writeObj = {
-                    rom: object.name
+                    rom: object.filename
                 };
                 if( obj.candidates && obj.candidates.length ) writeObj.romCandidates = obj.candidates;
                 fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify(writeObj));
