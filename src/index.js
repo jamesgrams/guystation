@@ -3658,6 +3658,7 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
             if( tmpFileExists || system === SYSTEM_PC ) {
                 // If tmp file exists, it either wasn't a pc game, or it wasn't deleted, because it is already an executable (we didn't extract folder contents and clean up)
                 if( tmpFileExists ) {
+                    // no filename, means we should just use the file, we didn't extract and find a "largest file", just use the file
                     if( !filename ) {
                         filename = path.basename(urlLib.parse(url).pathname);
                     }
@@ -3695,6 +3696,7 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
 async function unpackGetLargestFile( file, folder, deleteFolder=false, installersOnly=false, copyFolderContentsPath ) {
 
     let filename = null;
+    if( file.match(/\.exe$/i) || file.match(/\.iso$/i) ) return filename; // don't extract exes and iso
     let extractPromise = new Promise( function(resolve, reject) {
 
         ua.unpack( file, {
