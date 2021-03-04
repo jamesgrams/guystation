@@ -1,6 +1,7 @@
 {
     "command": "dosbox",
-    "extraFlags": ["-fullscreen", "-c", "MOUNT c 'GAME_DIRECTORY_PLACEHOLDER'", "-c", "C:", "-c"],
+    "extraFlags": ["-c", "MOUNT c \"GAME_DIRECTORY_PLACEHOLDER\"", "-c", "C:", "-c"],
     "romOnly": true,
+    "argsFirst": true,
     "activateCommand": "wmctrl -a 'DOSBox'"
 }
