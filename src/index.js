@@ -3508,7 +3508,7 @@ function saveUploadedRom( file, system, game, parents ) {
         fs.renameSync( romLocation, DOWNLOAD_PC_PREFIX );
         fs.copyFileSync( DOWNLOAD_PC_PREFIX, PC_BACKUP_LOCATION );
         pcUnpacking = true;
-        // unlike download, this will leave the zip (see copyfileSync above)
+        // this will not leave zip, but we'll copy it back if we don't find an installer candidate, so there is still a rom
         unpackGetLargestFile( DOWNLOAD_PC_PREFIX, DOWNLOAD_PC_PREFIX + TMP_FOLDER_EXTENSION, false, true, generateGameDir(system, game, parents) ).then( (name) => {
             if( name ) {
                 fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"rom": name}));
