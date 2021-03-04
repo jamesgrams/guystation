@@ -87,6 +87,7 @@ const MAX_ACTIVATE_TRIES = 30;
 const FOCUS_CHROMIUM_COMMAND = "wmctrl -a 'Chrom'";
 const TMP_ROM_LOCATION = "/tmp/tmprom";
 const NAND_ROM_FILE_PLACEHOLDER = "ROM_FILE_PLACEHOLDER";
+const GAME_DIRECTORY_PLACEHOLDER = "GAME_DIRECTORY_PLACEHOLDER";
 const BROWSER = "browser";
 const MEDIA = "media";
 const MENU = "menu";
@@ -184,6 +185,7 @@ const SYSTEM_PS2 = "ps2";
 const SYSTEM_PSP = "psp";
 const SYSTEM_WII = "wii";
 const SYSTEM_PC = "pc";
+const SYSTEM_DOS = "dos";
 const UINPUT_PATH = "/dev/uinput";
 const UINPUT_MODE = "w+";
 const VIRTUAL_GAMEPAD_NAME = "GuyStation Gamepad";
@@ -2653,10 +2655,11 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         let arguments = [];
 
         if( !noGame ) {
-            let romLocation = generateRomLocation( system, game, getGameDictEntry(system, game, parents)[useInstaller ? "installer" : "rom"], parents );
+            let romName = getGameDictEntry(system, game, parents)[useInstaller ? "installer" : "rom"];
+            let romLocation = generateRomLocation( system, game, romName, parents );
             // for pc samba if the user is different for the home directory
             romLocation = romLocation.replace(/^\/home\/[^\/]+/,"/home/"+desktopUser);
-            arguments.push( romLocation );
+            arguments.push( systemsDict[system].romOnly ? romName : romLocation );
 
             if( systemsDict[system].saveDirFlag ) {
                 if( systemsDict[system].optionPrefix ) { arguments.push( systemsDict[system].optionPrefix ); }
@@ -2688,7 +2691,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
             }
 
             if( systemsDict[system].extraFlags ) {
-                arguments = arguments.concat( systemsDict[system].extraFlags );
+                arguments = arguments.concat( systemsDict[system].extraFlags.map( el => el.replace(GAME_DIRECTORY_PLACEHOLDER, generateGameDir(system, game, parents)) ) );
             }
 
             if( systemsDict[system].argsFirst ) {
@@ -3503,7 +3506,7 @@ function saveUploadedRom( file, system, game, parents ) {
     fs.renameSync(file.path, romLocation);
 
     fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"rom": file.originalname}));
-    if( system === SYSTEM_PC && !shouldNotExtract(file.originalname) ) { // PC games may be zipped as they require multiple files.
+    if( (system === SYSTEM_PC || system === SYSTEM_DOS) && !shouldNotExtract(file.originalname) ) { // PC games may be zipped as they require multiple files.
         // copy files
         fs.renameSync( romLocation, DOWNLOAD_PC_PREFIX );
         fs.copyFileSync( DOWNLOAD_PC_PREFIX, PC_BACKUP_LOCATION );
@@ -3658,7 +3661,7 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
 
             if( !shouldNotExtract(url) ) {
                 let obj = null;
-                if( system === SYSTEM_PC ) {
+                if( system === SYSTEM_PC || system === SYSTEM_DOS ) {
                     obj = await unpackGetLargestFile( tmpFilePath, tmpFolderPath, false, true, generateGameDir(system, game, parents) );
                     if( obj.candidates && obj.candidates.length ) {
                         candidates = obj.candidates;
@@ -3676,7 +3679,7 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
 
         try {
             let tmpFileExists = fs.existsSync(tmpFilePath);
-            if( tmpFileExists || system === SYSTEM_PC ) {
+            if( tmpFileExists || system === SYSTEM_PC || system === SYSTEM_DOS ) {
                 // If tmp file exists, it either wasn't a pc game, or it wasn't deleted, because it is already an executable (we didn't extract folder contents and clean up)
                 if( tmpFileExists ) {
                     // no filename, means we should just use the file, we didn't extract and find a "largest file", just use the file

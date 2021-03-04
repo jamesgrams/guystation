@@ -279,6 +279,7 @@ Multiple monitor support may be limited. GuyStation will aim to use the primary 
 * SNES icon: [Icon-Library.net](https://icon-library.net/icon/nintendo-controller-icon-14.html)
 * NES icon: [Icon-Library.net](https://icon-library.net/icon/nes-icon-22.html)
 * Keyboard icon: [Yorlmar Campos](https://thenounproject.com/Yorlmar%20Campos/)
+* Windows icon: [icons8](https://www.iconsdb.com/black-icons/os-windows-icon.html)
 * Game Boy Advance emulator: [VisualBoyAdvance-m](https://vba-m.com/)
 * DS emulator: [DeSmuMe](http://desmume.org/)
 * Nintendo 64 emulator: [Mupen64Plus](https://mupen64plus.org/)
