@@ -3502,7 +3502,7 @@ function saveUploadedRom( file, system, game, parents ) {
     fs.renameSync(file.path, romLocation);
 
     fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"rom": file.originalname}));
-    if( system === SYSTEM_PC && !file.originalname.match(/\.exe$/i) && !file.originalname.match(/\.msi$/i) ) { // PC games may be zipped as they require multiple files.
+    if( system === SYSTEM_PC && !shouldNotExtract(file.originalname) ) { // PC games may be zipped as they require multiple files.
         // copy files
         fs.copyFileSync( romLocation, DOWNLOAD_PC_PREFIX );
         pcUnpacking = true;
@@ -3643,10 +3643,12 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
         try {
             let tmpFolderPath = tmpFilePath + TMP_FOLDER_EXTENSION;
 
-            if( system === SYSTEM_PC ) {
-                filename = await unpackGetLargestFile( tmpFilePath, tmpFolderPath, false, true, generateGameDir(system, game, parents) );
+            if( !shouldNotExtract(url) ) {
+                if( system === SYSTEM_PC ) {
+                    filename = await unpackGetLargestFile( tmpFilePath, tmpFolderPath, false, true, generateGameDir(system, game, parents) );
+                }
+                else filename = await unpackGetLargestFile( tmpFilePath, tmpFolderPath, true );
             }
-            else filename = await unpackGetLargestFile( tmpFilePath, tmpFolderPath, true );
         }
         catch(err) {
             // ok
@@ -3685,6 +3687,15 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
 }
 
 /**
+ * Determine if the file should not be extracted.
+ * @param {string} file - The file name.
+ * @return {boolean} - True if we should not extract.
+ */
+function shouldNotExtract( file ) {
+    return (file.match(/\.exe$/i) || file.match(/\.iso$/i) || file.match(/\.msi$/i));// don't extract exes and iso
+}
+
+/**
  * Unzip an archive file and return the largest file in the folder.
  * @param {String} file - The file to unzip. 
  * @param {String} folder - The folder to place the files.
@@ -3696,7 +3707,6 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
 async function unpackGetLargestFile( file, folder, deleteFolder=false, installersOnly=false, copyFolderContentsPath ) {
 
     let filename = null;
-    if( file.match(/\.exe$/i) || file.match(/\.iso$/i) ) return filename; // don't extract exes and iso
     let extractPromise = new Promise( function(resolve, reject) {
 
         ua.unpack( file, {
