@@ -3506,6 +3506,7 @@ function saveUploadedRom( file, system, game, parents ) {
         // copy files
         fs.copyFileSync( romLocation, DOWNLOAD_PC_PREFIX );
         pcUnpacking = true;
+        // unlike download, this will leave the zip (see copyfileSync above)
         unpackGetLargestFile( DOWNLOAD_PC_PREFIX, DOWNLOAD_PC_PREFIX + TMP_FOLDER_EXTENSION, false, true, generateGameDir(system, game, parents) ).then( (name) => {
             if( name ) {
                 fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"rom": name}));
@@ -3655,6 +3656,7 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
         try {
             let tmpFileExists = fs.existsSync(tmpFilePath);
             if( tmpFileExists || system === SYSTEM_PC ) {
+                // If tmp file exists, it either wasn't a pc game, or it wasn't deleted, because it is already an executable (we didn't extract folder contents and clean up)
                 if( tmpFileExists ) {
                     if( !filename ) {
                         filename = path.basename(urlLib.parse(url).pathname);
