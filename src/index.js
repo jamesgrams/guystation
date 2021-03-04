@@ -3512,7 +3512,7 @@ function saveUploadedRom( file, system, game, parents ) {
         unpackGetLargestFile( DOWNLOAD_PC_PREFIX, DOWNLOAD_PC_PREFIX + TMP_FOLDER_EXTENSION, false, true, generateGameDir(system, game, parents) ).then( (obj) => {
             if( obj.filename ) {
                 let writeObj = {
-                    rom: object.filename
+                    rom: obj.filename
                 };
                 if( obj.candidates && obj.candidates.length ) writeObj.romCandidates = obj.candidates;
                 fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify(writeObj));
