@@ -205,6 +205,7 @@ const GOOGLE_CHROME_AUDIO_IDENTIFIER = "google-chrome";
 const PACMD_PREFIX = 'export PULSE_RUNTIME_PATH="/run/user/$(id --user $(logname))/pulse/" && sudo -u $(logname) -E '; // need to run as the user
 const DOWNLOAD_ROM_PREFIX = "/tmp/download_rom_";
 const DOWNLOAD_PC_PREFIX = "/tmp/download_pc";
+const PC_BACKUP_LOCATION = "/tmp/pc_backup";
 const STATUS_DOWNLOADING = "downloading";
 const STATUS_ROM_FAILED = "failed";
 const STRING_TYPE = "string";
@@ -3504,12 +3505,17 @@ function saveUploadedRom( file, system, game, parents ) {
     fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"rom": file.originalname}));
     if( system === SYSTEM_PC && !shouldNotExtract(file.originalname) ) { // PC games may be zipped as they require multiple files.
         // copy files
-        fs.copyFileSync( romLocation, DOWNLOAD_PC_PREFIX );
+        fs.renameSync( romLocation, DOWNLOAD_PC_PREFIX );
+        fs.copyFileSync( romLocation, PC_BACKUP_LOCATION );
         pcUnpacking = true;
         // unlike download, this will leave the zip (see copyfileSync above)
         unpackGetLargestFile( DOWNLOAD_PC_PREFIX, DOWNLOAD_PC_PREFIX + TMP_FOLDER_EXTENSION, false, true, generateGameDir(system, game, parents) ).then( (name) => {
             if( name ) {
                 fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"rom": name}));
+                fs.unlinkSync( PC_BACKUP_LOCATION );
+            }
+            else {
+                fs.renameSync( PC_BACKUP_LOCATION, romLocation );
             }
             pcUnpacking = false;
         } );
