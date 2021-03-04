@@ -4388,7 +4388,7 @@ function displayUpdateGame() {
             var playlistItems = extractItemsfromPlaylistContainer();
             var romCandidateSelect = document.querySelector(".modal #update-game-form #rom-candidate-select");
 
-            updateGame( oldSystemSelect.options[oldSystemSelect.selectedIndex].value, oldGameSelect.options[oldGameSelect.selectedIndex].value, oldParents, systemSelect.options[systemSelect.selectedIndex].value, gameInput.value, romFileInput.files[0] ? romFileInput.files[0] : romDownloadInput.value, parents, isFolder, isPlaylist, playlistItems, romCandidateSelect[romCandidateSelect.selectedIndex].value );
+            updateGame( oldSystemSelect.options[oldSystemSelect.selectedIndex].value, oldGameSelect.options[oldGameSelect.selectedIndex].value, oldParents, systemSelect.options[systemSelect.selectedIndex].value, gameInput.value, romFileInput.files[0] ? romFileInput.files[0] : romDownloadInput.value, parents, isFolder, isPlaylist, playlistItems, romCandidateSelect[romCandidateSelect.selectedIndex] ? romCandidateSelect[romCandidateSelect.selectedIndex].value : "" );
         }
     } ) );
     launchModal( form );
