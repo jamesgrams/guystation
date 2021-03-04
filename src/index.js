@@ -2652,10 +2652,10 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         let arguments = [];
 
         if( !noGame ) {
-            let romLocation = generateRomLocation( system, game, getGameDictEntry(system, game, parents)[useInstaller ? "installer" : "rom"]);
+            let romLocation = generateRomLocation( system, game, getGameDictEntry(system, game, parents)[useInstaller ? "installer" : "rom"], parents );
             // for pc samba if the user is different for the home directory
             romLocation = romLocation.replace(/^\/home\/[^\/]+/,"/home/"+desktopUser);
-            arguments.push( romLocation, parents );
+            arguments.push( romLocation );
 
             if( systemsDict[system].saveDirFlag ) {
                 if( systemsDict[system].optionPrefix ) { arguments.push( systemsDict[system].optionPrefix ); }
