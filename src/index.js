@@ -4053,9 +4053,9 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
         }
     }
     if( !file && romCandidate ) { // for PC games
-        let currentGameDictEntry = getGameDictEntry(oldSystem, oldGame, oldParents);
-        currentGameDictEntry.rom = romCandidate;
-        fs.writeFileSync(generateGameMetaDataLocation(oldSystem, oldGame, oldParents), JSON.stringify(currentGameDictEntry));
+        let currentMetadataContents = JSON.parse(fs.readFileSync(generateGameMetaDataLocation(oldSystem, oldGame, oldParents)));
+        currentMetadataContents.rom = romCandidate;
+        fs.writeFileSync(generateGameMetaDataLocation(oldSystem, oldGame, oldParents), JSON.stringify(currentMetadataContents));
     }
     // Move some of the directories around
     if( (system && oldSystem != system) || (game && oldGame != game) || (oldParents.join(SEPARATOR) != parents.join(SEPARATOR)) ) {
