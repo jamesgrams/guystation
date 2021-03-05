@@ -600,6 +600,10 @@ h1 {
     max-height: 100%;
 }
 
+.modal.fit-screen h2 {
+    display: none;
+}
+
 .modal.fit-screen #remote-screencast-form {
     width: initial;
 }

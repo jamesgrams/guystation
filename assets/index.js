@@ -3276,8 +3276,9 @@ function fitscreenVideo() {
         var button = document.querySelector("#remote-screencast-form button:last-child");
         var video = modal.querySelector("video");
         if( !modal.classList.contains("fit-screen") ) {
+            var modalHeightMinusTitle = modal.scrollHeight - document.querySelector(".modal h2").clientHeight;
             var width = window.innerWidth - (modal.scrollWidth - video.scrollWidth) - 40; // 40 to still give some space to quit
-            var height = window.innerHeight - (modal.scrollHeight - video.scrollHeight) - 40;
+            var height = window.innerHeight - (modalHeightMinusTitle - video.scrollHeight) - 40;
             var widthRatio = width/video.scrollWidth;
             var heightRatio = height/video.scrollHeight;
             var ratio = Math.min(widthRatio, heightRatio);
