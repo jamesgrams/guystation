@@ -977,6 +977,11 @@ function enableControls() {
                     break;
             }
         }
+        else if( enableModalControls && document.querySelector("#messaging-box") ) {
+            if( event.keyCode === 13 ) {
+                buttonsUp.keyboard[event.keyCode.toString()] = false;
+            }
+        }
         // for the video
         else if( enableModalControls && document.querySelector(".modal #remote-screencast-form video, .modal #browser-controls-form video, .black-background video") ) {
             // Allow enter for the browser address bar
@@ -995,41 +1000,44 @@ function enableControls() {
         }
     }
     document.onkeyup = function(event) {
-        switch (event.keyCode) {
-            // Left
-            case 37:
-                if( menuDirection == "left-keyboard") menuDirection = null;
-                break;
-            // Up
-            case 38:
-                if( menuDirection == "up-keyboard") menuDirection = null;
-                break;
-            // Right
-            case 39:
-                if( menuDirection == "right-keyboard") menuDirection = null;
-                break;
-            // Down
-            case 40:
-                if( menuDirection == "down-keyboard") menuDirection = null;
-                break;
-            // Enter
-            case 13:
-                buttonsUp.keyboard["13"] = true;
-                if( document.querySelector("#messaging-box") ) {
-                    document.querySelector("#messaging-form button").click();
-                }
-
-                clearTimeout(enterDown);
-                enterDown = null;
-                break;
-            // Escape
-            case 27:
-                clearTimeout(escapeDown);
-                escapeDown = null;
-                break;
-            // Spacebar
-            case 32:
-                buttonsUp.keyboard["32"] = true;
+        if( !disableMenuControls ) {
+            switch (event.keyCode) {
+                // Left
+                case 37:
+                    if( menuDirection == "left-keyboard") menuDirection = null;
+                    break;
+                // Up
+                case 38:
+                    if( menuDirection == "up-keyboard") menuDirection = null;
+                    break;
+                // Right
+                case 39:
+                    if( menuDirection == "right-keyboard") menuDirection = null;
+                    break;
+                // Down
+                case 40:
+                    if( menuDirection == "down-keyboard") menuDirection = null;
+                    break;
+                // Enter
+                case 13:
+                    buttonsUp.keyboard["13"] = true;
+                    clearTimeout(enterDown);
+                    enterDown = null;
+                    break;
+                // Escape
+                case 27:
+                    clearTimeout(escapeDown);
+                    escapeDown = null;
+                    break;
+                // Spacebar
+                case 32:
+                    buttonsUp.keyboard["32"] = true;
+            }
+        }
+        else if( enableModalControls && document.querySelector("#messaging-box") && !buttonsUp.keyboard[event.keyCode.toString()] ) {
+            if( event.keyCode === 13 ) {
+                document.querySelector("#messaging-form button").click();
+            }
         }
         // for the video
         if( enableModalControls && document.querySelector(".modal #remote-screencast-form video, .modal #browser-controls-form video, .black-background video") ) {

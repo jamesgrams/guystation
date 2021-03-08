@@ -173,7 +173,7 @@ const MAX_MESSAGES_LENGTH = 100;
 // sharing prompt either starts with http://localhost or GuyStation on older chrome
 const SHARING_PROMPT = "is sharing your screen.";
 const SHARING_PROMPT_DELAY_TIME = 100;
-const SHARING_PROMPT_MAX_TRIES = 10;
+const SHARING_PROMPT_MAX_TRIES = 5;
 const SYSTEM_3DS = '3ds';
 const SYSTEM_N64 = 'n64';
 const SYSTEM_GBA = 'gba';
