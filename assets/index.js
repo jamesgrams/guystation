@@ -35,6 +35,7 @@ var EZ_AXIS_ALLOW_FOR_NEXT_INPUT = 0.2; // we will set the last value within thi
 var CHANGES_DETECTED = "Changes detected";
 var MEDIA_RECORDER_TIMESLICE = 250;
 var RTMP_STATUS_INTERVAL = 1000;
+var CONTENT_HINT = "motion";
 var KEYCODES = {
     '0': 48,
     '1': 49,
@@ -6351,7 +6352,7 @@ function connectToSignalServer( isStreamer ) {
  */
 function getDisplayMediaSuccess(stream) {
     navigator.mediaDevices.getUserMedia({"audio": true}).then( function(audio) {
-        stream.getTracks()[0].contentHint = "motion"; // See here: https://webrtc.github.io/samples/src/content/capture/video-contenthint/
+        stream.getTracks()[0].contentHint = CONTENT_HINT; // See here: https://webrtc.github.io/samples/src/content/capture/video-contenthint/
         var av = new MediaStream();
         av.addTrack(stream.getTracks()[0]);
         av.addTrack(audio.getTracks()[0]);
@@ -6436,6 +6437,7 @@ function renegotiate() {
     var oldLocalStream = localStream;
     oldLocalStream.getVideoTracks().forEach(track => track.stop())
     getDisplayMedia().then(function(stream) {
+        stream.getTracks()[0].contentHint = CONTENT_HINT;
         var av = new MediaStream();
         av.addTrack(stream.getTracks()[0]);
         av.addTrack(localStream.getAudioTracks()[0]);
