@@ -2280,6 +2280,7 @@ function generateGames(system, games, parents=[], startup, noPlaying) {
             gameData.installer = metadataFileContents.installer;
             gameData.romCandidates = metadataFileContents.romCandidates;
             gameData.isPlaylist = metadataFileContents.isPlaylist;
+            gameData.sessions = metadataFileContents.sessions;
             if( metadataFileContents.siteUrl ) {
                 gameData.siteUrl = metadataFileContents.siteUrl;
                 if( metadataFileContents.script ) {
