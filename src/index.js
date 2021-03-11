@@ -280,6 +280,7 @@ const RENEGOTIATE_RTMP_INTERVAL = 50;
 const SIGTERM = 'SIGTERM';
 const INSTALLSHIELD = "InstallShield Installation Information";
 const COMMON_FILES = "Common Files";
+const UPDATE_PLAYTIME_INTERVAL = 60000; // 1 minute
 
 const DEFAULT_PROFILES_DICT = {
     "GuyStation Virtual Controller": {
@@ -415,6 +416,9 @@ let currentSystem = null;
 let currentGame = null;
 let currentParentsString = null;
 let currentEmulator = null;
+let currentGameStart = null;
+let prevGameStart = null;
+let currentPlaytimeInterval = null;
 
 let systemsDict = {};
 let profilesDict = {};
@@ -2306,9 +2310,10 @@ function generateGames(system, games, parents=[], startup, noPlaying) {
 
             // this will only ever be for a real game - only things we want to save will be at this point
             if( startup && gameData.status == STATUS_DOWNLOADING ) {
-                gameData.status = STATUS_ROM_FAILED;
-                delete gameData["percent"];
-                fs.writeFileSync( generateGameMetaDataLocation(system, game, curParents), JSON.stringify(gameData) );
+                updateGameMetaData( system, game, curParents, {
+                    status: STATUS_ROM_FAILED,
+                    percent: null
+                } );
             }
         }
         catch(err) {
@@ -2480,6 +2485,27 @@ function generateGameMetaDataLocation(system, game, parents) {
 }
 
 /**
+ * Update a games metadata.
+ * To delete a key, set its value to null.
+ * @param {string} system - The system the game is on.
+ * @param {string} game - The game.
+ * @param {Array<string>} [parents] - Parent directories for the game.
+ * @param {Object} content - The content to merge with the current metadata.
+ */
+function updateGameMetaData(system, game, parents, content) {
+    let metadataLocation = generateGameMetaDataLocation(system, game, parents);
+    let currentMetadataContents = {};
+    if(fs.existsSync(metadataLocation)) currentMetadataContents = JSON.parse(fs.readFileSync( metadataLocation ));
+    currentMetadataContents = Object.assign( currentMetadataContents, content );
+    for( let key in currentMetadataContents ) {
+        if( currentMetadataContents[key] === null || currentMetadataContents[key] === undefined ) {
+            delete currentMetadataContents[key];
+        }
+    }
+    fs.writeFileSync( metadataLocation, JSON.stringify(currentMetadataContents) );
+}
+
+/**
  * Generate the full directory for game saves.
  * @param {string} system - The system the game is on.
  * @param {string} game - The game to get the directory of.
@@ -2628,6 +2654,8 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
             currentGame = game;
             currentParentsString = parents.join(SEPARATOR);
             currentEmulator = true; // Kind of hacky... but will pass for playing
+            currentGameStart = Date.now();
+            startUpdatePlaytime();
             updateMute();
             return Promise.resolve(false);
         }
@@ -2637,6 +2665,8 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
             currentGame = game;
             currentParentsString = parents.join(SEPARATOR);
             currentEmulator = true; // Kind of hacky... but will pass for playing
+            currentGameStart = Date.now();
+            startUpdatePlaytime();
             updateMute();
             return Promise.resolve(false);
         }
@@ -2707,6 +2737,8 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         currentGame = game;
         currentSystem = system;
         currentParentsString = parents.join(SEPARATOR);
+        currentGameStart = Date.now();
+        startUpdatePlaytime();
         updateTwitchStream();
 
         // PC, check for installation.
@@ -2873,6 +2905,8 @@ async function quitGame() {
         currentGame = null;
         currentParentsString = null;
         currentSystem = null;
+        currentGameStart = null;
+        stopUpdatePlaytime();
         updateTwitchStream();
 
         await menuPage.bringToFront(); // for pip
@@ -2894,8 +2928,43 @@ function blankCurrentGame() {
     currentSystem = null;
     currentParentsString = null;
     currentEmulator = null;
+    currentGameStart = null;
+    stopUpdatePlaytime();
 
     blankOnboardInstance();
+}
+
+/**
+ * Start updating the playtime.
+ */
+function startUpdatePlaytime() {
+    stopUpdatePlaytime();
+    if( !currentEmulator || !currentSystem || !currentGame ) return;
+    updatePlaytime();
+    currentPlaytimeInterval = setInterval( updatePlaytime, UPDATE_PLAYTIME_INTERVAL );
+}
+
+/**
+ * Stop updating the playtime.
+ */
+function stopUpdatePlaytime() {
+    clearInterval( currentPlaytimeInterval );
+}
+
+/**
+ * Update playtime for the current game.
+ */
+function updatePlaytime() {
+    if( !currentEmulator || !currentSystem || !currentGame ) return;
+    let currentParents = currentParentsString.split(SEPARATOR).filter(el => el != '');
+    let sessions = JSON.parse( fs.readFileSync( generateGameMetaDataLocation( currentSystem, currentGame, currentParents ) ) ).sessions;
+    if( !sessions ) sessions = [];
+    if( prevGameStart != currentGameStart ) {
+        prevGameStart = currentGameStart;
+        sessions.push( [currentGameStart.getTime(),currentGameStart.getTime()] );
+    }
+    sessions[sessions.length - 1][1] = new Date().getTime();
+    updateGameMetaData( currentSystem, currentGame, currentParents, { sessions: sessions } );
 }
 
 /**
@@ -3298,15 +3367,15 @@ function addSymlinksToPlaylist( system, game, parents, playlistItems ) {
     for( let playlistItem of playlistItems ) {
         // The name is the order, plus the seperator, plus the items path (parents + game) joined by the separator
         let symlinkName =  indexPrefix + PLAYLIST_SEPERATOR + playlistItem.join(PLAYLIST_SEPERATOR);
-        console.log( addGame( system, symlinkName, null, parentsOfSymlinks, false, false, null, true, {
+        addGame( system, symlinkName, null, parentsOfSymlinks, false, false, null, true, {
             system: system,
             game: playlistItem[playlistItem.length-1],
             parents: playlistItem.slice(0, playlistItem.length-1)
-        }, true ) );
+        }, true );
         indexPrefix = indexPrefix.slice(0, -1);
     }
     // Make note that it is a playlist
-    fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"isPlaylist": true}));
+    updateGameMetaData( system, game, parents, { isPlaylist: true } );
 }
 
 /**
@@ -3505,7 +3574,7 @@ function saveUploadedRom( file, system, game, parents ) {
     let romLocation = generateRomLocation(system, game, file.originalname, parents);
     fs.renameSync(file.path, romLocation);
 
-    fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"rom": file.originalname}));
+    updateGameMetaData( system, game, parents, {rom: file.originalname} );
     if( (system === SYSTEM_PC || system === SYSTEM_DOS) && !shouldNotExtract(file.originalname) ) { // PC games may be zipped as they require multiple files.
         // copy files
         fs.renameSync( romLocation, DOWNLOAD_PC_PREFIX );
@@ -3518,7 +3587,7 @@ function saveUploadedRom( file, system, game, parents ) {
                     rom: obj.filename
                 };
                 if( obj.candidates && obj.candidates.length ) writeObj.romCandidates = obj.candidates;
-                fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify(writeObj));
+                updateGameMetaData( system, game, parents, writeObj );
                 fs.unlinkSync( PC_BACKUP_LOCATION );
             }
             else {
@@ -3553,7 +3622,7 @@ function downloadRom( url, system, game, parents, callback, waitPromise, oldSyst
     try {
         // Since this is synchronous, gameDictEntry will be updated when we call getData at the end of add/update.
         // At this point, we haven't called getData yet, so we need to use the old names
-        fs.writeFileSync(generateGameMetaDataLocation(oldSystem ? oldSystem : system, oldGame ? oldGame : game, oldParents ? oldParents : parents), JSON.stringify({"status": STATUS_DOWNLOADING, "percent": 0}));
+        updateGameMetaData(oldSystem ? oldSystem : system, oldGame ? oldGame : game, oldParents ? oldParents : parents, {"status": STATUS_DOWNLOADING, "percent": 0});
 
         downloadRomBackground( url, system, game, parents, callback, waitPromise );
         return false;
@@ -3624,7 +3693,7 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
                 let metadataContents = JSON.parse(fs.readFileSync(generateGameMetaDataLocation(system, game, parents)));
                 // still downloading
                 if( metadataContents.status == STATUS_DOWNLOADING ) {
-                    fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"status": STATUS_DOWNLOADING, "percent": percent}));
+                    updateGameMetaData( system, game, parents, {"status": STATUS_DOWNLOADING, "percent": percent} );
                     let gameDictEntry = getGameDictEntry(system, game, parents);
                     if( gameDictEntry ) {
                         gameDictEntry.status = STATUS_DOWNLOADING;
@@ -3638,7 +3707,7 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
     let errorFunction = async function() {
         tmpFileStream.close();
         fs.unlinkSync(tmpFilePath); // Delete the file
-        fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"status": STATUS_ROM_FAILED}));
+        updateGameMetaData( system, game, parents, {status: STATUS_ROM_FAILED});
         // Note that although for addGame we usually would check for the force option before calling getData
         // we know that force is only ever true when adding a symlink, and a symlink will never have a download
         // so we can call getData here.
@@ -3693,7 +3762,7 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
                     "rom": filename
                 }
                 if( candidates ) writeObj.romCandidates = candidates;
-                fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify(writeObj));
+                updateGameMetaData( system, game, parents, writeObj );
 
                 if( callback ) {
                     await requestLockedPromise();
@@ -4000,19 +4069,16 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
         let oldRomPath;
         // Set the browser site url
         if( system == BROWSER ) {
-            let currentGameDictEntry = getGameDictEntry(oldSystem, oldGame, oldParents);
             if( typeof file == STRING_TYPE ) {
-                currentGameDictEntry.siteUrl = file;
-                fs.writeFileSync(generateGameMetaDataLocation(oldSystem, oldGame, oldParents), JSON.stringify(currentGameDictEntry));
+                updateGameMetaData( oldSystem, oldGame, oldParents, {siteUrl: file} );
             }
             else {
                 try {
                     let uploadedContent = fs.readFileSync(file.path);
                     let uploadedJson = JSON.parse(uploadedContent);
                     if( !uploadedJson.siteUrl ) errorMessage = ERROR_MESSAGES.siteUrlRequired;
-                    currentGameDictEntry.siteUrl = uploadedJson.siteUrl;
-                    if( uploadedJson.script ) currentGameDictEntry.script = uploadedJson.script;
-                    fs.writeFileSync(generateGameMetaDataLocation(oldSystem, oldGame, oldParents), JSON.stringify(currentGameDictEntry));
+                    if( !uploadedJson.script ) uploadedJson.script = null;
+                    updateGameMetaData( oldSystem, oldGame, oldParents, uploadedJson );
                 }
                 // invalid JSON file
                 catch(err) {
@@ -4034,7 +4100,7 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
             // Note: an async error will continue unlike a sync error
             // A sync error to get the file - we'll just revert
             // An async error, we'll just have to alert the user that we failed.
-            if( typeof file == STRING_TYPE && file.match(/^\//) ) fs.writeFileSync(generateGameMetaDataLocation(system ? system : oldSystem, game ? game : oldGame, parents ? parents : oldParents), JSON.stringify({"rom": file}));
+            if( typeof file == STRING_TYPE && file.match(/^\//) ) updateGameMetaData(system ? system : oldSystem, game ? game : oldGame, parents ? parents : oldParents, {"rom": file});
             else if( typeof file == STRING_TYPE ) errorMessage = downloadRom( file, system ? system : oldSystem, game ? game : oldGame, parents ? parents : oldParents, runWhenDone, dirsDonePromise, oldSystem, oldGame, oldParents );
             else errorMessage = saveUploadedRom( file, oldSystem, oldGame, oldParents );
         }
@@ -4056,9 +4122,7 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
         }
     }
     if( !file && romCandidate ) { // for PC games
-        let currentMetadataContents = JSON.parse(fs.readFileSync(generateGameMetaDataLocation(oldSystem, oldGame, oldParents)));
-        currentMetadataContents.rom = romCandidate;
-        fs.writeFileSync(generateGameMetaDataLocation(oldSystem, oldGame, oldParents), JSON.stringify(currentMetadataContents));
+        updateGameMetaData( oldSystem, oldGame, oldParents, {rom: romCandidate} );
     }
     // Move some of the directories around
     if( (system && oldSystem != system) || (game && oldGame != game) || (oldParents.join(SEPARATOR) != parents.join(SEPARATOR)) ) {
@@ -4602,18 +4666,20 @@ async function fetchGameData( system, game, parents, currentMetadataContents, fo
         return Promise.resolve(ERROR_MESSAGES.pcStillLoading);
     }
 
-    delete currentMetadataContents.summary
-    delete currentMetadataContents.releaseDate;
-    delete currentMetadataContents.name;
-    delete currentMetadataContents.cover;
+    let newContent = {
+        summary: null,
+        releaseDate: null,
+        name: null,
+        cover: null
+    };
 
     let payload = GAMES_FIELDS + 'search "' + game + '";' + 'where platforms=(' + PLATFORM_LOOKUP[system].join() + ");";
     let gameInfo = await axios.post( GAMES_ENDPOINT, payload, { headers: headers } );
     if( gameInfo.data.length ) {
         gameInfo = gameInfo.data[0];
-        if( gameInfo.first_release_date ) currentMetadataContents.releaseDate = gameInfo.first_release_date;
-        if( gameInfo.name ) currentMetadataContents.name = gameInfo.name;
-        if( gameInfo.summary ) currentMetadataContents.summary = gameInfo.summary;
+        if( gameInfo.first_release_date ) newContent.releaseDate = gameInfo.first_release_date;
+        if( gameInfo.name ) newContent.name = gameInfo.name;
+        if( gameInfo.summary ) newContent.summary = gameInfo.summary;
         if( gameInfo.cover ) {
             let coverPayload = "where id=" + gameInfo.cover + ";" + COVERS_FIELDS;
             let coverInfo = await axios.post( COVERS_ENDPOINT, coverPayload, { headers: headers } );
@@ -4628,22 +4694,22 @@ async function fetchGameData( system, game, parents, currentMetadataContents, fo
                         response.data.pipe(fs.createWriteStream(saveLocation));
                     });
                     coverInfo.url = saveLocation.replace( WORKING_DIR, '' ); //remove the working dir
-                    currentMetadataContents.cover = coverInfo;
+                    newContent.cover = coverInfo;
                 }
             }
-            currentMetadataContents.lastFetched = currentTime; // update the time fetched
-            fs.writeFileSync(metaDataLocation, JSON.stringify(currentMetadataContents));
+            newContent.lastFetched = currentTime; // update the time fetched
+            updateGameMetaData( system, game, parents, newContent );
             return Promise.resolve(false);
         }
         else {
-            currentMetadataContents.lastFetched = currentTime; // update the time fetched
-            fs.writeFileSync(metaDataLocation, JSON.stringify(currentMetadataContents));
+            newContent.lastFetched = currentTime; // update the time fetched
+            updateGameMetaData( system, game, parents, newContent );
             return Promise.resolve(false);
         }
     }
     else {
-        currentMetadataContents.lastFetched = currentTime; // update the time fetched
-        fs.writeFileSync(metaDataLocation, JSON.stringify(currentMetadataContents));
+        newContent.lastFetched = currentTime; // update the time fetched
+        updateGameMetaData( system, game, parents, newContent );
         return Promise.resolve(ERROR_MESSAGES.noGameInfo);
     }
 }
@@ -6397,9 +6463,9 @@ function startPcChangeLoop() {
                     difference = currentFolderContent.filter(el => !originalFolderContent.includes(el));
                     let newFolderPaths = difference.map(el => watchFolders[i] + SEPARATOR + el);
                     // link metadata to new location
-                    let metadataLocation = generateGameMetaDataLocation(mySystem, myGame, myParents);
-                    let currentMetadataContents = JSON.parse(fs.readFileSync(metadataLocation));
-                    currentMetadataContents.romCandidates = []; // oreset rom candidates for updating
+                    let currentMetadataContents = fs.readFileSync( generateGameMetaDataLocation(mySystem, myGame, myParents) );
+                    let newContent = {};
+                    newContent.romCandidates = []; // oreset rom candidates for updating
                     for( let newFolderPath of newFolderPaths ) { // sometimes there will be multiple new folders - one for the company, one for the program.
                         let installedFiles = fs.readdirSync(newFolderPath, {withFileTypes: true});
                         let foundExe = false;
@@ -6416,9 +6482,9 @@ function startPcChangeLoop() {
                                         largestBinaryPath = curPath;
                                         largestBinarySize = stats["size"];
                                     }
-                                    if( currentMetadataContents.romCandidates.indexOf(curPath) === -1 ) currentMetadataContents.romCandidates.push(curPath);
-                                    currentMetadataContents.installer = currentMetadataContents.installer ? currentMetadataContents.installer : currentMetadataContents.rom;
-                                    currentMetadataContents.rom = largestBinaryPath;
+                                    if( newContent.romCandidates.indexOf(curPath) === -1 ) newContent.romCandidates.push(curPath);
+                                    newContent.installer = currentMetadataContents.installer ? currentMetadataContents.installer : currentMetadataContents.rom;
+                                    newContent.rom = largestBinaryPath;
                                 }
                             }
                             else if( installedFile.isDirectory() ) {
@@ -6430,7 +6496,7 @@ function startPcChangeLoop() {
                             newFolderPaths.push( ...subdirectories );
                         }
                     }
-                    fs.writeFileSync(metadataLocation, JSON.stringify(currentMetadataContents));
+                    updateGameMetaData( mySystem, myGame, myParents, newContent );
                 };
                 checkFolder();
                 pcChangeLoop = setInterval( checkFolder, WATCH_FOLDERS_INTERVAL );
