@@ -162,7 +162,7 @@ h1 {
     vertical-align: middle;
 }
 
-.game, .game-folder, .current-save, .game-title {
+.game, .game-folder, .current-save, .game-title, .playtime {
     user-select: none;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -190,16 +190,25 @@ h1 {
     font-size: 75%;
 }
 
-.current-save {
+.current-save, .playtime {
     font-size: 70%;
+    display: inline-block;
 }
 
-.game-folder ~ .current-save {
+.game-folder ~ .current-save, .game-folder ~ .playtime {
     font-size: 50%;
 }
 
-.current-save::before {
+.current-save + .playtime {
+    margin-left: 10px;
+}
+
+.current-save::before  {
     content: "save: ";
+}
+
+.playtime::before {
+    content: "time: ";
 }
 
 #ip {

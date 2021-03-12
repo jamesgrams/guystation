@@ -1338,6 +1338,19 @@ function populateGames(system, games, startSystem, gamesElement, hidden, parents
             // Append the game element to the list of elements
             gameElement.appendChild(currentSaveDiv);
         }
+         // Create an element for the play time
+         if( game.sessions ) {
+            var totalPlaytime = 0;
+            for( var i=0; i<game.sessions.length; i++ ) {
+                totalPlaytime += game.sessions[i][1] - game.sessions[i][0];
+            }
+            var playtimeDiv = document.createElement("div");
+            playtimeDiv.classList.add("playtime");
+            playtimeDiv.innerText = timeConversion(totalPlaytime);
+
+            // Append the game element to the list of elements
+            gameElement.appendChild(playtimeDiv);
+        }
         if( game.isFolder ) {
             gameElement.setAttribute("data-is-folder", "true");
         }
@@ -1370,6 +1383,23 @@ function populateGames(system, games, startSystem, gamesElement, hidden, parents
             populateGames(system, game.games, startSystem, gamesElement, tempHidden, curParents);
         }
     }
+}
+
+/**
+ * Convert milliseconds to a human-readable format.
+ * Taken from here: https://stackoverflow.com/questions/19700283/how-to-convert-time-milliseconds-to-hours-min-sec-format-in-javascript/32180863
+ * @param {number} duration - The number of milliseconds
+ * @returns {string} The human-readable time.
+ */
+function timeConversion(duration) {
+    var seconds = Math.floor((duration / 1000) % 60),
+    minutes = Math.floor((duration / (1000 * 60)) % 60),
+    hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
+
+    hours = (hours < 10) ? "0" + hours : hours;
+    minutes = (minutes < 10) ? "0" + minutes : minutes;
+
+    return hours + ":" + minutes;
 }
 
 /**
