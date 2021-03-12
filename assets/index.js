@@ -36,6 +36,7 @@ var CHANGES_DETECTED = "Changes detected";
 var MEDIA_RECORDER_TIMESLICE = 250;
 var RTMP_STATUS_INTERVAL = 1000;
 var CONTENT_HINT = "motion";
+var SESSIONS_REGEX = /"sessions":((?!]\s*]).)+\]\s*\]/g;
 var KEYCODES = {
     '0': 48,
     '1': 49,
@@ -803,8 +804,12 @@ function load() {
                 makeRequest( "GET", "/data", {}, function(responseText) {
                     var response = JSON.parse(responseText);
                     var newSystemsDict = response.systems;
-                    if( JSON.stringify(newSystemsDict) != JSON.stringify(systemsDict) ) {
-                        createToast( CHANGES_DETECTED );
+                    var newSystemsDictString = JSON.stringify(response.systems);
+                    var systemsDictString = JSON.stringify(systemsDict);
+                    if( newSystemsDictString != systemsDictString ) {
+                        if( newSystemsDictString.replace(SESSIONS_REGEX,"") !== systemsDictString.replace(SESSIONS_REGEX,"") ) {
+                            createToast( CHANGES_DETECTED );
+                        }
                         systemsDict = newSystemsDict;
                         redraw();
                     }
