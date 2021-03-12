@@ -2962,9 +2962,9 @@ function updatePlaytime() {
     if( !sessions ) sessions = [];
     if( prevGameStart != currentGameStart ) {
         prevGameStart = currentGameStart;
-        sessions.push( [currentGameStart.getTime(),currentGameStart.getTime()] );
+        sessions.push( [currentGameStart,currentGameStart] );
     }
-    sessions[sessions.length - 1][1] = new Date().getTime();
+    sessions[sessions.length - 1][1] = Date.now();
     updateGameMetaData( currentSystem, currentGame, currentParents, { sessions: sessions } );
 }
 
