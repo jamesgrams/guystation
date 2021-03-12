@@ -23,8 +23,9 @@ var HEADER_MARQUEE_TIMEOUT_TIME = 250;
 var RESET_CANCEL_STREAMING_INTERVAL = 1000; // reset the cancellation of streaming every second
 var SHOW_PREVIEW_TIMEOUT = 1000;
 var PREVIEW_ANIMATION_TIME = 1000;
-var SCROLL_TIMEOUT_TIME = 500;
-var SCROLL_NEEDED = 1250;
+var TOUCH_TIMEOUT_TIME = 400;
+var SCROLL_NEEDED = 50;
+var TOUCH_NEEDED = 75;
 var RELOAD_MESSAGES_INTERVAL = 5000;
 var CHATTING_MESSAGES_INTERVAL = 1000;
 var SCREENCAST_AXIS_FUZZINESS = 15;
@@ -331,6 +332,7 @@ var COULD_NOT_SET_CONTROLS_MESSAGE = "Could not set controls";
 var SCALE_DOWN_TIMEOUT = 1000;
 var SCALE_OPTIONS = [1,1.5,2,3,4,6]; // 1080p, 720p, 540p, 360p, 270p, 180p
 var CONTROLLER_CONNECT_OPTIONS = ["auto",0,1,2,3,4];
+var MAX_TOUCH_COUNT = 3;
 
 var expandCountLeft; // We always need to have a complete list of systems, repeated however many times we want, so the loop works properly
 var expandCountRight;
@@ -364,7 +366,7 @@ var resetCancelStreamingInterval;
 var showPreviewTimeout;
 var scrollVerticalTotal = 0;
 var scrollHorizontalTotal = 0;
-var scrollAddTimeout;
+var touchResetTimeout;
 var messages = [];
 var fetchedMessages = false;
 var swRegistration;
@@ -375,6 +377,8 @@ var voiceRecording = false;
 var rtmpRecorder = null;
 var rtmpStatusInterval = null;
 var currentConnectedVirtualControllers = 0;
+var touchCount = 0;
+var touchDirection = null;
 
 // keys are server values, values are client values
 // it's a map of numbers so 0:2, 3:3:, etc. PADCODES index to controller button number.
@@ -899,8 +903,25 @@ function enableSearch() {
                     makeRequest("POST", "/browser/navigate", {url: currentSearch});
                 });
             }
-            else redraw(null, null, null, null, null, null, true);
+            else {
+                redraw(null, null, null, null, null, null, true);
+                gotoSearchMatch();
+            }
         }, SEARCH_TIMEOUT_TIME );
+    }
+}
+
+/**
+ * Go to search match.
+ */
+function gotoSearchMatch() {
+    var selectedValues = getSelectedValues();
+    var currentSystem = document.querySelector(".system.selected").getAttribute("data-system");
+    if( selectedValues.system != currentSystem && selectedValues.game ) {
+        var startSystem = generateStartSystem();
+        startSystem.system = selectedValues.system;
+        // game shouldn't matter
+        draw( startSystem );
     }
 }
 
@@ -6246,19 +6267,19 @@ var yUp = null;
 function getTouches(evt) {
   return evt.touches ||             // browser API
          evt.originalEvent.touches; // jQuery
-}                                                     
+}
 
 /**
  * Handle the touch start event.
  * @param {Event} evt - the touch event.
  */
 function handleTouchStart(evt) {
+    clearTimeout(touchResetTimeout);
     const firstTouch = getTouches(evt)[0];                                      
     xDown = firstTouch.clientX;                                      
-    yDown = firstTouch.clientY;                                      
-};                                                
-
-var r=0;
+    yDown = firstTouch.clientY;
+    if( touchCount < MAX_TOUCH_COUNT ) touchCount++; // need xTouchCount and yTouchCount or direction track                              
+};
 
 /**
  * Handle the touch move event.
@@ -6270,41 +6291,58 @@ function handleTouchMove(evt) {
     }
 
     xUp = evt.touches[0].clientX;                                    
-    yUp = evt.touches[0].clientY;          
-};
+    yUp = evt.touches[0].clientY;
 
-/**
- * Handle the touch end event (moves the menu/submenus).
- */
-function handleTouchEnd() {
     if ( ! xDown || ! yDown || !xUp || !xDown || disableMenuControls ) {
         return;
     }
-
+    
     var xDiff = xDown - xUp;
     var yDiff = yDown - yUp;
 
-    if( Math.abs(xDiff) > 50 || Math.abs(yDiff) > 50 ) {
+    if( Math.abs(xDiff) > TOUCH_NEEDED || Math.abs(yDiff) > TOUCH_NEEDED ) {
+        xDown = xUp;
+        yDown = yUp;
+        var prevTouchDirection = touchDirection;
         if ( Math.abs( xDiff ) > Math.abs( yDiff ) ) {/*most significant*/
             if ( xDiff > 0 ) {
-                moveMenu(-1);
+                touchDirection = "left";
+                if( touchDirection != prevTouchDirection ) touchCount = 1;
+                moveMenu(-1/**touchCount*/); // only one move
             } else {
-                moveMenu(1);
-            }                       
+                touchDirection = "right";
+                if( touchDirection != prevTouchDirection ) touchCount = 1;
+                moveMenu(1/**touchCount*/);
+            }
+            xDown = null; // only one per touch                   
         } else {
             if ( yDiff > 0 ) {
-                moveSubMenu(1);
-            } else { 
-                moveSubMenu(-1);
+                touchDirection = "down";
+                if( touchDirection != prevTouchDirection ) touchCount = 1;
+                moveSubMenu(1*touchCount);
+            } else {
+                touchDirection = "up";
+                if( touchDirection != prevTouchDirection ) touchCount = 1;
+                moveSubMenu(-1*touchCount);
             }                                                                 
         }
     }
+};
 
-    /* reset values */
-    xDown = null;
-    yDown = null;   
-    xUp = null;
-    yUp = null;
+/**
+ * Handle the touch end event.
+ */
+function handleTouchEnd() {
+    clearTimeout(touchResetTimeout);
+    touchResetTimeout = setTimeout( function() {
+        /* reset values */
+        xDown = null;
+        yDown = null;   
+        xUp = null;
+        yUp = null;
+        touchCount = 0;
+        touchDirection = null;
+    }, TOUCH_TIMEOUT_TIME );
 }
 
 window.addEventListener("wheel", event => scrollWheel(event), { passive: false });
@@ -6318,21 +6356,13 @@ function scrollWheel( event ) {
     if( event.target.classList.contains("game-preview-summary") ) return;
     if( disableMenuControls ) return;
 
-    clearTimeout(scrollAddTimeout);
-    scrollAddTimeout = setTimeout( function() { scrollVerticalTotal = 0; scrollHorizontalTotal = 0; }, SCROLL_TIMEOUT_TIME );
-
-    scrollVerticalTotal += event.deltaY;
-    if( Math.abs(scrollVerticalTotal/SCROLL_NEEDED) >= 1 ) {
-        moveSubMenu( Math.floor(scrollVerticalTotal/SCROLL_NEEDED) );
-        scrollVerticalTotal = scrollVerticalTotal % SCROLL_NEEDED;
+    if( Math.abs(event.deltaY) >= SCROLL_NEEDED ) {
+        moveSubMenu( Math.floor(event.deltaY > 0 ? 1 : -1) );
     }
 
-    scrollHorizontalTotal += event.deltaX;
-    if( Math.abs(scrollHorizontalTotal/SCROLL_NEEDED) >= 1 ) {
-        moveMenu( -Math.floor(scrollHorizontalTotal/SCROLL_NEEDED) );
-        scrollHorizontalTotal = scrollHorizontalTotal % SCROLL_NEEDED;
+    if( Math.abs(event.deltaX) >= SCROLL_NEEDED ) {
+        moveMenu( Math.floor(event.deltaX > 0 ? 1 : -1) );
     }
-
 
     event.stopPropagation();
     event.preventDefault();
