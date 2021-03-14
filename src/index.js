@@ -134,7 +134,8 @@ const PLATFORM_LOOKUP = {
     "gba": [33, 22, 24], // gb, gbc, & gba
     "psp": [38],
     "3ds": [37, 137], // 3ds & new 3ds
-    "pc": [6, 13] // pc & dos
+    "pc": [6, 13], // pc & dos
+    "dos": [6, 13]
 }
 const IGDB_CLIENT_ID = process.env.GUYSTATION_IGDB_CLIENT_ID;
 const IGDB_CLIENT_SECRET = process.env.GUYSTATION_IGDB_CLIENT_SECRET;
@@ -3760,7 +3761,9 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
                     // getData(); - should be in all the callbacks
                 }
                 let writeObj = {
-                    "rom": filename
+                    "rom": filename,
+                    "status": null,
+                    "percent": null
                 }
                 if( candidates ) writeObj.romCandidates = candidates;
                 updateGameMetaData( system, game, parents, writeObj );
