@@ -4434,6 +4434,8 @@ function pauseGame() {
         proc.execSync( SLEEP_HALF_COMMAND ); // give time to go back to the menu
         proc.execSync( PAUSE_COMMAND + currentEmulator.pid );
     }
+    stopUpdatePlaytime();
+    currentGameStart = null;
 }
 
 /**
@@ -4444,6 +4446,10 @@ function resumeGame() {
     if(currentEmulator && currentSystem != BROWSER && currentSystem != MEDIA) {
         proc.execSync( SLEEP_HALF_COMMAND ); // give time to load to avoid button press issues
         proc.execSync( RESUME_COMMAND + currentEmulator.pid );
+    }
+    if( currentGameStart === null ) {
+        currentGameStart = Date.now();
+        startUpdatePlaytime();
     }
 }
 
