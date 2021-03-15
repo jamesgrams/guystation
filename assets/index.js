@@ -38,6 +38,7 @@ var MEDIA_RECORDER_TIMESLICE = 250;
 var RTMP_STATUS_INTERVAL = 1000;
 var CONTENT_HINT = "motion";
 var SESSIONS_REGEX = /"sessions":((?!]\s*]).)+\]\s*\]/g;
+var KEY_BUTTON_EXTRA = 20; // the extra size in pixels of a key button to a regular button
 var KEYCODES = {
     '0': 48,
     '1': 49,
@@ -325,8 +326,8 @@ var FIREFOX_TO_STANDARD_KEYCODE_MAP = {
 // 375 x 667 is what the buttons are set up with
 var TRUE_DEFAULT_KEY_MAPPING_WIDTH = 375;
 var TRUE_DEFAULT_KEY_MAPPING_HEIGHT = 667;
-var DEFAULT_KEY_MAPPING_PORTRAIT = [{"key":"Ⓨ","x":236,"y":497},{"key":"Ⓧ","x":290,"y":466},{"key":"Ⓐ","x":346,"y":499},{"key":"Ⓑ","x":291,"y":525},{"key":"◀","x":28,"y":495},{"key":"▼","x":83,"y":525},{"key":"▲","x":83,"y":468},{"key":"▶","x":137,"y":497},{"key":"🕹️L","x":123,"y":608},{"key":"🕹️R","x":249,"y":609},{"key":"Ⓡ","x":347,"y":236},{"key":"🅡","x":347,"y":181},{"key":"Ⓛ","x":29,"y":237},{"key":"🅛","x":28,"y":181},{"key":"🔘","x":135,"y":169},{"key":"⭐","x":241,"y":169},{"key":"⎋","x":77,"y":105},{"key":"↵","x":303,"y":105}];
-var DEFAULT_KEY_MAPPING_LANDSCAPE = [{"key":"▲","x":115,"y":162},{"key":"◀","x":42,"y":196},{"key":"▶","x":188,"y":194},{"key":"▼","x":115,"y":236},{"key":"🕹️L","x":46,"y":313},{"key":"🔘","x":142,"y":321},{"key":"⭐","x":216,"y":321},{"key":"Ⓑ","x":543,"y":324},{"key":"Ⓐ","x":616,"y":288},{"key":"Ⓨ","x":470,"y":289},{"key":"Ⓧ","x":543,"y":250},{"key":"🕹️R","x":536,"y":161},{"key":"Ⓡ","x":439,"y":29},{"key":"🅡","x":513,"y":29},{"key":"Ⓛ","x":262,"y":30},{"key":"🅛","x":188,"y":30},{"key":"✲","x":37,"y":111},{"key":"S","x":620,"y":109}];
+var DEFAULT_KEY_MAPPING_PORTRAIT = [{"key":"Ⓨ","x":184,"y":585},{"key":"Ⓧ","x":257,"y":546},{"key":"Ⓐ","x":330,"y":583},{"key":"Ⓑ","x":257,"y":619},{"key":"🕹️L","x":68,"y":597},{"key":"🕹️R","x":318,"y":459},{"key":"Ⓡ","x":338,"y":260},{"key":"🅡","x":337,"y":187},{"key":"Ⓛ","x":37,"y":258},{"key":"🅛","x":37,"y":185},{"key":"🔘","x":148,"y":181},{"key":"⭐","x":229,"y":181},{"key":"⎋","x":105,"y":98},{"key":"↵","x":275,"y":97}];
+var DEFAULT_KEY_MAPPING_LANDSCAPE = [{"key":"▲","x":115,"y":152},{"key":"◀","x":42,"y":192},{"key":"▶","x":188,"y":190},{"key":"▼","x":115,"y":225},{"key":"🕹️L","x":57,"y":320},{"key":"🔘","x":149,"y":335},{"key":"⭐","x":222,"y":335},{"key":"Ⓑ","x":553,"y":336},{"key":"Ⓐ","x":626,"y":301},{"key":"Ⓨ","x":480,"y":302},{"key":"Ⓧ","x":553,"y":263},{"key":"🕹️R","x":540,"y":171},{"key":"Ⓡ","x":425,"y":37},{"key":"🅡","x":498,"y":37},{"key":"Ⓛ","x":254,"y":37},{"key":"🅛","x":181,"y":37},{"key":"✲","x":42,"y":98},{"key":"S","x":625,"y":97}];
 var CONTROLS_SET_MESSAGE = "Controls set";
 var COULD_NOT_SET_CONTROLS_MESSAGE = "Could not set controls";
 var SCALE_DOWN_TIMEOUT = 1000;
@@ -3544,7 +3545,7 @@ function createKeyButton( selected, x, y ) {
 
     var keyButton = document.createElement("button");
     keyButton.classList.add("key-button");
-    var squareButtonSideHalf = (blackBackground.querySelector("#edit-button").clientWidth + 20)/2;
+    var squareButtonSideHalf = (blackBackground.querySelector("#edit-button").clientWidth + KEY_BUTTON_EXTRA)/2;
     keyButton.style.left = x - squareButtonSideHalf;
     keyButton.style.top = y - squareButtonSideHalf;
 
@@ -3711,7 +3712,7 @@ function saveKeyConfiguration() {
 
     var keys = [];
     var keyButtons = document.querySelectorAll(".black-background .key-button");
-    var squareButtonSideHalf = document.querySelector(".black-background #edit-button").clientWidth/2;
+    var squareButtonSideHalf = (document.querySelector(".black-background #edit-button").clientWidth+KEY_BUTTON_EXTRA)/2;
     for( var i=0; i<keyButtons.length; i++ ) {
         var saveObject = {
             "key": keyButtons[i].querySelector(".key-display").innerText,
