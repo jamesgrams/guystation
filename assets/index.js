@@ -326,7 +326,7 @@ var FIREFOX_TO_STANDARD_KEYCODE_MAP = {
 var TRUE_DEFAULT_KEY_MAPPING_WIDTH = 375;
 var TRUE_DEFAULT_KEY_MAPPING_HEIGHT = 667;
 var DEFAULT_KEY_MAPPING_PORTRAIT = [{"key":"Ⓨ","x":236,"y":497},{"key":"Ⓧ","x":290,"y":466},{"key":"Ⓐ","x":346,"y":499},{"key":"Ⓑ","x":291,"y":525},{"key":"◀","x":28,"y":495},{"key":"▼","x":83,"y":525},{"key":"▲","x":83,"y":468},{"key":"▶","x":137,"y":497},{"key":"🕹️L","x":123,"y":608},{"key":"🕹️R","x":249,"y":609},{"key":"Ⓡ","x":347,"y":236},{"key":"🅡","x":347,"y":181},{"key":"Ⓛ","x":29,"y":237},{"key":"🅛","x":28,"y":181},{"key":"🔘","x":135,"y":169},{"key":"⭐","x":241,"y":169},{"key":"⎋","x":77,"y":105},{"key":"↵","x":303,"y":105}];
-var DEFAULT_KEY_MAPPING_LANDSCAPE = [{"key":"▲","x":90,"y":161},{"key":"◀","x":35,"y":188},{"key":"▶","x":146,"y":188},{"key":"▼","x":91,"y":221},{"key":"🕹️L","x":68,"y":313},{"key":"🔘","x":161,"y":310},{"key":"⭐","x":453,"y":309},{"key":"Ⓑ","x":578,"y":336},{"key":"Ⓐ","x":633,"y":310},{"key":"Ⓨ","x":522,"y":309},{"key":"Ⓧ","x":577,"y":279},{"key":"🕹️R","x":599,"y":183},{"key":"Ⓡ","x":510,"y":31},{"key":"🅡","x":566,"y":30},{"key":"Ⓛ","x":201,"y":31},{"key":"🅛","x":146,"y":30},{"key":"✲","x":39,"y":96},{"key":"S","x":625,"y":97}];
+var DEFAULT_KEY_MAPPING_LANDSCAPE = [{"key":"▲","x":115,"y":162},{"key":"◀","x":42,"y":196},{"key":"▶","x":188,"y":194},{"key":"▼","x":115,"y":236},{"key":"🕹️L","x":46,"y":313},{"key":"🔘","x":142,"y":321},{"key":"⭐","x":216,"y":321},{"key":"Ⓑ","x":543,"y":324},{"key":"Ⓐ","x":616,"y":288},{"key":"Ⓨ","x":470,"y":289},{"key":"Ⓧ","x":543,"y":250},{"key":"🕹️R","x":536,"y":161},{"key":"Ⓡ","x":439,"y":29},{"key":"🅡","x":513,"y":29},{"key":"Ⓛ","x":262,"y":30},{"key":"🅛","x":188,"y":30},{"key":"✲","x":37,"y":111},{"key":"S","x":620,"y":109}];
 var CONTROLS_SET_MESSAGE = "Controls set";
 var COULD_NOT_SET_CONTROLS_MESSAGE = "Could not set controls";
 var SCALE_DOWN_TIMEOUT = 1000;
@@ -3544,7 +3544,7 @@ function createKeyButton( selected, x, y ) {
 
     var keyButton = document.createElement("button");
     keyButton.classList.add("key-button");
-    var squareButtonSideHalf = blackBackground.querySelector("#edit-button").clientWidth/2;
+    var squareButtonSideHalf = (blackBackground.querySelector("#edit-button").clientWidth + 20)/2;
     keyButton.style.left = x - squareButtonSideHalf;
     keyButton.style.top = y - squareButtonSideHalf;
 
