@@ -222,13 +222,22 @@ h1 {
     content: "http://";
 }
 
-#search {
+#search-sort {
     position: absolute;
     margin: 10px 0 !important;
     left: 50%;
     transform: translateX(-50%);
     top: 0;
     z-index: 996;
+    min-width: 300px;
+    text-align: center;
+}
+
+#sort {
+    display: inline-block;
+    margin-right: 10px;
+    vertical-align: middle;
+    cursor: pointer;
 }
 
 #time {
@@ -866,7 +875,7 @@ h1 {
     #functions {
         width: 460px !important;
     }
-    #search {
+    #search-sort {
         left: 10px;
         transform: none;
     }
@@ -1029,6 +1038,15 @@ readers do not read off random characters that represent icons */
 
 .fa-pause:before {
     content: "\f04c"; }
+
+.fa-sort-numeric-down-alt:before {
+    content: "\f886"; }
+
+.fa-sort-amount-down-alt:before {
+    content: "\f884"; }
+
+.fa-sort-alpha-down:before {
+    content: "\f15d"; }
 
 .sr-only-focusable:active, .sr-only-focusable:focus {
   clip: auto;

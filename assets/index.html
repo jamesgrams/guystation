@@ -31,7 +31,14 @@
     <body>
         <h1>GuyStation</h1>
         <div id="time"></div>
-        <input tabindex="-1" type="search" id="search" placeholder="Search"/>
+        <div id="search-sort">
+            <div id="sort">
+                <i data-sort="" class="fas fa-sort-alpha-down"></i>
+                <i data-sort="totalPlaytime" class="fas fa-sort-numeric-down-alt hidden"></i>
+                <i data-sort="mostRecentPlaytime" class="fas fa-sort-amount-down-alt hidden"></i>
+            </div>
+            <input tabindex="-1" type="search" id="search" placeholder="Search"/>
+        </div>
         <div id="systems"></div>
         <div id="ip"></div>
         <div id="functions">

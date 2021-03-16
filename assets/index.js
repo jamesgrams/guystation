@@ -38,6 +38,8 @@ var MEDIA_RECORDER_TIMESLICE = 250;
 var RTMP_STATUS_INTERVAL = 1000;
 var CONTENT_HINT = "motion";
 var SESSIONS_REGEX = /"sessions":((?!]\s*]).)+\]\s*\]/g;
+var SORT_PLAYTIME = "totalPlaytime";
+var SORT_RECENT = "mostRecentPlaytime";
 var KEYCODES = {
     '0': 48,
     '1': 49,
@@ -802,6 +804,7 @@ function load() {
             e.stopPropagation();
         }
         enableSearch();
+        enableSort();
         // Check for changes every 10 seconds
         setInterval( function() {
             if( !makingRequest ) {
@@ -887,6 +890,31 @@ function load() {
        	    document.querySelector("#search").setAttribute("tabindex", "0");
         }, TABINDEX_TIMEOUT );
     }, load );
+}
+
+/**
+ * Enable sorting.
+ */
+function enableSort() {
+    var sort = document.getElementById("sort");
+    var options = sort.querySelectorAll("i");
+    if( window.localStorage.guystationMenuSort ) {
+        var selected = sort.querySelector("[data-sort='"+window.localStorage.guystationMenuSort+"']");
+        if(selected) {
+            sort.querySelector(":not(.hidden)").classList.add("hidden");
+            selected.classList.remove("hidden");
+        }
+    }
+    sort.onclick = function() {
+        var visible = sort.querySelector(":not(.hidden)");
+        var index = Array.from(options).indexOf(visible);
+        index++;
+        if( index >= options.length ) index = 0;
+        visible.classList.add("hidden");
+        options[index].classList.remove("hidden");
+        window.localStorage.guystationMenuSort = options[index].getAttribute("data-sort");
+        redraw();
+    }
 }
 
 /**
@@ -1264,6 +1292,21 @@ function populateGames(system, games, startSystem, gamesElement, hidden, parents
     if( !parents ) parents = [];
     var gamesKeys = Object.keys(games);
 
+    // sort
+    if( window.localStorage.guystationMenuSort === SORT_PLAYTIME || window.localStorage.guystationMenuSort == SORT_RECENT) {
+        gamesKeys = gamesKeys.sort( function(a,b) {
+            var gameA = games[a];
+            var gameB = games[b];
+            var playtimeA = getTotalPlaytime(gameA)[window.localStorage.guystationMenuSort];
+            var playtimeB = getTotalPlaytime(gameB)[window.localStorage.guystationMenuSort];
+            if( playtimeA < playtimeB ) return 1;
+            if( playtimeA > playtimeB ) return -1;
+            if( a < b ) return -1;
+            if( a > b ) return 1;
+            return 0;
+        } );
+    }
+
     var startGameIndex = startSystem && startSystem.games && startSystem.games[system] ? gamesKeys.indexOf(startSystem.games[system].game) : 0;
     var startGameParentsString = startSystem && startSystem.games && startSystem.games[system] && startSystem.games[system].parents ? startSystem.games[system].parents : "";
     if( parentsArrayToString(parents) != startGameParentsString ) {
@@ -1360,17 +1403,16 @@ function populateGames(system, games, startSystem, gamesElement, hidden, parents
             gameElement.appendChild(currentSaveDiv);
         }
          // Create an element for the play time
-         if( game.sessions ) {
-            var totalPlaytime = 0;
-            for( var i=0; i<game.sessions.length; i++ ) {
-                totalPlaytime += game.sessions[i][1] - game.sessions[i][0];
-            }
-            var playtimeDiv = document.createElement("div");
-            playtimeDiv.classList.add("playtime");
-            playtimeDiv.innerText = timeConversion(totalPlaytime);
+         if( game.sessions || game.isFolder ) {
+            var totalPlaytime = getTotalPlaytime(game);
+            if( totalPlaytime.totalSessions ) {
+                var playtimeDiv = document.createElement("div");
+                playtimeDiv.classList.add("playtime");
+                playtimeDiv.innerText = timeConversion(totalPlaytime.totalPlaytime);
 
-            // Append the game element to the list of elements
-            gameElement.appendChild(playtimeDiv);
+                // Append the game element to the list of elements
+                gameElement.appendChild(playtimeDiv);
+            }
         }
         if( game.isFolder ) {
             gameElement.setAttribute("data-is-folder", "true");
@@ -1404,6 +1446,38 @@ function populateGames(system, games, startSystem, gamesElement, hidden, parents
             populateGames(system, game.games, startSystem, gamesElement, tempHidden, curParents);
         }
     }
+}
+
+/**
+ * Get the total playtime.
+ * @param {Object} game - The game object as returned from the server.
+ * @returns {Object} An object with a key for totalPlaytime, totalSessions, and most recent playtime.
+ */
+function getTotalPlaytime(game) {
+    var totalPlaytime = 0;
+    var totalSessions = 0;
+    var mostRecentPlaytime = 0;
+    if( game.isFolder ) {
+        var gameKeys = Object.keys(game.games);
+        for( var i=0; i<gameKeys.length; i++ ) {
+            var result = getTotalPlaytime(game.games[gameKeys[i]]);
+            totalPlaytime += result.totalPlaytime;
+            totalSessions += result.totalSessions;
+            mostRecentPlaytime = Math.max(mostRecentPlaytime, result.mostRecentPlaytime);
+        }
+    }
+    else if( game.sessions ) {
+        for( var i=0; i<game.sessions.length; i++ ) {
+            totalPlaytime += game.sessions[i][1] - game.sessions[i][0];
+            totalSessions += 1;
+            mostRecentPlaytime = game.sessions[i][1];
+        }
+    }
+    return {
+        totalPlaytime: totalPlaytime,
+        totalSessions: totalSessions,
+        mostRecentPlaytime: mostRecentPlaytime
+    };
 }
 
 /**
