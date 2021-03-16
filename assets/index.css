@@ -752,10 +752,12 @@ h1 {
 .black-background .key-button {
     -webkit-tap-highlight-color: transparent;
     outline: none;
+    width: 72px;
+    height: 72px;
 }
 
 .black-background .key-button .key-display {
-    font-size: 25px;
+    font-size: 30px;
     padding: 0;
     font-family: 'blinker', sans-serif;
 }
@@ -766,8 +768,8 @@ h1 {
     background-color: white;
     display: block;
     position: absolute;
-    top: -25px;
-    left: -25px;
+    top: -15px;
+    left: -15px;
     border-radius: 50%;
 }
 
