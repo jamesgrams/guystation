@@ -3416,27 +3416,17 @@ function fitscreenVideo() {
         var button = document.querySelector("#remote-screencast-form button:last-child");
         var video = modal.querySelector("video");
         if( !modal.classList.contains("fit-screen") ) {
-            var modalHeightMinusTitle = modal.scrollHeight - document.querySelector(".modal h2").clientHeight;
-            var width = window.innerWidth - (modal.scrollWidth - video.scrollWidth) - 40; // 40 to still give some space to quit
-            var height = window.innerHeight - (modalHeightMinusTitle - video.scrollHeight) - 40;
+            var width = window.innerWidth;
+            var height = window.innerHeight;
             var widthRatio = width/video.scrollWidth;
             var heightRatio = height/video.scrollHeight;
             var ratio = Math.min(widthRatio, heightRatio);
             var newWidth = video.clientWidth * ratio;
             var newHeight = video.clientHeight * ratio;
             video.setAttribute("style","width:" + newWidth + "px;height:" + newHeight + "px;");
+            button.setAttribute("id", "screencast-size-change");
             button.innerText = "Default Size";
             modal.classList.add("fit-screen");
-            // sometimes the buttons on the bbottom can add more height when stacked, so run again if this is the case
-            if( modal.scrollHeight > window.innerHeight - 40 ) {
-                var height = window.innerHeight - (modal.scrollHeight - video.scrollHeight) - 40;
-                if( height < 1 ) return; // can't set to less than 0
-                var ratio = height/video.scrollHeight;
-                var newWidth = video.clientWidth * ratio;
-                var newHeight = video.clientHeight * ratio;
-                console.log(ratio, newWidth, newHeight);
-                video.setAttribute("style","width:" + newWidth + "px;height:" + newHeight + "px;");
-            }
         }
         else {
             video.removeAttribute("style");
