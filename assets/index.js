@@ -3425,7 +3425,7 @@ function fitscreenVideo() {
             var newHeight = video.clientHeight * ratio;
             video.setAttribute("style","width:" + newWidth + "px;height:" + newHeight + "px;");
             button.setAttribute("id", "screencast-size-change");
-            button.innerText = "Default Size";
+            button.innerText = "X";
             modal.classList.add("fit-screen");
         }
         else {
