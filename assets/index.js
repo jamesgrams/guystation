@@ -3647,8 +3647,10 @@ function createKeyButton( selected, x, y ) {
             if( !correctTouch.length ) return;
             correctTouch = correctTouch[0];
 
-            stickLeft = correctTouch.clientX - keyLeft;
-            stickTop = correctTouch.clientY - keyTop;
+            var touchCenterX = correctTouch.clientX + correctTouch.radiusX;
+            var touchCenterY = correctTouch.clientY + correctTouch.radiusY;
+            stickLeft = touchCenterX - keyLeft - stick.clientWidth/2;
+            stickTop = touchCenterY - keyTop - stick.clientHeight/2;
             // Get the angle the stick is currently at
             var angleRadians = Math.atan2( stickLeft - stickCenterX, stickTop - stickCenterY);
             // 0 is the bottom, and it goes counter clockwise
