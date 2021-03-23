@@ -259,6 +259,7 @@ Multiple monitor support may be limited. GuyStation will aim to use the primary 
 * Screencast sound cuts out when entering or exiting a Nintendo 64 game.
 * Updating GuyStation may give new and updated files root ownership, which may not be correct.
 * PC game extra files aren't deleted on update to a new rom.
+* There is a Samba delay sometimes, so you might not be able to launch a game immediately after updating ("No ROM found for game"). Especially since updating uses the main server to process the request.
 * EZ Config Issues
     * PS2 can only have keyboard controls set with EZ configuration.
     * NGC EZ configuration will set the device to the Dolphin internal name for a virtual keyboard when a control is set to a keyboard key (with the exception of the screenshot control) as Dolphin requires a device name with controls. It will set the device to gamepad when a control is set to a gamepad button/axis a gamepad. The custom version of Dolphin will recognize devices as game controllers if the evdev device name matches one of a set of keywords (gamepad, joystick, controller, joypad). Other devices are recognized as keyboards. This system isn't perfect.
