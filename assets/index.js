@@ -3631,9 +3631,19 @@ function createKeyButton( selected, x, y ) {
     var lastJoystickValues = [];
     var curTouchIdentifier;
     var moveJoystick = function(e) {
-        var stick = keyButton.querySelector(".analog-stick");
         var keyLeft = parseInt(keyButton.style.left.replace("px",""));
         var keyTop = parseInt(keyButton.style.top.replace("px",""));
+        // to calculate the correct position of the analog stick, we need to relavitize it to the background of the analog stick 
+        // we get the touch coordinate, but then we need to get the coordinate starting from the top left of the analog background,
+        // since the analog background has absolute positioning within a keybutton that also has absolute positioning. So we need the
+        // key button's position and the analog backgrounds posistion subtracted from the window touch position to find the position of 
+        // the stick within the background.
+        // so it goes window > keyButton > analogHolder > analogStick
+        var analogHolderStyles = window.getComputedStyle(keyDisplay);
+        var analogHolderLeft = parseInt(analogHolderStyles.getPropertyValue("left").replace("px",""));
+        var analogHolderTop = parseInt(analogHolderStyles.getPropertyValue("top").replace("px",""));
+        
+        var stick = keyButton.querySelector(".analog-stick");
         // these two should be the same
         var stickCenterX = (keyDisplay.clientWidth - stick.clientWidth)/2;
         var stickCenterY = (keyDisplay.clientHeight - stick.clientHeight)/2;
@@ -3647,10 +3657,10 @@ function createKeyButton( selected, x, y ) {
             if( !correctTouch.length ) return;
             correctTouch = correctTouch[0];
 
-            var touchCenterX = correctTouch.clientX + correctTouch.radiusX;
-            var touchCenterY = correctTouch.clientY + correctTouch.radiusY;
-            stickLeft = touchCenterX - keyLeft - stick.clientWidth/2;
-            stickTop = touchCenterY - keyTop - stick.clientHeight/2;
+            var touchCenterX = correctTouch.clientX;// + correctTouch.radiusX;
+            var touchCenterY = correctTouch.clientY;// + correctTouch.radiusY;
+            stickLeft = touchCenterX - keyLeft - analogHolderLeft - stick.clientWidth/2;
+            stickTop = touchCenterY - keyTop - analogHolderTop - stick.clientHeight/2;
             // Get the angle the stick is currently at
             var angleRadians = Math.atan2( stickLeft - stickCenterX, stickTop - stickCenterY);
             // 0 is the bottom, and it goes counter clockwise
