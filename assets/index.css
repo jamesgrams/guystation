@@ -779,24 +779,24 @@ h1 {
 }
 
 .black-background .key-button .key-display.analog {
-    width: 100px;
-    height: 100px;
+    width: 120px;
+    height: 120px;
     background-color: white;
     display: block;
     position: absolute;
-    top: -15px;
-    left: -15px;
+    top: -24px;
+    left: -24px;
     border-radius: 50%;
 }
 
 .black-background .key-button .key-display.analog .analog-stick {
-    width: 50px;
-    height: 50px;
+    width: 80px;
+    height: 80px;
     background-color: black;
     border-radius: 50%;
     position: absolute;
-    top: 25px;
-    left: 25px;
+    top: 20px;
+    left: 20px;
 }
 
 .black-background .key-button select {
