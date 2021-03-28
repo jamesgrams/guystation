@@ -5741,7 +5741,7 @@ io.on('connection', function(socket) {
         if(ack) ack();
     } );
     socket.on("/screencast/gamepad", function(body, ack) {
-        performScreencastGamepad( body.event, body.id );
+        performScreencastGamepad( body.event, body.id, parseInt(body.controllerNum) );
         if(ack) ack();
     } );
     // generalized request handler through socket.io
