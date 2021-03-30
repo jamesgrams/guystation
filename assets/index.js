@@ -2929,7 +2929,7 @@ function saveAutoloadEzProfile() {
     var controller = parseInt(controllerSelectMenu.options[controllerSelectMenu.selectedIndex].value) - 1;
 
     var currentProfiles = getCurrentAutoloadProfiles();
-    if( !currentProfiles ) currentProfile = {};
+    if( !currentProfiles ) currentProfiles = {};
     if( profilesDict[name] ) {
         currentProfiles[controller] = { name: name, profile: profilesDict[name] };
         createToast( "Profile set to autoload for player " + (controller+1) );
