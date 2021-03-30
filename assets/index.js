@@ -2996,7 +2996,7 @@ function getAndUpdateCurrentAutoloadProfiles() {
         }
         setCurrentAutoloadProfiles( currentProfiles );
     }
-    return currentProfiles;
+    return getCurrentAutoloadProfiles();
 }
 
 /**
