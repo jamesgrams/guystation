@@ -330,7 +330,7 @@ var TRUE_DEFAULT_KEY_MAPPING_WIDTH = 375;
 var TRUE_DEFAULT_KEY_MAPPING_HEIGHT = 667;
 var DEFAULT_KEY_MAPPING_PORTRAIT = [{"key":"Ⓨ","x":184,"y":585},{"key":"Ⓧ","x":257,"y":546},{"key":"Ⓐ","x":330,"y":583},{"key":"Ⓑ","x":257,"y":619},{"key":"🕹️L","x":71,"y":594},{"key":"🕹️R","x":305,"y":437},{"key":"Ⓡ","x":338,"y":260},{"key":"🅡","x":337,"y":187},{"key":"Ⓛ","x":37,"y":258},{"key":"🅛","x":37,"y":185},{"key":"🔘","x":148,"y":181},{"key":"⭐","x":229,"y":181},{"key":"⎋","x":105,"y":98},{"key":"↵","x":275,"y":97}];
 var DEFAULT_KEY_MAPPING_LANDSCAPE = [{"key":"▲","x":143,"y":152},{"key":"◀","x":70,"y":191},{"key":"▶","x":216,"y":189},{"key":"▼","x":143,"y":225},{"key":"🕹️L","x":66,"y":310},{"key":"🔘","x":179,"y":335},{"key":"⭐","x":252,"y":335},{"key":"Ⓑ","x":553,"y":336},{"key":"Ⓐ","x":626,"y":301},{"key":"Ⓨ","x":480,"y":302},{"key":"Ⓧ","x":553,"y":263},{"key":"🕹️R","x":532,"y":161},{"key":"Ⓡ","x":425,"y":37},{"key":"🅡","x":498,"y":37},{"key":"Ⓛ","x":254,"y":37},{"key":"🅛","x":181,"y":37},{"key":"✲","x":42,"y":98},{"key":"S","x":625,"y":97}];
-var CONTROLS_SET_MESSAGE = "Controls set";
+var CONTROLS_SET_MESSAGE = "Controls set for player ";
 var COULD_NOT_SET_CONTROLS_MESSAGE = "Could not set controls";
 var SCALE_DOWN_TIMEOUT = 1000;
 var SCALE_OPTIONS = [1,1.5,2,3,4,6]; // 1080p, 720p, 540p, 360p, 270p, 180p
@@ -383,12 +383,13 @@ var currentConnectedVirtualControllers = 0;
 var touchCount = 0;
 var touchDirection = null;
 
+// at the root level keyed by controller number, then 
 // keys are server values, values are client values
 // it's a map of numbers so 0:2, 3:3:, etc. PADCODES index to controller button number.
 // these are only used for the client's controller. No mapping is used for the virtual joypad created on phones. A sends button 0 and that's that.
 // server axis will be prepended with an "a" as will client full axis
 // when using an axis direction for a button, we will simply put that axis number and + or -
-var screencastControllerMap = {}; // allow the user to map button inputs on the client to buttons on the virtual controller (button 5 on the client xbox contrller goes to button 9 on the virtual controller)
+var screencastControllerMaps = {}; // allow the user to map button inputs on the client to buttons on the virtual controller (button 5 on the client xbox contrller goes to button 9 on the virtual controller)
 
 var sambaUrl;
 var serverIsSamba = false;
@@ -788,8 +789,8 @@ function load() {
         if( window.localStorage.guystationJoyMapping ) {
             joyMapping = JSON.parse(window.localStorage.guystationJoyMapping);
         }
-        if( window.localStorage.guystationScreencastControllerMap ) {
-            screencastControllerMap = JSON.parse(window.localStorage.guystationScreencastControllerMap);
+        if( window.localStorage.guystationScreencastControllerMaps ) {
+            screencastControllerMaps = JSON.parse(window.localStorage.guystationScreencastControllerMaps);
         }
 
         ip = response.ip;
@@ -2674,6 +2675,9 @@ function displayJoypadConfig() {
         form.appendChild( label ); 
     }
 
+    var nunchukSelect = createMenu(null, ["Classic Controller", "Nunchuk"],"nunchuk-select-menu","Wii Extension: ");
+    form.appendChild(nunchukSelect);
+
     // Create the systems section
     var systemsSection = document.createElement("div");
     systemsSection.classList.add("systems-checkboxes");
@@ -2687,9 +2691,6 @@ function displayJoypadConfig() {
 
     var controllerSelect = createMenu(null, [1,2,3,4],"controller-select-menu","Player: ");
     form.appendChild(controllerSelect);
-
-    var nunchukSelect = createMenu(null, ["Classic Controller", "Nunchuk"],"nunchuk-select-menu","Wii Extension: ");
-    form.appendChild(nunchukSelect);
 
     form.appendChild( createButton( "Apply EZ Config", function() {
         var inputs = document.querySelectorAll("#joypad-config-form label[data-ez-button] input");
@@ -2746,7 +2747,7 @@ function displayJoypadConfig() {
 
         var sendObject = { "systems": systems, "values": values, "controller": controller, "nunchuk": nunchuk };
         makeRequest("POST", "/controls", sendObject, function() {
-            createToast(CONTROLS_SET_MESSAGE);
+            createToast(CONTROLS_SET_MESSAGE + (controller+1));
         }, function(data) {
             try {
                 var message = JSON.parse(data).message;
@@ -2774,15 +2775,15 @@ function displayJoypadConfig() {
             loadEzProfile();
         }
 
-        var currentProfile = getCurrentAutoloadProfile();
-        // If there is a current profile, see if there is a profile by the same name that we just loaded from the server
-        // then update the local profile if so
-        if( currentProfile && profilesDict[currentProfile.name] ) {
-            setCurrentAutoloadProfile( { "name": currentProfile.name, "nunchuk": currentProfile.nunchuk, "profile": profilesDict[currentProfile.name] } );
-        }
+        var currentProfiles = getAndUpdateCurrentAutoloadProfiles();
         var setAutoloadButton = createButton( "Autoload Profile", saveAutoloadEzProfile );
-        if( currentProfile ) {
-            setAutoloadButton.setAttribute("title", "Current Profile:\nName: " + currentProfile.name + "\nWii Extension: " + (currentProfile.nunchuk ? "Nunchuk" : "Classic Controller"));
+        if( currentProfiles ) {
+            var controllers = Object.keys(currentProfiles);
+            var profilesDescription = [];
+            for( var i=0; i<controllers.length; i++ ) {
+                profilesDescription.push([controllers[i] + ": " + currentProfiles[controllers[i]].name]);
+            }
+            setAutoloadButton.setAttribute("title", "Current Profiles:\nName: " + profilesDescription.join("\n"));
         }
     
         var apply = form.querySelector("button");
@@ -2814,7 +2815,7 @@ function displayJoypadConfig() {
     var padcodeKeys = Object.keys(PADCODES);
     // allow padcode mapping for the padcodes that we use
     for( var i=0; i<padcodeKeys.length-2; i++ ) {
-        var label = createInput( screencastControllerMap[i] ? screencastControllerMap[i].toString() : i.toString(), "virtual-input-" + i, padcodeKeys[i] + " (button " + i + "): ", "string", true );
+        var label = createInput( screencastControllerMaps[0] && screencastControllerMaps[0][i] ? screencastControllerMaps[0][i].toString() : i.toString(), "virtual-input-" + i, padcodeKeys[i] + " (button " + i + "): ", "string", true );
         label.setAttribute("data-virtual-button", i);
         form.appendChild( label ); 
     }
@@ -2822,11 +2823,13 @@ function displayJoypadConfig() {
     var axiscodeKeys = Object.keys(AXISCODES);
     for( var i=0; i<axiscodeKeys.length; i++ ) {
         var index = "a"+i;
-        var label = createInput( screencastControllerMap[index] ? screencastControllerMap[index].toString() : (index), "virtual-input-" + index, axiscodeKeys[i] + " (axis " + i + "): ", "string", true );
+        var label = createInput( screencastControllerMaps[0] && screencastControllerMaps[0][index] ? screencastControllerMaps[0][index].toString() : (index), "virtual-input-" + index, axiscodeKeys[i] + " (axis " + i + "): ", "string", true );
         label.setAttribute("data-virtual-button", index);
         form.appendChild( label ); 
     }
-    form.appendChild( createButton( "Save", function() {
+    var virtualControllerSelect = createMenu(null, [1,2,3,4],"virtual-controller-select-menu","Controller: ");
+    form.appendChild(virtualControllerSelect);
+    form.appendChild( createButton( "Save Virtual", function() {
         localStorage.guystationConnectController = connectController;
 
         var inputs = document.querySelectorAll("#joypad-config-form label[data-virtual-button] input");
@@ -2840,9 +2843,12 @@ function displayJoypadConfig() {
                 newScreencastControllerMap[ index ] = inputs[i].value;
             }
         }
-        screencastControllerMap = newScreencastControllerMap;
-        window.localStorage.guystationScreencastControllerMap = JSON.stringify(screencastControllerMap);
-        closeModal();
+        var virtualControllerSelectMenu = virtualControllerSelect.querySelector("select");
+        var controller = parseInt(virtualControllerSelectMenu.options[virtualControllerSelectMenu.selectedIndex].value) - 1;
+        screencastControllerMaps[controller] = newScreencastControllerMap;
+        window.localStorage.guystationScreencastControllerMaps = JSON.stringify(screencastControllerMaps);
+        //closeModal();
+        createToast("Virtual Settings Saved for Controller " + controller);
     } ) );
     
     launchModal( form );
@@ -2879,33 +2885,35 @@ function parseEzButtonString( buttonString ) {
 }
 
 /**
- * Autoload an EZ profile.
+ * Autoload EZ profiles.
  * @param {Function} [callback] - The callback to run after load.
  */
-function autoloadEzProfile( callback ) {
+function autoloadEzProfiles( callback ) {
     loadEzProfiles( function() { // load profiles again in case the current profile has been updated on a different computer
         // we do this when the joypad display dialog is shown, but we don't do that when we autload.
-        var profile = getCurrentAutoloadProfile();
-        if( profile && profilesDict[profile.name] ) {
-            // note that which play it is, what systems, and nunchuk is not stored on the server
-            setCurrentAutoloadProfile( { "name": profile.name, "nunchuk": profile.nunchuk, "profile": profilesDict[profile.name] } );
-            profile = getCurrentAutoloadProfile();
-        }
-        if( profile ) {
-            var sendObject = { "systems": EZ_SYSTEMS_NO_LOCAL_MENU, "values": profile.profile, "controller": 0, "nunchuk": profile.nunchuk };
-            makeRequest("POST", "/controls", sendObject, function() {
-                createToast(CONTROLS_SET_MESSAGE);
-                if( callback ) callback();
-            }, function(data) {
-                try {
-                    var message = JSON.parse(data).message;
-                    createToast(message);
-                }
-                catch(err) {
-                    createToast(COULD_NOT_SET_CONTROLS_MESSAGE);
-                }
-                if( callback ) callback();
-            });
+        var profiles = getAndUpdateCurrentAutoloadProfiles();
+        if( profiles ) {
+            var controllers = Object.keys(profiles);
+            for( var i=0; i<controllers.length; i++ ) {
+                var profile = profiles[controllers[i]];
+                var values = JSON.parse(JSON.stringify(profile.profile));
+                var nunchuk = values.nunchuk;
+                delete values.nunchuk;
+                var sendObject = { "systems": EZ_SYSTEMS_NO_LOCAL_MENU, "values": values, "controller": controllers[i], "nunchuk": nunchuk };
+                makeRequest("POST", "/controls", sendObject, function() {
+                    createToast(CONTROLS_SET_MESSAGE + (controllers[i]+1));
+                    if( callback ) callback();
+                }, function(data) {
+                    try {
+                        var message = JSON.parse(data).message;
+                        createToast(message);
+                    }
+                    catch(err) {
+                        createToast(COULD_NOT_SET_CONTROLS_MESSAGE);
+                    }
+                    if( callback ) callback();
+                });
+            }
         }
         else if( callback ) callback();
     } );
@@ -2917,47 +2925,77 @@ function autoloadEzProfile( callback ) {
 function saveAutoloadEzProfile() {
     var selectElement = document.querySelector("#joypad-config-form #ez-profile-select");
     var name = selectElement.options[selectElement.selectedIndex].value;
+    var controllerSelectMenu = document.querySelector("#joypad-config-form #controller-select-menu");
+    var controller = parseInt(controllerSelectMenu.options[controllerSelectMenu.selectedIndex].value) - 1;
+
+    var currentProfiles = getCurrentAutoloadProfiles();
+    if( !currentProfiles ) currentProfile = {};
     if( profilesDict[name] ) {
-        var nunchukSelectMenu = document.querySelector("#nunchuk-select-menu");
-        var nunchuk = nunchukSelectMenu.selectedIndex > 0 ? true : false;
-        setCurrentAutoloadProfile( { name: name, nunchuk: nunchuk, profile: profilesDict[name] } );
-        createToast( "Profile set to autoload" );
+        currentProfiles[controller] = { name: name, profile: profilesDict[name] };
+        createToast( "Profile set to autoload for player " + (controller+1) );
     }
     else {
-        setCurrentAutoloadProfile( "" );
-        createToast( "Removed profile autoload" );
+        delete currentProfiles[controller];
+        createToast( "Removed profile autoload for player " + (controller+1) );
     }
+    setCurrentAutoloadProfiles( currentProfiles );
 }
 
 /**
- * Set the current autoload profile.
- * @param {Object} profile - The profile to load. It should have keys for nunchuk, profile (the profile as given to us by the server [note, this is different to what the server expects - values are strings not objects]), and name.
+ * Set the current autoload profiles.
+ * @param {Array} profiles - The profiles to load keyed by controller number. It should have keys for profile (the profile as given to us by the server [note, this is different to what the server expects - values are strings not objects]), and name.
  */
-function setCurrentAutoloadProfile(profile) {
+function setCurrentAutoloadProfiles(profiles) {
     if( profile ) {
-        var curProfile = JSON.parse(JSON.stringify(profile));
-        var keys = Object.keys(curProfile.profile);
-        for( var i=0; i<keys.length; i++ ) {
-            var curKey = curProfile.profile[keys[i]];
-            curProfile.profile[keys[i]] = parseEzButtonString(curKey);
+        var curProfiles = JSON.parse(JSON.stringify(profiles));
+        var controllers = Object.keys(curProfiles);
+        for( var i=0; i<controllers.length; i++ ) {
+            var keys = Object.keys(curProfiles[controllers[i]].profile);
+            for( var j=0; j<keys.length; j++ ) {
+                if(keys[j] === "nunchuk") continue;
+                var curKey = curProfiles[controllers[i]].profile[keys[j]];
+                curProfiles[controllers[i]].profile[keys[j]] = parseEzButtonString(curKey);
+            }
         }
-        localStorage.guystationAutoloadEzProfile = JSON.stringify(curProfile);
+        // store object values for quick load (rather than string values like the server has)
+        localStorage.guystationAutoloadEzProfiles = JSON.stringify(curProfiles);
     }
     else {
-        localStorage.guystationAutoloadEzProfile = "";
+        localStorage.guystationAutoloadEzProfiles = "";
     }
 }
 
 /**
- * Get the current autload profile.
- * @returns {Object} - The current autoload profile.
+ * Get the current autload profiles.
+ * @returns {Object} - The current autoload profiles.
  */
-function getCurrentAutoloadProfile() {
-    var currentProfile = localStorage.guystationAutoloadEzProfile;
-    if( currentProfile ) {
-        return JSON.parse(currentProfile);
+function getCurrentAutoloadProfiles() {
+    var currentProfiles = localStorage.guystationAutoloadEzProfiles;
+    if( currentProfiles ) {
+        return JSON.parse(currentProfiles);
     }
     return null;
+}
+
+/**
+ * Get and update current autoload profiles.
+ * @returns {Object} - The current autoload profiles.
+ */
+function getAndUpdateCurrentAutoloadProfiles() {
+    var currentProfiles = getCurrentAutoloadProfiles();
+    // If there is a current profile, see if there is a profile by the same name that we just loaded from the server
+    // then update the local profile if so
+    if( currentProfiles ) {
+        var controllers = Object.keys(currentProfiles);
+        for( var i=0; i<controllers.length; i++ ) {
+            var currentProfile = currentProfiles[controllers[i]];
+            if( profilesDict[currentProfile.name] ) {
+                currentProfiles[controllers[i]] = JSON.parse( JSON.stringify( profilesDict[currentProfile.name] ) );
+            }
+        }
+        setCurrentAutoloadProfiles( currentProfiles );
+    }
+    return currentProfiles;
 }
 
 /**
@@ -3160,6 +3198,9 @@ function loadEzProfile() {
             var inputElement = document.querySelector("#joypad-config-form #ez-profile-input");
             inputElement.value = name;
             inputElement.oninput();
+            var nunchukSelectMenu = document.querySelector("#nunchuk-select-menu");
+            if( profile.nunchuk ) nunchukSelectMenu.selectedIndex = 1;
+            else nunchukSelectMenu.selectedIndex = 0;
             createToast( "Profile loaded" );
         }
     }
@@ -3175,6 +3216,9 @@ function saveEzProfile() {
         for( var i=0; i<EZ_EMULATOR_CONFIG_BUTTONS.length; i++ ) {
             profile[ EZ_EMULATOR_CONFIG_BUTTONS[i] ] = document.querySelector("#ez-input-" + i).value;
         }
+        // figure out if we are using the nunchuk
+        var nunchukSelectMenu = document.querySelector("#nunchuk-select-menu");
+        profile.nunchuk = nunchukSelectMenu.selectedIndex > 0 ? true : false;
         profilesDict[name] = profile;
         updateEzProfileList();
         makeRequest( "POST", "/profile", { "name": name, "profile": profile }, function() {
@@ -3340,7 +3384,7 @@ function displayScreencast( fullscreen ) {
     else connectController = defaultVirtualControllerCount();
     currentConnectedVirtualControllers = connectController;
 
-    autoloadEzProfile( function() {
+    autoloadEzProfiles( function() {
         makeRequest( "GET", "/screencast/connect", { id: socket.id, numControllers: connectController }, function() {
             // start letting the server know we exist after it is now looking for us i.e. won't accept another connection
             // (serverSocketId is set)
@@ -5640,7 +5684,7 @@ function launchGame( system, game, parents, callback ) {
         // Don't set any controls if we are streaming from another device
         if( peerConnections.length && isServer ) doLaunch();
         else {
-            autoloadEzProfile( doLaunch );
+            autoloadEzProfiles( doLaunch );
         }
     }
 }
@@ -5955,6 +5999,7 @@ function sendButtonsToServer( clientButton, down, clientControllerNum, actualCon
     // we send the codes that correspond with the buttons numbers. So padcodes have A as button 0, so when
     // the client controller presses button 0, we send A, which means button 0 on the server unless a mapping specifies otherwise
     // i is the client controller button
+    var screencastControllerMap = screencastControllerMaps[actualControllerNum] || [];
     var scMapKeys = Object.keys(screencastControllerMap); // the keys here are the buttons for the fake controller created on the server, the values are the buttons on the client controller
     var serverButtonsForClientButton = scMapKeys.filter( el => screencastControllerMap[el] == clientButton );
     if( !screencastControllerMap[clientButton] && !clientButton.toString().match(/\+|\-/) && ( ( clientButton.toString().match(/^a/) && parseInt(clientButton.replace("a","")) < Object.keys(AXISCODES).length ) || ( !clientButton.toString().match(/^a/) && parseInt(clientButton) < Object.keys(PADCODES).length ) ) ) serverButtonsForClientButton.push( clientButton ); // if nothing is mapped for this button on the server, send this button. this means 2 == 2 as we intentionally left that blank - sent so long as it is not an axis to a button.
@@ -6643,7 +6688,7 @@ function stopConnectionToPeer( isStreamer, id, useIdAsSocketId ) {
     }
     // stop streaming if this was the last connection
     else if(!peerConnections.length) {
-        autoloadEzProfile();
+        autoloadEzProfiles();
         if( localStream ) {
             localStream.getTracks().forEach( function(tr) {tr.stop();} ); // should be idempotent, tracks aren't started again, localStream is just overwritten
             localStream = null;
