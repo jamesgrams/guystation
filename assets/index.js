@@ -2946,7 +2946,7 @@ function saveAutoloadEzProfile() {
  * @param {Array} profiles - The profiles to load keyed by controller number. It should have keys for profile (the profile as given to us by the server [note, this is different to what the server expects - values are strings not objects]), and name.
  */
 function setCurrentAutoloadProfiles(profiles) {
-    if( profile ) {
+    if( profiles ) {
         var curProfiles = JSON.parse(JSON.stringify(profiles));
         var controllers = Object.keys(curProfiles);
         for( var i=0; i<controllers.length; i++ ) {
