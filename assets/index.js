@@ -2783,7 +2783,7 @@ function displayJoypadConfig() {
             for( var i=0; i<controllers.length; i++ ) {
                 profilesDescription.push([controllers[i] + ": " + currentProfiles[controllers[i]].name]);
             }
-            setAutoloadButton.setAttribute("title", "Current Profiles:\nName: " + profilesDescription.join("\n"));
+            setAutoloadButton.setAttribute("title", "Current Profiles:\n" + profilesDescription.join("\n"));
         }
     
         var apply = form.querySelector("button");
