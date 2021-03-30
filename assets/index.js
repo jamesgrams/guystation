@@ -2991,7 +2991,7 @@ function getAndUpdateCurrentAutoloadProfiles() {
         for( var i=0; i<controllers.length; i++ ) {
             var currentProfile = currentProfiles[controllers[i]];
             if( profilesDict[currentProfile.name] ) {
-                currentProfiles[controllers[i]] = JSON.parse( JSON.stringify( profilesDict[currentProfile.name] ) );
+                currentProfiles[controllers[i]].profile = JSON.parse( JSON.stringify( profilesDict[currentProfile.name] ) );
             }
         }
         setCurrentAutoloadProfiles( currentProfiles );
