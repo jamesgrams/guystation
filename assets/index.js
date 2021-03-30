@@ -2954,7 +2954,8 @@ function setCurrentAutoloadProfiles(profiles) {
             for( var j=0; j<keys.length; j++ ) {
                 if(keys[j] === "nunchuk") continue;
                 var curKey = curProfiles[controllers[i]].profile[keys[j]];
-                curProfiles[controllers[i]].profile[keys[j]] = parseEzButtonString(curKey);
+                // it won't be a string for the ones not being updated
+                curProfiles[controllers[i]].profile[keys[j]] = typeof curKey === "string" ? parseEzButtonString(curKey) : curKey;
             }
         }
         // store object values for quick load (rather than string values like the server has)
