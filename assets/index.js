@@ -2781,7 +2781,7 @@ function displayJoypadConfig() {
             var controllers = Object.keys(currentProfiles);
             var profilesDescription = [];
             for( var i=0; i<controllers.length; i++ ) {
-                profilesDescription.push([(controllers[i] + 1) + ": " + currentProfiles[controllers[i]].name]);
+                profilesDescription.push([(parseInt(controllers[i]) + 1) + ": " + currentProfiles[controllers[i]].name]);
             }
             setAutoloadButton.setAttribute("title", "Current Profiles:\n" + profilesDescription.join("\n"));
         }
