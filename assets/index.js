@@ -2848,7 +2848,7 @@ function displayJoypadConfig() {
         screencastControllerMaps[controller] = newScreencastControllerMap;
         window.localStorage.guystationScreencastControllerMaps = JSON.stringify(screencastControllerMaps);
         //closeModal();
-        createToast("Virtual settings saved for controller " + controller);
+        createToast("Virtual settings saved for controller " + (parseInt(controller)+1));
     } ) );
     
     launchModal( form );
