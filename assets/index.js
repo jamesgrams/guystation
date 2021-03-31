@@ -2900,10 +2900,10 @@ function autoloadEzProfiles( callback ) {
                 var nunchuk = values.nunchuk;
                 delete values.nunchuk;
                 var sendObject = { "systems": EZ_SYSTEMS_NO_LOCAL_MENU, "values": values, "controller": controllers[i], "nunchuk": nunchuk };
-                makeRequest("POST", "/controls", sendObject, function() {
-                    createToast(CONTROLS_SET_MESSAGE + (controllers[i]+1));
+                makeRequest("POST", "/controls", sendObject, (function(c) { return function() {
+                    createToast(CONTROLS_SET_MESSAGE + (parseInt(c)+1));
                     if( callback ) callback();
-                }, function(data) {
+                } })(controllers[i]), function(data) {
                     try {
                         var message = JSON.parse(data).message;
                         createToast(message);
