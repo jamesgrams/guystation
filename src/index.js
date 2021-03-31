@@ -5106,12 +5106,11 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
                     // we are going to get the innermost nested object and set it's value
                     let configSetting = config;
                     for( let i=0; i<keys.length - 1; i++) {
-                        if( !(keys[i] in configSetting) ) configSetting[keys[i]] = {};
-                        let curConfigSetting = configSetting[keys[i]];
-                        // we may have a slightly different path for the specific controller
-                        if( controller && controllers && keys[i].match(controllers[0]) ) curConfigSetting = configSetting[ keys[i].replace(controllers[0], controllers[controller]) ];
+                        let currentKey = keys[i];
+                        if( controller && controllers && currentKey.match(controllers[0]) ) currentKey = keys[i].replace(controllers[0], controllers[controller]);
+                        if( !(currentKey in configSetting) ) configSetting[currentKey] = {};
 
-                        configSetting = curConfigSetting;
+                        configSetting = configSetting[currentKey];
                     }
 
                     let finalKey = keys[keys.length-1];
