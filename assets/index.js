@@ -2906,7 +2906,7 @@ function autoloadEzProfiles( callback ) {
                 sendObjects.push(sendObject);
             }
             makeRequest("POST", "/controls-multiple", { controllers: sendObjects }, function() {
-                createToast(CONTROLS_SET_MESSAGE + (controllers.length > 1 ? "s" : "") + " " + controllers.join(","));
+                createToast(CONTROLS_SET_MESSAGE + (controllers.length > 1 ? "s" : "") + " " + niceControllers.join(","));
                 if( callback ) callback();
             }, function(data) {
                 try {
