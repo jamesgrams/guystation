@@ -2894,8 +2894,10 @@ function autoloadEzProfiles( callback ) {
         var profiles = getAndUpdateCurrentAutoloadProfiles();
         if( profiles ) {
             var controllers = Object.keys(profiles);
+            var niceControllers = [];
             var sendObjects = [];
             for( var i=0; i<controllers.length; i++ ) {
+                niceControllers.push(parseInt(controllers[i]) + 1);
                 var profile = profiles[controllers[i]];
                 var values = JSON.parse(JSON.stringify(profile.profile));
                 var nunchuk = values.nunchuk;
