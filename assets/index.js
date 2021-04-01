@@ -2827,7 +2827,19 @@ function displayJoypadConfig() {
         label.setAttribute("data-virtual-button", index);
         form.appendChild( label ); 
     }
-    var virtualControllerSelect = createMenu(null, [1,2,3,4],"virtual-controller-select-menu","Controller: ");
+    var virtualControllerSelect = createMenu(null, [1,2,3,4],"virtual-controller-select-menu","Controller: ", function() {
+        var virtualControllerSelectMenu = virtualControllerSelect.querySelector("select");
+        var controller = parseInt(virtualControllerSelectMenu.options[virtualControllerSelectMenu.selectedIndex].value) - 1;
+        for( var i=0; i<padcodeKeys.length-2; i++ ) {
+            var newValue = screencastControllerMaps[controller] && screencastControllerMaps[controller][i] ? screencastControllerMaps[controller][i].toString() : i.toString();
+            form.querySelector("#virtual-input-" + i).value = newValue;
+        }
+        for( var i=0; i<axiscodeKeys.length; i++ ) {
+            var index = "a"+i;
+            var newValue = screencastControllerMaps[controller] && screencastControllerMaps[controller][index] ? screencastControllerMaps[controller][index].toString() : (index);
+            form.querySelector("#virtual-input-" + index).value = newValue;
+        }
+    });
     form.appendChild(virtualControllerSelect);
     form.appendChild( createButton( "Save Virtual", function() {
         localStorage.guystationConnectController = connectController;
