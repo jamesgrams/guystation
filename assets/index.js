@@ -885,7 +885,7 @@ function load() {
         }
         setTimeout( reloadMessages, RELOAD_MESSAGES_INTERVAL );
 
-        socket = io.connect("http://"+window.location.hostname+":3000");
+        socket = io.connect( window.location.protocol+"//"+window.location.hostname+":3000");
         socket.on("connect", function() {console.log("socket connected")});
 
         setTimeout( function() {
@@ -4261,7 +4261,7 @@ function displayPictureInPicture() {
     var selectedGame = selectedSystem.querySelector(".game.selected:not([data-status])");
     if( selectedSystem && selectedGame && selectedSystem.getAttribute("data-system") == "media" ) {
         var selected = getSelectedValues();
-        var path = "http://localhost/" + ["systems", encodeURIComponent(selected.system), "games"].concat(selected.parents).concat([encodeURIComponent(selected.game), encodeURIComponent(getGamesInFolder(selected.parents, selected.system, true)[selected.game].rom)]).join("/");
+        var path = window.location.protocol + "//localhost/" + ["systems", encodeURIComponent(selected.system), "games"].concat(selected.parents).concat([encodeURIComponent(selected.game), encodeURIComponent(getGamesInFolder(selected.parents, selected.system, true)[selected.game].rom)]).join("/");
         form.appendChild( createButton("Use Media", function() {
             pipUrlInput.querySelector("input").value = path;
         }) );
@@ -5955,7 +5955,7 @@ function makeRequest(type, url, parameters, callback, errorCallback, useFormData
     }
 
     var hostname = (sambaMode && sambaUrl) ? sambaUrl : window.location.hostname;
-    url = "http://" + hostname + ":8080" + url;
+    url = window.location.protocol + "//" + hostname + ":8080" + url;
    
     var xhttp = new XMLHttpRequest();
     xhttp.open(type, url, true);
