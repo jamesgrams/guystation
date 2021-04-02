@@ -18,7 +18,7 @@ const multer = require('multer');
 const upload = multer({ dest: '/tmp/' });
 // IO Sockets server for screen
 const server = require('http').createServer();
-const io = require('socket.io')(server,{cors:true});
+const io = require('socket.io')(server);
 const axios = require('axios');
 const robot = require("robotjs");
 const keycode = require("keycode");
