@@ -5959,6 +5959,7 @@ function makeRequest(type, url, parameters, callback, errorCallback, useFormData
    
     var xhttp = new XMLHttpRequest();
     xhttp.open(type, url, true);
+    xhttp.withCredentials = true;
 
     if( type != "GET" && parameterKeys.length ) {
         if( !useFormData ) {
