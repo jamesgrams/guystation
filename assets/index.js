@@ -2914,7 +2914,7 @@ function autoloadEzProfiles( callback ) {
                 var values = JSON.parse(JSON.stringify(profile.profile));
                 var nunchuk = values.nunchuk;
                 delete values.nunchuk;
-                var sendObject = { "systems": EZ_SYSTEMS_NO_LOCAL_MENU, "values": values, "controller": controllers[i], "nunchuk": nunchuk };
+                var sendObject = { "systems": EZ_SYSTEMS_NO_LOCAL_MENU, "values": values, "controller": parseInt(controllers[i]), "nunchuk": nunchuk };
                 sendObjects.push(sendObject);
             }
             makeRequest("POST", "/controls-multiple", { controllers: sendObjects }, function() {
