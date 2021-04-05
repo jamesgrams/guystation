@@ -6224,7 +6224,7 @@ function manageGamepadInput() {
                             } ); // we want buttons to get priority and go first
                             for( var k=0; k<gamepadButtonsDownKeys.length; k++ ) {
                                 var currentButton = gamepadButtonsDownKeys[k];
-                                if( gamepadButtonsDown[i][currentButton] ) {
+                                if( gamepadButtonsPressed[i][currentButton] ) {
                                     // button
                                     if( currentButton.match(/^\d+$/)) {
                                         // we have a special syntax for ez buttons
