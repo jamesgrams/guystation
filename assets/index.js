@@ -6576,7 +6576,9 @@ function getDisplayMediaSuccess(stream) {
  */
 function startConnectionToPeer( isStreamer, id ) {
     if( !id ) id = "server";
-    var peerConnection = new RTCPeerConnection(null);
+    var peerConnection = new RTCPeerConnection({ iceServers: [{
+        urls: "stun:stun.l.google.com:19302"
+    }] });
     peerConnections.push( {"id": id, "peerConnection": peerConnection } );
     // https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/onicecandidate
     // onicecandidate is not called when you do addIceCandidate. It is called whenever
