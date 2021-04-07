@@ -10,6 +10,7 @@
   "optionPrefix": "-C",
   "argsFirst": true,
   "nandPathCommand": "echo \"$(eval echo '~')/.local/share/dolphin-emu/Wii$(dolphin-emu-nogui --save-path='ROM_FILE_PLACEHOLDER')\"",
+  "badNandPath": "/home/james/.local/share/dolphin-emu/Wii",
   "config": {
     "files": ["/home/james/.config/dolphin-emu/WiimoteNew.ini","/home/james/.config/dolphin-emu/Hotkeys.ini"],
     "controllers": [

@@ -3482,6 +3482,7 @@ function getNandPath( system, game, parents ) {
     if( systemsDict[system].nandPathCommand ) {
         let nandPathCommand = systemsDict[system].nandPathCommand.replace(NAND_ROM_FILE_PLACEHOLDER, generateRomLocation( system, game, getGameDictEntry(system, game, parents).rom, parents ).replace("'", "'\"'\"'"));
         let nandSavePath = proc.execSync(nandPathCommand).toString().replace("\n","");
+        if( systemsDict[system].badNandPath && nandSavePath === systemsDict[system].badNandPath ) return "";
         return nandSavePath;
     }
     return "";
