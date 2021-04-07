@@ -1001,6 +1001,27 @@ app.post("/controls", async function(request, response) {
     }
 });
 
+// Change the controls for multiple controllers
+app.post("/controls-multiple", async function(request, response) {
+    console.log("app serving /controls-multiple with body: " + JSON.stringify(request.body));
+    if( ! requestLocked ) {
+        requestLocked = true;
+        try {
+            let errorMessage = setMultipleControls( request.body.controllers );
+            requestLocked = false;
+            writeActionResponse( response, errorMessage );
+        }
+        catch(err) {
+            console.log(err);
+            requestLocked = false;
+            writeActionResponse( response, ERROR_MESSAGES.genericError );
+        }
+    }
+    else {
+        writeLockedResponse( response );
+    }
+});
+
 // add an ez control profile
 app.post("/profile", async function(request, response) {
     console.log("app serving /profile with body: " + JSON.stringify(request.body));
@@ -4927,6 +4948,17 @@ function generateMessageUserName( id ) {
     }
     
     return USERNAME_OPTIONS[Math.floor(Math.random() * USERNAME_OPTIONS.length)];
+}
+
+/**
+ * Set controls for multiple controllers.
+ * @param {Array} controllers - An array with values that can be used for setControls.
+ * @returns {boolean|string} An error message if there is an error, false if not.
+ */
+function setMultipleControls( controllers ) {
+    for( let controller of controllers ) {
+        setControls( controller.systems, controller.values, controller.controller, controller.nunchuk );
+    }
 }
 
 /**

@@ -330,7 +330,7 @@ var TRUE_DEFAULT_KEY_MAPPING_WIDTH = 375;
 var TRUE_DEFAULT_KEY_MAPPING_HEIGHT = 667;
 var DEFAULT_KEY_MAPPING_PORTRAIT = [{"key":"Ⓨ","x":184,"y":585},{"key":"Ⓧ","x":257,"y":546},{"key":"Ⓐ","x":330,"y":583},{"key":"Ⓑ","x":257,"y":619},{"key":"🕹️L","x":71,"y":594},{"key":"🕹️R","x":305,"y":437},{"key":"Ⓡ","x":338,"y":260},{"key":"🅡","x":337,"y":187},{"key":"Ⓛ","x":37,"y":258},{"key":"🅛","x":37,"y":185},{"key":"🔘","x":148,"y":181},{"key":"⭐","x":229,"y":181},{"key":"⎋","x":105,"y":98},{"key":"↵","x":275,"y":97}];
 var DEFAULT_KEY_MAPPING_LANDSCAPE = [{"key":"▲","x":143,"y":152},{"key":"◀","x":70,"y":191},{"key":"▶","x":216,"y":189},{"key":"▼","x":143,"y":225},{"key":"🕹️L","x":66,"y":310},{"key":"🔘","x":179,"y":335},{"key":"⭐","x":252,"y":335},{"key":"Ⓑ","x":553,"y":336},{"key":"Ⓐ","x":626,"y":301},{"key":"Ⓨ","x":480,"y":302},{"key":"Ⓧ","x":553,"y":263},{"key":"🕹️R","x":532,"y":161},{"key":"Ⓡ","x":425,"y":37},{"key":"🅡","x":498,"y":37},{"key":"Ⓛ","x":254,"y":37},{"key":"🅛","x":181,"y":37},{"key":"✲","x":42,"y":98},{"key":"S","x":625,"y":97}];
-var CONTROLS_SET_MESSAGE = "Controls set for player ";
+var CONTROLS_SET_MESSAGE = "Controls set for player";
 var COULD_NOT_SET_CONTROLS_MESSAGE = "Could not set controls";
 var SCALE_DOWN_TIMEOUT = 1000;
 var SCALE_OPTIONS = [1,1.5,2,3,4,6]; // 1080p, 720p, 540p, 360p, 270p, 180p
@@ -2747,7 +2747,7 @@ function displayJoypadConfig() {
 
         var sendObject = { "systems": systems, "values": values, "controller": controller, "nunchuk": nunchuk };
         makeRequest("POST", "/controls", sendObject, function() {
-            createToast(CONTROLS_SET_MESSAGE + (controller+1));
+            createToast(CONTROLS_SET_MESSAGE + " " + (controller+1));
         }, function(data) {
             try {
                 var message = JSON.parse(data).message;
@@ -2894,26 +2894,28 @@ function autoloadEzProfiles( callback ) {
         var profiles = getAndUpdateCurrentAutoloadProfiles();
         if( profiles ) {
             var controllers = Object.keys(profiles);
+            var sendObjects = [];
             for( var i=0; i<controllers.length; i++ ) {
                 var profile = profiles[controllers[i]];
                 var values = JSON.parse(JSON.stringify(profile.profile));
                 var nunchuk = values.nunchuk;
                 delete values.nunchuk;
                 var sendObject = { "systems": EZ_SYSTEMS_NO_LOCAL_MENU, "values": values, "controller": controllers[i], "nunchuk": nunchuk };
-                makeRequest("POST", "/controls", sendObject, (function(c) { return function() {
-                    createToast(CONTROLS_SET_MESSAGE + (parseInt(c)+1));
-                    if( callback ) callback();
-                } })(controllers[i]), function(data) {
-                    try {
-                        var message = JSON.parse(data).message;
-                        createToast(message);
-                    }
-                    catch(err) {
-                        createToast(COULD_NOT_SET_CONTROLS_MESSAGE);
-                    }
-                    if( callback ) callback();
-                });
+                sendObjects.push(sendObject);
             }
+            makeRequest("POST", "/controls-multiple", { controllers: sendObjects }, function() {
+                createToast(CONTROLS_SET_MESSAGE + (controllers.length > 1 ? "s" : "") + " " + controllers.join(","));
+                if( callback ) callback();
+            }, function(data) {
+                try {
+                    var message = JSON.parse(data).message;
+                    createToast(message);
+                }
+                catch(err) {
+                    createToast(COULD_NOT_SET_CONTROLS_MESSAGE);
+                }
+                if( callback ) callback();
+            });
         }
         else if( callback ) callback();
     } );
