@@ -3504,6 +3504,7 @@ function updateNandSymlinks( system, game, oldRomNandPath, parents ) {
     // Make sure this is a system with the special file structure needed
     if( systemsDict[system].nandPathCommand ) {
         let nandSavePath = getNandPath( system, game, parents );
+        if( !nandSavePath ) return;
         let currentSaveDir = generateSaveDir( system, game, CURRENT_SAVE_DIR, parents );
 
         // If the rom file has changed, we want to leave behind our current save data in the old rom location
