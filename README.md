@@ -108,8 +108,9 @@ Note: You can press F11 to get GuyStation out of full screen mode at any time.
 * Messaging
     * You can send messages between users of GuyStation through the messaging interface. This feature is available by opening the menu and clicking the envelope icon under "More".
 * Voice Control
-    * You can control GuyStation with your voice by opening the menu and clicking the microphone icon under "More".
-    * You can say "play <game>", "stop", "go home", or "search <term>".
+    * You can control GuyStation with your voice by saying "Hey Cocoa" and then a command.
+    * Commands include "play/watch/listen <game>", "stop/quit", "go home", "fullscreen", or "search <term>".
+        * "You can also say "play/watch/listen <game> fullscreen" to start a video in fullscreen without having to use two commands.
     * The microphone used will be the one on the GuyStation machine, not your device.
         * The reason for this is that the web speech API is not allowed over http unless using localhost.
 

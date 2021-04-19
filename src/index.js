@@ -45,6 +45,7 @@ const { stringify } = require('querystring');
 const ppssppMap = require("./lib/ppssppmap").keys;
 const ppssppButtonsMap = require("./lib/ppssppmap").buttons;
 const generatePpssppControllersMap = require("./lib/ppssppmap").generateControllerMap;
+const Porcupine = require("@picovoice/porcupine-node");
 
 const PORT = 8080;
 const SOCKETS_PORT = 3000;
@@ -282,6 +283,10 @@ const SIGTERM = 'SIGTERM';
 const INSTALLSHIELD = "InstallShield Installation Information";
 const COMMON_FILES = "Common Files";
 const UPDATE_PLAYTIME_INTERVAL = 60000; // 1 minute
+const VOICE_KEYWORDS = ["hey cocoa"];
+const VOICE_SENSITIVITIES = KEYWORDS.map( el => 0.75 );
+const VOICE_RECORDER_TYPE = "arecord";
+const VOICE_SAMPLE_RATE_HERTZ = 16000;
 
 const DEFAULT_PROFILES_DICT = {
     "GuyStation Virtual Controller": {
@@ -463,6 +468,7 @@ const PC_WATCH_FOLDERS = [
     "/home/"+desktopUser+"/.wine/drive_c/Program Files",
     "/home/"+desktopUser+"/.wine/drive_c/Program Files (x86)",
 ];
+const VOICE_KEYWORD_PATHS = ["/home/"+desktopUser+"/guystation/helper/heycocoa.ppn"];
 
 let messages = [];
 
@@ -1312,7 +1318,8 @@ launchBrowser().then( () => {
     catch(err) {
         console.log(err);
     }
-    expressDynamic = app.listen(PORT)
+    expressDynamic = app.listen(PORT);
+    detectHotword();
 } );
 process.on(SIGTERM, () => {
     try {
@@ -6900,4 +6907,62 @@ async function listenMic() {
     });
 
     return Promise.resolve(false);
+}
+
+/**
+ * Detect a hotword.
+ * Modified from here: https://github.com/Picovoice/porcupine/blob/master/demo/nodejs/mic.js
+ */
+ function detectHotword() {
+    let handle = new Porcupine(
+        VOICE_KEYWORD_PATHS,
+        VOICE_SENSITIVITIES
+    );
+
+    let recorderType = VOICE_RECORDER_TYPE;
+
+    const frameLength = handle.frameLength;
+    const sampleRate = handle.sampleRate;
+
+    let recording = recorder.record({
+        sampleRate: sampleRate,
+        channels: 1,
+        audioType: "raw",
+        recorder: recorderType,
+        sampleRateHertz: VOICE_SAMPLE_RATE_HERTZ
+    });
+
+    let frameAccumulator = [];
+
+    recording.stream().on("data", (data) => {
+        // Two bytes per Int16 from the data buffer
+        let newFrames16 = new Array(data.length / 2);
+        for (let i = 0; i < data.length; i += 2) {
+            newFrames16[i / 2] = data.readInt16LE(i);
+        }
+
+        // Split the incoming PCM integer data into arrays of size Porcupine.frameLength. If there's insufficient frames, or a remainder,
+        // store it in 'frameAccumulator' for the next iteration, so that we don't miss any audio data
+        frameAccumulator = frameAccumulator.concat(newFrames16);
+        let frames = chunkArray(frameAccumulator, frameLength);
+
+        if (frames[frames.length - 1].length !== frameLength) {
+            // store remainder from divisions of frameLength
+            frameAccumulator = frames.pop();
+        }
+        else {
+            frameAccumulator = [];
+        }
+
+        for (let frame of frames) {
+            let index = handle.process(frame);
+            if (index !== -1) {
+                log(`Detected '${VOICE_KEYWORDS[index]}'`);
+                listenMic();
+            }
+        }
+    });
+
+    log(`Listening for wake word(s): ${VOICE_KEYWORDS}`);
+    process.stdin.resume();
 }

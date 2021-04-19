@@ -41,6 +41,7 @@ var SESSIONS_REGEX = /"sessions":((?!]\s*]).)+\]\s*\]/g;
 var SORT_PLAYTIME = "totalPlaytime";
 var SORT_RECENT = "mostRecentPlaytime";
 var KEY_BUTTON_EXTRA = 20; // the extra size in pixels of a key button to a regular button
+var STOPWORDS = ["i", "me", "my", "myself", "we", "our", "ours", "ourselves", "you", "your", "yours", "yourself", "yourselves", "he", "him", "his", "himself", "she", "her", "hers", "herself", "it", "its", "itself", "they", "them", "their", "theirs", "themselves", "what", "which", "who", "whom", "this", "that", "these", "those", "am", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "having", "do", "does", "did", "doing", "a", "an", "the", "and", "but", "if", "or", "because", "as", "until", "while", "of", "at", "by", "for", "with", "about", "against", "between", "into", "through", "during", "before", "after", "above", "below", "to", "from", "in", "out", "over", "under", "again", "further", "then", "once", "here", "there", "when", "where", "why", "how", "all", "any", "both", "each", "few", "more", "most", "other", "some", "such", "no", "nor", "not", "only", "own", "same", "so", "than", "too", "very", "s", "t", "can", "will", "just", "don", "should", "now", "on", "off", "up", "down"];
 var KEYCODES = {
     '0': 48,
     '1': 49,
@@ -1506,8 +1507,8 @@ function timeConversion(duration) {
  * @returns {boolean} True if the terms are a match.
  */
 function termsMatch(searchTerm, matchTerm) {
-    searchTerm = searchTerm.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()\s]/g,"");
-    matchTerm = matchTerm.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()\s]/g,"");
+    searchTerm = searchTerm.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()\s]/g,"").replace(new RegExp('\\b('+STOPWORDS.join('|')+')\\b', 'g'), '').replace(/\s\s+/g, ' ').trim();
+    matchTerm = matchTerm.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()\s]/g,"").replace(new RegExp('\\b('+STOPWORDS.join('|')+')\\b', 'g'), '').replace(/\s\s+/g, ' ').trim();
     if( matchTerm.match(searchTerm) ) {
         return true;
     }
@@ -1715,7 +1716,6 @@ function toggleButtons() {
     var updateSaveButton = document.getElementById("update-save");
     var deleteSaveButton = document.getElementById("delete-save");
     var joypadConfigButton = document.getElementById("joypad-config");
-    var voiceButton = document.getElementById("voice");
     //var messagingButton = document.getElementById("messaging");
     if( !anyGame ) {
         updateGameButton.onclick = null; 
@@ -1764,32 +1764,6 @@ function toggleButtons() {
 
     // always allow pip
     document.getElementById("picture-in-picture").onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#pip-form") ) displayPictureInPicture(); }
-
-    // allow microphone if not already recording
-    if( !voiceRecording ) {
-        voiceButton.onclick = function(e) {
-            e.stopPropagation();
-            if( isServer ) {
-                if( !voiceRecording ) {
-                    speechInput();
-                }
-            }
-            else {
-                voiceRecording = true;
-                toggleButtons();
-                var voiceDone = function() {
-                    voiceRecording = false;
-                    toggleButtons();
-                }
-                makeRequest("POST", "/listen", {}, voiceDone, voiceDone);
-            }
-        }
-        voiceButton.classList.remove("inactive");
-    }
-    else {
-        voiceButton.classList.add("inactive");
-        voiceButton.onclick = null;
-    }
 }
 
 /**
@@ -3494,6 +3468,18 @@ function fitscreenVideo() {
             button.innerText = "Fit Screen";
             modal.classList.remove("fit-screen");
         }
+    }
+}
+
+/**
+ * Fullscreen remote media.
+ */
+function fullscreenRemoteMedia() {
+    if(document.fullscreenElement && document.fullscreenElement == document.querySelector(".modal #remote-media-form video")) {
+        document.exitFullscreen();
+    }
+    else {
+        fullscreenVideo( document.querySelector(".modal #remote-media-form video") );
     }
 }
 
@@ -6274,12 +6260,7 @@ function manageGamepadInput() {
 
                 // Select will go full screen
                 if( joyMapping["Select"] && joyMapping["Select"].filter(el => gamepadButtonsPressed[i][el]).length ) {
-                    if(document.fullscreenElement && document.fullscreenElement == document.querySelector(".modal #remote-media-form video")) {
-                        document.exitFullscreen();
-                    }
-                    else {
-                        fullscreenVideo( document.querySelector(".modal #remote-media-form video") );
-                    }
+                    fullscreenRemoteMedia();
                 }
 
                 // Right trigger will go to next
@@ -6349,14 +6330,17 @@ function speechInput() {
     speechRecognition.onresult = function(event) {
         var transcript = event.results[0][0].transcript;
         console.log(transcript);
-        var playMatch = transcript.match(/^play (.+)/i);
+        var playMatch = transcript.match(/^(play|watch|listen) (.+)/i);
         if( playMatch ) {
-            var game = playMatch[1];
+            var game = playMatch[2];
+            var doFullscreen = game.match(/fullscreen$/);
+            game = game.replace(/fullscreen$/,"");
             function lookForMatch( gameTitles ) {
                 for( var i=0; i<gameTitles.length; i++ ) {
                     if( termsMatch(game, gameTitles[i].innerText) ) {
                         var gameElement = gameTitles[i].closest(".game");
                         launchGame( gameElement.closest(".system").getAttribute( "data-system" ), decodeURIComponent( gameElement.getAttribute( "data-game" ) ), parentsStringToArray( gameElement.getAttribute( "data-parents" ) ) );
+                        if( doFullscreen ) fullscreenRemoteMedia();
                         return true;
                     }
                 }
@@ -6368,8 +6352,9 @@ function speechInput() {
             }
         }
         else {
-            if( transcript.match(/^stop/i) ) quitGame();
+            if( transcript.match(/^stop|quit/i) ) quitGame();
             else if( transcript.match(/^(go )?home/i) ) goHome();
+            else if( transcript.match(/^fullscreen/) ) fullscreenRemoteMedia();
             else {
                 var searchMatch = transcript.match(/^search (.+)/);
                 if( searchMatch ) {
