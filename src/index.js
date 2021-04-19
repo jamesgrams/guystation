@@ -284,7 +284,7 @@ const INSTALLSHIELD = "InstallShield Installation Information";
 const COMMON_FILES = "Common Files";
 const UPDATE_PLAYTIME_INTERVAL = 60000; // 1 minute
 const VOICE_KEYWORDS = ["hey cocoa"];
-const VOICE_SENSITIVITIES = KEYWORDS.map( el => 0.75 );
+const VOICE_SENSITIVITIES = VOICE_KEYWORDS.map( el => 0.75 );
 const VOICE_RECORDER_TYPE = "arecord";
 const VOICE_SAMPLE_RATE_HERTZ = 16000;
 
