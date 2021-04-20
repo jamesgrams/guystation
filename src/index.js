@@ -46,6 +46,7 @@ const ppssppMap = require("./lib/ppssppmap").keys;
 const ppssppButtonsMap = require("./lib/ppssppmap").buttons;
 const generatePpssppControllersMap = require("./lib/ppssppmap").generateControllerMap;
 const Porcupine = require("@picovoice/porcupine-node");
+const recorder = require("node-record-lpcm16");
 
 const PORT = 8080;
 const SOCKETS_PORT = 3000;
@@ -6903,7 +6904,7 @@ async function listenMic() {
     }
 
     await menuPage.evaluate( () => {
-        document.querySelector("#voice").click();
+        speechInput();
     });
 
     return Promise.resolve(false);
@@ -6957,12 +6958,21 @@ async function listenMic() {
         for (let frame of frames) {
             let index = handle.process(frame);
             if (index !== -1) {
-                log(`Detected '${VOICE_KEYWORDS[index]}'`);
+                console.log(`Detected '${VOICE_KEYWORDS[index]}'`);
                 listenMic();
             }
         }
     });
 
-    log(`Listening for wake word(s): ${VOICE_KEYWORDS}`);
+    console.log(`Listening for wake word(s): ${VOICE_KEYWORDS}`);
     process.stdin.resume();
+}
+
+/**
+ * Chunk an array.
+ */
+ function chunkArray(array, size) {
+    return Array.from({ length: Math.ceil(array.length / size) }, (v, index) =>
+        array.slice(index * size, index * size + size)
+    );
 }
