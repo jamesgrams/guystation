@@ -4580,7 +4580,7 @@ async function closeRemoteMedia() {
             if( remoteMediaForm ) {
                 // the closeModalCallback is to quit the game. But this is called when a game is quit. we do not want to call
                 // it again. remove the callback, and then quit the media.
-                await menuPage.evaluate( () => { closeModalCallback=null; closeModal(); } );
+                await menuPage.evaluate( () => { closeModalCallback=null; closeModal(true); } );
             }
             await destroyRemoteMedia(); // destory any instances of remote media placeholders
             return Promise.resolve(false);

@@ -6333,8 +6333,8 @@ function speechInput() {
         var playMatch = transcript.match(/^(play|watch|listen) (.+)/i);
         if( playMatch ) {
             var game = playMatch[2];
-            var doFullscreen = game.match(/fullscreen$/);
-            game = game.replace(/fullscreen$/,"");
+            var doFullscreen = game.match(/full\s?screen$/);
+            game = game.replace(/full\s?screen$/,"");
             function lookForMatch( gameTitles ) {
                 for( var i=0; i<gameTitles.length; i++ ) {
                     if( termsMatch(game, gameTitles[i].innerText) ) {
@@ -6354,7 +6354,7 @@ function speechInput() {
         else {
             if( transcript.match(/^stop|quit/i) ) quitGame();
             else if( transcript.match(/^(go )?home/i) ) goHome();
-            else if( transcript.match(/^fullscreen/) ) fullscreenRemoteMedia();
+            else if( transcript.match(/^full\s?screen/) ) fullscreenRemoteMedia();
             else {
                 var searchMatch = transcript.match(/^search (.+)/);
                 if( searchMatch ) {
