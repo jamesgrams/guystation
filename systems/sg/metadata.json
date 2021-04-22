@@ -5,8 +5,5 @@
   "saveDirArgType": " ",
   "screenshotsDirArgType": " ",
   "extraFlags": ["-f"],
-  "activateCommand": "wmctrl -a 'BlastEm'",
-  "config": {
-    "files": ["/home/james/.config/blastem/blastem.cfg"]
-  }
+  "activateCommand": "wmctrl -a 'BlastEm'"
 }
