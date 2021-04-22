@@ -187,6 +187,7 @@ const SYSTEM_NGC = "ngc";
 const SYSTEM_PS2 = "ps2";
 const SYSTEM_PSP = "psp";
 const SYSTEM_WII = "wii";
+const SYSTEM_SG = "sg";
 const SYSTEM_PC = "pc";
 const SYSTEM_DOS = "dos";
 const UINPUT_PATH = "/dev/uinput";

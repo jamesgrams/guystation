@@ -61,6 +61,8 @@ then
     mv PPSSPPQt ~/ppsspp/build/
     mkdir ~/pcsx2
     mv bin ~/pcsx2/
+    mkdir ~/blastem
+    mv blastem ~/blastem/
     cd ~
 fi
 
@@ -75,6 +77,7 @@ DEP_DOLPHIN="libevdev-dev qt5-default qtbase5-private-dev libbluetooth-dev libwx
 DEP_CITRA="qtbase5-dev libqt5opengl5-dev libjack-dev qtmultimedia5-dev doxygen"
 DEP_PPSSPP="libvulkan-dev libgl1-mesa-dev qttools5-dev-tools qt5-qmake"
 DEP_SNES9X="libglib2.0-dev gawk libxml2-dev libxv-dev libpulse-dev portaudio19-dev meson ninja-build minizip"
+DEP_BLASTEM="libglew-dev"
 DEP_64="$DEP_GENERAL $DEP_FCEUX $DEP_DESMUME $DEP_VBAM $DEP_MUPEN $DEP_DOLPHIN $DEP_CITRA $DEP_PPSSPP $DEP_SNES9X"
 sudo apt-get -y install $DEP_64
 
@@ -171,7 +174,7 @@ fi
 # Return to the home directory
 cd ~
 
-# Instal PPSSPP
+# Install PPSSPP
 if [ $TYPE == "complete" ]
 then
     git clone --recursive https://github.com/jamesgrams/ppsspp.git
@@ -182,7 +185,7 @@ fi
 # Return to the home directory
 cd ~
 
-# Instal snes9x
+# Install snes9x
 if [ $TYPE == "complete" ]
 then
     git clone https://github.com/jamesgrams/snes9x.git
@@ -191,6 +194,17 @@ then
     cd builddir
     ninja
     sudo ninja install
+fi
+
+# Return to the home directory
+cd ~
+
+# Install blastem
+if [ $TYPE == "complete" ]
+then
+    git clone https://github.com/jamesgrams/blastem
+    cd blastem
+    make
 fi
 
 

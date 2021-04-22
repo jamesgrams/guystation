@@ -48,6 +48,7 @@ Note: You can press F11 to get GuyStation out of full screen mode at any time.
 * PlayStation 1
 * PlayStation 2
 * PSP
+* Sega Genesis
 * SNES
 
 ## Extras
@@ -197,6 +198,9 @@ No keys are mapped by default, so it is recommended that you map "Take Screensho
 This version of FCEUX changes the default screenshot key to Ctrl+S.
 Additionally, if you change the screenshot key, it will always include the Ctrl modifier.
 
+### Sega Genesis (BlastEm)
+This version of BlastEm changes the default screenshot key to S.
+
 ## Backwards Compatibility
 Some emulators have Backwards compability. From what I understand, VisualBoyAdvance-M supports Game Boy Color and Game Boy Games (like the Game Boy Advance), and PCSX2 supports PS1 games (like the Playstation 2). Dolphin could be thought of as a Wii emulator with backwards compability for the GameCube (like the Wii), however they are two seperate menu options since the Wii requires some extra commands due to the structure it uses for save games. Citra does not support DS games.
 
@@ -298,6 +302,7 @@ Multiple monitor support may be limited. GuyStation will aim to use the primary 
 * PSP icon: [Guilherme Simoes](https://icons-for-free.com/icons-author-Guilherme+Simoes/)
 * SNES icon: [Icon-Library.net](https://icon-library.net/icon/nintendo-controller-icon-14.html)
 * NES icon: [Icon-Library.net](https://icon-library.net/icon/nes-icon-22.html)
+* Sega Genesis icon: [GetDrawings.com](http://getdrawings.com/get-icon#sega-icon-16.png)
 * Keyboard icon: [Yorlmar Campos](https://thenounproject.com/Yorlmar%20Campos/)
 * Windows icon: [icons8](https://www.iconsdb.com/black-icons/os-windows-icon.html)
 * DOS icon: [icons8](https://www.iconsdb.com/black-icons/dos-icon.html)
@@ -310,6 +315,7 @@ Multiple monitor support may be limited. GuyStation will aim to use the primary 
 * PSP emulator: [PPSSPP](https://www.ppsspp.org/)
 * SNES emulator: [Snes9X](http://www.snes9x.com/)
 * NES emulator: [FCEUX](http://www.fceux.com/)
+* Sega Genesis emaultor: [BlastEm](https://www.retrodev.com/blastem/)
 * PC player: [Wine](https://www.winehq.org/)
 * DOS player: [DOSBox](https://www.dosbox.com)
 * Menu Icons: [Font Awesome](https://fontawesome.com/)

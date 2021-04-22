@@ -1,0 +1,12 @@
+{
+  "command": "/home/james/blastem/blastem",
+  "saveDirFlag": "-P",
+  "screenshotsDirFlag": "-p",
+  "saveDirArgType": " ",
+  "screenshotsDirArgType": " ",
+  "extraFlags": ["-f"],
+  "activateCommand": "wmctrl -a 'BlastEm'",
+  "config": {
+    "files": ["/home/james/.config/blastem/blastem.cfg"]
+  }
+}
