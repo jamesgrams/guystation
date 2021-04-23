@@ -5246,6 +5246,7 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
 
         let configIndex = 0;
         for( let config of configs ) {
+            let writeValue;
             if( system === SYSTEM_SG ) {
                 writeValue = JSON.stringify(config, null, 2).replace(/[\",:]/g,"").replace(/  /g,"\t");
                 writeValue = writeValue.replace(/^\s*{/,"");
@@ -5253,7 +5254,7 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
                 writeValue = writeValue.replace(/\n\t/g,"\n");
             }
             else {
-                let writeValue = ini.stringify(config, {'whitespace': system == SYSTEM_NES || system == SYSTEM_PSP || system == SYSTEM_PS2 || system == SYSTEM_NGC ? true : false});
+                writeValue = ini.stringify(config, {'whitespace': system == SYSTEM_NES || system == SYSTEM_PSP || system == SYSTEM_PS2 || system == SYSTEM_NGC ? true : false});
 
                 // the ini file tries to escape the wrapped quotes, but citra doesn't like that.
                 if( system == SYSTEM_3DS ) writeValue = writeValue.replace( /"\\"|\\""/g, '"');
