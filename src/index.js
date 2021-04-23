@@ -5060,7 +5060,7 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
             // Blastem has a custom configuration format that isn't the standard .ini file
             if( system == SYSTEM_SG ) {
                 // manually parse the config file into JSON
-                return configFile.replace(/([^\s}]+)\s([^\s{]+)/g,'"$1":"$2"').replace(/(\S+)\s{/g, '"$1": {').replace(/"(\s+)"/g,'",$1"').replace(/}(\s+)"/g,'},$1"');
+                return JSON.parse(configFile.replace(/([^\s}]+)\s([^\s{]+)/g,'"$1":"$2"').replace(/(\S+)\s{/g, '"$1": {').replace(/"(\s+)"/g,'",$1"').replace(/}(\s+)"/g,'},$1"'));
             }
             else { 
                 return ini.parse(configFile)
