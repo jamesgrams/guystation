@@ -5132,7 +5132,7 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
                                     configRoot = configRoot[currentKey];
                                 }
                                 let value = controlInfo.values[0];
-                                if( controller && controllers && value.match("n") && index === 2 ) value = value.replace("n", parseInt(controllers[controller]) + 1); // THIS IS SPECIAL CUSTOM CODE FOR SEGA GENESIS SINCE CONTROLLER 0 IS 0 IN SOME PLACES AND 1 IN OTHERS
+                                if( controllers && value.match("n") && index === 2 ) value = value.replace("n", parseInt(controllers[controller]) + 1); // THIS IS SPECIAL CUSTOM CODE FOR SEGA GENESIS SINCE CONTROLLER 0 IS 0 IN SOME PLACES AND 1 IN OTHERS
                                 // we have drilled down to axes or buttons, now get each one
                                 // delete no control
                                 for( let keyName in configRoot ) {
@@ -5180,7 +5180,7 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
                                     configRoot = configRoot[currentKey];
                                 }
                                 let value = controlInfo.values[0];
-                                if( controller && controllers && value.match("n") && userControl.type === KEY_CONTROL_TYPE ) value = value.replace("n", parseInt(controllers[controller]) + 1); // THIS IS SPECIAL CUSTOM CODE FOR SEGA GENESIS SINCE CONTROLLER 0 IS 0 IN SOME PLACES AND 1 IN OTHERS
+                                if( controllers && value.match("n") && userControl.type === KEY_CONTROL_TYPE ) value = value.replace("n", parseInt(controllers[controller]) + 1); // THIS IS SPECIAL CUSTOM CODE FOR SEGA GENESIS SINCE CONTROLLER 0 IS 0 IN SOME PLACES AND 1 IN OTHERS
                                 let newKey = translateButton( system, userControl, controlInfo, controlFormat, null, config, controllers, controller );
                                 configRoot[newKey] = value;
                             }
