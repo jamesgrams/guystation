@@ -5127,7 +5127,7 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
                                 for( let i=0; i<keySet.length; i++) {
                                     let currentKey = keySet[i];
                                     if( controller && controllers && currentKey.match(controllers[0]) ) currentKey = keySet[i].replace(controllers[0], controllers[controller]);
-                                    if( !(currentKey in configSetting) ) configRoot[currentKey] = {};
+                                    if( !(currentKey in configRoot) ) configRoot[currentKey] = {};
                                     configRoot = configRoot[currentKey];
                                 }
                                 // we have drilled down to axes or buttons, now get each one
@@ -5172,7 +5172,7 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
                                 for( let i=0; i<keySet.length; i++) {
                                     let currentKey = keySet[i];
                                     if( controller && controllers && currentKey.match(controllers[0]) ) currentKey = keySet[i].replace(controllers[0], controllers[controller]);
-                                    if( !(currentKey in configSetting) ) configRoot[currentKey] = {};
+                                    if( !(currentKey in configRoot) ) configRoot[currentKey] = {};
                                     configRoot = configRoot[currentKey];
                                 }
                                 let newKey = translateButton( system, userControl, controlInfo, controlFormat, null, config, controllers, controller );
