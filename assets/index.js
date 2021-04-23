@@ -2981,7 +2981,7 @@ function autoloadEzProfiles( callback ) {
     loadEzProfiles( function() { // load profiles again in case the current profile has been updated on a different computer
         // we do this when the joypad display dialog is shown, but we don't do that when we autload.
         var profiles = getAndUpdateCurrentAutoloadProfiles();
-        if( profiles ) {
+        if( profiles && Object.keys(profiles).length ) {
             var controllers = Object.keys(profiles);
             var niceControllers = [];
             var sendObjects = [];
