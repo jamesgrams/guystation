@@ -5059,10 +5059,8 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
         let configs = configFiles.map( configFile => {
             // Blastem has a custom configuration format that isn't the standard .ini file
             if( system == SYSTEM_SG ) {
-                let config = fs.readFileSync(configFile).toString();
                 // manually parse the config file into JSON
-                config = config.replace(/([^\s}]+)\s([^\s{]+)/g,'"$1":"$2"').replace(/(\S+)\s{/g, '"$1": {').replace(/"(\s+)"/g,'",$1"').replace(/}(\s+)"/g,'},$1"');
-                return config;
+                return configFile.replace(/([^\s}]+)\s([^\s{]+)/g,'"$1":"$2"').replace(/(\S+)\s{/g, '"$1": {').replace(/"(\s+)"/g,'",$1"').replace(/}(\s+)"/g,'},$1"');
             }
             else { 
                 return ini.parse(configFile)
