@@ -5244,7 +5244,7 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
                 writeValue = JSON.stringify(config, null, 2).replace(/[\",:]/g,"").replace(/  /g,"\t");
                 writeValue = writeValue.replace(/^\s*{/,"");
                 writeValue = writeValue.replace(/}$/,"");
-                writeValue = writeValue.replace(/\r\n\t/g,"\n");
+                writeValue = writeValue.replace(/\n\t/g,"\n");
             }
             else {
                 let writeValue = ini.stringify(config, {'whitespace': system == SYSTEM_NES || system == SYSTEM_PSP || system == SYSTEM_PS2 || system == SYSTEM_NGC ? true : false});
