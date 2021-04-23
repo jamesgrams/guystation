@@ -5,5 +5,117 @@
   "saveDirArgType": " ",
   "screenshotsDirArgType": " ",
   "extraFlags": ["-f"],
-  "activateCommand": "wmctrl -a 'BlastEm'"
+  "activateCommand": "wmctrl -a 'BlastEm'",
+  "config": {
+    "files": ["/home/james/.config/blastem/blastem.cfg"],
+    "controllers": [
+      "0",
+      "1",
+      "2",
+      "3"
+    ],
+    "controls": {
+      "A": {
+        "buttonKeys": ["bindings","pads","0","buttons"],
+        "axisKeys": ["bindings","pads","0","axes"],
+        "keyboardKeys": ["bindings","keys"],
+        "values": ["gamepads.n.a"]
+      },
+      "B": {
+        "buttonKeys": ["bindings","pads","0","buttons"],
+        "axisKeys": ["bindings","pads","0","axes"],
+        "keyboardKeys": ["bindings","keys"],
+        "values": ["gamepads.n.b"]
+      },
+      "X": {
+        "buttonKeys": ["bindings","pads","0","buttons"],
+        "axisKeys": ["bindings","pads","0","axes"],
+        "keyboardKeys": ["bindings","keys"],
+        "values": ["gamepads.n.x"]
+      },
+      "Y": {
+        "buttonKeys": ["bindings","pads","0","buttons"],
+        "axisKeys": ["bindings","pads","0","axes"],
+        "keyboardKeys": ["bindings","keys"],
+        "values": ["gamepads.n.y"]
+      },
+      "L": {
+        "buttonKeys": ["bindings","pads","0","buttons"],
+        "axisKeys": ["bindings","pads","0","axes"],
+        "keyboardKeys": ["bindings","keys"],
+        "values": ["gamepads.n.z"]
+      },
+      "R": {
+        "buttonKeys": ["bindings","pads","0","buttons"],
+        "axisKeys": ["bindings","pads","0","axes"],
+        "keyboardKeys": ["bindings","keys"],
+        "values": ["gamepads.n.c"]
+      },
+      "Axis Y-": {
+        "buttonKeys": ["bindings","pads","0","buttons"],
+        "axisKeys": ["bindings","pads","0","axes"],
+        "keyboardKeys": ["bindings","keys"],
+        "values": ["gamepads.n.up"]
+      },
+      "Axis Y+": {
+        "buttonKeys": ["bindings","pads","0","buttons"],
+        "axisKeys": ["bindings","pads","0","axes"],
+        "keyboardKeys": ["bindings","keys"],
+        "values": ["gamepads.n.down"]
+      },
+      "Axis X-": {
+        "buttonKeys": ["bindings","pads","0","buttons"],
+        "axisKeys": ["bindings","pads","0","axes"],
+        "keyboardKeys": ["bindings","keys"],
+        "values": ["gamepads.n.left"]
+      },
+      "Axis X+": {
+        "buttonKeys": ["bindings","pads","0","buttons"],
+        "axisKeys": ["bindings","pads","0","axes"],
+        "keyboardKeys": ["bindings","keys"],
+        "values": ["gamepads.n.right"]
+      },
+      "Up": {
+        "buttonKeys": ["bindings","pads","0","buttons"],
+        "axisKeys": ["bindings","pads","0","axes"],
+        "keyboardKeys": ["bindings","keys"],
+        "values": ["gamepads.n.up"]
+      },
+      "Down": {
+        "buttonKeys": ["bindings","pads","0","buttons"],
+        "axisKeys": ["bindings","pads","0","axes"],
+        "keyboardKeys": ["bindings","keys"],
+        "values": ["gamepads.n.down"]
+      },
+      "Left": {
+        "buttonKeys": ["bindings","pads","0","buttons"],
+        "axisKeys": ["bindings","pads","0","axes"],
+        "keyboardKeys": ["bindings","keys"],
+        "values": ["gamepads.n.left"]
+      },
+      "Right": {
+        "buttonKeys": ["bindings","pads","0","buttons"],
+        "axisKeys": ["bindings","pads","0","axes"],
+        "keyboardKeys": ["bindings","keys"],
+        "values": ["gamepads.n.right"]
+      },
+      "Start": {
+        "buttonKeys": ["bindings","pads","0","buttons"],
+        "axisKeys": ["bindings","pads","0","axes"],
+        "keyboardKeys": ["bindings","keys"],
+        "values": ["gamepads.n.start"]
+      },
+      "Screenshot": {
+        "buttonKeys": ["bindings","pads","0","buttons"],
+        "axisKeys": ["bindings","pads","0","axes"],
+        "keyboardKeys": ["bindings","keys"],
+        "values": ["ui.screenshot"]
+      }
+    },
+    "controlFormat": {
+      "axis": "$CONTROL",
+      "button": "$CONTROL",
+      "key": "$CONTROL"
+    }
+  }
 }

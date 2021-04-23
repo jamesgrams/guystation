@@ -38,6 +38,7 @@ const sdlMap = require("./lib/sdlmap");
 const x11Map = require("./lib/x11map").names;
 const x11CodeMap = require("./lib/x11map").codes;
 const vbamMap = require("./lib/vbammap");
+const blastemMap = require("./lib/blastemmap");
 const qtMap = require("./lib/qtmap");
 const citraMap = require("./lib/citramap");
 const pcsx2Map = require('./lib/pcsx2map');
@@ -5055,7 +5056,18 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
         } );
         
         // Parse all the config files
-        let configs = configFiles.map( configFile => ini.parse(configFile) );
+        let configs = configFiles.map( configFile => {
+            // Blastem has a custom configuration format that isn't the standard .ini file
+            if( system == SYSTEM_SG ) {
+                let config = fs.readFileSync(configFile).toString();
+                // manually parse the config file into JSON
+                config = config.replace(/([^\s}]+)\s([^\s{]+)/g,'"$1":"$2"').replace(/(\S+)\s{/g, '"$1": {').replace(/"(\s+)"/g,'",$1"').replace(/}(\s+)"/g,'},$1"');
+                return config;
+            }
+            else { 
+                return ini.parse(configFile)
+            }
+        });
         let controls = systemsDict[system].config.controls;
         // control formats will map the common user expect values of "key", "button", and "axis" to whatever they are listed as in the ini file (e.g. "Keyboard")
         let controlFormat = systemsDict[system].config.controlFormat;
@@ -5107,13 +5119,38 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
 
                 // values need to be cleared out that are currently mapped to this control
                 // only keyboard keys are valid for PS2 right now
-                if( controlInfo.values && userControls.filter( el => el.type == KEY_CONTROL_TYPE ).length ) {
-                    // delete anything currently mapped to that control
-                    let configKeys = Object.keys(config);
-                    for(let configKey of configKeys) {
-                        if( configKey.match( systemsDict[system].config.keyMatch + controller ) &&
-                            config[configKey] == controlInfo.values[0] ) {
-                            delete config[configKey];
+                // Sega Genesis also has the user controls as the keys
+                if( controlInfo.values && ( system !== SYSTEM_PS2 || userControls.filter( el => el.type == KEY_CONTROL_TYPE ).length ) ) {
+                    if( system === SYSTEM_SG ) {
+                        for( let keySet of [controlInfo.buttonKeys, controlInfo.axisKeys, controlInfo.keyboardKeys] ) {
+                            if( keySet ) {
+                                // while ps2 games have all their keys at the root, we have to drill down to all the options for bindings for sega genesis
+                                let configRoot = config;
+                                for( let i=0; i<keySet.length; i++) {
+                                    let currentKey = keySet[i];
+                                    if( controller && controllers && currentKey.match(controllers[0]) ) currentKey = keySet[i].replace(controllers[0], controllers[controller]);
+                                    if( !(currentKey in configSetting) ) configRoot[currentKey] = {};
+                                    configRoot = configRoot[currentKey];
+                                }
+                                // we have drilled down to axes or buttons, now get each one
+                                // delete no control
+                                for( let keyName of configRoot ) {
+                                    if( configRoot[keyName] === controlInfo.values[0] ) { // for each control that can be set, we're going to delete what's there. keeping with the principal that if it is not set in config, it is removed.
+                                        delete config[configKey];
+                                    }
+                                }
+                            } 
+                        }
+                    }
+                    else if( system === SYSTEM_PS2 ) {
+                        // delete anything currently mapped to that control
+                        // delete no control
+                        let configKeys = Object.keys(config);
+                        for(let configKey of configKeys) {
+                            if( configKey.match( systemsDict[system].config.keyMatch + controller ) && // some of the keys aren't controls
+                                config[configKey] == controlInfo.values[0] ) {
+                                delete config[configKey];
+                            }
                         }
                     }
                 }
@@ -5125,12 +5162,31 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
                     if( userControl.type != KEY_CONTROL_TYPE && control == SCREENSHOT_CONTROL ) continue;
 
                     // in this case, the values in the ini are actually the controls for the emulator
-                    // the keys are all at the root level
+                    // the keys are all at the root level for ps2
+                    // we have to drill down to the keys for genesis
                     if( controlInfo.values ) {
-                        // PS2 only allows key values right now
-                        if( userControl.type == KEY_CONTROL_TYPE ) {
-                            let newKey = translateButton( system, userControl, controlInfo, controlFormat, null, config, controllers, controller );
-                            config[newKey] = controlInfo.values[0];
+                        // If multiple user controls (buttons is an array), they should just be entered as another entry.
+                        // If there are duplicate keys, that should just mean one control goes to multiple different genesis controls
+                        if( system == SYSTEM_SG ) {
+                            let keySet = userControl.type === KEY_CONTROL_TYPE ? controlInfo.keyboardKeys : userControl.type === AXIS_CONTROL_TYPE ? controlInfo.axisKeys : controlInfo.buttonKeys;
+                            if( keySet ) {
+                                let configRoot = config;
+                                for( let i=0; i<keySet.length; i++) {
+                                    let currentKey = keySet[i];
+                                    if( controller && controllers && currentKey.match(controllers[0]) ) currentKey = keySet[i].replace(controllers[0], controllers[controller]);
+                                    if( !(currentKey in configSetting) ) configRoot[currentKey] = {};
+                                    configRoot = configRoot[currentKey];
+                                }
+                                let newKey = translateButton( system, userControl, controlInfo, controlFormat, null, config, controllers, controller );
+                                configRoot[newKey] = controlInfo.values[0];
+                            }
+                        }
+                        else if( system == SYSTEM_PS2 ) {
+                            // PS2 only allows key values right now
+                            if( userControl.type == KEY_CONTROL_TYPE ) {
+                                let newKey = translateButton( system, userControl, controlInfo, controlFormat, null, config, controllers, controller );
+                                config[newKey] = controlInfo.values[0];
+                            }
                         }
                         continue;
                     }
@@ -5186,14 +5242,19 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
 
         let configIndex = 0;
         for( let config of configs ) {
-            let writeValue = ini.stringify(config, {'whitespace': system == SYSTEM_NES || system == SYSTEM_PSP || system == SYSTEM_PS2 || system == SYSTEM_NGC ? true : false});
+            if( system === SYSTEM_SG ) {
+                writeValue = JSON.stringify(config, null, 2).replace(/[\",:]/g,"").replace(/  /g,"\t");
+            }
+            else {
+                let writeValue = ini.stringify(config, {'whitespace': system == SYSTEM_NES || system == SYSTEM_PSP || system == SYSTEM_PS2 || system == SYSTEM_NGC ? true : false});
 
-            // the ini file tries to escape the wrapped quotes, but citra doesn't like that.
-            if( system == SYSTEM_3DS ) writeValue = writeValue.replace( /"\\"|\\""/g, '"');
-            // VBAM just uses characters as keys but ini tries to escape them.
-            else if( system == SYSTEM_GBA ) writeValue = writeValue.replace( /\\;/g, ';' );
-            // desmume should never have quotes
-            else if(system == SYSTEM_NDS && configIndex == 1) writeValue = writeValue.replace( /"|'/g, "" );
+                // the ini file tries to escape the wrapped quotes, but citra doesn't like that.
+                if( system == SYSTEM_3DS ) writeValue = writeValue.replace( /"\\"|\\""/g, '"');
+                // VBAM just uses characters as keys but ini tries to escape them.
+                else if( system == SYSTEM_GBA ) writeValue = writeValue.replace( /\\;/g, ';' );
+                // desmume should never have quotes
+                else if(system == SYSTEM_NDS && configIndex == 1) writeValue = writeValue.replace( /"|'/g, "" );
+            }
 
             fs.writeFileSync(systemsDict[system].config.files[configIndex], writeValue);
             configIndex++;
@@ -5231,7 +5292,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
 
     // we can read controls from a regex if each line has multiple controls
 
-    controlButtons = [controlButtons[0]];
+    controlButtons = [controlButtons[0]]; // IMPORTANT
     if( controlInfo.controlsRegex ) {
         let controlsRegex = controlInfo.controlsRegex;
         let selfPosition = controlInfo.selfPosition;
@@ -5424,6 +5485,10 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
                 controlButtons = controlButtons.map( el => el ? ( "0x" + x11CodeMap[el].toString(16) ) : el );
             //}
         }
+    }
+    else if( system == SYSTEM_SG && userControl.type == KEY_CONTROL_TYPE ) {
+        // vbam expects a certain mapping
+        controlButtons = controlButtons.map( el => el ? blastemMap[el] : el );
     }
     // gamecube and wii
     else if( system == SYSTEM_NGC || system == SYSTEM_WII ) {

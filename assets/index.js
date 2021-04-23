@@ -214,6 +214,7 @@ var EZ_SYSTEMS = [
     "ngc",
     "ps2",
     "psp",
+    "sg",
     "snes",
     "wii"
 ];
