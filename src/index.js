@@ -5134,7 +5134,7 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
                                 // delete no control
                                 for( let keyName in configRoot ) {
                                     if( configRoot[keyName] === controlInfo.values[0] ) { // for each control that can be set, we're going to delete what's there. keeping with the principal that if it is not set in config, it is removed.
-                                        delete config[configKey];
+                                        delete config[keyName];
                                     }
                                 }
                             } 
