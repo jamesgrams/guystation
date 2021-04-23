@@ -5242,7 +5242,7 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
         for( let config of configs ) {
             if( system === SYSTEM_SG ) {
                 writeValue = JSON.stringify(config, null, 2).replace(/[\",:]/g,"").replace(/  /g,"\t");
-                writeValue = writeValue.replace(/^\s+{/,"");
+                writeValue = writeValue.replace(/^\s*{/,"");
                 writeValue = writeValue.replace(/}$/,"");
                 writeValue = writeValue.replace(/\r\n\t/,/\t/);
             }
@@ -5487,7 +5487,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
             //}
         }
     }
-    else if( system == SYSTEM_SG && userControl.type == KEY_CONTROL_TYPE ) {
+    else if( system == SYSTEM_SG ) {
         if( userControl.type == KEY_CONTROL_TYPE ) {
             // vbam expects a certain mapping
             controlButtons = controlButtons.map( el => el ? blastemMap[el] : el );
