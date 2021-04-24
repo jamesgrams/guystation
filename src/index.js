@@ -5096,7 +5096,8 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
             config.UI["Shortcuts\\Main%20Window\\Capture%20Screenshot\\KeySeq\\default"] = false;
         }
 
-        let seenFinalKeys = {};
+        let seenFinalKeys = {}; // This means we have a value for a mapping, so don't delete it (helps with axis and dpad mapped to "left")
+        let seenFinalValues = {};
         // for each of the controls listed
         for( let control in controls ) {
 
@@ -5122,6 +5123,7 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
                 if( controlInfo.values && ( system !== SYSTEM_PS2 || userControls.filter( el => el.type == KEY_CONTROL_TYPE ).length ) ) {
                     if( system === SYSTEM_SG ) {
                         let index = 0;
+                        let newValues = {};
                         for( let keySet of [controlInfo.buttonKeys, controlInfo.axisKeys, controlInfo.keyboardKeys] ) {
                             if( keySet ) {
                                 // while ps2 games have all their keys at the root, we have to drill down to all the options for bindings for sega genesis
@@ -5138,12 +5140,17 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
                                 // delete no control
                                 for( let keyName in configRoot ) {
                                     if( configRoot[keyName] === value ) { // for each control that can be set, we're going to delete what's there. keeping with the principal that if it is not set in config, it is removed.
-                                        delete configRoot[keyName];
+                                        if( !seenFinalValues[value] ) {
+                                            delete configRoot[keyName];
+                                        }
                                     }
                                 }
+                                newValues[value] = true;
                             }
                             index++;
                         }
+                        // Now for the next mapping that maps to this button (e.g. axis to left, we won't re-delete the previous values)
+                        Object.assign( seenFinalValues, newValues );
                     }
                     else if( system === SYSTEM_PS2 ) {
                         // delete anything currently mapped to that control
