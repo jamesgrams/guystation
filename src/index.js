@@ -5138,7 +5138,7 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
                                 // delete no control
                                 for( let keyName in configRoot ) {
                                     if( configRoot[keyName] === value ) { // for each control that can be set, we're going to delete what's there. keeping with the principal that if it is not set in config, it is removed.
-                                        delete config[keyName];
+                                        delete configRoot[keyName];
                                     }
                                 }
                             }
@@ -5183,7 +5183,7 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
                                 let value = controlInfo.values[0];
                                 if( controllers && value.match(".n.") && userControl.type === KEY_CONTROL_TYPE ) value = value.replace(".n.", "."+(parseInt(controllers[controller]) + 1)+"."); // THIS IS SPECIAL CUSTOM CODE FOR SEGA GENESIS SINCE CONTROLLER 0 IS 0 IN SOME PLACES AND 1 IN OTHERS
                                 let newKey = translateButton( system, userControl, controlInfo, controlFormat, null, config, controllers, controller );
-                                configRoot[newKey] = value;
+                                if( newKey ) configRoot[newKey] = value;
                             }
                         }
                         else if( system == SYSTEM_PS2 ) {
