@@ -253,6 +253,7 @@ const WII_CLASSIC_VALUE = "Classic";
 const WII_NUNCHUK_VALUE = "Nunchuk";
 const WII_SOURCE_KEY = "Source";
 const WII_SOURCE_EMULATED = 1;
+const HOTKEY_PAD_KEY = "Hotkeys";
 const N64_MANUAL_CONTROLLER = "Input-SDL-Control1";
 const N64_MANUAL_KEY = "mode";
 const N64_MANUAL_VALUE = 0;
@@ -5530,6 +5531,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
                 return value;
              } );
             if( controlInfo.actualControl != SCREENSHOT_CONTROL) config[padKey][NGC_DEVICE_TYPE_KEY] = NGC_VIRTUAL_KEYBOARD;//.replace("0", controller); Multiple keyboards probably isn't what we'd excpect, so keep at 0 for device num
+            else config[padKey][HOTKEY_PAD_KEY] = NGC_VIRTUAL_KEYBOARD; 
         }
     }
     
