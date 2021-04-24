@@ -64,6 +64,8 @@ then
     mkdir ~/blastem
     mv blastem ~/blastem/
     mv default.cfg ~/blastem/
+    mv rom.db ~/blastem/
+    mv shaders ~/blastem/shaders
     cd ~
 fi
 
