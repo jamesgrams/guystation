@@ -5531,7 +5531,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
                 return value;
              } );
             if( controlInfo.actualControl != SCREENSHOT_CONTROL) config[padKey][NGC_DEVICE_TYPE_KEY] = NGC_VIRTUAL_KEYBOARD;//.replace("0", controller); Multiple keyboards probably isn't what we'd excpect, so keep at 0 for device num
-            else config[padKey][HOTKEY_PAD_KEY] = NGC_VIRTUAL_KEYBOARD; 
+            else config[HOTKEY_PAD_KEY][NGC_DEVICE_TYPE_KEY] = NGC_VIRTUAL_KEYBOARD; 
         }
     }
     
