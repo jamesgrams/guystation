@@ -63,6 +63,7 @@ then
     mv bin ~/pcsx2/
     mkdir ~/blastem
     mv blastem ~/blastem/
+    mv default.cfg ~/blastem/
     cd ~
 fi
 
