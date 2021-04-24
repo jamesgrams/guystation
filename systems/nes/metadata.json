@@ -7,6 +7,7 @@
   "extraFlags": [],
   "fullScreenButtons": ["alt", "enter"],
   "activateCommand": "wmctrl -a 'FCEUX'",
+  "killFirst": true,
   "config": {
     "files": ["/home/james/.fceux/fceux.cfg"],
     "controllers": [

@@ -82,6 +82,7 @@ catch(err) {
 }
 const ESCAPE_KEY = 1;
 const KILL_COMMAND = "kill -9 ";
+const KILL_FIRST_COMMAND = "kill ";
 const RESUME_COMMAND = "kill -CONT ";
 const PAUSE_COMMAND = "kill -STOP ";
 const SLEEP_COMMAND = "sleep 1";
@@ -2933,6 +2934,22 @@ async function quitGame() {
         if(currentSystem != BROWSER && currentSystem != MEDIA) {
             currentEmulator.removeListener('exit', blankCurrentGame);
             try {
+                // First perform a normal kill command. This can trigger a save for some emulators.
+                if( systemsDict[currentSystem].killFirst ) {
+                    try {
+                        try {
+                            proc.execSync( RESUME_COMMAND + currentEmulator.pid );
+                        }
+                        catch(err) {
+                            console.log(err);
+                        }
+                        proc.execSync( KILL_FIRST_COMMAND + currentEmulator.pid );
+                        proc.execSync( SLEEP_HALF_COMMAND );
+                    }
+                    catch(err) {
+                        console.log(err);
+                    }
+                }
                 proc.execSync( KILL_COMMAND + currentEmulator.pid );
             }
             catch(err) {

@@ -7,6 +7,7 @@
   "extraFlags": ["-fullscreen"],
   "activateCommand": "wmctrl -a 'Snes9X'",
   "argsFirst": true,
+  "killFirst": true,
   "config": {
     "files": ["/home/james/.config/snes9x/snes9x.conf"],
     "controllers": [
