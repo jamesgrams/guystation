@@ -199,7 +199,7 @@ This version of FCEUX changes the default screenshot key to Ctrl+S.
 Additionally, if you change the screenshot key, it will always include the Ctrl modifier.
 
 ### Sega Genesis (BlastEm)
-This version of BlastEm changes the default screenshot key to S.
+This version of BlastEm changes the default screenshot key to S. Additionally, it removes the default mapping of escape to quitting the emulator.
 
 ## Backwards Compatibility
 Some emulators have Backwards compability. From what I understand, VisualBoyAdvance-M supports Game Boy Color and Game Boy Games (like the Game Boy Advance), and PCSX2 supports PS1 games (like the Playstation 2). Dolphin could be thought of as a Wii emulator with backwards compability for the GameCube (like the Wii), however they are two seperate menu options since the Wii requires some extra commands due to the structure it uses for save games. Citra does not support DS games.
@@ -280,6 +280,7 @@ Multiple monitor support may be limited. GuyStation will aim to use the primary 
 * Screencast sound cuts out when entering or exiting a Nintendo 64 game.
 * Updating GuyStation may give new and updated files root ownership, which may not be correct.
 * PC game extra files aren't deleted on update to a new rom.
+* The same button/key/axis cannot be mapped to multiple buttons on the Sega Genesis.
 * There is a Samba delay sometimes, so you might not be able to launch a game immediately after updating ("No ROM found for game"). Especially since updating uses the main server to process the request.
 * EZ Config Issues
     * PS2 can only have keyboard controls set with EZ configuration.
