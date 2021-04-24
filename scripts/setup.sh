@@ -81,7 +81,7 @@ DEP_CITRA="qtbase5-dev libqt5opengl5-dev libjack-dev qtmultimedia5-dev doxygen"
 DEP_PPSSPP="libvulkan-dev libgl1-mesa-dev qttools5-dev-tools qt5-qmake"
 DEP_SNES9X="libglib2.0-dev gawk libxml2-dev libxv-dev libpulse-dev portaudio19-dev meson ninja-build minizip"
 DEP_BLASTEM="libglew-dev"
-DEP_64="$DEP_GENERAL $DEP_FCEUX $DEP_DESMUME $DEP_VBAM $DEP_MUPEN $DEP_DOLPHIN $DEP_CITRA $DEP_PPSSPP $DEP_SNES9X"
+DEP_64="$DEP_GENERAL $DEP_FCEUX $DEP_DESMUME $DEP_VBAM $DEP_MUPEN $DEP_DOLPHIN $DEP_CITRA $DEP_PPSSPP $DEP_SNES9X $DEP_BLASTEM"
 sudo apt-get -y install $DEP_64
 
 # Install FCEUX
