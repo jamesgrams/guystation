@@ -5063,7 +5063,7 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
         // Read all the config files
         let configFiles = systemsDict[system].config.files.map( file => {
             if( !fs.existsSync(file) ) {
-                fsExtra.outputFile(file, "");
+                fsExtra.outputFileSync(file, "");
             }
 
             let str = fs.readFileSync(file).toString();
