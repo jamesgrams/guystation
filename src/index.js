@@ -4987,6 +4987,7 @@ function generateMessageUserName( id ) {
  * @returns {boolean|string} An error message if there is an error, false if not.
  */
 function setMultipleControls( controllers ) {
+    controllers = controllers.sort().reverse(); // this is to set player 1 controls last to overwrite potential others
     for( let controller of controllers ) {
         setControls( controller.systems, controller.values, controller.controller, controller.nunchuk );
     }
