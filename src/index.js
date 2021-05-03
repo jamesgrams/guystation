@@ -93,6 +93,7 @@ const TMP_ROM_LOCATION = "/tmp/tmprom";
 const NAND_ROM_FILE_PLACEHOLDER = "ROM_FILE_PLACEHOLDER";
 const GAME_DIRECTORY_PLACEHOLDER = "GAME_DIRECTORY_PLACEHOLDER";
 const BROWSER = "browser";
+const STREAM = "stream"; // Stream is a seperate system for readability, but it uses browser controls
 const MEDIA = "media";
 const MENU = "menu";
 const GOOGLE_SEARCH_URL = "https://google.com/search?q=";
@@ -282,6 +283,7 @@ const RIGHT = "right";
 const GAMEPAD_MOVE_CURSOR_AMOUNT = 25;
 const GAMEPAD_SCROLL_AMOUNT = 50;
 const BROWSER_GAMEPAD_PATH = "browser-gamepad.json";
+const STREAM_INFO_PATH = "stream-info.json";
 const LAUNCH_ONBOARD_COMMAND = "onboard";
 const ENSURE_FLOAT_ONBOARD_COMMAND = "gsettings set org.onboard.window docking-enabled false";
 const RENEGOTIATE_RTMP_INTERVAL = 50;
@@ -293,6 +295,21 @@ const VOICE_KEYWORDS = ["hey cocoa"];
 const VOICE_SENSITIVITIES = VOICE_KEYWORDS.map( el => 0.75 );
 const VOICE_RECORDER_TYPE = "arecord";
 const VOICE_SAMPLE_RATE_HERTZ = 16000;
+
+const DEFAULT_STREAM_SERVICES = {
+    "Disney+": "https://reelgood.com/source/disney_plus"
+};
+const REELGOOD_API_URL = "https://api.reelgood.com/v3.0/content/browse/source";
+const REELGOOD_IMAGE_URL = "https://img.reelgood.com/content/movie/MOVIE_ID/poster-342.jpg";
+const REELGOOD_URL = "https://reelgood.com/";
+const STREAM_WAIT = 2000;
+const STREAM_TIMEOUT = 10000;
+const STREAM_WIDTH = 1200;
+const STREAM_HEIGHT = 800;
+const STREAM_OK_TO_FETCH_HOUR = 2;
+const STREAM_SYNC_WAIT = 1000 * 60 * 10; // 10 minutes
+const STREAM_COVER_WIDTH = 342;
+const STREAM_COVER_HEIGHT = 513;
 
 const DEFAULT_PROFILES_DICT = {
     "GuyStation Virtual Controller": {
@@ -408,7 +425,8 @@ const ERROR_MESSAGES = {
     "couldNotFindTwitchUsername": "Could not find Twitch username",
     "anotherTwitchRequest": "Twitch request outdated",
     "invalidRomCandidate": "Invalid ROM candidate",
-    "pcStillLoading": "PC still loading"
+    "pcStillLoading": "PC still loading",
+    "streamCurrentlyFetching": "Info currently being fetching"
 }
 // http://jsfiddle.net/vWx8V/ - keycode
 // http://robotjs.io/docs/syntax - robotjs
@@ -461,6 +479,7 @@ let expressStatic = null;
 let expressDynamic = null;
 let socketsServer = null;
 let pcUnpacking = false;
+let streamIsFetching = false;
 
 let sambaIndex = process.argv.indexOf(SAMBA_FLAG);
 let sambaOn = sambaIndex != -1;
@@ -1326,6 +1345,7 @@ launchBrowser().then( () => {
     }
     expressDynamic = app.listen(PORT);
     detectHotword();
+    syncStreams();
 } );
 process.on(SIGTERM, () => {
     try {
@@ -1509,7 +1529,7 @@ async function launchBrowser() {
         let pages = await browser.pages();
         if( pages.length <= 2 ) { // only the menu page is open
             browsePage = null; // There is no browse page
-            if( currentSystem === BROWSER ) {
+            if( isBrowserOrClone(currentSystem) ) {
                 blankCurrentGame();
                 await menuPage.bringToFront();
             }
@@ -2601,6 +2621,15 @@ function getGameDictEntry(system, game, parents) {
 }
 
 /**
+ * Determine if the system is a browser system or a browser clone.
+ * @param {string} system - The system. 
+ * @returns {boolean} True if the system is browser or a clone.
+ */
+function isBrowserOrClone( system ) {
+    return system === BROWSER || system === STREAM;
+}
+
+/**
  * Launch a game.
  * @param {string} system - The system to run the game on.
  * @param {string} [game] - The game to run. This is null if we just want to launch the emulator.
@@ -2631,7 +2660,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         else if( gameDictEntry.status == STATUS_ROM_FAILED ) {
             return Promise.resolve(ERROR_MESSAGES.romFailedDownload);
         }
-        if( !fs.existsSync(generateRomLocation( system, game, gameDictEntry.rom, parents )) && system != BROWSER && !gameDictEntry.isPlaylist ) {
+        if( !fs.existsSync(generateRomLocation( system, game, gameDictEntry.rom, parents )) && !isBrowserOrClone(system) && !gameDictEntry.isPlaylist ) {
             if( !gameDictEntry.installer || !fs.existsSync(generateRomLocation( system, game, gameDictEntry.installer, parents )) ) {
                 return Promise.resolve(ERROR_MESSAGES.noRomFile);
             }
@@ -2642,7 +2671,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         else if( system == MEDIA && (!menuPage || menuPage.isClosed())) {
             return Promise.resolve(ERROR_MESSAGES.menuPageClosed);
         }
-        else if( system == BROWSER && !gameDictEntry.siteUrl ) {
+        else if( isBrowserOrClone(system) && !gameDictEntry.siteUrl ) {
             return Promise.resolve(ERROR_MESSAGES.noUrl);
         } 
     }
@@ -2684,7 +2713,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         let command = systemsDict[system].command;
         if( noGame && systemsDict[system].frontendCommand ) command = systemsDict[system].frontendCommand;
 
-        if( system == BROWSER ) {
+        if( isBrowserOrClone(system) ) {
             await launchBrowseTab( noGame ? null : systemsDict[system].games[game].siteUrl, !noGame && systemsDict[system].games[game].script ? systemsDict[system].games[game].script : null );
             currentSystem = system;
             currentGame = game;
@@ -2839,7 +2868,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         }
         catch(err) {/*ok*/}
     }
-    else if( system == BROWSER ) {
+    else if( isBrowserOrClone(system) ) {
         if ( browsePage && !browsePage.isClosed() ) {
             updateMute();
             browsePage.bringToFront();
@@ -2931,7 +2960,7 @@ async function quitGame() {
     clearInterval(continueInterval); // put this here just to be safe
 
     if(currentEmulator) {
-        if(currentSystem != BROWSER && currentSystem != MEDIA) {
+        if(!isBrowserOrClone(currentSystem) && currentSystem != MEDIA) {
             currentEmulator.removeListener('exit', blankCurrentGame);
             try {
                 // First perform a normal kill command. This can trigger a save for some emulators.
@@ -3343,7 +3372,7 @@ function addGame( system, game, file, parents=[], isFolder, isPlaylist, playlist
 
             let errorMessage;
             // browser, we just append the siteUrl to the metadata.json
-            if(system == BROWSER) {
+            if(isBrowserOrClone(system)) {
                 if( typeof file == STRING_TYPE )
                     fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"siteUrl": file}));
                 else {
@@ -3387,7 +3416,7 @@ function addGame( system, game, file, parents=[], isFolder, isPlaylist, playlist
 
     // Update the data (this will take care of making all the necessary directories for the game as well as updating the data)
     // browser uses strings, but it doesn't perform a download
-    if( typeof file != STRING_TYPE || system == BROWSER || file.match(/^\//) ) runWhenDone();
+    if( typeof file != STRING_TYPE || isBrowserOrClone(system) || file.match(/^\//) ) runWhenDone();
     else if( !force ) getData(); // Run get data now, so we can have an updated gamesDict even if we haven't finished downloading yet
 
     return false;
@@ -4136,7 +4165,7 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
         let errorMessage;
         let oldRomPath;
         // Set the browser site url
-        if( system == BROWSER ) {
+        if( isBrowserOrClone(system) ) {
             if( typeof file == STRING_TYPE ) {
                 updateGameMetaData( oldSystem, oldGame, oldParents, {siteUrl: file} );
             }
@@ -4231,7 +4260,7 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
 
     // After dirs are done, we can run getData
     // Update the data (this will take care of making all the necessary directories for the game as well as updating the data)
-    if( !file || typeof file != STRING_TYPE || system == BROWSER || file.match(/^\//) ) runWhenDone();
+    if( !file || typeof file != STRING_TYPE || isBrowserOrClone(system) || file.match(/^\//) ) runWhenDone();
     else getData(); // Run get data now, so we can have an updated gamesDict even if we haven't finished downloading yet
     resolveDirsDone();
 
@@ -4496,7 +4525,7 @@ function ensureProperResolution() {
  * This is only for programs.
  */
 function pauseGame() {
-    if(currentEmulator && currentSystem != BROWSER && currentSystem != MEDIA) {
+    if(currentEmulator && !isBrowserOrClone(currentSystem) && currentSystem != MEDIA) {
         ensureProperResolution(); // Instantly get the right resolution
         proc.execSync( SLEEP_HALF_COMMAND ); // give time to go back to the menu
         proc.execSync( PAUSE_COMMAND + currentEmulator.pid );
@@ -4508,7 +4537,7 @@ function pauseGame() {
  * This is only for programs.
  */
 function resumeGame() {
-    if(currentEmulator && currentSystem != BROWSER && currentSystem != MEDIA) {
+    if(currentEmulator && !isBrowserOrClone(currentSystem) && currentSystem != MEDIA) {
         proc.execSync( SLEEP_HALF_COMMAND ); // give time to load to avoid button press issues
         proc.execSync( RESUME_COMMAND + currentEmulator.pid );
     }
@@ -4688,7 +4717,7 @@ async function goHome() {
         // so don't worry about returning their error messages, because some will inevitably have them
         if( needsPause ) {
             pauseGame();
-            if( currentEmulator && currentGame == BROWSER && browsePage && !browsePage.isClosed() ) await browsePage.evaluate( () => document.exitFullscreen() );
+            if( currentEmulator && isBrowserOrClone(currentSystem) && browsePage && !browsePage.isClosed() ) await browsePage.evaluate( () => document.exitFullscreen() );
         }
         pauseRemoteMedia();
     }
@@ -4699,6 +4728,194 @@ async function goHome() {
     blankOnboardInstance();
 
     return Promise.resolve( { "didPause": needsPause } );
+}
+
+/**
+ * Sync streams.
+ */
+function syncStreams() {
+    // update streams only at night
+    if( !fs.existsSync(STREAM_INFO_PATH) ) fetchStreamList();
+    setInterval(() => {
+        if( new Date().getHours === STREAM_OK_TO_FETCH_HOUR ) {
+            fetchStreamList();
+        }
+    }, STREAM_SYNC_WAIT);
+}
+
+/**
+ * Scrape what's available to Stream.
+ * Uses ReelGood.
+ * @returns {Promise<(boolean|string)>} An error message if there is one, or false if not.
+ */
+async function fetchStreamList() {
+    try {
+        if( streamIsFetching ) {
+            return Promise.resolve(ERROR_MESSAGES.streamCurrentlyFetching);
+        }
+        streamIsFetching = true;
+
+        console.log("scraping stream list");
+        // Open the stream info contents
+        let contents;
+        try {
+            contents = JSON.parse(fs.readFileSync(STREAM_INFO_PATH));
+        }
+        catch(err) {
+            contents = {lastFetched: 0};
+        }
+
+        let currentTime = new Date().getTime();
+        if( parseInt(contents.lastFetched) > currentTime - ONE_WEEK_MILLISECONDS ) {
+            return Promise.resolve(ERROR_MESSAGES.alreadyFetchedWithinWeek);
+        }
+
+        // Open the browser to scrape
+        console.log("opening browser");
+        let streamBrowser = await puppeteer.launch({
+            defaultViewport: {
+                width: STREAM_WIDTH, 
+                height: STREAM_HEIGHT
+            }, 
+            args: [
+                '--no-sandbox'
+            ]
+        });
+        let page = await streamBrowser.newPage();
+        let buttonSelector = "a[href^='/source'] button";
+        let servicesDict = {};
+
+        for( let service in DEFAULT_STREAM_SERVICES ) {
+            console.log("going to " + service);
+            servicesDict[service] = {};
+
+            // this function will intercept requests to the api
+            let intercept = async function(response) {
+                if( response.url().match(REELGOOD_API_URL) ) {
+                    let json = await response.json();
+                    for( let result of json.results ) {
+                        let date = new Date(result.released);
+                        let title = result.title + " (" + date.getFullYear() + ")";
+                        servicesDict[service][title] = {
+                            title: title,
+                            description: result.overview,
+                            released: result.released,
+                            link: REELGOOD_URL + (result.type === "m" ? "movie" : "show") + "/" + result.slug,
+                            image: REELGOOD_IMAGE_URL.replace("MOVIE_ID",result.id)
+                        }
+                    }
+                    return;
+                }
+            }
+            page.on("response", intercept);
+
+            // Wait for navigation
+            await page.goto( DEFAULT_STREAM_SERVICES[service] );
+            await page.waitForSelector("tbody tr");
+            while( true ) {
+                let curInterval;
+                try {
+                    await page.waitForSelector(buttonSelector, {timeout: STREAM_TIMEOUT});
+                    await page.waitForTimeout(STREAM_WAIT);
+                    let prevCount = await page.evaluate( () => document.querySelectorAll("tbody tr").length );
+
+                    page.off("response", intercept);
+                    await page.click(buttonSelector);
+                    page.on("response", intercept);
+
+                    // wait until the new content has loaded
+                    await new Promise( (resolve, reject) => {
+                        let tries = 0;
+                        curInterval = setInterval( async () => {
+                            let count = await page.evaluate( () => document.querySelectorAll("tbody tr").length );
+                            if( count != prevCount ) resolve(); // We've loaded more
+                            tries++;
+                            if( tries > STREAM_TIMEOUT/STREAM_WAIT ) reject();
+                        }, STREAM_WAIT );
+                    });
+                }
+                catch(err) {
+                    break; // no more 
+                }
+                clearInterval(curInterval);
+            }
+            page.off("response", intercept);
+        }
+        streamBrowser.close();
+
+        console.log("updating and deleting programs");
+        // note, we depend on the auto generated structure here of services for folders and games for values.
+        for( let existingService in systemsDict[STREAM].games ) {
+            if( servicesDict[service] ) { // Same services in old and new
+                for( let existingGame in systemsDict[STREAM].games[existingService].games ) {
+                    let json = servicesDict[service][existingGame];
+                    if( json ) {
+                        // still exists, update
+                        updateGame( STREAM, json.title, [service], null, null, json.url );
+                        writeStreamMetaData( STREAM, json.title, json.url, [service] );
+                    }
+                    // doesn't exist, delete
+                    else {
+                        deleteGame( STREAM, existingGame, [service] );
+                    }
+                }
+            }
+            else {
+                // Need to delete everything from the old service
+                for( let existingGame in systemsDict[STREAM].games[existingService].games ) {
+                    deleteGame( STREAM, existingGame, [service] ); // Delete the games within
+                }
+                deleteGame( STREAM, service, [] ); // Delete the service
+            }
+        }
+
+        console.log("adding new programs");
+        for( let service in servicesDict ) {
+            if( !getGameDictEntry( STREAM, service, [] ) ) {
+                addGame( STREAM, service, null, [], true );
+            }
+            for( let program in servicesDict[service] ) {
+                let json = servicesDict[service][program];
+                // The game is new
+                if( !isInvalidGame() ) {
+                    addGame( STREAM, json.title, json.url, [service] );
+                    writeStreamMetaData( STREAM, json.title, json.url, [service] );
+                }
+            }
+        }
+
+        fs.writeFileSync(STREAM_INFO_PATH, JSON.stringify({lastFetched: currentTime})); // mark the last fetched time
+    }
+    catch(err) {
+        console.log(err);
+    }
+    streamIsFetching = false;
+}
+
+/**
+ * Update Stream Game Meta Data.
+ * @param {string} system - The system.
+ * @param {string} game - The game name.
+ * @param {Array<string>} parents - The parents.
+ * @param {Object} json - The json for the game generated by scraping the page. 
+ */
+function writeStreamMetaData( system, game, parents, json ) {
+    let saveLocation = generateGameDir( system, game, parents ) + SEPARATOR + COVER_FILENAME;
+    // async is probably ok here
+    axios( { method: "GET", url: url, responseType: "stream" } ).then(function (response) {
+        response.data.pipe(fs.createWriteStream(saveLocation));
+    });
+    let url = saveLocation.replace( WORKING_DIR, '' ); //remove the working dir
+    updateGameMetaData( system, game, parents, {
+        summary: json.description,
+        releaseDate: json.released,
+        name: json.title,
+        cover: {
+            url: url,
+            width: STREAM_COVER_WIDTH,
+            height: STREAM_COVER_HEIGHT
+        }
+    });
 }
 
 /**
@@ -4713,10 +4930,11 @@ async function goHome() {
  * @returns {Promise<(boolean|string)>} An error message if there is one, or false if not.
  */
 async function fetchGameData( system, game, parents, currentMetadataContents, force ) {
+    // Game may not be fully downloaded yet
     //let isInvalid = isInvalidGame( system, game, parents );
     //if( isInvalid ) return isInvalid;
 
-    if( system == MEDIA || system == BROWSER ) {
+    if( system == MEDIA || isBrowserOrClone(system) ) {
         return Promise.resolve(ERROR_MESSAGES.noGamesForMediaOrBrowser);
     }
     let headers = await getIgdbHeaders();
@@ -5031,7 +5249,7 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
 
         if( !systemsDict[system] && system !== MENU ) return ERROR_MESSAGES.noSystem;
 
-        if( system === BROWSER || system === MENU ) { // browser is a simple, special case as it is controlled completely by us
+        if( isBrowserOrClone(system) || system === MENU ) { // browser is a simple, special case as it is controlled completely by us
             // unset keys will be deleted (search for: delete no control)
             let controlsObj = {};
             for( let key in values ) {
@@ -5044,7 +5262,7 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
                     }
                 }
             }
-            if( system === BROWSER ) {
+            if( isBrowserOrClone(system) ) {
                 fs.writeFileSync( BROWSER_GAMEPAD_PATH, JSON.stringify(controlsObj) );
                 browserControlsCache = JSON.parse(JSON.stringify(controlsObj)); // update the cache
             }
@@ -6709,7 +6927,7 @@ function updateMute( noEnsure ) {
         // when we hit the browser, and we are only going to mute either the game or the browser
         // well the game is in the browser, so we need to do something different rather than
         // muting the entire application.
-        if( (currentSystem === BROWSER || currentSystem === MEDIA) && muteMode !== MUTE_MODES.all ) {
+        if( (isBrowserOrClone(currentSystem) || currentSystem === MEDIA) && muteMode !== MUTE_MODES.all ) {
             muteAlternative = currentSystem;
         }
         if( muteMode === MUTE_MODES.none ) {
@@ -6754,7 +6972,7 @@ async function handleWithinBrowserMute( muteAlternative ) {
     let pages = await browser.pages();
     for( let page of pages ) {
 
-        if( muteAlternative === BROWSER || muteAlternative === MEDIA ) {
+        if( isBrowserOrClone(muteAlternative) || muteAlternative === MEDIA ) {
             if( muteMode === MUTE_MODES.game ) {
                 // we want to mute the game, which is everything except the PIP page (menuPage for media, other pages for browser)
                 if( page.mainFrame()._id === pipPage.mainFrame()._id ) {

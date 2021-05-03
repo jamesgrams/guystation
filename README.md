@@ -69,6 +69,7 @@ Note: You can press F11 to get GuyStation out of full screen mode at any time.
     * The file `helper/browser-scripts/stream-remote.json` can be used as a browser game to pull up a stream on another guystation. Just be sure to set the url to the right IP address. Make sure the regular stream is called `Stream` if you use this script.
     * GuyStation has additional functionality that allows you to use a gamepad to navigate the browser (click, move mouse, scroll, back, forward, show/hide on-screen keyboard). Simply use EZ controller configuration for browser to set up the controls.
     * If you paste a URL into the Search bar, GuyStation will open that URL.
+    * Additionally, there is a Stream "system" that automatically populates with shows and movies from streaming services. Currently, this is only available for Disney Plus.
 * Media - you can play media files or stream them to any device using the GuyStation web interface.
     * You add a media file just like a game. Upload the audio/video file as the ROM file.
     * You can access media remotely by opening the menu and clicking the CD icon under "More".
@@ -307,6 +308,7 @@ Multiple monitor support may be limited. GuyStation will aim to use the primary 
 * Keyboard icon: [Yorlmar Campos](https://thenounproject.com/Yorlmar%20Campos/)
 * Windows icon: [icons8](https://www.iconsdb.com/black-icons/os-windows-icon.html)
 * DOS icon: [icons8](https://www.iconsdb.com/black-icons/dos-icon.html)
+* Stream icon: [Andrejs Kirma](https://thenounproject.com/term/stream/1102358/)
 * Game Boy Advance emulator: [VisualBoyAdvance-m](https://vba-m.com/)
 * DS emulator: [DeSmuMe](http://desmume.org/)
 * Nintendo 64 emulator: [Mupen64Plus](https://mupen64plus.org/)
@@ -319,7 +321,7 @@ Multiple monitor support may be limited. GuyStation will aim to use the primary 
 * Sega Genesis emaultor: [BlastEm](https://www.retrodev.com/blastem/)
 * PC player: [Wine](https://www.winehq.org/)
 * DOS player: [DOSBox](https://www.dosbox.com)
-* Menu Icons: [Font Awesome](https://fontawesome.com/)
+* Menu icons: [Font Awesome](https://fontawesome.com/)
 * Blinker font: [Juergen Huber](https://fonts.google.com/specimen/Blinker)
 * Toy Train font: [West Winds Fonts](https://www.dafont.com/west-wind-fonts.d361)
 * The many contributors to the Node packages used in this project

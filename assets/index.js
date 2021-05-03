@@ -356,7 +356,7 @@ var tabsHeartbeat;
 var navigating = false;
 var sendString = "";
 var activePageId = null;
-var nonGameSystems = [];
+var nonGameSystems = ["stream"];
 var nonSaveSystems = ["browser", "media","pc", "dos"];
 var menuDirection = null;
 var menuMoveSpeedMultiplier = 1;
