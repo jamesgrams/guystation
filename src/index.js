@@ -1345,7 +1345,7 @@ launchBrowser().then( () => {
     }
     expressDynamic = app.listen(PORT);
     detectHotword();
-    syncStreams();
+    if( !sambaOn ) syncStreams();
 } );
 process.on(SIGTERM, () => {
     try {
