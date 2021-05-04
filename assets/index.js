@@ -1725,7 +1725,7 @@ function toggleButtons() {
     for( var i=0; i<browserGameKeys.length; i++ ) {
         if( systemsDict["browser"].games[browserGameKeys[i]].playing ) isPlaying = true;
     }
-    var browserGameKeys = Object.keys(systemsDict["stream"].games);
+    var streamGameKeys = Object.keys(systemsDict["stream"].games);
     for( var i=0; i<streamGameKeys.length; i++ ) {
         if( systemsDict["stream"].games[streamGameKeys[i]].playing ) isPlaying = true;
     }
