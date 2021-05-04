@@ -1343,7 +1343,7 @@ function populateGames(system, games, startSystem, gamesElement, hidden, parents
         /* End Search Override */
         
         // stream logic
-        if( !game.isFolder ) { // always show folders as a visual indicator of what's available
+        if( !game.isFolder && !j<10 ) { // always show folders as a visual indicator of what's available - also show the first 10 items in each folder
             var longEnoughSearch = false;
             if( system == "stream" && currentSearch.length < MIN_STREAM_SEARCH_LENGTH ) {
                 if( !game.playing ) hidden = true;

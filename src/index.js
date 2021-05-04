@@ -297,7 +297,13 @@ const VOICE_RECORDER_TYPE = "arecord";
 const VOICE_SAMPLE_RATE_HERTZ = 16000;
 
 const DEFAULT_STREAM_SERVICES = {
-    "Disney+": "https://reelgood.com/source/disney_plus"
+    "Disney+": {
+        "url": "https://reelgood.com/source/disney_plus",
+        "selector": "button[type='submit']",
+        "script": [ 
+            "document.querySelector('button[data-testid=play-button]').click()"
+        ]
+    }
 };
 const REELGOOD_API_URL = "https://api.reelgood.com/v3.0/content/browse/source";
 const REELGOOD_IMAGE_URL = "https://img.reelgood.com/content/movie/MOVIE_ID/poster-342.jpg";
@@ -4815,7 +4821,7 @@ async function fetchStreamList() {
 
             // Wait for navigation
             page.on("response", intercept);
-            await page.goto( DEFAULT_STREAM_SERVICES[service] );
+            await page.goto( DEFAULT_STREAM_SERVICES[service].url );
             await page.waitForSelector("tbody tr");
             // refresh the first 50 to intercept
             console.log("scanning page 1");
@@ -4878,6 +4884,7 @@ async function fetchStreamList() {
                             if( tries > STREAM_TIMEOUT/WRITE_STREAM_SLEEP ) resolve();
                         }, WRITE_STREAM_SLEEP );
                     });
+                    await page.waitForSelector(DEFAULT_STREAM_SERVICES[service].selector);
                     clearInterval(curInterval);
                     servicesDict[service][title].link = page.url().replace(/\?.*/g,"");
                 }
@@ -4980,7 +4987,8 @@ function writeStreamMetaData( system, game, parents, json ) {
     updateGameMetaData( system, game, parents, {
         summary: json.description,
         releaseDate: json.released,
-        name: json.title
+        name: json.title,
+        script: DEFAULT_STREAM_SERVICES[parents[0]].script
     });
 }
 
