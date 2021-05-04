@@ -317,6 +317,7 @@ const STREAM_SYNC_WAIT = 1000 * 60 * 10; // 10 minutes
 const STREAM_COVER_WIDTH = 342;
 const STREAM_COVER_HEIGHT = 513;
 const WRITE_STREAM_SLEEP = 100;
+const PROPER_LINK_TRIES = 3;
 
 const DEFAULT_PROFILES_DICT = {
     "GuyStation Virtual Controller": {
@@ -4865,31 +4866,34 @@ async function fetchStreamList() {
 
             console.log("getting proper links");
             for( let title in servicesDict[service] ) {
-                try {
-                    console.log("getting proper links for " + title + " on " + service)
-                    let value = servicesDict[service][title];
-                    await page.goto(value.link);
-                    await page.waitForSelector("button a[href^='https:']");
-                    let link = await page.evaluate( () => document.querySelector("button a[href^='https:']").getAttribute("href") );
-                    await page.goto(link);
-                    let curInterval;
-                    await new Promise( (resolve, reject) => {
-                        let tries = 0;
-                        curInterval = setInterval( async () => {
-                            if( page.url().replace(/\?.*/g,"") != link.replace(/\?.*/g,"") ) {
-                                link = page.url();
-                                resolve();
-                            }
-                            tries++;
-                            if( tries > STREAM_TIMEOUT/WRITE_STREAM_SLEEP ) resolve();
-                        }, WRITE_STREAM_SLEEP );
-                    });
-                    await page.waitForSelector(DEFAULT_STREAM_SERVICES[service].selector);
-                    clearInterval(curInterval);
-                    servicesDict[service][title].link = page.url().replace(/\?.*/g,"");
-                }
-                catch(err) {
-                    console.log(err);
+                for( let i=0; i<PROPER_LINK_TRIES; i++ ) {
+                    try {
+                        console.log("getting proper links for " + title + " on " + service)
+                        let value = servicesDict[service][title];
+                        await page.goto(value.link);
+                        await page.waitForSelector("button a[href^='https:']");
+                        let link = await page.evaluate( () => document.querySelector("button a[href^='https:']").getAttribute("href") );
+                        await page.goto(link);
+                        let curInterval;
+                        await new Promise( (resolve, reject) => {
+                            let tries = 0;
+                            curInterval = setInterval( async () => {
+                                if( page.url().replace(/\?.*/g,"") != link.replace(/\?.*/g,"") ) {
+                                    link = page.url();
+                                    resolve();
+                                }
+                                tries++;
+                                if( tries > STREAM_TIMEOUT/WRITE_STREAM_SLEEP ) resolve();
+                            }, WRITE_STREAM_SLEEP );
+                        });
+                        await page.waitForSelector(DEFAULT_STREAM_SERVICES[service].selector);
+                        clearInterval(curInterval);
+                        servicesDict[service][title].link = page.url().replace(/\?.*/g,"");
+                        break;
+                    }
+                    catch(err) {
+                        console.log(err);
+                    }
                 }
             }
         }
