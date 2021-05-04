@@ -1294,8 +1294,6 @@ function draw( startSystem ) {
  */
 function populateGames(system, games, startSystem, gamesElement, hidden, parents) {
 
-    if( system == "stream" && (!currentSearch || currentSearch.length < 3) ) return; // performance stream  
-
     if( !parents ) parents = [];
     var gamesKeys = Object.keys(games);
 
@@ -1335,14 +1333,20 @@ function populateGames(system, games, startSystem, gamesElement, hidden, parents
 
         /* Begin Search Override */
         // see if there is a search, if so, check if this element matches
-        // stream don't match folders - service names. only titles.
-        if( currentSearch && termsMatch(currentSearch, game.game) && (system != "stream" || curParents.length) ) {
+        if( currentSearch && termsMatch(currentSearch, game.game) ) {
             hidden = false;
         }
         else if(currentSearch) {
             hidden = true;
         }
         /* End Search Override */
+
+        // stream logic
+        if( !hidden && system == "stream" ) {
+            if( !curParents.length || !game.playing ) {
+                hidden = true;
+            }
+        }
 
         // Make sure all the selected games parent folders are shown (only if there is no search)
         // this is really only necessary when a game is moved on update as far as I know, since in all other
@@ -1434,7 +1438,7 @@ function populateGames(system, games, startSystem, gamesElement, hidden, parents
         if( game.percent ) {
             gameElement.setAttribute("data-percent", game.percent);
         }
-        gamesElement.appendChild(gameElement);
+        if( system != "stream" || !hidden ) gamesElement.appendChild(gameElement);
 
         if( game.isFolder ) {
             // look in the openFolders dictionary
