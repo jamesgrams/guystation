@@ -4889,7 +4889,7 @@ async function fetchStreamList() {
                                     document.querySelector(".icon-friendlyPlay").click();
                                 } );
                             }
-                            await page.waitFor(STREAM_WAIT);
+                            await page.waitForSelector("#modal_mountpoint > div");
                             link = await page.evaluate( () => document.querySelector("a[href^='https://disneyplus']").getAttribute("href") );
                         }
                         await page.goto(link);
