@@ -4942,6 +4942,9 @@ function writeStreamMetaData( system, game, parents, json ) {
         } );
     }).catch(error => {
         console.log("could not save image for " + game);
+        updateGameMetaData( system, game, parents, {
+            cover: null
+        } );
     });
     let url = saveLocation.replace( WORKING_DIR, '' ); //remove the working dir
     updateGameMetaData( system, game, parents, {

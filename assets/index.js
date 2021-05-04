@@ -41,6 +41,7 @@ var SESSIONS_REGEX = /"sessions":((?!]\s*]).)+\]\s*\]/g;
 var SORT_PLAYTIME = "totalPlaytime";
 var SORT_RECENT = "mostRecentPlaytime";
 var KEY_BUTTON_EXTRA = 20; // the extra size in pixels of a key button to a regular button
+var MIN_STREAM_SEARCH_LENGTH = 3;
 var STOPWORDS = ["i", "me", "my", "myself", "we", "our", "ours", "ourselves", "you", "your", "yours", "yourself", "yourselves", "he", "him", "his", "himself", "she", "her", "hers", "herself", "it", "its", "itself", "they", "them", "their", "theirs", "themselves", "what", "which", "who", "whom", "this", "that", "these", "those", "am", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "having", "do", "does", "did", "doing", "a", "an", "the", "and", "but", "if", "or", "because", "as", "until", "while", "of", "at", "by", "for", "with", "about", "against", "between", "into", "through", "during", "before", "after", "above", "below", "to", "from", "in", "out", "over", "under", "again", "further", "then", "once", "here", "there", "when", "where", "why", "how", "all", "any", "both", "each", "few", "more", "most", "other", "some", "such", "no", "nor", "not", "only", "own", "same", "so", "than", "too", "very", "s", "t", "can", "will", "just", "don", "should", "now", "on", "off", "up", "down"];
 var KEYCODES = {
     '0': 48,
@@ -822,7 +823,7 @@ function load() {
                             createToast( CHANGES_DETECTED );
                         }
                         systemsDict = newSystemsDict;
-                        redraw();
+                        redraw(null, null, null, null, null, null, true);
                     }
                     else if(response.fullscreenPip !== fullscreenPip) {
                         createToast( CHANGES_DETECTED );
@@ -947,7 +948,7 @@ function enableSearch() {
  * Go to search match.
  */
 function gotoSearchMatch() {
-    var selectedValues = getSelectedValues();
+    var selectedValues = getSelectedValues(null, null, null, true);
     var currentSystem = document.querySelector(".system.selected").getAttribute("data-system");
     if( selectedValues.system != currentSystem && selectedValues.game ) {
         var startSystem = generateStartSystem();
@@ -1340,11 +1341,18 @@ function populateGames(system, games, startSystem, gamesElement, hidden, parents
             hidden = true;
         }
         /* End Search Override */
-
+        
         // stream logic
-        if( !hidden && system == "stream" ) {
-            if( !curParents.length || !game.playing ) {
-                hidden = true;
+        if( !game.isFolder ) { // always show folders as a visual indicator of what's available
+            var longEnoughSearch = false;
+            if( system == "stream" && currentSearch.length < MIN_STREAM_SEARCH_LENGTH ) {
+                if( !game.playing ) hidden = true;
+            }
+            else if( system == "stream" ) longEnoughSearch = true;
+            if( !hidden && system == "stream" && !longEnoughSearch ) {
+                if( !curParents.length || !game.playing ) {
+                    hidden = true;
+                }
             }
         }
 
