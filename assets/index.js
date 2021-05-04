@@ -357,7 +357,7 @@ var navigating = false;
 var sendString = "";
 var activePageId = null;
 var nonGameSystems = ["stream"];
-var nonSaveSystems = ["browser", "media","pc", "dos"];
+var nonSaveSystems = ["stream", "browser", "media","pc", "dos"];
 var menuDirection = null;
 var menuMoveSpeedMultiplier = 1;
 var currentSearch = "";
@@ -1789,8 +1789,8 @@ function toggleButtons() {
         remoteMediaButton.classList.remove("inactive");
     }
     // browser
-    else if( selectedSystem.getAttribute("data-system") == "browser" && selectedGame ) {
-        remoteMediaButton.onclick = function(e) { e.stopPropagation(); openRemoteMediaBrowser(); };
+    else if( ["browser","stream"].indexOf(selectedSystem.getAttribute("data-system")) != -1 && selectedGame ) {
+        remoteMediaButton.onclick = function(e) { e.stopPropagation(); openRemoteMediaBrowser( selectedSystem.getAttribute("data-system") ); };
         remoteMediaButton.classList.remove("inactive");
     }
     else {
@@ -2197,9 +2197,10 @@ function isLeafElement(element, system) {
  * @param {boolean} systemSaveAllowedOnly - True if we should only consider systems that allow for saves - the current save will not be returned without it.
  * @param {boolean} noFolders - True if we should exclude all folders from consideration - the current save will not be returned without it.
  * @param {boolean} onlyWithLeafNodes - True if we should only allow leaf nodes (empty folders or games).
+ * @param {boolean} noExcludeArray - True if there should be no exclude array.
  * @returns {Object} an object with selected values.
  */
-function getSelectedValues(systemSaveAllowedOnly, noFolders, onlyWithLeafNodes) {
+function getSelectedValues(systemSaveAllowedOnly, noFolders, onlyWithLeafNodes, noExcludeArray) {
     var currentSystemElement = document.querySelector(".system.selected");
     var currentSystem = currentSystemElement.getAttribute("data-system");
     var currentGame = "";
@@ -2211,6 +2212,7 @@ function getSelectedValues(systemSaveAllowedOnly, noFolders, onlyWithLeafNodes) 
     var gameElementParentsString;
     if( currentGameElement ) gameElementParentsString = currentGameElement.getAttribute("data-parents");
     var excludeArray = systemSaveAllowedOnly ? nonSaveSystems : nonGameSystems;
+    if( noExcludeArray ) excludeArray = [];
     if( currentGameElement && !excludeArray.includes(currentSystem) 
         && (!noFolders || !currentGameElement.hasAttribute("data-is-folder")) 
         && (!onlyWithLeafNodes || isLeafElement(currentGameElement, currentSystem) ) ) {
@@ -2288,10 +2290,11 @@ function getSelectedValues(systemSaveAllowedOnly, noFolders, onlyWithLeafNodes) 
 
 /**
  * Open a browser link remotely.
+ * @param {string} system - The browser system.
  */
-function openRemoteMediaBrowser() {
-    var selected = getSelectedValues();
-    var jsonUrl = "/" + ["systems", "browser", "games"].concat(selected.parents).concat([encodeURIComponent(selected.game), "metadata.json"]).join("/");
+function openRemoteMediaBrowser( system ) {
+    var selected = getSelectedValues( null, null, null, true );
+    var jsonUrl = "/" + ["systems", system, "games"].concat(selected.parents).concat([encodeURIComponent(selected.game), "metadata.json"]).join("/");
     makeRequest( "GET", jsonUrl, {}, function(responseText) {
         var data = JSON.parse(responseText);
         // They may have the GuyStation remote chrome extension installed which allows us to run scripts remotely.

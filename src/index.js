@@ -310,6 +310,7 @@ const STREAM_OK_TO_FETCH_HOUR = 2;
 const STREAM_SYNC_WAIT = 1000 * 60 * 10; // 10 minutes
 const STREAM_COVER_WIDTH = 342;
 const STREAM_COVER_HEIGHT = 513;
+const WRITE_STREAM_SLEEP = 100;
 
 const DEFAULT_PROFILES_DICT = {
     "GuyStation Virtual Controller": {
@@ -4165,7 +4166,7 @@ function updateGame( oldSystem, oldGame, oldParents=[], system, game, file, pare
         let errorMessage;
         let oldRomPath;
         // Set the browser site url
-        if( isBrowserOrClone(system) ) {
+        if( isBrowserOrClone(oldSystem) ) {
             if( typeof file == STRING_TYPE ) {
                 updateGameMetaData( oldSystem, oldGame, oldParents, {siteUrl: file} );
             }
@@ -4793,35 +4794,41 @@ async function fetchStreamList() {
             let intercept = async function(response) {
                 if( response.url().match(REELGOOD_API_URL) ) {
                     let json = await response.json();
+                    console.log("got intercept");
+                    console.log(json.results.length);
                     for( let result of json.results ) {
-                        let date = new Date(result.released);
-                        let title = result.title + " (" + date.getFullYear() + ")";
+                        let date = new Date(result.released_on);
+                        let title = result.title.replace(/[\/\\]/g, "-").replace(/:/g, " -") + " (" + date.getFullYear() + ")";
                         servicesDict[service][title] = {
                             title: title,
                             description: result.overview,
-                            released: result.released,
-                            link: REELGOOD_URL + (result.type === "m" ? "movie" : "show") + "/" + result.slug,
-                            image: REELGOOD_IMAGE_URL.replace("MOVIE_ID",result.id)
+                            released: date.getTime()/1000,
+                            link: REELGOOD_URL + (result.content_type === "m" ? "movie" : "show") + "/" + result.slug,
+                            image: REELGOOD_IMAGE_URL.replace("movie", result.content_type === "m" ? "movie" : "show").replace("MOVIE_ID",result.id)
                         }
                     }
+                    console.log(Object.keys(servicesDict[service]).length);
                     return;
                 }
             }
-            page.on("response", intercept);
 
             // Wait for navigation
+            page.on("response", intercept);
             await page.goto( DEFAULT_STREAM_SERVICES[service] );
             await page.waitForSelector("tbody tr");
+            let pageCount = 0;
             while( true ) {
+                pageCount ++;
                 let curInterval;
                 try {
+                    console.log("scanning page " + pageCount);
                     await page.waitForSelector(buttonSelector, {timeout: STREAM_TIMEOUT});
-                    await page.waitForTimeout(STREAM_WAIT);
+                    await page.waitFor(STREAM_WAIT);
                     let prevCount = await page.evaluate( () => document.querySelectorAll("tbody tr").length );
 
-                    page.off("response", intercept);
+                    //page.off("response", intercept);
                     await page.click(buttonSelector);
-                    page.on("response", intercept);
+                    //page.on("response", intercept);
 
                     // wait until the new content has loaded
                     await new Promise( (resolve, reject) => {
@@ -4833,8 +4840,10 @@ async function fetchStreamList() {
                             if( tries > STREAM_TIMEOUT/STREAM_WAIT ) reject();
                         }, STREAM_WAIT );
                     });
+                    await page.waitFor(STREAM_WAIT);
                 }
                 catch(err) {
+                    console.log(err);
                     break; // no more 
                 }
                 clearInterval(curInterval);
@@ -4846,17 +4855,20 @@ async function fetchStreamList() {
         console.log("updating and deleting programs");
         // note, we depend on the auto generated structure here of services for folders and games for values.
         for( let existingService in systemsDict[STREAM].games ) {
-            if( servicesDict[service] ) { // Same services in old and new
+            if( servicesDict[existingService] ) { // Same services in old and new
                 for( let existingGame in systemsDict[STREAM].games[existingService].games ) {
-                    let json = servicesDict[service][existingGame];
+                    let json = servicesDict[existingService][existingGame];
                     if( json ) {
+                        console.log("updating " + json.title + " from " + existingService);
                         // still exists, update
-                        updateGame( STREAM, json.title, [service], null, null, json.url );
-                        writeStreamMetaData( STREAM, json.title, json.url, [service] );
+                        updateGame( STREAM, json.title, [existingService], null, null, json.link, [existingService] );
+                        writeStreamMetaData( STREAM, json.title, [existingService], json );
+                        await sleep(WRITE_STREAM_SLEEP);
                     }
                     // doesn't exist, delete
                     else {
-                        deleteGame( STREAM, existingGame, [service] );
+                        console.log("deleting " + existingGame + " from " + existingService);
+                        deleteGame( STREAM, existingGame, [existingService] );
                     }
                 }
             }
@@ -4877,9 +4889,11 @@ async function fetchStreamList() {
             for( let program in servicesDict[service] ) {
                 let json = servicesDict[service][program];
                 // The game is new
-                if( !isInvalidGame() ) {
-                    addGame( STREAM, json.title, json.url, [service] );
-                    writeStreamMetaData( STREAM, json.title, json.url, [service] );
+                if( !systemsDict[STREAM].games[service].games[json.title] ) {
+                    console.log("adding " + json.title + " from " + service);
+                    addGame( STREAM, json.title, json.link, [service] );
+                    writeStreamMetaData( STREAM, json.title, [service], json );
+                    await sleep(WRITE_STREAM_SLEEP);
                 }
             }
         }
@@ -4893,6 +4907,15 @@ async function fetchStreamList() {
 }
 
 /**
+ * Sleep.
+ * @param {string} ms - The number of milliseconds to sleep.
+ * @returns {Promise} A promise that resolves after sleeping.
+ */
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
  * Update Stream Game Meta Data.
  * @param {string} system - The system.
  * @param {string} game - The game name.
@@ -4902,7 +4925,7 @@ async function fetchStreamList() {
 function writeStreamMetaData( system, game, parents, json ) {
     let saveLocation = generateGameDir( system, game, parents ) + SEPARATOR + COVER_FILENAME;
     // async is probably ok here
-    axios( { method: "GET", url: url, responseType: "stream" } ).then(function (response) {
+    axios( { method: "GET", url: json.image, responseType: "stream" } ).then(function (response) {
         response.data.pipe(fs.createWriteStream(saveLocation));
     });
     let url = saveLocation.replace( WORKING_DIR, '' ); //remove the working dir
