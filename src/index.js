@@ -4818,11 +4818,12 @@ async function fetchStreamList() {
             await page.goto( DEFAULT_STREAM_SERVICES[service] );
             await page.waitForSelector("tbody tr");
             // refresh the first 50 to intercept
+            console.log("scanning page 1");
             await page.evaluate( () => document.querySelector("button[data-id='0']").click() );
             await page.waitFor(STREAM_WAIT);
             await page.waitForSelector("tbody tr");
             await page.waitFor(STREAM_WAIT);
-            let pageCount = 0;
+            let pageCount = 1;
             while( true ) {
                 pageCount ++;
                 let curInterval;
@@ -4855,6 +4856,34 @@ async function fetchStreamList() {
                 clearInterval(curInterval);
             }
             page.off("response", intercept);
+
+            console.log("getting proper links");
+            for( let title in servicesDict[service] ) {
+                try {
+                    let value = servicesDict[service][title];
+                    await page.goto(value.link);
+                    await page.waitForSelector("button a[href^='https:']");
+                    let link = await page.evaluate( () => document.querySelector("button a[href^='https:']").getAttribute("href") );
+                    await page.goto(link);
+                    let curInterval;
+                    await new Promise( (resolve, reject) => {
+                        let tries = 0;
+                        curInterval = setInterval( async () => {
+                            if( page.url().replace(/\?.*/g,"") != link.replace(/\?.*/g,"") ) {
+                                link = page.url();
+                                resolve();
+                            }
+                            tries++;
+                            if( tries > STREAM_TIMEOUT/STREAM_WAIT ) resolve();
+                        }, STREAM_WAIT );
+                    });
+                    clearInterval(curInterval);
+                    servicesDict[service][title].link = page.url().replace(/\?.*/g,"");
+                }
+                catch(err) {
+                    console.log(err);
+                }
+            }
         }
         streamBrowser.close();
 
