@@ -4875,8 +4875,8 @@ async function fetchStreamList() {
                                 resolve();
                             }
                             tries++;
-                            if( tries > STREAM_TIMEOUT/STREAM_WAIT ) resolve();
-                        }, STREAM_WAIT );
+                            if( tries > STREAM_TIMEOUT/WRITE_STREAM_SLEEP ) resolve();
+                        }, WRITE_STREAM_SLEEP );
                     });
                     clearInterval(curInterval);
                     servicesDict[service][title].link = page.url().replace(/\?.*/g,"");
