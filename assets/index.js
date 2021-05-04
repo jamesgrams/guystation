@@ -1030,7 +1030,7 @@ function enableControls() {
                 case 32:
                     // we know there is not a modal already open since disableMenuControls is false
                     if( buttonsUp.keyboard["32"] ) {
-                        document.querySelector("#remote-media").click();
+                        if( document.querySelector("#search") != document.activeElement ) document.querySelector("#remote-media").click();
                     }
                     buttonsUp.keyboard["32"] = false;
                     break;
@@ -1293,6 +1293,9 @@ function draw( startSystem ) {
  * @param {Array<string>} [parents] - An array of parent folders for the game.
  */
 function populateGames(system, games, startSystem, gamesElement, hidden, parents) {
+
+    if( system == "stream" && (!currentSearch || currentSearch.length < 3) ) return; // performance stream  
+
     if( !parents ) parents = [];
     var gamesKeys = Object.keys(games);
 
@@ -1332,7 +1335,8 @@ function populateGames(system, games, startSystem, gamesElement, hidden, parents
 
         /* Begin Search Override */
         // see if there is a search, if so, check if this element matches
-        if( currentSearch && termsMatch(currentSearch, game.game) ) {
+        // stream don't match folders - service names. only titles.
+        if( currentSearch && termsMatch(currentSearch, game.game) && (system != "stream" || curParents.length) ) {
             hidden = false;
         }
         else if(currentSearch) {
@@ -1721,6 +1725,10 @@ function toggleButtons() {
     for( var i=0; i<browserGameKeys.length; i++ ) {
         if( systemsDict["browser"].games[browserGameKeys[i]].playing ) isPlaying = true;
     }
+    var browserGameKeys = Object.keys(systemsDict["stream"].games);
+    for( var i=0; i<streamGameKeys.length; i++ ) {
+        if( systemsDict["stream"].games[streamGameKeys[i]].playing ) isPlaying = true;
+    }
     if( !isPlaying ) {
         browserControlsButton.onclick = null;
         browserControlsButton.classList.add("inactive");
@@ -1809,7 +1817,7 @@ function toggleButtons() {
     }
 
     // Only allow save configuration menus and update/delete game menus if there is at least one game
-    var anyGame = document.querySelector(".game:not([data-game='Browser'])");
+    var anyGame = document.querySelector(".system:not([data-system='stream']) .game");
     var anySave = document.querySelector(".game .current-save")
     //var anyGameNotFolder = document.querySelector(".game:not([data-is-folder])");
     var updateGameButton = document.getElementById("update-game");

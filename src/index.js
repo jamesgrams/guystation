@@ -1296,7 +1296,7 @@ app.get("/twitch/info", async function(request, response) {
 
 // get settings
 app.get("/settings", function(request, response) {
-    console.log("app serving /settingss");
+    console.log("app serving /settings");
     try {
         writeResponse( response, SUCCESS, readSettings() );
     }
@@ -4816,6 +4816,11 @@ async function fetchStreamList() {
             page.on("response", intercept);
             await page.goto( DEFAULT_STREAM_SERVICES[service] );
             await page.waitForSelector("tbody tr");
+            // refresh the first 50 to intercept
+            await page.evaluate( () => document.querySelector("button[data-id='0']").click() );
+            await page.waitFor(STREAM_WAIT);
+            await page.waitForSelector("tbody tr");
+            await page.waitFor(STREAM_WAIT);
             let pageCount = 0;
             while( true ) {
                 pageCount ++;
@@ -4927,17 +4932,21 @@ function writeStreamMetaData( system, game, parents, json ) {
     // async is probably ok here
     axios( { method: "GET", url: json.image, responseType: "stream" } ).then(function (response) {
         response.data.pipe(fs.createWriteStream(saveLocation));
+        updateGameMetaData( system, game, parents, {
+            cover: {
+                url: url,
+                width: STREAM_COVER_WIDTH,
+                height: STREAM_COVER_HEIGHT
+            }
+        } );
+    }).catch(error => {
+        console.log("could not save image for " + game);
     });
     let url = saveLocation.replace( WORKING_DIR, '' ); //remove the working dir
     updateGameMetaData( system, game, parents, {
         summary: json.description,
         releaseDate: json.released,
-        name: json.title,
-        cover: {
-            url: url,
-            width: STREAM_COVER_WIDTH,
-            height: STREAM_COVER_HEIGHT
-        }
+        name: json.title
     });
 }
 
