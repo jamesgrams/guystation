@@ -2715,7 +2715,8 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         if( noGame && systemsDict[system].frontendCommand ) command = systemsDict[system].frontendCommand;
 
         if( isBrowserOrClone(system) ) {
-            await launchBrowseTab( noGame ? null : systemsDict[system].games[game].siteUrl, !noGame && systemsDict[system].games[game].script ? systemsDict[system].games[game].script : null );
+            let gameDictEntry = getGameDictEntry( system, game, parents );
+            await launchBrowseTab( noGame ? null : gameDictEntry.siteUrl, !noGame && gameDictEntry.script ? gameDictEntry.script : null );
             currentSystem = system;
             currentGame = game;
             currentParentsString = parents.join(SEPARATOR);
