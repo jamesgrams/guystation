@@ -4807,12 +4807,14 @@ async function fetchStreamList() {
                     for( let result of json.results ) {
                         let date = new Date(result.released_on);
                         let title = result.title.replace(/[\/\\]/g, "-").replace(/:/g, " -") + " (" + date.getFullYear() + ")";
+                        let type = result.content_type === "m" ? "movie" : "show";
                         servicesDict[service][title] = {
                             title: title,
                             description: result.overview,
                             released: date.getTime()/1000,
-                            link: REELGOOD_URL + (result.content_type === "m" ? "movie" : "show") + "/" + result.slug,
-                            image: REELGOOD_IMAGE_URL.replace("movie", result.content_type === "m" ? "movie" : "show").replace("MOVIE_ID",result.id)
+                            type: type,
+                            link: REELGOOD_URL + type + "/" + result.slug,
+                            image: REELGOOD_IMAGE_URL.replace("movie", type).replace("MOVIE_ID",result.id)
                         }
                     }
                     console.log(Object.keys(servicesDict[service]).length);
@@ -4872,7 +4874,24 @@ async function fetchStreamList() {
                         let value = servicesDict[service][title];
                         await page.goto(value.link);
                         await page.waitForSelector("button a[href^='https:']");
-                        let link = await page.evaluate( () => document.querySelector("button a[href^='https:']").getAttribute("href") );
+                        // custom code - easiest way to do
+                        // Disney Plus
+                        let link = "";
+                        if( service === Object.keys(DEFAULT_STREAM_SERVICES)[0]) {
+                            if( value.type === "show" ) {
+                                await page.evaluate( () => {
+                                    document.querySelector("div[title='Choose an episode to stream on this service'] a").click();
+                                    document.querySelector("img[alt='play button']").click();
+                                } );
+                            }
+                            else {
+                                await page.evaluate( () => {
+                                    document.querySelector(".icon-friendlyPlay").click();
+                                } );
+                            }
+                            await page.waitFor(STREAM_WAIT);
+                            link = await page.evaluate( () => document.querySelector("a[href^='https://disneyplus']").getAttribute("href") );
+                        }
                         await page.goto(link);
                         let curInterval;
                         await new Promise( (resolve, reject) => {
