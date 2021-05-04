@@ -302,7 +302,8 @@ const DEFAULT_STREAM_SERVICES = {
         "selector": "button[type='submit']",
         "script": [ 
             "document.querySelector('button[data-testid=play-button]').click()"
-        ]
+        ],
+        "linkRegex": /https:\\u002F\\u002Fwww.disneyplus[^"]+/
     }
 };
 const REELGOOD_API_URL = "https://api.reelgood.com/v3.0/content/browse/source";
@@ -4872,41 +4873,11 @@ async function fetchStreamList() {
                     try {
                         console.log("getting proper links for " + title + " on " + service)
                         let value = servicesDict[service][title];
-                        await page.goto(value.link);
-                        await page.waitForSelector("button a[href^='https:']");
-                        // custom code - easiest way to do
-                        // Disney Plus
-                        let link = "";
-                        if( service === Object.keys(DEFAULT_STREAM_SERVICES)[0]) {
-                            if( value.type === "show" ) {
-                                await page.evaluate( () => {
-                                    document.querySelector("div[title='Choose an episode to stream on this service'] a").click();
-                                    document.querySelector("img[alt='play button']").click();
-                                } );
-                            }
-                            else {
-                                await page.evaluate( () => {
-                                    document.querySelector(".icon-friendlyPlay").click();
-                                } );
-                            }
-                            await page.waitForSelector("#modal_mountpoint > div");
-                            link = await page.evaluate( () => document.querySelector("a[href^='https://disneyplus']").getAttribute("href") );
-                        }
+                        let response = await page.goto(value.link);
+                        let data = await response.text();
+                        let link = decodeURIComponent(JSON.parse( '"' + data.match(DEFAULT_STREAM_SERVICES[service].linkRegex)[0].replace('"', '\\"') + '"' ));
                         await page.goto(link);
-                        let curInterval;
-                        await new Promise( (resolve, reject) => {
-                            let tries = 0;
-                            curInterval = setInterval( async () => {
-                                if( page.url().replace(/\?.*/g,"") != link.replace(/\?.*/g,"") ) {
-                                    link = page.url();
-                                    resolve();
-                                }
-                                tries++;
-                                if( tries > STREAM_TIMEOUT/WRITE_STREAM_SLEEP ) resolve();
-                            }, WRITE_STREAM_SLEEP );
-                        });
                         await page.waitForSelector(DEFAULT_STREAM_SERVICES[service].selector);
-                        clearInterval(curInterval);
                         servicesDict[service][title].link = page.url().replace(/\?.*/g,"");
                         break;
                     }
