@@ -4860,6 +4860,7 @@ async function fetchStreamList() {
             console.log("getting proper links");
             for( let title in servicesDict[service] ) {
                 try {
+                    console.log("getting proper links for " + title + " on " + service)
                     let value = servicesDict[service][title];
                     await page.goto(value.link);
                     await page.waitForSelector("button a[href^='https:']");
