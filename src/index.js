@@ -4878,7 +4878,8 @@ async function fetchStreamList() {
                         let link = decodeURIComponent(JSON.parse( '"' + data.match(DEFAULT_STREAM_SERVICES[service].linkRegex)[0].replace('"', '\\"') + '"' ));
                         await page.goto(link);
                         await page.waitForSelector(DEFAULT_STREAM_SERVICES[service].selector);
-                        servicesDict[service][title].link = page.url().replace(/\?.*/g,"");
+                        let href = await page.evaluate( () => window.location.href );
+                        servicesDict[service][title].link = href.replace(/\?.*/g,"");
                         break;
                     }
                     catch(err) {
