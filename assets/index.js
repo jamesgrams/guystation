@@ -568,7 +568,7 @@ function getAllScreenshots(system, game, parents) {
             var arr = [];
             var folderParents = parents;
             folderParents.push( gameDictEntry.game );
-            getRealGamesInFolderRecursive(gameDictEntry.games, arr, folderParents);
+            getGamesInFolderRecursive(gameDictEntry.games, arr, folderParents, true);
             for( var i=0; i<arr.length; i++ ) {
                 gameDictEntries.push( arr[i] );
             }
@@ -5129,14 +5129,20 @@ function getGamesInFolder( parents, system, allowPlaylist ) {
  * @param {Object} games - A games object (e.g. systems[system].games).
  * @param {Array<Object>} arr - An array that will be populated by the function.
  * @param {Array<string>} parents - The current parents.
+ * @param {boolean} excludeFolders - True if we should include folders.
  */
-function getRealGamesInFolderRecursive(games, arr, parents) {
+function getGamesInFolderRecursive(games, arr, parents, excludeFolders) {
     for( var game of Object.keys(games) ) {
         var curParents = parents.slice(0);
         var gameEntry = games[game];
         if( gameEntry.isFolder ) {
+            if( !excludeFolders ) {
+                gameEntry = JSON.parse( JSON.stringify(gameEntry ));
+                gameEntry.parents = curParents;
+                arr.push( gameEntry );
+            }
             curParents.push( gameEntry.game );
-            getRealGamesInFolderRecursive(gameEntry.games, arr, curParents); // takes care of playlist
+            getGamesInFolderRecursive(gameEntry.games, arr, curParents, excludeFolders); // takes care of playlist
         }
         else {
             gameEntry = JSON.parse( JSON.stringify(gameEntry ));
@@ -6462,11 +6468,10 @@ function speechInput() {
             var game = playMatch[2];
             var doFullscreen = game.match(/full\s?screen$/);
             game = game.replace(/full\s?screen$/,"");
-            function lookForMatch( gameTitles ) {
-                for( var i=0; i<gameTitles.length; i++ ) {
-                    if( termsMatch(game, gameTitles[i].innerText) ) {
-                        var gameElement = gameTitles[i].closest(".game");
-                        launchGame( gameElement.closest(".system").getAttribute( "data-system" ), decodeURIComponent( gameElement.getAttribute( "data-game" ) ), parentsStringToArray( gameElement.getAttribute( "data-parents" ) ), function() {
+            function lookForMatch( gameEntries, system ) {
+                for( var i=0; i<gameEntries.length; i++ ) {
+                    if( termsMatch(game, gameEntries[i].game) ) {
+                        launchGame( system, gameEntries[i].game, gameEntries[i].parents, function() {
                             if( doFullscreen ) fullscreenRemoteMedia();
                         } );
                         return true;
@@ -6474,9 +6479,18 @@ function speechInput() {
                 }
                 return false;
             }
-            var found = lookForMatch( document.querySelectorAll(".system.selected .game:not([data-is-folder]) .game-title") );
+            var arr = [];
+            var currentSystem = systemsDict[document.querySelector(".system.selected").getAttribute("data-system")];
+            getGamesInFolderRecursive( currentSystem.games, arr, [] );
+            var found = lookForMatch( arr, currentSystem );
             if( !found ) {
-                lookForMatch( document.querySelectorAll(".game:not([data-is-folder]) .game-title") );
+                var keys = Object.keys(systemsDict);
+                for( var i=0; i<keys.length; i++ ) {
+                    arr = [];
+                    getGamesInFolderRecursive( systemsDict[keys[i]].games, arr, [] );
+                    found = lookForMatch( arr, keys[i] );
+                    if( found ) break;
+                }
             }
         }
         else {
