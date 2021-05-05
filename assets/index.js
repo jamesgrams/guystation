@@ -1343,15 +1343,16 @@ function populateGames(system, games, startSystem, gamesElement, hidden, parents
         /* End Search Override */
         
         // stream logic
+        var notOnPage = false;
         if( !game.isFolder && j>=10 ) { // always show folders as a visual indicator of what's available - also show the first 10 items in each folder
             var longEnoughSearch = false;
             if( system == "stream" && currentSearch.length < MIN_STREAM_SEARCH_LENGTH ) {
-                if( !game.playing ) hidden = true;
+                if( !game.playing ) notOnPage = true;
             }
             else if( system == "stream" ) longEnoughSearch = true;
             if( !hidden && system == "stream" && !longEnoughSearch ) {
                 if( !curParents.length || !game.playing ) {
-                    hidden = true;
+                    notOnPage = true;
                 }
             }
         }
@@ -1446,7 +1447,7 @@ function populateGames(system, games, startSystem, gamesElement, hidden, parents
         if( game.percent ) {
             gameElement.setAttribute("data-percent", game.percent);
         }
-        if( system != "stream" || !hidden ) gamesElement.appendChild(gameElement);
+        if( !notOnPage ) gamesElement.appendChild(gameElement);
 
         if( game.isFolder ) {
             // look in the openFolders dictionary
