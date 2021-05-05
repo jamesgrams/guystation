@@ -299,7 +299,7 @@ const VOICE_SAMPLE_RATE_HERTZ = 16000;
 const DEFAULT_STREAM_SERVICES = {
     "Disney+": {
         "url": "https://reelgood.com/source/disney_plus",
-        "selector": "button[type='submit']",
+        "selector": 'button[data-testid="details-signup-cta"]',
         "script": [ 
             "document.querySelector('button[data-testid=play-button]').click()"
         ],
