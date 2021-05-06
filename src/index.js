@@ -228,6 +228,7 @@ const UPDATE_PERCENT_MINIMUM = 1;
 const RELOAD_MENU_PAGE_INTERVAL = 14400000; // 4 hours
 const RELOAD_MENU_PAGE_MORE_TIME_NEEDED = 600000; // 10 minutes
 const BROWSE_SCRIPT_INTERVAL = 3000;
+const BROWSE_LINE_TRIES = 4;
 const CLOSE_PAGE_TIMEOUT = 2000;
 
 const CONFIG_JOINER = ",";
@@ -2105,11 +2106,14 @@ async function launchBrowseTab( url, script ) {
         await browsePage.goto(url ? url : HOMEPAGE);
         if( script ) {
             for( let scriptLine of script ) {
-                await browsePage.waitFor(BROWSE_SCRIPT_INTERVAL);
-                try {
-                    await browsePage.evaluate(scriptLine);
+                for( let i=0; i<BROWSE_LINE_TRIES; i++ ) {
+                    await browsePage.waitFor(BROWSE_SCRIPT_INTERVAL);
+                    try {
+                        await browsePage.evaluate(scriptLine);
+                        break;
+                    }
+                    catch(err) {/*ok*/}
                 }
-                catch(err) {/*ok*/}
             }
         }
     }

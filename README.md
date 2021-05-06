@@ -55,7 +55,7 @@ Note: You can press F11 to get GuyStation out of full screen mode at any time.
 * Internet Browser - you can remotely control a browser running on your GuyStation
     * You can control remotely by opening the menu and clicking the globe icon under "More".
     * Note: It is recommended to close the Browser controls when not using them (this will turn off streaming and help with speeds).
-    * You can add games to the browser. If you add a URL, the opening that game will open the URL. If you select a file, it should be a JSON file with a key for `siteUrl` with a url as the value. In addition, you can optionally include a `script` key with an array of strings. Each string should contain JavaScipt that will be run a few seconds apart on the page once it is opened. For example:
+    * You can add games to the browser. If you add a URL, the opening that game will open the URL. If you select a file, it should be a JSON file with a key for `siteUrl` with a url as the value. In addition, you can optionally include a `script` key with an array of strings. Each string should contain JavaScipt that will be run three seconds apart on the page once it is opened (if they fail, they will be run again up to four times). For example:
         ```
         {
             "siteUrl": "https://google.com",
