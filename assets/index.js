@@ -6482,7 +6482,7 @@ function speechInput() {
             var arr = [];
             var currentSystem = systemsDict[document.querySelector(".system.selected").getAttribute("data-system")];
             getGamesInFolderRecursive( currentSystem.games, arr, [] );
-            var found = lookForMatch( arr, currentSystem );
+            var found = lookForMatch( arr, currentSystem.system );
             if( !found ) {
                 var keys = Object.keys(systemsDict);
                 for( var i=0; i<keys.length; i++ ) {
