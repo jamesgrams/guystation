@@ -6,6 +6,7 @@
   "screenshotsDirArgType": " ",
   "extraFlags": ["-f"],
   "activateCommand": "wmctrl -a 'BlastEm'",
+  "killFirst": true,
   "config": {
     "files": ["/home/james/.config/blastem/blastem.cfg"],
     "controllers": [
