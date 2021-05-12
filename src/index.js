@@ -1476,7 +1476,7 @@ function writeResponse( request, response, status, object, code, contentType ) {
     let structure = request.body ? request.body : request.query;
     let responseSystemsDict = null;
     if( structure.noPlaying ) responseSystemsDict = systemsDict; // samba mounts need everything
-    else if(structure.systemsDictHash == systemsDictHash) { // Don't respond with every value for streaming
+    else if(structure.systemsDictHash != systemsDictHash) { // Don't respond with every value for streaming
         responseSystemsDict = filterStreams(structure.systemsDictSearch, structure.systemsDictSort);
     }
 
