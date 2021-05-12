@@ -4804,7 +4804,7 @@ async function goHome() {
  * @param {string} [sort] - The sort.
  * @returns {Object} - A filtered systemsDict.
  */
-function filterStreams(search, sort) {
+function filterStreams(search="", sort) {
     let newSystemsDict = JSON.parse(JSON.stringify(systemsDict));
     for( let service in newSystemsDict[STREAM].games ) {
         let gamesKeys = Object.keys(newSystemsDict[STREAM].games[service].games);
