@@ -1473,7 +1473,7 @@ function writeResponse( request, response, status, object, code, contentType ) {
     if( !object ) { object = {}; }
     response.writeHead(code, {'Content-Type': 'application/json'});
     
-    let structure = request.body ? request.body : request.query;
+    let structure = request.body && Object.keys(request.body).length ? request.body : request.query;
     let responseSystemsDict = null;
     if( structure.noPlaying ) responseSystemsDict = systemsDict; // samba mounts need everything
     else if(structure.systemsDictHash != systemsDictHash) { // Don't respond with every value for streaming
