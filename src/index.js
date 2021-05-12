@@ -4827,7 +4827,7 @@ function filterStreams(search, sort) {
         // now get the top 10 or is playing
         let newGames = {};
         for( let i=0; i<gamesKeys.length; i++ ) {
-            let game = newSystemsDict[STREAM].games[service].games[gameKeys[i]];
+            let game = newSystemsDict[STREAM].games[service].games[gamesKeys[i]];
             if( i < DEFAULT_STREAM_SHOWN || search.length >= MIN_STREAM_SEARCH_LENGTH || game.playing) {
                 newGames[gameKeys[i]] = game;
             }
