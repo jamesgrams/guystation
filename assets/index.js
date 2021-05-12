@@ -37,7 +37,6 @@ var CHANGES_DETECTED = "Changes detected";
 var MEDIA_RECORDER_TIMESLICE = 250;
 var RTMP_STATUS_INTERVAL = 1000;
 var CONTENT_HINT = "motion";
-var SESSIONS_REGEX = /"sessions":((?!]\s*]).)+\]\s*\]/g;
 var SORT_PLAYTIME = "totalPlaytime";
 var SORT_RECENT = "mostRecentPlaytime";
 var KEY_BUTTON_EXTRA = 20; // the extra size in pixels of a key button to a regular button
@@ -343,6 +342,8 @@ var MAX_TOUCH_COUNT = 3;
 var expandCountLeft; // We always need to have a complete list of systems, repeated however many times we want, so the loop works properly
 var expandCountRight;
 var systemsDict;
+var systemsDictHash;
+var systemsDictHashNoSessions;
 var profilesDict;
 var ip;
 var disableMenuControls;
@@ -782,7 +783,9 @@ function load() {
     startRequest();
     makeRequest( "GET", "/data", {}, function(responseText) {
         var response = JSON.parse(responseText);
-        systemsDict = response.systems;
+        systemsDict = response.systems; // we know it will be defined since hash was previously blank
+        systemsDictHash = response.systemsDictHash;
+        systemsDictHashNoSessions = response.systemsDictHashNoSessions;
         fullscreenPip = response.fullscreenPip;
 
         var startSystem = {};
@@ -815,14 +818,13 @@ function load() {
             if( !makingRequest ) {
                 makeRequest( "GET", "/data", {}, function(responseText) {
                     var response = JSON.parse(responseText);
-                    var newSystemsDict = response.systems;
-                    var newSystemsDictString = JSON.stringify(response.systems);
-                    var systemsDictString = JSON.stringify(systemsDict);
-                    if( newSystemsDictString != systemsDictString ) {
-                        if( newSystemsDictString.replace(SESSIONS_REGEX,"") !== systemsDictString.replace(SESSIONS_REGEX,"") ) {
+                    if( response.systems ) {
+                        if( response.systemsDictHashNoSessions !== systemsDictHashNoSessions ) {
                             createToast( CHANGES_DETECTED );
                         }
-                        systemsDict = newSystemsDict;
+                        systemsDict = response.systems;
+                        systemsDictHash = response.systemsDictHash;
+                        systemsDictHashNoSessions = response.systemsDictHashNoSessions;
                         redraw(null, null, null, null, null, null, true);
                     }
                     else if(response.fullscreenPip !== fullscreenPip) {
@@ -918,7 +920,7 @@ function enableSort() {
         visible.classList.add("hidden");
         options[index].classList.remove("hidden");
         window.localStorage.guystationMenuSort = options[index].getAttribute("data-sort");
-        redraw();
+        redraw(null, null, null, null, null, null, null, true);
     }
 }
 
@@ -937,7 +939,7 @@ function enableSearch() {
                 });
             }
             else {
-                redraw(null, null, null, null, null, null, true);
+                redraw(null, null, null, null, null, null, true, true);
                 gotoSearchMatch();
             }
         }, SEARCH_TIMEOUT_TIME );
@@ -1632,7 +1634,6 @@ function removeDiacritics (str) {
     }
   
     return str;
-  
 }
 
 /**
@@ -1912,12 +1913,31 @@ function isBeingPlayed( system, game, parents ) {
  * @param {Array<string>} [oldParents] - The old parents if it changed.
  * @param {Array<string>} [newParents] - The new parents if it changed.
  * @param {boolean} [keepCurrentSearch] - Keep the current search (only in place on a search to not blank out search, other than that we don't want redraw to keep a search).
+ * @param {boolean} [searchOrSortUpdated] - True if search or sort was updated - need to alert server.
  */
-function redraw( oldSystemName, newSystemName, oldGameName, newGameName, oldParents, newParents, keepCurrentSearch ) {
+function redraw( oldSystemName, newSystemName, oldGameName, newGameName, oldParents, newParents, keepCurrentSearch, searchOrSortUpdated ) {
     if( !keepCurrentSearch ) {
         clearSearch();
+        searchOrSortUpdated = true;
     }
-    draw( generateStartSystem( oldSystemName, newSystemName, oldGameName, newGameName, oldParents, newParents ) );
+    var doDraw = function() {
+        draw( generateStartSystem( oldSystemName, newSystemName, oldGameName, newGameName, oldParents, newParents ) );
+    };
+    if( searchOrSortUpdated ) {
+        makeRequest( "GET", "/data", {}, function() {
+            var response = JSON.parse(responseText);
+            if( response.systems ) {
+                systemsDict = response.systems;
+                systemsDictHash = response.systemsDictHash;
+                systemsDictHashNoSessions = response.systemsDictHashNoSessions;
+            }
+            fullscreenPip = response.fullscreenPip;
+            doDraw();
+        } );
+    }
+    else {
+        doDraw();
+    }
 }
 
 /**
@@ -5979,7 +5999,11 @@ function deleteSave( system, game, save, parents ) {
  */
 function standardSuccess( responseText, message, oldSystemName, newSystemName, oldGameName, newGameName, oldParents, newParents, preventModalClose ) {
     var response = JSON.parse(responseText);
-    systemsDict = response.systems;
+    if( response.systems ) {
+        systemsDict = response.systems;
+        systemsDictHash = response.systemsDictHash;
+        systemsDictHashNoSessions = response.systemsDictHashNoSessions;
+    }
     fullscreenPip = response.fullscreenPip;
     redraw(oldSystemName, newSystemName, oldGameName, newGameName, oldParents, newParents);
     if(message) alertSuccess(message);
@@ -6045,6 +6069,9 @@ function endRequest() {
  * @param {boolean} noWebsockets - True if we should not allow websockets to be used.
  */
 function makeRequest(type, url, parameters, callback, errorCallback, useFormData, sambaMode, noWebsockets) {
+    parameters.systemsDictHash = systemsDictHash;
+    parameters.systemsDictSearch = currentSearch;
+    parameters.systemsDictSort = window.localStorage.guystationMenuSort; // pivotal for returning systems dict
     var parameterKeys = Object.keys(parameters);
 
     if( type == "GET" && parameterKeys.length ) {
