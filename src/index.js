@@ -2336,7 +2336,7 @@ function getData( startup, noPlaying ) {
     }
 
     systemsDictHash = hash(systemsDict);
-    systemsDictHashNoSessions = hash(JSON.parse(JSON.stringify(systemsDict).replace( SESSIONS_REGEX, "" )));
+    systemsDictHashNoSessions = systemsDictHash;
 }
 
 /**
