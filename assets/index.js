@@ -1344,21 +1344,6 @@ function populateGames(system, games, startSystem, gamesElement, hidden, parents
         }
         /* End Search Override */
         
-        // stream logic
-        var notOnPage = false;
-        if( !game.isFolder && j>=10 ) { // always show folders as a visual indicator of what's available - also show the first 10 items in each folder
-            var longEnoughSearch = false;
-            if( system == "stream" && currentSearch.length < MIN_STREAM_SEARCH_LENGTH ) {
-                if( !game.playing ) notOnPage = true;
-            }
-            else if( system == "stream" ) longEnoughSearch = true;
-            if( !hidden && system == "stream" && !longEnoughSearch ) {
-                if( !curParents.length || !game.playing ) {
-                    notOnPage = true;
-                }
-            }
-        }
-
         // Make sure all the selected games parent folders are shown (only if there is no search)
         // this is really only necessary when a game is moved on update as far as I know, since in all other
         // times, the menus should have been opened manually (causing startSystem.openFolders to take care of them)
@@ -1449,7 +1434,7 @@ function populateGames(system, games, startSystem, gamesElement, hidden, parents
         if( game.percent ) {
             gameElement.setAttribute("data-percent", game.percent);
         }
-        if( !notOnPage ) gamesElement.appendChild(gameElement);
+        gamesElement.appendChild(gameElement);
 
         if( game.isFolder ) {
             // look in the openFolders dictionary
@@ -1924,7 +1909,7 @@ function redraw( oldSystemName, newSystemName, oldGameName, newGameName, oldPare
         draw( generateStartSystem( oldSystemName, newSystemName, oldGameName, newGameName, oldParents, newParents ) );
     };
     if( searchOrSortUpdated ) {
-        makeRequest( "GET", "/data", {}, function() {
+        makeRequest( "GET", "/data", { systemsDictForce: true }, function(responseText) {
             var response = JSON.parse(responseText);
             if( response.systems ) {
                 systemsDict = response.systems;

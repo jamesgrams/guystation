@@ -297,7 +297,6 @@ const VOICE_KEYWORDS = ["hey cocoa"];
 const VOICE_SENSITIVITIES = VOICE_KEYWORDS.map( el => 0.75 );
 const VOICE_RECORDER_TYPE = "arecord";
 const VOICE_SAMPLE_RATE_HERTZ = 16000;
-const SESSIONS_REGEX = /"sessions":((?!]\s*]).)+\]\s*\]/g;
 const SORT_PLAYTIME = "totalPlaytime";
 const SORT_RECENT = "mostRecentPlaytime";
 const DEFAULT_STREAM_SHOWN = 10;
@@ -1476,7 +1475,7 @@ function writeResponse( request, response, status, object, code, contentType ) {
     let structure = request.body && Object.keys(request.body).length ? request.body : request.query;
     let responseSystemsDict = null;
     if( structure.noPlaying ) responseSystemsDict = systemsDict; // samba mounts need everything
-    else if(structure.systemsDictHash != systemsDictHash) { // Don't respond with every value for streaming
+    else if(structure.systemsDictHash != systemsDictHash || structure.systemsDictForce) { // Don't respond with every value for streaming
         responseSystemsDict = filterStreams(structure.systemsDictSearch, structure.systemsDictSort);
     }
 
@@ -2336,7 +2335,26 @@ function getData( startup, noPlaying ) {
     }
 
     systemsDictHash = hash(systemsDict);
-    systemsDictHashNoSessions = systemsDictHash;
+    let systemsDictNoSessions = JSON.parse(JSON.stringify(systemsDict));
+    for( let system in systemsDictNoSessions ) {
+        deleteKeyRecursive(systemsDictNoSessions[system].games, "sessions");
+    }
+    systemsDictHashNoSessions = hash( systemsDictNoSessions );
+}
+
+/**
+ * Delete key recursive from a systemsDict like object.
+ * @param {Array<Object>} - An array of game objects.
+ * @param {string} key - The key to delete.
+ */
+function deleteKeyRecursive(games, key) {
+    for( let gameName in games ) {
+        let game = games[gameName];
+        delete game[key];
+        if( game.isFolder ) {
+            deleteKeyRecursive(game.games, key);
+        }
+    }
 }
 
 /**
