@@ -3539,6 +3539,7 @@ function displayScreencast( fullscreen ) {
                 } );
             }, RTMP_STATUS_INTERVAL );
 
+            screencastCounter = 0; // reset the screencast counter
             launchModal( form, function() { stopConnectionToPeer(false, "server"); currentConnectedVirtualControllers = 0; } );
             connectToSignalServer(false);
             if( fullscreen ) fullscreenVideo( video );

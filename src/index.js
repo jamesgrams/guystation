@@ -6689,6 +6689,9 @@ async function stopScreencast(id) {
     startedClientIds = clientSocketIds.filter( el => el != id );
     clearTimeout(cancelStreamingTimeouts[id]);
     delete cancelStreamingTimeouts[id];
+    delete screencastLastRuns[id];
+    delete screencastLastCounters[id];
+    delete screencastLastTimestamps[id];
 
     disconnectVirtualGamepad( id ); // Disconnect the virtual gamepad.
 
@@ -6705,6 +6708,9 @@ async function stopScreencast(id) {
     clientSocketIds = [];
     startedClientIds = [];
     cancelStreamingTimeouts = [];
+    screencastLastRuns = {};
+    screencastLastCounters = {};
+    screencastLastTimestamps = {};
     try {
         if( menuPageIsActive() ) ensureProperResolution(); // we might have gone home and changed to resolution in preparation to go back to the emulator. If there was an error, we might not have gone back to the emulator. In this case, once the reset timeout fails, we should make sure we have the correct resolution.
     }
@@ -6816,7 +6822,15 @@ async function performScreencastGamepad( event, id, controllerNum=0, counter, ti
     }
 }
 
-async function queueScreencastEvent( action, id, counter, timestamp, attempts=0 ) {
+/**
+ * Queue screencast event.
+ * @param {Function} action - The action to run. 
+ * @param {string} id - The client id. 
+ * @param {number} counter - The current counter for the event.
+ * @param {number} timestamp - The current timestamp for the vent.
+ * @param {number} [attempts] - The current number of attempts that have been made for the input to go through. 
+ */
+function queueScreencastEvent( action, id, counter, timestamp, attempts=0 ) {
     let lastCounter = screencastLastCounters[id] || -1;
     let lastTimestamp = screencastLastTimestamps[id] || -1;
     let lastRun = screencastLastRuns[id] || -1;
@@ -6831,12 +6845,13 @@ async function queueScreencastEvent( action, id, counter, timestamp, attempts=0 
     let commandInterval = timestamp - lastTimestamp; // interval between presses on teh client
     let newRuntime = lastRun + commandInterval; // server side runtime is last server side runtime + that same interval
     let offset = newRuntime - Date.now(); // relative to now
-    if( offset > MAX_OFFSET ) offset = MAX_OFFSET; // max is 50 - really just for quick button pushes, not delays between pushes
+    if( offset > MAX_OFFSET ) offset = MAX_OFFSET; // max is 100 - really just for quick button pushes, not delays between pushes
     setTimeout( () => {
         action();
         screencastLastCounters[id] = counter;
         screencastLastTimestamps[id] = timestamp;
-        if( offset < MAX_OFFSET ) screencastLastRuns[id] = Date.now();
+        if( offset < MAX_OFFSET ) screencastLastRuns[id] = Date.now(); // Don't update last run if we just did a max out - that way we won't get a delay for the next command
+        else screencastLastRuns[id] = -1;
     }, offset );
 }
 
