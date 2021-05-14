@@ -2280,6 +2280,15 @@ function getData( startup, noPlaying ) {
     // Reset the data
     systemsDict = {};
 
+    function setSystemsDictHash() {
+        systemsDictHash = hash(systemsDict);
+        let systemsDictNoSessions = JSON.parse(JSON.stringify(systemsDict));
+        for( let system in systemsDictNoSessions ) {
+            deleteKeyRecursive(systemsDictNoSessions[system].games, "sessions");
+        }
+        systemsDictHashNoSessions = hash( systemsDictNoSessions );
+    }
+
     // samba mode, rather than reading files on a remote server (slow), ask for the information we need from the samba host
     if( sambaOn ) {
         try {
@@ -2303,6 +2312,7 @@ function getData( startup, noPlaying ) {
                 }
                 gameDictEntry.playing = true;
             }
+            setSystemsDictHash();
             return;
         }
         catch(err) {
@@ -2340,12 +2350,7 @@ function getData( startup, noPlaying ) {
         systemsDict[system] = systemData;
     }
 
-    systemsDictHash = hash(systemsDict);
-    let systemsDictNoSessions = JSON.parse(JSON.stringify(systemsDict));
-    for( let system in systemsDictNoSessions ) {
-        deleteKeyRecursive(systemsDictNoSessions[system].games, "sessions");
-    }
-    systemsDictHashNoSessions = hash( systemsDictNoSessions );
+    setSystemsDictHash();
 }
 
 /**
