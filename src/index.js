@@ -5034,7 +5034,7 @@ async function fetchStreamList() {
             ]
         });
         let page = await streamBrowser.newPage();
-        page.on("close", () => {
+        page.on("close", async () => {
             try {
                 page = await streamBrowser.newPage();
             }
