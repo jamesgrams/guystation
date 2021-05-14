@@ -1053,7 +1053,8 @@ function enableControls() {
                 if( event.keyCode == 13 ) document.querySelector(".modal #go-button").click();
             }
             else if( buttonsUp.keyboard[event.keyCode.toString()] || buttonsUp.keyboard[event.keyCode.toString()] === undefined ) {
-                socket.emit("/screencast/buttons", { "down": true, "buttons": [event.keyCode] } );
+                socket.emit("/screencast/buttons", { "down": true, "buttons": [event.keyCode], "counter": screencastCounter, "timestamp": Date.now() } );
+                screencastCounter++;
                 buttonsUp.keyboard[event.keyCode.toString()] = false;
             }
         }
@@ -1106,7 +1107,8 @@ function enableControls() {
         if( enableModalControls && document.querySelector(".modal #remote-screencast-form video, .modal #browser-controls-form video, .black-background video") ) {
             // Allow enter for the browser address bar
             if( !(document.querySelector(".modal #address-bar") && document.querySelector(".modal #address-bar") === document.activeElement && !navigating) && !buttonsUp.keyboard[event.keyCode.toString()] ) {
-                socket.emit("/screencast/buttons", { "down": false, "buttons": [event.keyCode] } );
+                socket.emit("/screencast/buttons", { "down": false, "buttons": [event.keyCode], "counter": screencastCounter, "timestamp": Date.now() } );
+                screencastCounter++;
                 buttonsUp.keyboard[event.keyCode.toString()] = true;
             }
         }
@@ -3951,8 +3953,9 @@ function handleKeyButton(keyButton, down, callback) {
     }
     // it's a keyboard key
     else {
-        socket.emit("/screencast/buttons", { "down": down, "buttons": [KEYCODES[displayValue]] },
+        socket.emit("/screencast/buttons", { "down": down, "buttons": [KEYCODES[displayValue]], "counter": screencastCounter, "timestamp": Date.now() },
         function() { if(callback) callback(); } );
+        screencastCounter++;
     }
 }
 
@@ -4121,7 +4124,8 @@ function createInteractiveScreencast() {
             if( xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
                 mouseDown = true;
                 lastMoveSent = Date.now();
-                socket.emit( "/screencast/mouse", { "down": true, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 3 ? "right" : "middle" } );
+                socket.emit( "/screencast/mouse", { "down": true, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 3 ? "right" : "middle", "counter": screencastCounter, "timestamp": Date.now() } );
+                screencastCounter++;
             }
             try {
                 event.preventDefault();
@@ -4150,7 +4154,8 @@ function createInteractiveScreencast() {
                 var yPercent = mousePercentLocation.yPercent;
                 if( xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
                     lastMoveSent = now;
-                    socket.emit( "/screencast/mouse", { "down": mouseDown, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 3 ? "right" : "middle" } );
+                    socket.emit( "/screencast/mouse", { "down": mouseDown, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 3 ? "right" : "middle", "counter": screencastCounter, "timestamp": Date.now() } );
+                    screencastCounter++;
                 }
                 try {
                     event.preventDefault();
@@ -4166,7 +4171,8 @@ function createInteractiveScreencast() {
             var yPercent = mousePercentLocation.yPercent;
             if( xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
                 mouseDown = false;
-                socket.emit( "/screencast/mouse", { "down": false, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 3 ? "right" : "middle" } );
+                socket.emit( "/screencast/mouse", { "down": false, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 3 ? "right" : "middle", "counter": screencastCounter, "timestamp": Date.now() } );
+                screencastCounter++;
             }
             try {
                 event.preventDefault();
