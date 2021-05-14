@@ -326,9 +326,9 @@ const STREAM_COVER_WIDTH = 342;
 const STREAM_COVER_HEIGHT = 513;
 const WRITE_STREAM_SLEEP = 100;
 const PROPER_LINK_TRIES = 3;
-const QUEUE_MAX_ATTEMPTS = 15;
+const QUEUE_MAX_ATTEMPTS = 10;
 const QUEUE_WAIT_TIME = 10;
-const MAX_COMMAND_INTERVAL = 200;
+const MAX_COMMAND_INTERVAL = 100;
 
 const DEFAULT_PROFILES_DICT = {
     "GuyStation Virtual Controller": {
@@ -6625,6 +6625,10 @@ async function startScreencast( id ) {
     if( startedClientIds.includes( id ) ) {
         return Promise.resolve(ERROR_MESSAGES.screencastAlreadyStarted);
     }
+    // failsafe
+    delete screencastLastRuns[id];
+    delete screencastLastCounters[id];
+    delete screencastLastTimestamps[id];
     let currentStartedClientIdsLength = startedClientIds.length; 
     startedClientIds.push(id);
     await menuPage.evaluate( (id) => startConnectionToPeer(true, id), id );
