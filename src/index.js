@@ -941,7 +941,7 @@ app.post("/screencast/buttons", async function(request, response) {
 // Press some gamepad input on a screencast
 app.post("/screencast/gamepad", async function(request, response) {
     console.log("app serving /screencast/gamepad with body: " + JSON.stringify(request.body));
-    let errorMessage = await performScreencastGamepad( request.body.event, request.body.id, parseInt(request.body.controllerNum) );
+    let errorMessage = await performScreencastGamepad( request.body.event, request.body.id, parseInt(request.body.controllerNum), parseInt(request.body.counter), parseInt(request.body.timestamp) );
     writeActionResponse( request, response, errorMessage );
 });
 
@@ -6407,7 +6407,7 @@ io.on('connection', function(socket) {
         if(ack) ack();
     } );
     socket.on("/screencast/gamepad", function(body, ack) {
-        performScreencastGamepad( body.event, body.id, parseInt(body.controllerNum) );
+        performScreencastGamepad( body.event, body.id, parseInt(body.controllerNum), parseInt(body.counter), parseInt(body.timestamp) );
         if(ack) ack();
     } );
     // generalized request handler through socket.io
@@ -6789,7 +6789,7 @@ async function performScreencastButtons( buttons, down ) {
  * @param {number} [controllerNum] - The controller number to use from the particular id.
  * @returns {boolean|string} False if the action was successful or an error message if not.
  */
-async function performScreencastGamepad( event, id, controllerNum=0 ) {
+async function performScreencastGamepad( event, id, controllerNum=0, counter, timestamp ) {
     let idControllers = gamepadFileDescriptors[id];
     // set to not make a new controller, so use the first controller
     if( !idControllers  ) {
@@ -6802,7 +6802,46 @@ async function performScreencastGamepad( event, id, controllerNum=0 ) {
     if( !gamepadFileDescriptor ) {
         return ERROR_MESSAGES.gamepadNotConnected;
     }
-    else return createGamepadEvent( event, gamepadFileDescriptor );
+    else {
+        queueScreencastEvent( () => {
+            createGamepadEvent( event, gamepadFileDescriptor );
+        }, id, counter, timestamp );
+        return false;
+    }
+}
+
+let screencastLastCounters = {};
+let screencastLastTimestamps = {};
+let screencastLastRuns = {};
+const QUEUE_MAX_ATTEMPTS = 20;
+const QUEUE_WAIT_TIME = 10;
+async function queueScreencastEvent( action, id, counter, timestamp, attempts=0 ) {
+    console.log("james: HELLO");
+    let lastCounter = screencastLastCounters[id] || -1;
+    let lastTimestamp = screencastLastTimestamps[id] || -1;
+    let lastRun = screencastLastRuns[id] || -1;
+    console.log("james: " + counter);
+    console.log("james: " + lastCounter);
+    console.log("james: " + attempts);
+    if( counter > lastCounter + 1 && attempts <= QUEUE_MAX_ATTEMPTS ) {
+        setTimeout( () => {
+            queueScreencastEvent( action, id, counter, timestamp, attempts+1 );
+        }, QUEUE_WAIT_TIME );
+        return;
+    }
+    console.log("james: CHU");
+    if( counter < lastCounter + 1 ) return; // the input timed out, ignore now
+    console.log("james: GOODBYE");
+    // At this point, we are certain we are in the right order
+    let timestampDiff = timestamp - lastTimestamp;
+    let lastRunDiff = Date.now() - lastRun;
+    console.log("james: DIFF: " + (timestampDiff - lastRunDiff));
+    setTimeout( () => {
+        action();
+        screencastLastCounters[id] = counter;
+        screencastLastTimestamps[id] = timestamp;
+        if( attempts <= QUEUE_MAX_ATTEMPTS ) screencastLastRuns[id] = Date.now();
+    }, timestampDiff-lastRunDiff );
 }
 
 /**

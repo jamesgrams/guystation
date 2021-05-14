@@ -386,6 +386,7 @@ var rtmpStatusInterval = null;
 var currentConnectedVirtualControllers = 0;
 var touchCount = 0;
 var touchDirection = null;
+var screencastCounter = 0;
 
 // at the root level keyed by controller number, then 
 // keys are server values, values are client values
@@ -3380,6 +3381,7 @@ function displayScreencast( fullscreen ) {
     if( isServer ) {
         return;
     }
+ 
     var form = document.createElement("div");
     form.appendChild( createFormTitle("Screencast") );
     
@@ -3868,8 +3870,10 @@ function createKeyButton( selected, x, y ) {
 
             // The right axis are 3 & 4 -- just like when we use AXISCODES to forward the fake controller
             var axisAdder = selected.includes("L") ? 0 : 3;
-            socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": 0x00 + axisAdder, "value": xValueForServer }, "id": socket.id, "controllerNum": 0 });
-            socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": 0x01 + axisAdder, "value": yValueForServer }, "id": socket.id, "controllerNum": 0 });
+            socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": 0x00 + axisAdder, "value": xValueForServer }, "id": socket.id, "controllerNum": 0, "counter": screencastCounter, "timestamp": Date.now() });
+            screencastCounter++;
+            socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": 0x01 + axisAdder, "value": yValueForServer }, "id": socket.id, "controllerNum": 0, "counter": screencastCounter, "timestamp": Date.now() });
+            screencastCounter++;
         }
     }
 
@@ -3940,8 +3944,9 @@ function handleKeyButton(keyButton, down, callback) {
     var displayValue = keyButton.querySelector(".key-display").innerText;
     // it's a gamepad key
     if( PADCODES[displayValue] ) {
-        socket.emit("/screencast/gamepad", { "event": { "type": 0x01, "code": PADCODES[displayValue], "value": down ? 1 : 0 }, "id": socket.id, "controllerNum": 0 },
+        socket.emit("/screencast/gamepad", { "event": { "type": 0x01, "code": PADCODES[displayValue], "value": down ? 1 : 0 }, "id": socket.id, "controllerNum": 0, "counter": screencastCounter, "timestamp": Date.now() },
         function() { if(callback) callback(); } );
+        screencastCounter++;
     }
     // it's a keyboard key
     else {
@@ -6158,7 +6163,8 @@ function sendButtonsToServer( clientButton, down, clientControllerNum, actualCon
             for( var k=0; k<serverButtonsForClientButton.length; k++ ) {
                 // note whether the client axis or button, it is mapped to a server button, and thus serverButtonsForClientButton[k] will always be a number indicating the button number on the server
                 var buttonCode = Object.values(PADCODES)[serverButtonsForClientButton[k]];
-                socket.emit("/screencast/gamepad", { "event": { "type": 0x01, "code": buttonCode, "value": down !== undefined ? down : gamepadButtonsDown[actualControllerNum][clientButton] }, "id": socket.id, "controllerNum": clientControllerNum } );
+                socket.emit("/screencast/gamepad", { "event": { "type": 0x01, "code": buttonCode, "value": down !== undefined ? down : gamepadButtonsDown[actualControllerNum][clientButton] }, "id": socket.id, "controllerNum": clientControllerNum, "counter": screencastCounter, "timestamp": Date.now() } );
+                screencastCounter++;
             }
         }
         // this is a full axis being sent on the client (not just an axis direction) - it must be mapped to a server axis
@@ -6167,7 +6173,8 @@ function sendButtonsToServer( clientButton, down, clientControllerNum, actualCon
             for( var k=0; k<serverButtonsForClientButton.length; k++ ) {
                 var index = parseInt( serverButtonsForClientButton[k].replace("a","") );
                 var axisCode = Object.values(AXISCODES)[index];
-                socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": axisCode, "value": gamepadAxisLastValues[actualControllerNum][ parseInt(clientButton.replace("a","")) ] }, "id": socket.id, "controllerNum": clientControllerNum } );
+                socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": axisCode, "value": gamepadAxisLastValues[actualControllerNum][ parseInt(clientButton.replace("a","")) ] }, "id": socket.id, "controllerNum": clientControllerNum, "counter": screencastCounter, "timestamp": Date.now() } );
+                screencastCounter++;
             }
         }
     }
