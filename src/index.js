@@ -5110,6 +5110,7 @@ async function fetchStreamList() {
                     await page.waitFor(STREAM_WAIT);
                 }
                 catch(err) {
+                    clearInterval(curInterval);
                     console.log(err);
                     break; // no more 
                 }
