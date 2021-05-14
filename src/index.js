@@ -328,7 +328,7 @@ const WRITE_STREAM_SLEEP = 100;
 const PROPER_LINK_TRIES = 3;
 const QUEUE_MAX_ATTEMPTS = 15;
 const QUEUE_WAIT_TIME = 10;
-const MAX_OFFSET = 100;
+const MAX_COMMAND_INTERVAL = 200;
 
 const DEFAULT_PROFILES_DICT = {
     "GuyStation Virtual Controller": {
@@ -6842,16 +6842,19 @@ function queueScreencastEvent( action, id, counter, timestamp, attempts=0 ) {
     }
     if( counter < lastCounter + 1 ) return; // the input timed out, ignore now
     // At this point, we are certain we are in the right order
-    let commandInterval = timestamp - lastTimestamp; // interval between presses on teh client
+    // we want to maintain the delay between commands on the client between commands on the server
+    // within reason (not important for long waits between commands)
+    // The goal of this is say we get a button down then up at the same time, but the client actually pressed them
+    // 100ms apart - we want to delay the second one. But we don't want to keep delaying presses.
+    let commandInterval = timestamp - lastTimestamp; // interval between presses on the client
+    if( commandInterval > MAX_COMMAND_INTERVAL ) commandInterval = 0; //
     let newRuntime = lastRun + commandInterval; // server side runtime is last server side runtime + that same interval
     let offset = newRuntime - Date.now(); // relative to now
-    if( offset > MAX_OFFSET ) offset = MAX_OFFSET; // max is 100 - really just for quick button pushes, not delays between pushes
     setTimeout( () => {
         action();
         screencastLastCounters[id] = counter;
         screencastLastTimestamps[id] = timestamp;
-        if( offset < MAX_OFFSET ) screencastLastRuns[id] = Date.now(); // Don't update last run if we just did a max out - that way we won't get a delay for the next command
-        else screencastLastRuns[id] = -1;
+        screencastLastRuns[id] = Date.now(); // Don't update last run if we just did a max out - that way we won't get a delay for the next command
     }, offset );
 }
 
