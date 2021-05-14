@@ -326,6 +326,9 @@ const STREAM_COVER_WIDTH = 342;
 const STREAM_COVER_HEIGHT = 513;
 const WRITE_STREAM_SLEEP = 100;
 const PROPER_LINK_TRIES = 3;
+const QUEUE_MAX_ATTEMPTS = 15;
+const QUEUE_WAIT_TIME = 10;
+const MAX_OFFSET = 100;
 
 const DEFAULT_PROFILES_DICT = {
     "GuyStation Virtual Controller": {
@@ -498,6 +501,9 @@ let expressDynamic = null;
 let socketsServer = null;
 let pcUnpacking = false;
 let streamIsFetching = false;
+let screencastLastCounters = {};
+let screencastLastTimestamps = {};
+let screencastLastRuns = {};
 
 let sambaIndex = process.argv.indexOf(SAMBA_FLAG);
 let sambaOn = sambaIndex != -1;
@@ -6810,38 +6816,28 @@ async function performScreencastGamepad( event, id, controllerNum=0, counter, ti
     }
 }
 
-let screencastLastCounters = {};
-let screencastLastTimestamps = {};
-let screencastLastRuns = {};
-const QUEUE_MAX_ATTEMPTS = 20;
-const QUEUE_WAIT_TIME = 10;
 async function queueScreencastEvent( action, id, counter, timestamp, attempts=0 ) {
-    console.log("james: HELLO");
     let lastCounter = screencastLastCounters[id] || -1;
     let lastTimestamp = screencastLastTimestamps[id] || -1;
     let lastRun = screencastLastRuns[id] || -1;
-    console.log("james: " + counter);
-    console.log("james: " + lastCounter);
-    console.log("james: " + attempts);
     if( counter > lastCounter + 1 && attempts <= QUEUE_MAX_ATTEMPTS ) {
         setTimeout( () => {
             queueScreencastEvent( action, id, counter, timestamp, attempts+1 );
         }, QUEUE_WAIT_TIME );
         return;
     }
-    console.log("james: CHU");
     if( counter < lastCounter + 1 ) return; // the input timed out, ignore now
-    console.log("james: GOODBYE");
     // At this point, we are certain we are in the right order
-    let timestampDiff = timestamp - lastTimestamp;
-    let lastRunDiff = Date.now() - lastRun;
-    console.log("james: DIFF: " + (timestampDiff - lastRunDiff));
+    let commandInterval = timestamp - lastTimestamp; // interval between presses on teh client
+    let newRuntime = lastRun + commandInterval; // server side runtime is last server side runtime + that same interval
+    let offset = newRuntime - Date.now(); // relative to now
+    if( offset > MAX_OFFSET ) offset = MAX_OFFSET; // max is 50 - really just for quick button pushes, not delays between pushes
     setTimeout( () => {
         action();
         screencastLastCounters[id] = counter;
         screencastLastTimestamps[id] = timestamp;
-        if( attempts <= QUEUE_MAX_ATTEMPTS ) screencastLastRuns[id] = Date.now();
-    }, timestampDiff-lastRunDiff );
+        if( offset < MAX_OFFSET ) screencastLastRuns[id] = Date.now();
+    }, offset );
 }
 
 /**
