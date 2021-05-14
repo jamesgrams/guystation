@@ -5034,6 +5034,14 @@ async function fetchStreamList() {
             ]
         });
         let page = await streamBrowser.newPage();
+        page.on("close", () => {
+            try {
+                page = await streamBrowser.newPage();
+            }
+            catch(err) {
+                //ok
+            }
+        })
         let buttonSelector = "a[href^='/source'] button";
         let servicesDict = {};
 
