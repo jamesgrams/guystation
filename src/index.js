@@ -4987,12 +4987,13 @@ function filterStreams(search="", sort) {
  */
 function syncStreams() {
     // update streams only at night
-    if( !fs.existsSync(STREAM_INFO_PATH) ) fetchStreamList();
-    setInterval(() => {
-        if( new Date().getHours === STREAM_OK_TO_FETCH_HOUR ) {
+    function doStreamUpdate() {
+        if( new Date().getHours() === STREAM_OK_TO_FETCH_HOUR ) {
             fetchStreamList();
         }
-    }, STREAM_SYNC_WAIT);
+    }
+    doStreamUpdate();
+    setInterval(doStreamUpdate, STREAM_SYNC_WAIT);
 }
 
 /**
