@@ -173,6 +173,7 @@ You may need to change the Video Plugin for Mupen64Plus. It defaults to `mupen64
 * This version of Mupen64Plus changes the quit key to F15 rather than Escape (since Escape takes you home) and sets the screenshot key to Ctrl+S by default. Changing the screenshot key to "S" in any settings will actually change it to Ctrl+S.
 * Guystation will install M64Py, a frontend for Mupen64Plus, but will not use it due to it having problems with Fullscreen. You can still use it to esily configure settings, however. It can be opened by running `m64py` in the command line.
 * The best resolution that I have found is 720x576 with aspect set to 2 (stretch). This runs in fullscreen, full-speed, with proper sound. The aspect ratio is an important factor. If it is too high (for me, 1920x1080), games can be very slow, and some games stuggled with sound through HDMI with an aspect ratio of 640x480 in my experience.
+    * Regardless, make sure your monitor/tv supports the resolution!
 * When streaming Nintendo 64 games, it is best to start streaming while playing the game if you change the aspect ratio. GuyStation takes into account the current aspect ratio when the stream is started and will stream with those dimensions.
 
 ### Dolphin (Gamecube/Wii)
@@ -285,6 +286,10 @@ Multiple monitor support may be limited. GuyStation will aim to use the primary 
 * There is a Samba delay sometimes, so you might not be able to launch a game immediately after updating ("No ROM found for game"). Especially since updating uses the main server to process the request.
 * There may be an issue in Samba mode when playing a 3DS or Wii game for the first time on a samba mount that has been saved on another host/mount. The save may be overwritten as the mount initiliazes first time setup.
 * They may be an issue with setting multiplayer PS2 keyboard keys.
+* Voice search doesn't check non-displayed stream names.
+* Stream should be allowed for PIP.
+* More streams are needed.
+* There can be an input delay for remote screencast. To see, continuously move mouse.
 * EZ Config Issues
     * PS2 can only have keyboard controls set with EZ configuration.
     * NGC EZ configuration will set the device to the Dolphin internal name for a virtual keyboard when a control is set to a keyboard key (with the exception of the screenshot control) as Dolphin requires a device name with controls. It will set the device to gamepad when a control is set to a gamepad button/axis a gamepad. The custom version of Dolphin will recognize devices as game controllers if the evdev device name matches one of a set of keywords (gamepad, joystick, controller, joypad). Other devices are recognized as keyboards. This system isn't perfect.
