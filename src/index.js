@@ -1531,6 +1531,7 @@ async function launchBrowser() {
     context.overridePermissions("http://" + LOCALHOST, ['microphone','camera']);
     let pages = await browser.pages();
     menuPage = await pages[0];
+    await exposeFunctions();
     menuPage.on('close', () => {
         process.kill(process.pid, SIGTERM);
     });
@@ -1591,6 +1592,20 @@ async function launchBrowser() {
     });
 
     //setTimeout( reloadMenuPage, RELOAD_MENU_PAGE_INTERVAL );
+}
+
+/**
+ * Expose functions to the menu page.
+ */
+async function exposeFunctions() {
+    if( !menuPage || menuPage.isClosed() ) return ERROR_MESSAGES.menuPageClosed;
+    await menuPage.exposeFunction( "guystationPerform", (path, body) => {
+        switch(path) {
+            case "/screencast/mouse":
+                performScreencastMouse( body.xPercent, body.yPercent, body.button, body.down, parseInt(body.counter), parseInt(body.timestamp) );
+            break;
+        }
+    } );
 }
 
 /**

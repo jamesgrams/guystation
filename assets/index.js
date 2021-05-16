@@ -387,6 +387,7 @@ var currentConnectedVirtualControllers = 0;
 var touchCount = 0;
 var touchDirection = null;
 var screencastCounter = 0;
+var sendChannel = null;
 
 // at the root level keyed by controller number, then 
 // keys are server values, values are client values
@@ -4154,7 +4155,7 @@ function createInteractiveScreencast() {
                 var yPercent = mousePercentLocation.yPercent;
                 if( xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
                     lastMoveSent = now;
-                    socket.emit( "/screencast/mouse", { "down": mouseDown, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 3 ? "right" : "middle", "counter": screencastCounter, "timestamp": Date.now() } );
+                    sendRTCMessage( {"path": "/screencast/mouse", "body": { "down": mouseDown, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 3 ? "right" : "middle", "counter": screencastCounter, "timestamp": Date.now() } } );
                     screencastCounter++;
                 }
                 try {
@@ -6742,14 +6743,45 @@ function startConnectionToPeer( isStreamer, id ) {
     // Only the receiver will need to worry about what happens when it gets a remote stream
     if( !isStreamer ) {
         peerConnection.ontrack = gotRemoteStream;
+        peerConnection.ondatachannel = receiveChannelCallback;
     }
     // Only the streamer needs to add its own local sctream
     if( isStreamer ) {
+        peerConnection.ondatachannel = receiveChannelCallback;
         peerConnection.addTrack(localStream.getVideoTracks()[0]);
         peerConnection.addTrack(localStream.getAudioTracks()[0]);
+        // the offerer MUST create the data channel
+        let tmpChannel = peerConnection.createDataChannel("guystation-channel");
+        tmpChannel.onmessage = handleReceiveMessage;
         // the streamer will create an offer once it creates its peer connection
-        peerConnection.createOffer({offerToReceiveVideo: true, offerToReceiveAudio: true}).then(function(data) {createdDescription(id, data)}).catch(errorHandler);
+        peerConnection.createOffer().then(function(data) {createdDescription(id, data)}).catch(errorHandler);
     }
+}
+
+/**
+ * Handle receiving a data channel from a peer.
+ * @param {Object} event - The event from channel creation.
+ */
+function receiveChannelCallback(event) {
+    sendChannel = event.channel;
+}
+
+/**
+ * Handle receiving a message.
+ * param {Object} event - An event with the data we need.
+ */
+function handleReceiveMessage(event) {
+    var data = JSON.parse(event.data);
+    guystationPerform(data.path, data.body);
+}
+
+/**
+ * Send a message over RTC.
+ * @param {message} The message to send.
+ */
+function sendRTCMessage(message) {
+    if( !sendChannel ) return;
+    sendChannel.send(JSON.stringify(message));
 }
 
 /**
@@ -6840,6 +6872,7 @@ function stopConnectionToPeer( isStreamer, id, useIdAsSocketId ) {
         peerConnections = peerConnections.filter(el => el.id != id);
     }
     if( !isStreamer ) {
+        sendChannel = null;
         var stopLettingServerKnowWeExist = function() { clearInterval(resetCancelStreamingInterval); };
         clearInterval(rtmpStatusInterval); // either way, stop rtmp status interval check
         
@@ -6884,7 +6917,7 @@ function handleRemoteSdp(data) {
 
     // Set the information about the remote peer set in the offer/answer
     peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp)).then(function() {
-        // If this was an offer sent from guystation, respond to the client
+        // If this was an offer sent from guystation, respond to the it
         if( data.sdp.type == "offer" ) {
             // Send an answer
             peerConnection.createAnswer().then(function(data) {createdDescription("server", data)}).catch(errorHandler);
