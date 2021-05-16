@@ -4125,7 +4125,7 @@ function createInteractiveScreencast() {
             if( xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
                 mouseDown = true;
                 lastMoveSent = Date.now();
-                socket.emit( "/screencast/mouse", { "down": true, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 3 ? "right" : "middle", "counter": screencastCounter, "timestamp": Date.now() } );
+                sendRTCMessage( {"path": "/screencast/mouse", "body": { "down": true, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 3 ? "right" : "middle", "counter": screencastCounter, "timestamp": Date.now() } } );
                 screencastCounter++;
             }
             try {
@@ -4172,7 +4172,7 @@ function createInteractiveScreencast() {
             var yPercent = mousePercentLocation.yPercent;
             if( xPercent > 0 && yPercent > 0 && xPercent < 1 && yPercent < 1 ) {
                 mouseDown = false;
-                socket.emit( "/screencast/mouse", { "down": false, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 3 ? "right" : "middle", "counter": screencastCounter, "timestamp": Date.now() } );
+                sendRTCMessage( {"path": "/screencast/mouse", "body": { "down": false, "xPercent": xPercent, "yPercent": yPercent, "button": event.which == 1 ? "left" : event.which == 3 ? "right" : "middle", "counter": screencastCounter, "timestamp": Date.now() } } );
                 screencastCounter++;
             }
             try {
