@@ -1054,7 +1054,7 @@ function enableControls() {
                 if( event.keyCode == 13 ) document.querySelector(".modal #go-button").click();
             }
             else if( buttonsUp.keyboard[event.keyCode.toString()] || buttonsUp.keyboard[event.keyCode.toString()] === undefined ) {
-                socket.emit("/screencast/buttons", { "down": true, "buttons": [event.keyCode], "counter": screencastCounter, "timestamp": Date.now() } );
+                sendRTCMessage( { "path": "/screencast/buttons", "body": { "down": true, "buttons": [event.keyCode], "counter": screencastCounter, "timestamp": Date.now() } } );
                 screencastCounter++;
                 buttonsUp.keyboard[event.keyCode.toString()] = false;
             }
@@ -1108,7 +1108,7 @@ function enableControls() {
         if( enableModalControls && document.querySelector(".modal #remote-screencast-form video, .modal #browser-controls-form video, .black-background video") ) {
             // Allow enter for the browser address bar
             if( !(document.querySelector(".modal #address-bar") && document.querySelector(".modal #address-bar") === document.activeElement && !navigating) && !buttonsUp.keyboard[event.keyCode.toString()] ) {
-                socket.emit("/screencast/buttons", { "down": false, "buttons": [event.keyCode], "counter": screencastCounter, "timestamp": Date.now() } );
+                sendRTCMessage( { "path": "/screencast/buttons", "body": { "down": false, "buttons": [event.keyCode], "counter": screencastCounter, "timestamp": Date.now() } } );
                 screencastCounter++;
                 buttonsUp.keyboard[event.keyCode.toString()] = true;
             }
@@ -3874,9 +3874,9 @@ function createKeyButton( selected, x, y ) {
 
             // The right axis are 3 & 4 -- just like when we use AXISCODES to forward the fake controller
             var axisAdder = selected.includes("L") ? 0 : 3;
-            socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": 0x00 + axisAdder, "value": xValueForServer }, "id": socket.id, "controllerNum": 0, "counter": screencastCounter, "timestamp": Date.now() });
+            sendRTCMessage( {"path": "/screencast/gamepad", "body": { "event": { "type": 0x03, "code": 0x00 + axisAdder, "value": xValueForServer }, "id": socket.id, "controllerNum": 0, "counter": screencastCounter, "timestamp": Date.now() } } );
             screencastCounter++;
-            socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": 0x01 + axisAdder, "value": yValueForServer }, "id": socket.id, "controllerNum": 0, "counter": screencastCounter, "timestamp": Date.now() });
+            sendRTCMessage( {"path": "/screencast/gamepad", "body": { "event": { "type": 0x03, "code": 0x01 + axisAdder, "value": yValueForServer }, "id": socket.id, "controllerNum": 0, "counter": screencastCounter, "timestamp": Date.now() } } );
             screencastCounter++;
         }
     }
@@ -6171,7 +6171,7 @@ function sendButtonsToServer( clientButton, down, clientControllerNum, actualCon
             for( var k=0; k<serverButtonsForClientButton.length; k++ ) {
                 // note whether the client axis or button, it is mapped to a server button, and thus serverButtonsForClientButton[k] will always be a number indicating the button number on the server
                 var buttonCode = Object.values(PADCODES)[serverButtonsForClientButton[k]];
-                socket.emit("/screencast/gamepad", { "event": { "type": 0x01, "code": buttonCode, "value": down !== undefined ? down : gamepadButtonsDown[actualControllerNum][clientButton] }, "id": socket.id, "controllerNum": clientControllerNum, "counter": screencastCounter, "timestamp": Date.now() } );
+                sendRTCMessage( {"path": "/screencast/gamepad", "body": { "event": { "type": 0x01, "code": buttonCode, "value": down !== undefined ? down : gamepadButtonsDown[actualControllerNum][clientButton] }, "id": socket.id, "controllerNum": clientControllerNum, "counter": screencastCounter, "timestamp": Date.now() } } );
                 screencastCounter++;
             }
         }
@@ -6181,7 +6181,7 @@ function sendButtonsToServer( clientButton, down, clientControllerNum, actualCon
             for( var k=0; k<serverButtonsForClientButton.length; k++ ) {
                 var index = parseInt( serverButtonsForClientButton[k].replace("a","") );
                 var axisCode = Object.values(AXISCODES)[index];
-                socket.emit("/screencast/gamepad", { "event": { "type": 0x03, "code": axisCode, "value": gamepadAxisLastValues[actualControllerNum][ parseInt(clientButton.replace("a","")) ] }, "id": socket.id, "controllerNum": clientControllerNum, "counter": screencastCounter, "timestamp": Date.now() } );
+                sendRTCMessage( {"path": "/screencast/gamepad", "body": { "event": { "type": 0x03, "code": axisCode, "value": gamepadAxisLastValues[actualControllerNum][ parseInt(clientButton.replace("a","")) ] }, "id": socket.id, "controllerNum": clientControllerNum, "counter": screencastCounter, "timestamp": Date.now() } } );
                 screencastCounter++;
             }
         }

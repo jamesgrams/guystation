@@ -289,7 +289,6 @@ Multiple monitor support may be limited. GuyStation will aim to use the primary 
 * Voice search doesn't check non-displayed stream names.
 * Stream should be allowed for PIP.
 * More streams are needed.
-* There can be an input delay for remote screencast. To see, continuously move mouse.
 * EZ Config Issues
     * PS2 can only have keyboard controls set with EZ configuration.
     * NGC EZ configuration will set the device to the Dolphin internal name for a virtual keyboard when a control is set to a keyboard key (with the exception of the screenshot control) as Dolphin requires a device name with controls. It will set the device to gamepad when a control is set to a gamepad button/axis a gamepad. The custom version of Dolphin will recognize devices as game controllers if the evdev device name matches one of a set of keywords (gamepad, joystick, controller, joypad). Other devices are recognized as keyboards. This system isn't perfect.

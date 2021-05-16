@@ -1603,6 +1603,13 @@ async function exposeFunctions() {
         switch(path) {
             case "/screencast/mouse":
                 performScreencastMouse( body.xPercent, body.yPercent, body.button, body.down, parseInt(body.counter), parseInt(body.timestamp) );
+                break;
+            case "/screencast/buttons":
+                performScreencastButtons( body.buttons, body.down, parseInt(body.counter), parseInt(body.timestamp) );
+                break;
+            case "/screencast/gamepad":
+                performScreencastGamepad( body.event, body.id, parseInt(body.controllerNum), parseInt(body.counter), parseInt(body.timestamp) );
+                break;
             break;
         }
     } );
@@ -6442,6 +6449,8 @@ io.on('connection', function(socket) {
     // all some requests to come through socket.io too
     // these are requests that we want to be fast
     // websockets are faster than http requests
+    // We will usually try to use UDP for these (WebRTC), but sometimes we need a response
+    // That's why these are kept around with the ack function.
     socket.on("/screencast/buttons", function(body, ack) {
         performScreencastButtons( body.buttons, body.down, parseInt(body.counter), parseInt(body.timestamp) );
         if(ack) ack();
@@ -6461,7 +6470,7 @@ io.on('connection', function(socket) {
             setHeader: function() {},
             getHeader: function() {return ""},
             headers: []
-        }); 
+        });
     } );
 
     // rtmp endpoints
