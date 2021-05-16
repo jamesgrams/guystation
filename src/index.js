@@ -10,6 +10,7 @@ const proc = require( 'child_process' );
 const fs = require('fs');
 const util = require('util');
 const readFile = util.promisify(fs.readFile);
+const readdir = util.promisify(fs.readdir);
 const path = require('path');
 const ip = require('ip');
 const ioHook = require('iohook');
@@ -524,9 +525,6 @@ const VOICE_KEYWORD_PATHS = ["/home/"+desktopUser+"/guystation/helper/heycocoa.p
 let messages = [];
 
 let ppssppControllersMap;
-
-// Load the data on startup
-getData( true );
 
 /**************** Express ****************/
 
@@ -1358,9 +1356,8 @@ if(process.argv.indexOf(CHROMIUM_ARG) == -1) {
 }
 
 // START PROGRAM (Launch Browser and Listen)
-socketsServer = server.listen(SOCKETS_PORT); // This is the screencast server
 expressStatic = staticApp.listen(STATIC_PORT); // Launch the static assets first, so the browser can access them
-launchBrowser().then( () => {
+getData( true ).then( () => { launchBrowser().then( () => {
     try {
         if(process.argv.indexOf(CHROMIUM_ARG) == -1) {
             setMuteMode(MUTE_MODES.none);
@@ -1369,10 +1366,11 @@ launchBrowser().then( () => {
     catch(err) {
         console.log(err);
     }
+    socketsServer = server.listen(SOCKETS_PORT); // This is the screencast server
     expressDynamic = app.listen(PORT);
     detectHotword();
     if( !sambaOn ) syncStreams();
-} );
+} ) } );
 process.on(SIGTERM, () => {
     try {
         ioHook.unload();
@@ -2338,7 +2336,7 @@ async function getData( startup, noPlaying ) {
     }
 
     // Read all the systems
-    let systems = fs.readdirSync( SYSTEMS_DIR_FULL );
+    let systems = await readdir( SYSTEMS_DIR_FULL );
     // For each system
     for( let system of systems ) {
         // Read the metadata
@@ -2350,7 +2348,7 @@ async function getData( startup, noPlaying ) {
         let games = [];
         let gamesDir = generateGamesDir(system);
         try {
-            games = fs.readdirSync(generateGamesDir(system), {withFileTypes: true}).filter(file => file.isDirectory()).map(dir => dir.name);
+            games = (await readdir(generateGamesDir(system), {withFileTypes: true})).filter(file => file.isDirectory()).map(dir => dir.name);
         }
         catch( err ) {
             fs.mkdirSync( gamesDir );
@@ -2368,6 +2366,7 @@ async function getData( startup, noPlaying ) {
     }
 
     setSystemsDictHash();
+    return Promise.resolve(false);
 }
 
 /**
@@ -2406,7 +2405,7 @@ async function generateGames(system, games, parents=[], startup, noPlaying) {
         gameData.game = game;
         
         // Get the contents of the games directory
-        let gameDirContents = fs.readdirSync(generateGameDir(system, game, curParents));
+        let gameDirContents = await readdir(generateGameDir(system, game, curParents));
         try {
             // This line will throw the error if there is no metadata file
             let metadataFileContents = JSON.parse(await readFile(generateGameMetaDataLocation(system, game, curParents)));
@@ -2454,7 +2453,7 @@ async function generateGames(system, games, parents=[], startup, noPlaying) {
         catch(err) {
             if( !gameData.isPlaylist ) {
                 // This is a directory of games - there is no metadata file
-                var tempCurParents = curParents.slice(0);
+                let tempCurParents = curParents.slice(0);
                 tempCurParents.push(game);
                 gameData.isFolder = true;
                 gameData.games = await generateGames(system, gameDirContents, tempCurParents, startup, noPlaying);
@@ -2462,7 +2461,7 @@ async function generateGames(system, games, parents=[], startup, noPlaying) {
         }
 
         if( !gameData.isFolder && !gameData.isPlaylist ) {
-            let savesInfo = generateSaves(system, game, curParents);
+            let savesInfo = await generateSaves(system, game, curParents);
             gameData.currentSave = savesInfo.currentSave;
             gameData.saves = savesInfo.savesDict;
 
@@ -2496,15 +2495,15 @@ async function generateGames(system, games, parents=[], startup, noPlaying) {
  * @param {string} system - The system the game is on.
  * @param {string} game - The game we want to get saves information for.
  * @param {Array<string>} parents - An array of parent folders for a game.
- * @returns {Object} An object with a currentSave key containing the current save and a savesDict key containing the saves information.
+ * @returns {Promise<Object>} A promise containing an object with a currentSave key containing the current save and a savesDict key containing the saves information.
  */
-function generateSaves( system, game, parents ) {
+async function generateSaves( system, game, parents ) {
     let savesDir = generateSavesDir(system, game, parents);
     let saves = [];
     // Try to read all the saves in the saves directory
     // save states are handled from within the emulator itself
     try {
-        saves = fs.readdirSync(savesDir, {withFileTypes: true}).filter(file => file.isDirectory() && file.name != SCREENSHOTS_DIR).map(dir => dir.name);
+        saves = (await readdir(savesDir, {withFileTypes: true})).filter(file => file.isDirectory() && file.name != SCREENSHOTS_DIR).map(dir => dir.name);
     }
     // If there is no saves directory, make one and make a default save
     catch(err) {
@@ -2530,7 +2529,7 @@ function generateSaves( system, game, parents ) {
 
         // Get the screenshots
         try {
-            saveData.screenshots =  fs.readdirSync(screenshotsDir);
+            saveData.screenshots = await readdir(screenshotsDir);
         }
         // Make the screenshots directory if it doesn't exist
         catch(err) {
@@ -2550,7 +2549,7 @@ function generateSaves( system, game, parents ) {
         currentSave = getCurrentSave(system, game, parents);
     }
 
-    return { savesDict: savesDict, currentSave: currentSave };
+    return Promise.resolve({ savesDict: savesDict, currentSave: currentSave });
 }
 
 /**
