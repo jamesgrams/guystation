@@ -2317,7 +2317,7 @@ async function getData( startup, noPlaying, nonessential ) {
     if( sambaOn ) {
         try {
             // get this from the samba url
-            let json = syncFetch( HTTP + sambaUrl + ":" + PORT + "/data?noPlaying=1" ).json();
+            let json = syncFetch( HTTP + sambaUrl + ":" + PORT + "/data?noPlaying=1" + (nonessential ? "&nonessential=1" : "") ).json();
             systemsDict = json.systems;
 
             // also need to set playing to false for all items ...
