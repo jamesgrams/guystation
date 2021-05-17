@@ -563,7 +563,7 @@ staticApp.get("/", async function(request, response) {
 // Get Data
 app.get("/data", async function(request, response) {
     console.log("app serving /data (GET)");
-    await getData( false, request.query.noPlaying );
+    await getData( false, request.query.noPlaying, request.query.nonessential );
     writeResponse( request, response, SUCCESS, {} );
 });
 
@@ -2297,8 +2297,10 @@ async function switchBrowseTab(id) {
  * This should be called again if the file structure is edited.
  * @param {boolean} [startup] - True if called on startup.
  * @param {boolean} [noPlaying] - True if no playing indiciation should be made.
+ * @param {boolean} [nonessential] - True if it is not essential that we update (saves processing).
  */
-async function getData( startup, noPlaying ) {
+async function getData( startup, noPlaying, nonessential ) {
+    if( nonessential && clientSocketIds.length && Object.keys(systemsDict) ) return systemsDict;
     // Reset the data
     systemsDict = {};
 

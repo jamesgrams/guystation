@@ -817,8 +817,8 @@ function load() {
         enableSort();
         // Check for changes every 10 seconds
         setInterval( function() {
-            if( !makingRequest && !peerConnections.length ) {
-                makeRequest( "GET", "/data", {}, function(responseText) {
+            if( !makingRequest ) {
+                makeRequest( "GET", "/data", { "nonessential": true }, function(responseText) {
                     var response = JSON.parse(responseText);
                     if( response.systems ) {
                         if( response.systemsDictHashNoSessions !== systemsDictHashNoSessions ) {
