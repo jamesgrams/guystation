@@ -4323,7 +4323,7 @@ async function updateGame( oldSystem, oldGame, oldParents=[], system, game, file
         if( !isFolder && !isPlaylist ) {
             changeSave( system ? system : oldSystem, game ? game : oldGame, getGameDictEntry(oldSystem, oldGame, oldParents).currentSave, true, parents ? parents : oldParents );
         }
-        else {
+        else if( !isPlaylist ) {
             ensureSaveSymlinks( system ? system : oldSystem, game ? game : oldGame, parents ? parents : oldParents, getGameDictEntry(oldSystem, oldGame, oldParents), oldSystem, oldGame, oldParents );
         }
         // Otherwise, we have to update the symlinks of all the children directories
