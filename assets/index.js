@@ -941,8 +941,7 @@ function enableSearch() {
                 });
             }
             else {
-                redraw(null, null, null, null, null, null, true, true);
-                gotoSearchMatch();
+                redraw(null, null, null, null, null, null, true, true, gotoSearchMatch);
             }
         }, SEARCH_TIMEOUT_TIME );
     }
@@ -1903,14 +1902,16 @@ function isBeingPlayed( system, game, parents ) {
  * @param {Array<string>} [newParents] - The new parents if it changed.
  * @param {boolean} [keepCurrentSearch] - Keep the current search (only in place on a search to not blank out search, other than that we don't want redraw to keep a search).
  * @param {boolean} [searchOrSortUpdated] - True if search or sort was updated - need to alert server.
+ * @param {Function} [callback] - A callback to run.
  */
-function redraw( oldSystemName, newSystemName, oldGameName, newGameName, oldParents, newParents, keepCurrentSearch, searchOrSortUpdated ) {
+function redraw( oldSystemName, newSystemName, oldGameName, newGameName, oldParents, newParents, keepCurrentSearch, searchOrSortUpdated, callback ) {
     if( !keepCurrentSearch ) {
         clearSearch();
         searchOrSortUpdated = true;
     }
     var doDraw = function() {
         draw( generateStartSystem( oldSystemName, newSystemName, oldGameName, newGameName, oldParents, newParents ) );
+        if( callback ) callback();
     };
     if( searchOrSortUpdated ) {
         makeRequest( "GET", "/data", { systemsDictForce: true }, function(responseText) {
