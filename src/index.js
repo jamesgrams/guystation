@@ -2298,11 +2298,12 @@ async function switchBrowseTab(id) {
  * @param {boolean} [startup] - True if called on startup.
  * @param {boolean} [noPlaying] - True if no playing indiciation should be made.
  * @param {boolean} [nonessential] - True if it is not essential that we update (saves processing).
+ * @param {boolean} [forceStream] - Force update streams even if we already have it.
  */
-async function getData( startup, noPlaying, nonessential ) {
+async function getData( startup, noPlaying, nonessential, forceStream ) {
     if( nonessential && clientSocketIds.length && Object.keys(systemsDict) ) return systemsDict;
     // Reset the data
-    systemsDict = {};
+    let newSystemsDict = {};
 
     function setSystemsDictHash() {
         systemsDictHash = hash(systemsDict);
@@ -2313,29 +2314,33 @@ async function getData( startup, noPlaying, nonessential ) {
         systemsDictHashNoSessions = hash( systemsDictNoSessions );
     }
 
+    function setCurrentPlaying() {
+        if( currentSystem && !currentGame ) {
+            newSystemsDict[currentSystem].playing = true;
+        }
+        else if( currentSystem && currentGame ) {
+            let currentParents = currentParentsString.split(SEPARATOR).filter(el => el != '');
+            let gameDictEntry = getGameDictEntry(currentSystem, currentGame, currentParents, newSystemsDict);
+            // If the current game is a playlist, set it's parent (the playlist) to playing
+            if( currentParents.length ) {
+                let parentGameDictEntry = getGameDictEntry(currentSystem, currentParents.slice(currentParents.length-1)[0], currentParents.slice(0, currentParents.length-1), newSystemsDict);
+                if( parentGameDictEntry.isPlaylist ) {
+                    gameDictEntry = parentGameDictEntry;
+                }
+            }
+            gameDictEntry.playing = true;
+        }
+    }
+
     // samba mode, rather than reading files on a remote server (slow), ask for the information we need from the samba host
     if( sambaOn ) {
         try {
             // get this from the samba url
             let json = syncFetch( HTTP + sambaUrl + ":" + PORT + "/data?noPlaying=1" + (nonessential ? "&nonessential=1" : "") ).json();
-            systemsDict = json.systems;
+            newSystemsDict = json.systems;
 
-            // also need to set playing to false for all items ...
-            if( currentSystem && !currentGame ) {
-                systemsDict[currentSystem].playing = true;
-            }
-            else if( currentSystem && currentGame ) {
-                let currentParents = currentParentsString.split(SEPARATOR).filter(el => el != '');
-                let gameDictEntry = getGameDictEntry(currentSystem, currentGame, currentParents);
-                // If the current game is a playlist, set it's parent (the playlist) to playing
-                if( currentParents.length ) {
-                    let parentGameDictEntry = getGameDictEntry(currentSystem, currentParents.slice(currentParents.length-1)[0], currentParents.slice(0, currentParents.length-1));
-                    if( parentGameDictEntry.isPlaylist ) {
-                        gameDictEntry = parentGameDictEntry;
-                    }
-                }
-                gameDictEntry.playing = true;
-            }
+            setCurrentPlaying();
+            systemsDict = newSystemsDict;
             setSystemsDictHash();
             return;
         }
@@ -2348,6 +2353,15 @@ async function getData( startup, noPlaying, nonessential ) {
     let systems = await readdir( SYSTEMS_DIR_FULL );
     // For each system
     for( let system of systems ) {
+        // We know when we will be updating streams and it is not all the time - only during the update windows
+        // save processing power by reusing systemsDict when we can
+        // unlike others, the folder content is guystation controller
+        if( system === STREAM && systemsDict[STREAM] && !forceStreams ) {
+            newSystemsDict[system] = JSON.parse(JSON.stringify(systemsDict[system]));
+            deleteKeyRecursive(newSystemsDict[system].games, "playing");
+            if( currentSystem === system ) setCurrentPlaying();
+            continue;
+        }
         // Read the metadata
         let systemData = JSON.parse( (await readFile(generateMetaDataLocation(system))).toString().replace(new RegExp(USER_PLACEHOLDER, "g"), desktopUser) );
         // The key is the name of the system
@@ -2371,9 +2385,10 @@ async function getData( startup, noPlaying, nonessential ) {
         if( !noPlaying && isBeingPlayed( system, null, [] ) ) systemData.playing = true;
 
         // Add this system to the dictionary of systems
-        systemsDict[system] = systemData;
+        newSystemsDict[system] = systemData;
     }
 
+    systemsDict = newSystemsDict;
     setSystemsDictHash();
     return Promise.resolve(false);
 }
@@ -2688,13 +2703,14 @@ function generateScreenshotsDir(system, game, save, parents) {
  * @param {string} system - The system the game is on.
  * @param {string} game - The game the entry we want are for.
  * @param {Array<string>} parents - Parent directories for the game.
+ * @param {Object} [alternateDict] - An alternate dict to use other than systemsDict.
  * @returns {(null|Object)} An object representing the game or null if one is not found.
  */
-function getGameDictEntry(system, game, parents) {
+function getGameDictEntry(system, game, parents, alternateDict) {
     if( !system || !game ) {
         return null;
     }
-    let games = systemsDict[system].games;
+    let games = (alternateDict ? alternateDict : systemsDict)[system].games;
     let parentsCopy = parents.slice(0);
     while( parentsCopy && parentsCopy.length ) {
         try {
@@ -5225,6 +5241,7 @@ async function fetchStreamList() {
     catch(err) {
         console.log(err);
     }
+    await getData(false, false, false, true);
     streamIsFetching = false;
 }
 
