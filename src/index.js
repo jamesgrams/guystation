@@ -2356,7 +2356,7 @@ async function getData( startup, noPlaying, nonessential, forceStream ) {
         // We know when we will be updating streams and it is not all the time - only during the update windows
         // save processing power by reusing systemsDict when we can
         // unlike others, the folder content is guystation controller
-        if( system === STREAM && systemsDict[STREAM] && !forceStreams ) {
+        if( system === STREAM && systemsDict[STREAM] && !forceStream ) {
             newSystemsDict[system] = JSON.parse(JSON.stringify(systemsDict[system]));
             deleteKeyRecursive(newSystemsDict[system].games, "playing");
             if( currentSystem === system ) setCurrentPlaying();
