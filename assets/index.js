@@ -6490,7 +6490,6 @@ function speechInput() {
     var speechRecognition = new webkitSpeechRecognition();
     speechRecognition.onresult = function(event) {
         var transcript = event.results[0][0].transcript;
-        var transcript = "play replacements";
         console.log(transcript);
         var playMatch = transcript.match(/^(play|watch|listen) (.+)/i);
         if( playMatch ) {
