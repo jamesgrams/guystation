@@ -6490,6 +6490,7 @@ function speechInput() {
     var speechRecognition = new webkitSpeechRecognition();
     speechRecognition.onresult = function(event) {
         var transcript = event.results[0][0].transcript;
+        var transcript = "play replacements";
         console.log(transcript);
         var playMatch = transcript.match(/^(play|watch|listen) (.+)/i);
         if( playMatch ) {
@@ -6508,18 +6509,23 @@ function speechInput() {
                 return false;
             }
             var arr = [];
-            var currentSystem = systemsDict[document.querySelector(".system.selected").getAttribute("data-system")];
-            getGamesInFolderRecursive( currentSystem.games, arr, [] );
-            var found = lookForMatch( arr, currentSystem.system );
-            if( !found ) {
-                var keys = Object.keys(systemsDict);
-                for( var i=0; i<keys.length; i++ ) {
-                    arr = [];
-                    getGamesInFolderRecursive( systemsDict[keys[i]].games, arr, [] );
-                    found = lookForMatch( arr, keys[i] );
-                    if( found ) break;
+            currentSearch = game;
+            makeRequest( "GET", "/data", { systemsDictForce: true }, function(responseText) {
+                currentSearch = "";
+                var tempDict = JSON.parse(responseText).systems;
+                var currentSystem = tempDict[document.querySelector(".system.selected").getAttribute("data-system")];
+                getGamesInFolderRecursive( currentSystem.games, arr, [] );
+                var found = lookForMatch( arr, currentSystem.system );
+                if( !found ) {
+                    var keys = Object.keys(systemsDict);
+                    for( var i=0; i<keys.length; i++ ) {
+                        arr = [];
+                        getGamesInFolderRecursive( tempDict[keys[i]].games, arr, [] );
+                        found = lookForMatch( arr, keys[i] );
+                        if( found ) break;
+                    }
                 }
-            }
+            });
         }
         else {
             if( transcript.match(/^stop|quit/i) ) quitGame();
