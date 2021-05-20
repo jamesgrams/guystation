@@ -4629,7 +4629,7 @@ async function saveCurrentResolution() {
  * Save the current emulator resolution
  * @returns {Promise} - A promise containing false.
  */
-function saveCurrentEmulatorResolution() {
+async function saveCurrentEmulatorResolution() {
     properEmulatorResolution = (await execPromise(systemsDict[currentSystem].getResolutionCommand ? systemsDict[currentSystem].getResolutionCommand : GET_RESOLUTION_COMMAND)).toString();
     return Promise.resolve(false);
 }
