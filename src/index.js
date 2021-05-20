@@ -5294,7 +5294,7 @@ function sleep(ms) {
 async function writeStreamMetaData( system, game, parents, json ) {
     let saveLocation = generateGameDir( system, game, parents ) + SEPARATOR + COVER_FILENAME;
     // async is probably ok here
-    axios( { method: "GET", url: json.image, responseType: "stream" } ).then(function (response) {
+    axios( { method: "GET", url: json.image, responseType: "stream" } ).then(async function (response) {
         response.data.pipe(fs.createWriteStream(saveLocation));
         await updateGameMetaData( system, game, parents, {
             cover: {
@@ -5303,7 +5303,7 @@ async function writeStreamMetaData( system, game, parents, json ) {
                 height: STREAM_COVER_HEIGHT
             }
         } );
-    }).catch(error => {
+    }).catch(async error => {
         console.log("could not save image for " + game);
         await updateGameMetaData( system, game, parents, {
             cover: null
