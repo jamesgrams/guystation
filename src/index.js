@@ -6846,7 +6846,7 @@ async function performScreencastMouse( xPercent, yPercent, button, down, counter
     let x = width * xPercent;
     let y = height * yPercent;
 
-    queueScreencastEvent( () => {
+    queueScreencastEvent( async () => {
         await performMouse(x, y, button, down);
     }, null, counter, timestamp );
     
