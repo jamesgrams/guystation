@@ -8,14 +8,13 @@ const express = require('express');
 const puppeteer = require('puppeteer');
 const proc = require( 'child_process' );
 const fs = require('fs');
+const fsExtra = require('fs-extra');
 const util = require('util');
-const readFile = util.promisify(fs.readFile);
-const readdir = util.promisify(fs.readdir);
+const exec = util.promisify(proc.exec);
 const path = require('path');
 const ip = require('ip');
 const ioHook = require('iohook');
 const rimraf = require('rimraf');
-const fsExtra = require('fs-extra');
 const ks = require("node-key-sender");
 const multer = require('multer');
 const upload = multer({ dest: '/tmp/' });
@@ -32,7 +31,7 @@ const uinputStructs = require("./lib/uinput_structs");
 const ua = require('all-unpacker');
 const youtubedl = require('youtube-dl');
 const urlLib = require('url');
-const isBinaryFileSync = require("isbinaryfile").isBinaryFileSync;
+const isBinaryFile = require("isbinaryfile").isBinaryFile;
 const validUrl = require("valid-url");
 const ini = require("ini");
 const gdkMap = require("./lib/gdkmap").codes;
@@ -652,7 +651,7 @@ app.post("/save", async function(request, response) {
     if( ! requestLocked ) {
         requestLocked = true;
         try {
-            let errorMessage = newSave( request.body.system, request.body.game, request.body.save, null, request.body.parents );
+            let errorMessage = await newSave( request.body.system, request.body.game, request.body.save, null, request.body.parents );
             await getData(); // Reload data
             requestLocked = false;
             writeActionResponse( request, response, errorMessage );
@@ -674,7 +673,7 @@ app.put("/save", async function(request, response) {
     if( ! requestLocked ) {
         requestLocked = true;
         try {
-            let errorMessage = updateSave( request.body.system, request.body.game, request.body.parents, request.body.oldSave, request.body.save );
+            let errorMessage = await updateSave( request.body.system, request.body.game, request.body.parents, request.body.oldSave, request.body.save );
             await getData(); // Reload data
             requestLocked = false;
             writeActionResponse( request, response, errorMessage );
@@ -696,7 +695,7 @@ app.patch("/save", async function(request, response) {
     if( ! requestLocked ) {
         requestLocked = true;
         try {
-            let errorMessage = changeSave( request.body.system, request.body.game, request.body.save, null, request.body.parents );
+            let errorMessage = await changeSave( request.body.system, request.body.game, request.body.save, null, request.body.parents );
             await getData(); // Reload data
             requestLocked = false;
             writeActionResponse( request, response, errorMessage );
@@ -718,7 +717,7 @@ app.delete("/save", async function(request, response) {
     if( ! requestLocked ) {
         requestLocked = true;
         try {
-            let errorMessage = deleteSave( request.body.system, request.body.game, request.body.save, request.body.parents );
+            let errorMessage = await deleteSave( request.body.system, request.body.game, request.body.save, request.body.parents );
             await getData(); // Reload data
             requestLocked = false;
             writeActionResponse( request, response, errorMessage );
@@ -971,7 +970,7 @@ app.get("/system/update", async function(request, response) {
     if( ! requestLocked ) {
         requestLocked = true;
         try {
-            let errorMessage = updateGuystation();
+            let errorMessage = await updateGuystation();
             requestLocked = false;
             writeActionResponse( request, response, errorMessage );
         }
@@ -989,7 +988,7 @@ app.get("/system/update", async function(request, response) {
 // Check if the system has updates available
 app.get("/system/has-updates", async function(request, response) {
     console.log("app serving /system/update");
-    let hasUpdates = guystationHasUpdates();
+    let hasUpdates = await guystationHasUpdates();
     writeResponse( request, response, SUCCESS, {hasUpdates: hasUpdates} );
 });
 
@@ -1041,7 +1040,7 @@ app.post("/controls", async function(request, response) {
     if( ! requestLocked ) {
         requestLocked = true;
         try {
-            let errorMessage = setControls( request.body.systems, request.body.values, request.body.controller, request.body.nunchuk );
+            let errorMessage = await setControls( request.body.systems, request.body.values, request.body.controller, request.body.nunchuk );
             requestLocked = false;
             writeActionResponse( request, response, errorMessage );
         }
@@ -1062,7 +1061,7 @@ app.post("/controls-multiple", async function(request, response) {
     if( ! requestLocked ) {
         requestLocked = true;
         try {
-            let errorMessage = setMultipleControls( request.body.controllers );
+            let errorMessage = await setMultipleControls( request.body.controllers );
             requestLocked = false;
             writeActionResponse( request, response, errorMessage );
         }
@@ -1083,7 +1082,7 @@ app.post("/profile", async function(request, response) {
     if( ! requestLocked ) {
         requestLocked = true;
         try {
-            let errorMessage = addEzControlProfile( request.body.name, request.body.profile );
+            let errorMessage = await addEzControlProfile( request.body.name, request.body.profile );
             requestLocked = false;
             writeActionResponse( request, response, errorMessage );
         }
@@ -1104,7 +1103,7 @@ app.delete("/profile", async function(request, response) {
     if( ! requestLocked ) {
         requestLocked = true;
         try {
-            let errorMessage = deleteEzControlProfile( request.body.name );
+            let errorMessage = await deleteEzControlProfile( request.body.name );
             requestLocked = false;
             writeActionResponse( request, response, errorMessage );
         }
@@ -1123,7 +1122,7 @@ app.delete("/profile", async function(request, response) {
 app.get("/profiles", async function(request, response) {
     console.log("app serving /profiles");
     try {
-        loadEzControlsProfiles();
+        await loadEzControlsProfiles();
         writeResponse( request, response, SUCCESS, { "profiles": profilesDict } );
     }
     catch(err) {
@@ -1231,7 +1230,7 @@ app.post("/pip/pause", async function(request, response) {
 app.post("/mute-mode", async function(request, response) {
     console.log("app serving /mute-mode");
     try {
-        let errorMessage = setMuteMode( request.body.muteMode );
+        let errorMessage = await setMuteMode( request.body.muteMode );
         writeActionResponse( request, response, errorMessage );
     }
     catch(err) {
@@ -1286,10 +1285,10 @@ app.get("/rtmp/status", function(request, response) {
 });
 
 // stream
-app.post("/twitch/info", function(request, response) {
+app.post("/twitch/info", async function(request, response) {
     console.log("app serving /twitch/info with body: " + JSON.stringify(request.body));
     try {
-        let errorMessage = updateTwitchStreamInfo( request.body.name, request.body.game );
+        let errorMessage = await updateTwitchStreamInfo( request.body.name, request.body.game );
         writeActionResponse( request, response, errorMessage );
     }
     catch(err) {
@@ -1298,15 +1297,15 @@ app.post("/twitch/info", function(request, response) {
     }
 });
 
-// get all ez control profiles
+// get twitch info
 app.get("/twitch/info", async function(request, response) {
     console.log("app serving /twitch/info");
     try {
-        let streamInfo = getTwitchStreamInfo();
+        let streamInfo = await getTwitchStreamInfo();
         writeResponse( request, response, SUCCESS, { 
             "name": streamInfo.name, 
             "game": streamInfo.game, 
-            "twitch": (TWITCH_CODE || fs.existsSync(TWITCH_STREAM_PATH)) ? true : false } 
+            "twitch": (TWITCH_CODE || (await fsExtra.exists(TWITCH_STREAM_PATH))) ? true : false } 
         );
     }
     catch(err) {
@@ -1318,10 +1317,11 @@ app.get("/twitch/info", async function(request, response) {
 // endpoints for settings
 
 // get settings
-app.get("/settings", function(request, response) {
+app.get("/settings", async function(request, response) {
     console.log("app serving /settings");
     try {
-        writeResponse( request, response, SUCCESS, readSettings() );
+        let settings = await readSettings();
+        writeResponse( request, response, SUCCESS, settings );
     }
     catch(err) {
         console.log(err);
@@ -1330,10 +1330,10 @@ app.get("/settings", function(request, response) {
 });
 
 // update settings
-app.put("/settings", function(request, response) {
+app.put("/settings", async function(request, response) {
     console.log("app serving /settings with body: " + JSON.stringify(request.body));
     try {
-        updateSettings( request.body.settings );
+        await updateSettings( request.body.settings );
         writeActionResponse( request, response );
     }
     catch(err) {
@@ -1346,7 +1346,7 @@ app.put("/settings", function(request, response) {
 
 // set up the proper microphone input to the stream
 app.get("/stream/microphone", async function(request, response) {
-    bindMicrophoneToChromeInput();
+    await bindMicrophoneToChromeInput();
     writeResponse( request, response, SUCCESS );
 } );
 
@@ -1510,8 +1510,8 @@ async function launchBrowser() {
     // the autoselect chrome code just uses a c++ string find to find the matching share (when you call getDisplayMedia, look at the label under the option)
     // when there is only one monitor, there is no label for the screen, so it is called Entire screen
     // when there are multiple, the label is "Screen 1" for the primary monitor
-    let numMonitors = parseInt(proc.execSync(GET_NUM_MONITORS_COMMAND));
-    let settings = readSettings();
+    let numMonitors = parseInt(await execPromise(GET_NUM_MONITORS_COMMAND));
+    let settings = await readSettings();
     let options = {
         headless: false,
         defaultViewport: null,
@@ -1563,7 +1563,7 @@ async function launchBrowser() {
         if( pages.length <= 2 ) { // only the menu page is open
             browsePage = null; // There is no browse page
             if( isBrowserOrClone(currentSystem) ) {
-                blankCurrentGame();
+                await blankCurrentGame();
                 await menuPage.bringToFront();
             }
         }
@@ -1618,28 +1618,32 @@ async function exposeFunctions() {
 /**
  * Write settings.
  * @param {Object} settings - The settings object to write.
+ * @returns {Promise} A promise containing false.
  */
-function writeSettings( settings ) {
-    fs.writeFileSync( SETTINGS_PATH, JSON.stringify(settings) );
+async function writeSettings( settings ) {
+    await fsExtra.writeFile( SETTINGS_PATH, JSON.stringify(settings) );
+    return Promise.resolve(false);
 }
 
 /**
  * Update settings.
  * @param {Object} settings - The settings object to update.
+ * @returns {Promise} A promise containing false.
  */
-function updateSettings( settings ) {
-    let currentSettings = readSettings();
+async function updateSettings( settings ) {
+    let currentSettings = await readSettings();
     currentSettings = Object.assign( currentSettings, settings );
-    writeSettings( currentSettings );
+    await writeSettings( currentSettings );
+    return Promise.resolve(false);
 }
 
 /**
  * Read settings.
- * @returns {Object} The settings object.
+ * @returns {Promise<Object>} A promise containing the settings object.
  */
-function readSettings() {
-    if( !fs.existsSync( SETTINGS_PATH ) ) writeSettings({});
-    return JSON.parse( fs.readFileSync( SETTINGS_PATH ) );
+async function readSettings() {
+    if( !(await fsExtra.exists( SETTINGS_PATH )) ) await writeSettings({});
+    return Promise.resolve(JSON.parse( await fsExtra.readFile( SETTINGS_PATH ) ) );
 }
 
 /**
@@ -1649,7 +1653,7 @@ function readSettings() {
  */
 async function reloadMenuPage() {
     let interactingWithMenuPage = await menuPage.evaluate( () => isInteractionHappening() );
-    if( interactingWithMenuPage || !menuPageIsActive() ) {
+    if( interactingWithMenuPage || !( await menuPageIsActive() ) ) {
         setTimeout( reloadMenuPage, RELOAD_MENU_PAGE_MORE_TIME_NEEDED );
     }
     else {
@@ -1676,17 +1680,19 @@ async function getUrl() {
 
 /**
  * Blank the Onboard keyboard instance.
+ * @returns {Promise} A promise containing false.
  */
-function blankOnboardInstance() {
+async function blankOnboardInstance() {
     if( onboardInstance ) {
         try {
-            proc.execSync(KILL_COMMAND + onboardInstance.pid);
+            await execPromise(KILL_COMMAND + onboardInstance.pid);
             onboardInstance = null;
         }
         catch(err) {
             console.log(err);
         }
     }
+    Promise.resolve(false);
 }
 
 /**
@@ -1703,7 +1709,7 @@ async function addGamepadControls( page ) {
     await page.mouse.click(0,0); // needed for controller to work on start
     if( !alreadyDefined ) { // these functions hang forever if they are already defined (once needed per page context - not on renavigation)
         // move the mouse
-        let screenResolution = proc.execSync(GET_RESOLUTION_COMMAND).toString().split("x");
+        let screenResolution = ( await execPromise(GET_RESOLUTION_COMMAND) ).toString().split("x");
         await page.exposeFunction( "guystationMouse", async (directionX, directionY, button, down) => {
             if( !page || page.isClosed() ) {
                 return Promise.resolve( ERROR_MESSAGES.browsePageClosed );
@@ -1721,7 +1727,7 @@ async function addGamepadControls( page ) {
             if( y >= screenResolution[1] ) y = screenResolution[1] - 1;
             if( x <= 0 ) x = 1;
             if( y <= 0 ) y = 1;
-            performMouse( x, y, button ? button : LEFT, down );
+            await performMouse( x, y, button ? button : LEFT, down );
 
             return Promise.resolve(false);
         } );
@@ -1757,12 +1763,12 @@ async function addGamepadControls( page ) {
         // toggle keyboard
         await page.exposeFunction( "guystationToggleKeyboard", async () => {
             if( onboardInstance ) {
-                blankOnboardInstance();
+                await blankOnboardInstance();
             }
             else {
                 onboardInstance = proc.spawn( LAUNCH_ONBOARD_COMMAND, {detached: true, stdio: 'ignore'} );
                 onboardInstance.on('exit', blankOnboardInstance);
-                proc.execSync(ENSURE_FLOAT_ONBOARD_COMMAND);
+                await execPromise(ENSURE_FLOAT_ONBOARD_COMMAND);
             }
 
             return Promise.resolve(false);
@@ -1806,7 +1812,7 @@ async function addGamepadControls( page ) {
         // get joy mapping
         if( !browserControlsCache ) {
             try {
-                browserControlsCache = JSON.parse(fs.readFileSync(BROWSER_GAMEPAD_PATH));
+                browserControlsCache = JSON.parse(await fsExtra.readFile(BROWSER_GAMEPAD_PATH));
             }
             catch(err) {}
         }
@@ -2350,7 +2356,7 @@ async function getData( startup, noPlaying, nonessential, forceStream ) {
     }
 
     // Read all the systems
-    let systems = await readdir( SYSTEMS_DIR_FULL );
+    let systems = await fsExtra.readdir( SYSTEMS_DIR_FULL );
     // For each system
     for( let system of systems ) {
         // We know when we will be updating streams and it is not all the time - only during the update windows
@@ -2363,7 +2369,7 @@ async function getData( startup, noPlaying, nonessential, forceStream ) {
             continue;
         }
         // Read the metadata
-        let systemData = JSON.parse( (await readFile(generateMetaDataLocation(system))).toString().replace(new RegExp(USER_PLACEHOLDER, "g"), desktopUser) );
+        let systemData = JSON.parse( (await fsExtra.readFile(generateMetaDataLocation(system))).toString().replace(new RegExp(USER_PLACEHOLDER, "g"), desktopUser) );
         // The key is the name of the system
         systemData.system = system;
 
@@ -2371,10 +2377,10 @@ async function getData( startup, noPlaying, nonessential, forceStream ) {
         let games = [];
         let gamesDir = generateGamesDir(system);
         try {
-            games = (await readdir(generateGamesDir(system), {withFileTypes: true})).filter(file => file.isDirectory()).map(dir => dir.name);
+            games = (await fsExtra.readdir(generateGamesDir(system), {withFileTypes: true})).filter(file => file.isDirectory()).map(dir => dir.name);
         }
         catch( err ) {
-            fs.mkdirSync( gamesDir );
+            await fsExtra.mkdir( gamesDir );
         }
         // Create the games dictionary - the key will be the name of the game
         let gamesDict = await generateGames( system, games, [], startup, noPlaying );
@@ -2429,10 +2435,10 @@ async function generateGames(system, games, parents=[], startup, noPlaying) {
         gameData.game = game;
         
         // Get the contents of the games directory
-        let gameDirContents = await readdir(generateGameDir(system, game, curParents));
+        let gameDirContents = await fsExtra.readdir(generateGameDir(system, game, curParents));
         try {
             // This line will throw the error if there is no metadata file
-            let metadataFileContents = JSON.parse(await readFile(generateGameMetaDataLocation(system, game, curParents)));
+            let metadataFileContents = JSON.parse(await fsExtra.readFile(generateGameMetaDataLocation(system, game, curParents)));
             gameData.rom = metadataFileContents.rom;
             gameData.installer = metadataFileContents.installer;
             gameData.romCandidates = metadataFileContents.romCandidates;
@@ -2468,7 +2474,7 @@ async function generateGames(system, games, parents=[], startup, noPlaying) {
 
             // this will only ever be for a real game - only things we want to save will be at this point
             if( startup && gameData.status == STATUS_DOWNLOADING ) {
-                updateGameMetaData( system, game, curParents, {
+                await updateGameMetaData( system, game, curParents, {
                     status: STATUS_ROM_FAILED,
                     percent: null
                 } );
@@ -2527,18 +2533,18 @@ async function generateSaves( system, game, parents ) {
     // Try to read all the saves in the saves directory
     // save states are handled from within the emulator itself
     try {
-        saves = (await readdir(savesDir, {withFileTypes: true})).filter(file => file.isDirectory() && file.name != SCREENSHOTS_DIR).map(dir => dir.name);
+        saves = (await fsExtra.readdir(savesDir, {withFileTypes: true})).filter(file => file.isDirectory() && file.name != SCREENSHOTS_DIR).map(dir => dir.name);
     }
     // If there is no saves directory, make one and make a default save
     catch(err) {
-        fs.mkdirSync(savesDir); // create the saves directory
+        await fsExtra.mkdir(savesDir); // create the saves directory
     }
     // We need at least one save
     if( saves.length == 0 ) {
         // Force the save update, becase systemsDict won't be updated to pass the error check yet,
         // and since we're doing it, there won't be any errors.
-        newSave( system, game, DEFAULT_SAVE_DIR, true, parents ); // create a default save directory
-        changeSave( system, game, DEFAULT_SAVE_DIR, true, parents );
+        await newSave( system, game, DEFAULT_SAVE_DIR, true, parents ); // create a default save directory
+        await changeSave( system, game, DEFAULT_SAVE_DIR, true, parents );
         saves.push( DEFAULT_SAVE_DIR );
     }
 
@@ -2553,24 +2559,24 @@ async function generateSaves( system, game, parents ) {
 
         // Get the screenshots
         try {
-            saveData.screenshots = await readdir(screenshotsDir);
+            saveData.screenshots = await fsExtra.readdir(screenshotsDir);
         }
         // Make the screenshots directory if it doesn't exist
         catch(err) {
-            fs.mkdirSync(screenshotsDir);
+            await fsExtra.mkdir(screenshotsDir);
         }
 
         // Add the save to the saves directory
         savesDict[save] = saveData;
     }
 
-    let currentSave = getCurrentSave(system, game, parents);
+    let currentSave = await getCurrentSave(system, game, parents);
     // if the current save isn't working -- i.e. the symlink is messed up, get another one.
     // we know there will be at least one, since if there were 0 we already created one
     if( !currentSave ) {
         // force in case we just created a directory
-        changeSave( system, game, saves[0], true, parents );
-        currentSave = getCurrentSave(system, game, parents);
+        await changeSave( system, game, saves[0], true, parents );
+        currentSave = await getCurrentSave(system, game, parents);
     }
 
     return Promise.resolve({ savesDict: savesDict, currentSave: currentSave });
@@ -2649,18 +2655,20 @@ function generateGameMetaDataLocation(system, game, parents) {
  * @param {string} game - The game.
  * @param {Array<string>} [parents] - Parent directories for the game.
  * @param {Object} content - The content to merge with the current metadata.
+ * @returns {Promise} A promise containing false.
  */
-function updateGameMetaData(system, game, parents, content) {
+async function updateGameMetaData(system, game, parents, content) {
     let metadataLocation = generateGameMetaDataLocation(system, game, parents);
     let currentMetadataContents = {};
-    if(fs.existsSync(metadataLocation)) currentMetadataContents = JSON.parse(fs.readFileSync( metadataLocation ));
+    if(await fsExtra.exists(metadataLocation)) currentMetadataContents = JSON.parse(await fsExtra.readFile( metadataLocation ));
     currentMetadataContents = Object.assign( currentMetadataContents, content );
     for( let key in currentMetadataContents ) {
         if( currentMetadataContents[key] === null || currentMetadataContents[key] === undefined ) {
             delete currentMetadataContents[key];
         }
     }
-    fs.writeFileSync( metadataLocation, JSON.stringify(currentMetadataContents) );
+    await fsExtra.writeFile( metadataLocation, JSON.stringify(currentMetadataContents) );
+    return Promise.resolve(false);
 }
 
 /**
@@ -2763,8 +2771,8 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         else if( gameDictEntry.status == STATUS_ROM_FAILED ) {
             return Promise.resolve(ERROR_MESSAGES.romFailedDownload);
         }
-        if( !fs.existsSync(generateRomLocation( system, game, gameDictEntry.rom, parents )) && !isBrowserOrClone(system) && !gameDictEntry.isPlaylist ) {
-            if( !gameDictEntry.installer || !fs.existsSync(generateRomLocation( system, game, gameDictEntry.installer, parents )) ) {
+        if( !( await fsExtra.exists(generateRomLocation( system, game, gameDictEntry.rom, parents )) ) && !isBrowserOrClone(system) && !gameDictEntry.isPlaylist ) {
+            if( !gameDictEntry.installer || !(await fsExtra.exists(generateRomLocation( system, game, gameDictEntry.installer, parents ))) ) {
                 return Promise.resolve(ERROR_MESSAGES.noRomFile);
             }
             else {
@@ -2799,9 +2807,9 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
 
     // We need to keep track of these variables to determine if we need to renegotiate a screencast
     let oldSystem = currentSystem;
-    let menuPageWasActive = menuPageIsActive();
+    let menuPageWasActive = await menuPageIsActive();
     let startedGame = false;
-    let currentResolution = proc.execSync(GET_RESOLUTION_COMMAND).toString();
+    let currentResolution = (await execPromise(GET_RESOLUTION_COMMAND)).toString();
 
     // Restart unless restart is false, we have a current emulator, and we are playing the game we selected
     let fullScreenTries = MAX_ACTIVATE_TRIES;
@@ -2825,7 +2833,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
             currentEmulator = true; // Kind of hacky... but will pass for playing
             currentGameStart = Date.now();
             startUpdatePlaytime();
-            updateMute();
+            await updateMute();
             return Promise.resolve(false);
         }
         else if( system == MEDIA ) {
@@ -2836,19 +2844,19 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
             currentEmulator = true; // Kind of hacky... but will pass for playing
             currentGameStart = Date.now();
             startUpdatePlaytime();
-            updateMute();
+            await updateMute();
             return Promise.resolve(false);
         }
 
         // Get the screen dimensions
-        if( !dontSaveResolution && !properResolution ) saveCurrentResolution();
+        if( !dontSaveResolution && !properResolution ) await saveCurrentResolution();
 
         // If the symlink to the save directory is the same for all games, update the symlink from
         // the all games folder to this specific game.
         // Also update it if it uses NAND symlinks at all. This will account for if we've
         // copied files onto a system or used SAMBA to share files and we're starting a game.
         if( !noGame && systemsDict[system].nandPathCommand ) {
-            updateNandSymlinks( system, game, null, parents );
+            await updateNandSymlinks( system, game, null, parents );
         }
 
         let arguments = [];
@@ -2900,7 +2908,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         }
 
         currentEmulator = proc.spawn( command, arguments, {detached: true, stdio: 'ignore'} );
-        updateMute();
+        await updateMute();
         currentEmulator.on('exit', blankCurrentGame);
 
         currentGame = game;
@@ -2927,7 +2935,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
             // in that case.
             for( let i=0; i<fullScreenTries; i++ ) {
                 try {
-                    proc.execSync( systemsDict[system].activateCommand );
+                    await execPromise( systemsDict[system].activateCommand );
                     if( systemsDict[system].fullScreenButtons ) {
                         ks.sendCombination( systemsDict[system].fullScreenButtons );
                     }
@@ -2935,7 +2943,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
                 }
                 catch(err) { 
                     console.log("full screen failed.");
-                    proc.execSync( SLEEP_COMMAND );
+                    await execPromise( SLEEP_COMMAND );
                 }
             }
         }
@@ -2954,17 +2962,17 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         
         for( let i=0; i<activateTries; i++ ) {
             try {
-                proc.execSync( command );
-                updateMute();
+                await execPromise( command );
+                await updateMute();
                 break;
             }
             catch(err) { 
                 console.log("activate failed."); 
-                proc.execSync( SLEEP_COMMAND );
+                await execPromise( SLEEP_COMMAND );
             }
         }
         try {
-            resumeGame();
+            await resumeGame();
             if( currentGameStart === null ) {
                 currentGameStart = Date.now();
                 startUpdatePlaytime();
@@ -2974,7 +2982,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
     }
     else if( isBrowserOrClone(system) ) {
         if ( browsePage && !browsePage.isClosed() ) {
-            updateMute();
+            await updateMute();
             browsePage.bringToFront();
             if( currentGameStart === null ) {
                 currentGameStart = Date.now();
@@ -2984,7 +2992,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
     }
     else if( system == MEDIA ) {
         if( menuPage && !menuPage.isClosed() ) {
-            updateMute();
+            await updateMute();
             resumeRemoteMedia();
             if( currentGameStart === null ) {
                 currentGameStart = Date.now();
@@ -3002,10 +3010,10 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         let failsafeTries = 0;
         // this interval will be cleared if we go home or quit the game.
         // until that point, just keep forcing it open
-        continueInterval = setInterval( function() {
+        continueInterval = setInterval( async function() {
             if( failsafeTries >= fullScreenTries ) clearInterval(continueInterval);
             try {
-                let currentWindowStatus = proc.execSync(systemsDict[system].failsafeStateCheck).toString();;
+                let currentWindowStatus = (await execPromise(systemsDict[system].failsafeStateCheck)).toString();
                 
                 // For some reason Mupen is not resized when in starts some times,
                 // but from tests, it consistently reports the right resolution after a while
@@ -3018,7 +3026,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
                 // If we have waited a while after startup, we'll simply get the right resolution in screencastPrepare,
                 // we'll never hit this hidden state.
                 if(currentWindowStatus.includes(HIDDEN_STATE)) {
-                    saveCurrentEmulatorResolution();
+                    await saveCurrentEmulatorResolution();
                 }
 
                 let shouldRenegotiate = false;
@@ -3028,14 +3036,14 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
                     }
                     else {
                         // this is done in renegotiation
-                        proc.execSync(SET_RESOLUTION_COMMAND + properEmulatorResolution);
+                        await execPromise(SET_RESOLUTION_COMMAND + properEmulatorResolution);
                     }
                 }
                 if(!currentWindowStatus.includes(FULLSCREEN_STATE) ) {
-                    proc.execSync(systemsDict[system].fullScreenFailsafe);
+                    await execPromise(systemsDict[system].fullScreenFailsafe);
                 }
                 if(currentWindowStatus.includes(HIDDEN_STATE)) {
-                    proc.execSync(systemsDict[system].activateCommand);
+                    await execPromise(systemsDict[system].activateCommand);
                 }
 
                 // we only need to renegotiate on resolution changes and when we are not already on the n64/started a new game
@@ -3043,7 +3051,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
                     renegotiate();
                 }
 
-                currentResolution = proc.execSync(GET_RESOLUTION_COMMAND).toString();
+                currentResolution = (await execPromise(GET_RESOLUTION_COMMAND)).toString();
             }
             catch(err) {}
             failsafeTries++;
@@ -3071,25 +3079,25 @@ async function quitGame() {
                 if( systemsDict[currentSystem].killFirst ) {
                     try {
                         try {
-                            proc.execSync( RESUME_COMMAND + currentEmulator.pid );
+                            await execPromise( RESUME_COMMAND + currentEmulator.pid );
                         }
                         catch(err) {
                             console.log(err);
                         }
-                        proc.execSync( KILL_FIRST_COMMAND + currentEmulator.pid );
-                        proc.execSync( SLEEP_HALF_COMMAND );
+                        await execPromise( KILL_FIRST_COMMAND + currentEmulator.pid );
+                        await execPromise( SLEEP_HALF_COMMAND );
                     }
                     catch(err) {
                         console.log(err);
                     }
                 }
-                proc.execSync( KILL_COMMAND + currentEmulator.pid );
+                await execPromise( KILL_COMMAND + currentEmulator.pid );
             }
             catch(err) {
                 console.log(err);
                 /* This is probably because the process quit without us knowing */
             }
-            ensureProperResolution();
+            await ensureProperResolution();
         }
         else if( currentSystem == MEDIA ) {
             let errorMessage = await closeRemoteMedia();
@@ -3116,8 +3124,9 @@ async function quitGame() {
 
 /**
  * Blank all the values from the current game.
+ * @returns {Promise} A promise containing false.
  */
-function blankCurrentGame() {
+async function blankCurrentGame() {
     clearInterval(continueInterval); // put this here just to be safe
     pcChangeClear = setTimeout( () => clearInterval(pcChangeLoop), WATCH_FOLDERS_INTERVAL * 5); // stop looking for pc game changes - give some time to find installed files
 
@@ -3129,6 +3138,7 @@ function blankCurrentGame() {
     stopUpdatePlaytime();
 
     blankOnboardInstance();
+    return Promise.resolve(false);
 }
 
 /**
@@ -3150,18 +3160,20 @@ function stopUpdatePlaytime() {
 
 /**
  * Update playtime for the current game.
+ * @returns {Promise} False.
  */
-function updatePlaytime() {
+async function updatePlaytime() {
     if( !currentEmulator || !currentSystem || !currentGame ) return;
     let currentParents = currentParentsString.split(SEPARATOR).filter(el => el != '');
-    let sessions = JSON.parse( fs.readFileSync( generateGameMetaDataLocation( currentSystem, currentGame, currentParents ) ) ).sessions;
+    let sessions = JSON.parse( await fsExtra.readFile( generateGameMetaDataLocation( currentSystem, currentGame, currentParents ) ) ).sessions;
     if( !sessions ) sessions = [];
     if( prevGameStart != currentGameStart ) {
         prevGameStart = currentGameStart;
         sessions.push( [currentGameStart,currentGameStart] );
     }
     sessions[sessions.length - 1][1] = Date.now();
-    updateGameMetaData( currentSystem, currentGame, currentParents, { sessions: sessions } );
+    await updateGameMetaData( currentSystem, currentGame, currentParents, { sessions: sessions } );
+    return Promise.resolve(false);
 }
 
 /**
@@ -3203,21 +3215,21 @@ function isBeingPlayedRecursive(system, folder, parents) {
  * @param {string} system - The system the game is for.
  * @param {string} game - The game to get the current save for.
  * @param {Array<string>} parents - An array of parent folders for a game.
- * @returns {(boolean|string)} The name of the current save or false if the save couldn't be fetched.
+ * @returns {Promise<(boolean|string)>} A promise containing the name of the current save or false if the save couldn't be fetched.
  */
-function getCurrentSave(system, game, parents) {
+async function getCurrentSave(system, game, parents) {
 
     let currentSaveDir = generateSaveDir( system, game, CURRENT_SAVE_DIR, parents );
 
     try {
-        let readLink = fs.readlinkSync( currentSaveDir );
-        if( !fs.existsSync(readLink) ) {
-            return false;
+        let readLink = await fsExtra.readlink( currentSaveDir );
+        if( !(await fsExtra.exists(readLink)) ) {
+            return Promise.resolve(false);
         }
-        return path.basename( readLink );
+        return Promise.resolve(path.basename( readLink ));
     }
     catch( err ) {
-        return false;
+        return Promise.resolve(false);
     }
 
 }
@@ -3229,36 +3241,36 @@ function getCurrentSave(system, game, parents) {
  * @param {string} save - The name of the new save.
  * @param {boolean} force - Skip error check.
  * @param {Array<string>} [parents] - An array of parent folders for a game.
- * @returns {(boolean|string)} An error message if there was an error, otherwise false.
+ * @returns {Promise<(boolean|string)>} A promise containing an error message if there was an error, otherwise false.
  */
-function newSave(system, game, save, force, parents=[]) {
+async function newSave(system, game, save, force, parents=[]) {
 
     if( !force ) {
         // Error check
         var invalidName = isInvalidName( save );
-        if( invalidName ) return invalidName;
+        if( invalidName ) return Promise.resolve(invalidName);
         // Make sure the game is valid
         let isInvalid = isInvalidGame( system, game, parents );
-        if( isInvalid ) return isInvalid;
+        if( isInvalid ) return Promise.resolve(isInvalid);
         // This name is reserved (current)
         if( save == CURRENT_SAVE_DIR ) {
-            return ERROR_MESSAGES.usingReservedSaveName;
+            return Promise.resolve(ERROR_MESSAGES.usingReservedSaveName);
         }
         // Make sure the name is not already being used
         if( getGameDictEntry(system, game, parents).saves[save] ) {
-            return ERROR_MESSAGES.saveAlreadyExists;
+            return Promise.resolve(ERROR_MESSAGES.saveAlreadyExists);
         }
         // Make sure there is a save
-        if( !save ) return ERROR_MESSAGES.saveNameRequired;
+        if( !save ) return Promise.resolve(ERROR_MESSAGES.saveNameRequired);
     }
 
     // Create a new save directory
-    fs.mkdirSync( generateSaveDir( system, game, save, parents ) );
+    await fsExtra.mkdir( generateSaveDir( system, game, save, parents ) );
     // Create the screenshots directory for the save
     // Since we don't want spoilers for other saves, keep screenshots save specific
-    fs.mkdirSync( generateScreenshotsDir( system, game, save, parents ) );
+    await fsExtra.mkdir( generateScreenshotsDir( system, game, save, parents ) );
 
-    return false;
+    return Promise.resolve(false);
 }
 
 /**
@@ -3269,48 +3281,48 @@ function newSave(system, game, save, force, parents=[]) {
  * @param {Array<string>} [parents] - An array of parent folders for a game.
  * @param {string} oldSave - The name of the old save.
  * @param {string} save - The new name of the save.
- * @returns {(boolean|string)} An error message if there was an error, otherwise false.
+ * @returns {Promise<(boolean|string)>} A promise containing an error message if there was an error, otherwise false.
  */
-function updateSave(system, game, parents=[], oldSave, save) {
+async function updateSave(system, game, parents=[], oldSave, save) {
 
     // Everything the same is a no-op like updateGame
-    if( save == oldSave ) return false;
+    if( save == oldSave ) return Promise.resolve(false);
 
     // Error check
     var invalidName = isInvalidName( save );
-    if( invalidName ) return invalidName;
+    if( invalidName ) return Promise.resolve(invalidName);
     // Make sure the game is valid
     let isInvalid = isInvalidGame( system, game, parents );
-    if( isInvalid ) return isInvalid;
+    if( isInvalid ) return Promise.resolve(isInvalid);
     // This name is reserved (current)
     if( save == CURRENT_SAVE_DIR ) {
-        return ERROR_MESSAGES.usingReservedSaveName;
+        return Promise.resolve(ERROR_MESSAGES.usingReservedSaveName);
     }
     // Make sure the name is not already being used
     if( getGameDictEntry(system, game, parents).saves[save] ) {
-        return ERROR_MESSAGES.saveAlreadyExists;
+        return Promise.resolve(ERROR_MESSAGES.saveAlreadyExists);
     }
     // Make sure there is a save
-    if( !save ) return ERROR_MESSAGES.saveNameRequired;
+    if( !save ) return Promise.resolve(ERROR_MESSAGES.saveNameRequired);
     // Make sure the old save exists
     if( !getGameDictEntry(system, game, parents).saves[oldSave] ) {
-        return ERROR_MESSAGES.saveDoesNotExist;
+        return Promise.resolve(ERROR_MESSAGES.saveDoesNotExist);
     }
 
     // update the symlinks
-    let currentSave = getCurrentSave( system, game, parents );
+    let currentSave = await getCurrentSave( system, game, parents );
 
     // move the save directory
     let oldSaveDir = generateSaveDir( system, game, oldSave, parents );
     let saveDir = generateSaveDir( system, game, save, parents );
-    fsExtra.moveSync( oldSaveDir, saveDir );
+    await fsExtra.move( oldSaveDir, saveDir );
 
     if( currentSave == oldSave ) {
         // force is true since gamedict hasn't been updated
-        changeSave( system, game, save, true, parents );
+        await changeSave( system, game, save, true, parents );
     }
 
-    return false;
+    return Promise.resolve(false);
 }
 
 /**
@@ -3320,41 +3332,41 @@ function updateSave(system, game, parents=[], oldSave, save) {
  * @param {string} save - The name of the save.
  * @param {boolean} force - Skip error check.
  * @param {Array<string>} [parents] - An array of parent folders for a game.
- * @returns {(boolean|string)} An error message if there was an error, otherwise false.
+ * @returns {Promise<(boolean|string)>} A promise containing an error message if there was an error, otherwise false.
  */
-function changeSave(system, game, save, force, parents=[]) {
+async function changeSave(system, game, save, force, parents=[]) {
 
     if( !force ) {
         // Error check
         var invalidName = isInvalidName( save );
-        if( invalidName ) return invalidName;
+        if( invalidName ) return Promise.resolve(invalidName);
         // Make sure the game is valid
         let isInvalid = isInvalidGame( system, game, parents );
-        if( isInvalid ) return isInvalid;
+        if( isInvalid ) return Promise.resolve(isInvalid);
         // Can't change the save of a playing game
         if( isBeingPlayed( system, game, parents ) ) {
-            return ERROR_MESSAGES.gameBeingPlayed;
+            return Promise.resolve(ERROR_MESSAGES.gameBeingPlayed);
         }
         // We need the save file to exist
         if( !getGameDictEntry(system, game, parents).saves[save] ) {
-            return ERROR_MESSAGES.saveDoesNotExist;
+            return Promise.resolve(ERROR_MESSAGES.saveDoesNotExist);
         }
         if( getGameDictEntry(system, game, parents).currentSave == save ) {
-            return ERROR_MESSAGES.saveAlreadySelected;
+            return Promise.resolve(ERROR_MESSAGES.saveAlreadySelected);
         }
     }
 
     let currentSaveDir = generateSaveDir( system, game, CURRENT_SAVE_DIR, parents );
     // Remove the current symlink
     try {
-        fs.unlinkSync( currentSaveDir );
+        await fsExtra.unlink( currentSaveDir );
     }
     catch(err) {} // OK, just means there was no current symlink
 
     // Symlink the current save
-    fs.symlinkSync( generateSaveDir( system, game, save, parents ), currentSaveDir, 'dir');
+    await fsExtra.symlink( generateSaveDir( system, game, save, parents ), currentSaveDir, 'dir');
 
-    return false;
+    return Promise.resolve(false);
 }
 
 /**
@@ -3363,23 +3375,23 @@ function changeSave(system, game, save, force, parents=[]) {
  * @param {string} game - The name of the game.
  * @param {string} save - The name of the save.
  * @param {Array<string>} [parents] - An array of parent folders for a game.
- * @returns {(boolean|string)} - An error message if there was an error, otherwise false.
+ * @returns {Promise<(boolean|string)>} - A promise containing an error message if there was an error, otherwise false.
  */
-function deleteSave(system, game, save, parents=[]) {
+async function deleteSave(system, game, save, parents=[]) {
 
     // Error check
     var invalidName = isInvalidName( save );
-    if( invalidName ) return invalidName;
+    if( invalidName ) return Promise.resolve(invalidName);
     // Make sure the game is valid
     let isInvalid = isInvalidGame( system, game, parents );
-    if( isInvalid ) return isInvalid;
+    if( isInvalid ) return Promise.resolve(isInvalid);
     // Can't change the save of a playing game
     if( isBeingPlayed( system, game, parents ) ) {
-        return ERROR_MESSAGES.gameBeingPlayed;
+        return Promise.resolve(ERROR_MESSAGES.gameBeingPlayed);
     }
     // We need the save file to exist
     if( !getGameDictEntry(system, game, parents).saves[save] ) {
-        return ERROR_MESSAGES.saveDoesNotExist;
+        return Promise.resolve(ERROR_MESSAGES.saveDoesNotExist);
     }
 
     let savesDir = generateSavesDir( system, game, parents );
@@ -3389,31 +3401,31 @@ function deleteSave(system, game, save, parents=[]) {
     rimraf.sync( saveDir );
         
     // Check if the symbolic link is now broken
-    let currentSave = getCurrentSave( system, game, parents );
+    let currentSave = await getCurrentSave( system, game, parents );
     if( !currentSave ) {
 
         // If it is, try to switch to the default directory
         let defaultSaveDir = generateSaveDir( system, game, DEFAULT_SAVE_DIR, parents );
-        if( fs.existsSync( defaultSaveDir ) ) {
-            changeSave( system, game, DEFAULT_SAVE_DIR, null, parents );
+        if( await fsExtra.exists( defaultSaveDir ) ) {
+            await changeSave( system, game, DEFAULT_SAVE_DIR, null, parents );
         }
         // If the default directory does not exist, try to switch to any other save
         else {
-            let currentSaves = fs.readdirSync(savesDir, {withFileTypes: true}).filter(file => file.isDirectory()).map(dir => dir.name);
+            let currentSaves = (await fsExtra.readdir(savesDir, {withFileTypes: true})).filter(file => file.isDirectory()).map(dir => dir.name);
             if( currentSaves.length ) {
-                changeSave( system, game, currentSaves[0], null, parents );
+                await changeSave( system, game, currentSaves[0], null, parents );
             }
             // Otherwise, create the default directory and switch to that save
             else {
                 // force is true, since we know there is no other directory and we know we want to make the save
-                newSave( system, game, DEFAULT_SAVE_DIR, true, parents );
-                changeSave( system, game, DEFAULT_SAVE_DIR, true, parents );
+                await newSave( system, game, DEFAULT_SAVE_DIR, true, parents );
+                await changeSave( system, game, DEFAULT_SAVE_DIR, true, parents );
             }
         }
         
     }
 
-    return false;
+    return Promise.resolve(false);
 }
 
 /**
@@ -3445,7 +3457,7 @@ async function addGame( system, game, file, parents=[], isFolder, isPlaylist, pl
         var invalidName = isInvalidName( game );
         if( invalidName ) return Promise.resolve(invalidName);
         if( (!file || (typeof file != STRING_TYPE && (!file.path || !file.originalname))) && !isFolder && !isPlaylist && !isSymlink ) return Promise.resolve(ERROR_MESSAGES.romFileRequired);
-        if( typeof file === STRING_TYPE && file.match(/^\//) && !fs.existsSync(file) ) return Promise.resolve(ERROR_MESSAGES.invalidFilepath);
+        if( typeof file === STRING_TYPE && file.match(/^\//) && !(await fsExtra.exists(file)) ) return Promise.resolve(ERROR_MESSAGES.invalidFilepath);
         if( isPlaylist && system != MEDIA ) return Promise.resolve(ERROR_MESSAGES.playlistsOnlyForMedia);
         if( (!playlistItems || !playlistItems.length) && isPlaylist ) return Promise.resolve(ERROR_MESSAGES.playlistItemsRequired);
         if( isPlaylist ) {
@@ -3462,14 +3474,14 @@ async function addGame( system, game, file, parents=[], isFolder, isPlaylist, pl
 
         if( !isFolder && !isPlaylist && !isSymlink ) {
             // Do this AFTER running get data, so we know we are all set with the save directories
-            updateNandSymlinks(system, game, null, parents);
+            await updateNandSymlinks(system, game, null, parents);
         }
     };
 
     // Make the directory for the game
     if( !isSymlink ) {
         let gameDir = generateGameDir( system, game, parents );
-        fs.mkdirSync( gameDir );
+        await fsExtra.mkdir( gameDir );
 
         // regular game
         if( !isFolder && !isPlaylist ) {
@@ -3478,13 +3490,13 @@ async function addGame( system, game, file, parents=[], isFolder, isPlaylist, pl
             // browser, we just append the siteUrl to the metadata.json
             if(isBrowserOrClone(system)) {
                 if( typeof file == STRING_TYPE )
-                    fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"siteUrl": file}));
+                    await fsExtra.writeFile(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"siteUrl": file}));
                 else {
                     try {
-                        let uploadedContent = fs.readFileSync(file.path);
+                        let uploadedContent = await fsExtra.readFile(file.path);
                         let uploadedJson = JSON.parse(uploadedContent);
                         if( !uploadedJson.siteUrl ) errorMessage = ERROR_MESSAGES.siteUrlRequired;
-                        fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), uploadedContent);
+                        await fsExtra.writeFile(generateGameMetaDataLocation(system, game, parents), uploadedContent);
                     }
                     // invalid JSON file
                     catch(err) {
@@ -3498,9 +3510,9 @@ async function addGame( system, game, file, parents=[], isFolder, isPlaylist, pl
                 // and the async failure has a different behavior than the sync one
                 // Async, we'll just note the ROM download failed to the user as opposed to deleting the game
                 // immediately.
-                if( typeof file == STRING_TYPE && file.match(/^\//) ) fs.writeFileSync(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"rom": file}));
-                else if( typeof file == STRING_TYPE ) errorMessage = downloadRom( file, system, game, parents, runWhenDone );
-                else errorMessage = saveUploadedRom( file, system, game, parents );
+                if( typeof file == STRING_TYPE && file.match(/^\//) ) await fsExtra.writeFile(generateGameMetaDataLocation(system, game, parents), JSON.stringify({"rom": file}));
+                else if( typeof file == STRING_TYPE ) errorMessage = await downloadRom( file, system, game, parents, runWhenDone );
+                else errorMessage = await saveUploadedRom( file, system, game, parents );
             }
             if( errorMessage ) {
                 // Delete the game directory
@@ -3515,7 +3527,7 @@ async function addGame( system, game, file, parents=[], isFolder, isPlaylist, pl
     }
     else if( isSymlink ) {
         // create the symlink
-        fs.symlinkSync( generateGameDir( symlink.system, symlink.game, symlink.parents ), generateGameDir( system, game, parents ), 'dir' );
+        await fsExtra.symlink( generateGameDir( symlink.system, symlink.game, symlink.parents ), generateGameDir( system, game, parents ), 'dir' );
     }
 
     // Update the data (this will take care of making all the necessary directories for the game as well as updating the data)
@@ -3573,7 +3585,7 @@ async function addSymlinksToPlaylist( system, game, parents, playlistItems ) {
         indexPrefix = indexPrefix.slice(0, -1);
     }
     // Make note that it is a playlist
-    updateGameMetaData( system, game, parents, { isPlaylist: true } );
+    await updateGameMetaData( system, game, parents, { isPlaylist: true } );
     return Promise.resolve(false);
 }
 
@@ -3642,16 +3654,16 @@ function getAllSymlinksToItem( system, game, parents=[], curGames=[], curParents
  * @param {string} system - The system the game is on.
  * @param {string} game - The name of the game.
  * @param {Array<string>} [parents] - An array of parent folders for a game.
- * @returns {string} The path or an empty string if there is none.
+ * @returns {Promise<string>} A promise containing the path or an empty string if there is none.
  */
-function getNandPath( system, game, parents ) {
+async function getNandPath( system, game, parents ) {
     if( systemsDict[system].nandPathCommand ) {
         let nandPathCommand = systemsDict[system].nandPathCommand.replace(NAND_ROM_FILE_PLACEHOLDER, generateRomLocation( system, game, getGameDictEntry(system, game, parents).rom, parents ).replace("'", "'\"'\"'"));
-        let nandSavePath = proc.execSync(nandPathCommand).toString().replace("\n","");
+        let nandSavePath = (await execPromise(nandPathCommand)).toString().replace("\n","");
         if( systemsDict[system].badNandPath && nandSavePath === systemsDict[system].badNandPath ) return "";
-        return nandSavePath;
+        return Promise.resolve(nandSavePath);
     }
-    return "";
+    return Promise.resolve("");
 }
 
 /**
@@ -3664,47 +3676,48 @@ function getNandPath( system, game, parents ) {
  *      except we'll want to place what we have currently in the directory of the old rom and remove any symlink
  * @param {string} system - The system the game is on
  * @param {string} game - The name of the game
- * @param {Array<string>} parents - an array of parent folders for a game
+ * @param {Array<string>} parents - Wn array of parent folders for a game
+ * @returns {Promise} Contains false.
  */
-function updateNandSymlinks( system, game, oldRomNandPath, parents ) {
+async function updateNandSymlinks( system, game, oldRomNandPath, parents ) {
     // Make sure this is a system with the special file structure needed
     if( systemsDict[system].nandPathCommand ) {
-        let nandSavePath = getNandPath( system, game, parents );
+        let nandSavePath = await getNandPath( system, game, parents );
         if( !nandSavePath ) return;
         let currentSaveDir = generateSaveDir( system, game, CURRENT_SAVE_DIR, parents );
 
         // If the rom file has changed, we want to leave behind our current save data in the old rom location
         // because it will not work with the new rom. To do this, we'll have to remove the old symlink, make a directory,
         // and move the current save's contents
-        if( oldRomNandPath && fs.existsSync(oldRomNandPath) ) {
+        if( oldRomNandPath && (await fsExtra.exists(oldRomNandPath)) ) {
             // The oldRom path will be a symlink that may or may not be broken (depending on if the name changed)
             try {
-                fs.unlinkSync(oldRomNandPath);
+                await fsExtra.unlink(oldRomNandPath);
             }
             catch(err) { /*I don't know why it wouldn't be a symlink, but they could have been messing with the files*/}
             // Make a directory
             try {
-                fs.mkdirSync(oldRomNandPath);
+                await fsExtra.mkdir(oldRomNandPath);
             }
             catch(err) {/*should be ok*/}
-            let currentSaveDirContents = fs.readdirSync(currentSaveDir);
+            let currentSaveDirContents = await fsExtra.readdir(currentSaveDir);
             // Place the current save contents in the old rom's directory, and we should have no save content
             // in our guystation save directory now
             for( let currentFile of currentSaveDirContents ) {
                 if( currentFile != "screenshots" ) {
-                    fsExtra.moveSync( currentSaveDir + SEPARATOR + currentFile, nandSavePath + SEPARATOR + currentFile );
+                    await fsExtra.move( currentSaveDir + SEPARATOR + currentFile, nandSavePath + SEPARATOR + currentFile );
                 }
             }
         }
 
         let isSymbolicLink = false;
         try {
-            let lstat = fs.lstatSync(nandSavePath);
+            let lstat = await fsExtra.lstat(nandSavePath);
             isSymbolicLink = lstat.isSymbolicLink();
         }
         catch(err) {/*ok*/}
         // If there is an existing save for the new rom
-        if( fs.existsSync(nandSavePath) || isSymbolicLink ) {
+        if( (await fsExtra.exists(nandSavePath)) || isSymbolicLink ) {
             // check if it is a symlink
             // this would be the case if we updated the game name only and we're looking at the same directory
             // no need to try to copy files (from what is now a broken link)
@@ -3712,9 +3725,9 @@ function updateNandSymlinks( system, game, oldRomNandPath, parents ) {
                 // We found some current contents in an actual directory (add game or rom file changed)
                 // Move the contents of the directory to our new directory
                 // Basically, there was a non-guystation save for the game
-                let currentFiles = fs.readdirSync(nandSavePath);
+                let currentFiles = await fsExtra.readdir(nandSavePath);
                 for(let currentFile of currentFiles) {
-                    fsExtra.moveSync( nandSavePath + SEPARATOR + currentFile, currentSaveDir + SEPARATOR + currentFile );
+                    await fsExtra.move( nandSavePath + SEPARATOR + currentFile, currentSaveDir + SEPARATOR + currentFile );
                 }
                 // Delete the current directory, we'll add a symlink
                 rimraf.sync( nandSavePath );
@@ -3734,7 +3747,7 @@ function updateNandSymlinks( system, game, oldRomNandPath, parents ) {
                 // in which there is no per-game directory, so we have to update the savedata directory
                 // whenever we change games. The savedata directory will be a symlink from one game and then
                 // it will be replaced by another game.
-                fs.unlinkSync( nandSavePath );
+                await fsExtra.unlink( nandSavePath );
             }
         }
         // Make the necessary directories to set up nandSavePath
@@ -3748,13 +3761,15 @@ function updateNandSymlinks( system, game, oldRomNandPath, parents ) {
             let path = currentParts.join(SEPARATOR);
 
             // make the directory if it does not exist
-            if( path && !fs.existsSync(path) ) {
-                fs.mkdirSync(path);
+            if( path && !(await fsExtra.exists(path)) ) {
+                await fsExtra.mkdir(path);
             }
         }
         // Now, create the symlink
-        fs.symlinkSync( currentSaveDir, nandSavePath, 'dir');
+        await fsExtra.symlink( currentSaveDir, nandSavePath, 'dir');
     }
+
+    return Promise.resolve(false);
 }
 
 /**
@@ -3763,46 +3778,46 @@ function updateNandSymlinks( system, game, oldRomNandPath, parents ) {
  * @param {string} system - The system the game is on.
  * @param {string} game - The game the ROM is for.
  * @param {Array<string>} parents - An array of parent folders for a game.
- * @returns {(boolean|string)} An error message if there was an error, false if there was not.
+ * @returns {Promise<(boolean|string)>} An error message if there was an error, false if there was not.
  */
-function saveUploadedRom( file, system, game, parents ) {
+async function saveUploadedRom( file, system, game, parents ) {
     if( !file.originalname || !file.path ) {
-        return ERROR_MESSAGES.noFileInUpload;
+        return Promise.resolve(ERROR_MESSAGES.noFileInUpload);
     }
     let invalidFileName = isInvalidFileName(file.originalname);
-    if( invalidFileName ) return invalidFileName;
-    if( !fs.existsSync(generateGameDir(system, game, parents)) ) {
-        return ERROR_MESSAGES.locationDoesNotExist;
+    if( invalidFileName ) return Promise.resolve(invalidFileName);
+    if( !(await fsExtra.exists(generateGameDir(system, game, parents)) ) ) {
+        return Promise.resolve(ERROR_MESSAGES.locationDoesNotExist);
     }
     let romLocation = generateRomLocation(system, game, file.originalname, parents);
-    fs.renameSync(file.path, romLocation);
+    await fsExtra.rename(file.path, romLocation);
 
-    updateGameMetaData( system, game, parents, {rom: file.originalname} );
+    await updateGameMetaData( system, game, parents, {rom: file.originalname} );
     if( (system === SYSTEM_PC || system === SYSTEM_DOS) && !shouldNotExtract(file.originalname) ) { // PC games may be zipped as they require multiple files.
         // copy files
-        fs.renameSync( romLocation, DOWNLOAD_PC_PREFIX );
-        fs.copyFileSync( DOWNLOAD_PC_PREFIX, PC_BACKUP_LOCATION );
+        await fsExtra.rename( romLocation, DOWNLOAD_PC_PREFIX );
+        await fsExtra.copyFile( DOWNLOAD_PC_PREFIX, PC_BACKUP_LOCATION );
         pcUnpacking = true;
         // this will not leave zip, but we'll copy it back if we don't find an installer candidate, so there is still a rom
-        unpackGetLargestFile( DOWNLOAD_PC_PREFIX, DOWNLOAD_PC_PREFIX + TMP_FOLDER_EXTENSION, false, true, generateGameDir(system, game, parents) ).then( (obj) => {
+        unpackGetLargestFile( DOWNLOAD_PC_PREFIX, DOWNLOAD_PC_PREFIX + TMP_FOLDER_EXTENSION, false, true, generateGameDir(system, game, parents) ).then( async (obj) => {
             if( obj.filename ) {
                 let writeObj = {
                     rom: obj.filename
                 };
                 if( obj.candidates && obj.candidates.length ) writeObj.romCandidates = obj.candidates;
-                updateGameMetaData( system, game, parents, writeObj );
-                fs.unlinkSync( PC_BACKUP_LOCATION );
+                await updateGameMetaData( system, game, parents, writeObj );
+                await fsExtra.unlink( PC_BACKUP_LOCATION );
             }
             else {
                 // if we never got round to deleting it due to error, do it now
-                if( fs.existsSync(DOWNLOAD_PC_PREFIX) ) fs.unlinkSync( DOWNLOAD_PC_PREFIX );
-                fs.renameSync( PC_BACKUP_LOCATION, romLocation );
+                if( await fsExtra.exists(DOWNLOAD_PC_PREFIX) ) await fsExtra.unlink( DOWNLOAD_PC_PREFIX );
+                await fsExtra.unlink( PC_BACKUP_LOCATION, romLocation );
             }
             pcUnpacking = false;
         } );
     }
 
-    return false;
+    return Promise.resolve(false);
 }
 
 /**
@@ -3816,22 +3831,22 @@ function saveUploadedRom( file, system, game, parents ) {
  * @param {string} oldSystem - The old system name.
  * @param {string} oldGame - The old game name.
  * @param {Array<string>} parents - The old parents name.
- * @returns {(boolean|string)} An error message if there was an error, false if there was not.
+ * @returns {Promise<(boolean|string)>} A promise containing an error message if there was an error, false if there was not.
  */
-function downloadRom( url, system, game, parents, callback, waitPromise, oldSystem, oldGame, oldParents ) {
+async function downloadRom( url, system, game, parents, callback, waitPromise, oldSystem, oldGame, oldParents ) {
     if( !validUrl.isUri(url) ) {
-        return ERROR_MESSAGES.invalidUrl;
+        return Promise.resolve(ERROR_MESSAGES.invalidUrl);
     }
     try {
         // Since this is synchronous, gameDictEntry will be updated when we call getData at the end of add/update.
         // At this point, we haven't called getData yet, so we need to use the old names
-        updateGameMetaData(oldSystem ? oldSystem : system, oldGame ? oldGame : game, oldParents ? oldParents : parents, {"status": STATUS_DOWNLOADING, "percent": 0});
+        await updateGameMetaData(oldSystem ? oldSystem : system, oldGame ? oldGame : game, oldParents ? oldParents : parents, {"status": STATUS_DOWNLOADING, "percent": 0});
 
         downloadRomBackground( url, system, game, parents, callback, waitPromise );
-        return false;
+        return Promise.resolve(false);
     }
     catch(err) {
-        return ERROR_MESSAGES.downloadRomError;
+        return Promise.resolve(ERROR_MESSAGES.downloadRomError);
     }        
 
 }
@@ -3862,7 +3877,7 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
 
     // First, look for a good place to temporarily store the downloaded tile
     let index = 0;
-    while( fs.existsSync(DOWNLOAD_ROM_PREFIX + index) ) {
+    while( await fsExtra.exists(DOWNLOAD_ROM_PREFIX + index) ) {
         index++;
     }
     let tmpFilePath = DOWNLOAD_ROM_PREFIX + index;
@@ -3882,7 +3897,7 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
 
     let pos = 0;
     let prevPercent = 0;
-    rom.on('data', function data(chunk) {
+    rom.on('data', async function data(chunk) {
         // we aren't going to call getData here, because we don't want to wait for it
         // we will however, update the data entry if there is one and file
         // There should be a data entry fairly soon as addGame and updateGame call them
@@ -3893,10 +3908,10 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
             let percent = Math.round(pos / size * 100);
             if( percent - UPDATE_PERCENT_MINIMUM > prevPercent ) {
                 prevPercent = percent;
-                let metadataContents = JSON.parse(fs.readFileSync(generateGameMetaDataLocation(system, game, parents)));
+                let metadataContents = JSON.parse(await fsExtra.readFile(generateGameMetaDataLocation(system, game, parents)));
                 // still downloading
                 if( metadataContents.status == STATUS_DOWNLOADING ) {
-                    updateGameMetaData( system, game, parents, {"status": STATUS_DOWNLOADING, "percent": percent} );
+                    await updateGameMetaData( system, game, parents, {"status": STATUS_DOWNLOADING, "percent": percent} );
                     let gameDictEntry = getGameDictEntry(system, game, parents);
                     if( gameDictEntry ) {
                         gameDictEntry.status = STATUS_DOWNLOADING;
@@ -3909,8 +3924,8 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
 
     let errorFunction = async function() {
         tmpFileStream.close();
-        fs.unlinkSync(tmpFilePath); // Delete the file
-        updateGameMetaData( system, game, parents, {status: STATUS_ROM_FAILED});
+        await fsExtra.unlink(tmpFilePath); // Delete the file
+        await updateGameMetaData( system, game, parents, {status: STATUS_ROM_FAILED});
         // Note that although for addGame we usually would check for the force option before calling getData
         // we know that force is only ever true when adding a symlink, and a symlink will never have a download
         // so we can call getData here.
@@ -3950,7 +3965,7 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
         }
 
         try {
-            let tmpFileExists = fs.existsSync(tmpFilePath);
+            let tmpFileExists = await fsExtra.exists(tmpFilePath);
             if( tmpFileExists || system === SYSTEM_PC || system === SYSTEM_DOS ) {
                 // If tmp file exists, it either wasn't a pc game, or it wasn't deleted, because it is already an executable (we didn't extract folder contents and clean up)
                 if( tmpFileExists ) {
@@ -3958,7 +3973,7 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
                     if( !filename ) {
                         filename = path.basename(urlLib.parse(url).pathname);
                     }
-                    fs.renameSync( tmpFilePath, generateRomLocation(system, game, filename, parents) );
+                    await fsExtra.rename( tmpFilePath, generateRomLocation(system, game, filename, parents) );
                     // getData(); - should be in all the callbacks
                 }
                 let writeObj = {
@@ -3967,7 +3982,7 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
                     "percent": null
                 }
                 if( candidates ) writeObj.romCandidates = candidates;
-                updateGameMetaData( system, game, parents, writeObj );
+                await updateGameMetaData( system, game, parents, writeObj );
 
                 if( callback ) {
                     await requestLockedPromise();
@@ -4013,18 +4028,18 @@ async function unpackGetLargestFile( file, folder, deleteFolder=false, installer
         ua.unpack( file, {
             targetDir: folder,
             noDirectory: true
-        }, function(err, files, text) {
+        }, async function(err, files, text) {
             if( err ) {
                 // perfectly fine, we expect this for non archive files.
             }
             else if( files ) {
                 let largestBinaryPath = null;
                 let largestBinarySize = 0;
-                let tmpFiles = fs.readdirSync(folder, {withFileTypes: true});
+                let tmpFiles = await fsExtra.readdir(folder, {withFileTypes: true});
                 // sometimes zip files have a sole directory, if that is the case, enter it
                 while( tmpFiles.length === 1 && tmpFiles[0].isDirectory() ) {
                     let loneFolderPath = folder + SEPARATOR + tmpFiles[0].name;
-                    let subfiles = fs.readdirSync(loneFolderPath);
+                    let subfiles = await fsExtra.readdir(loneFolderPath);
                     let rename = null;
                     for( let subfile of subfiles ) {
                         // they have the same name
@@ -4033,24 +4048,24 @@ async function unpackGetLargestFile( file, folder, deleteFolder=false, installer
                             newLocation += "1";
                             rename = newLocation;
                         }
-                        fsExtra.moveSync( loneFolderPath + SEPARATOR + subfile, newLocation );
+                        await fsExtra.move( loneFolderPath + SEPARATOR + subfile, newLocation );
                     }
                     rimraf.sync( loneFolderPath );
                     if( rename ) {
-                        fsExtra.moveSync( newLocation, loneFolderPath );
+                        await fsExtra.move( newLocation, loneFolderPath );
                     }
-                    tmpFiles = fs.readdirSync(folder, {withFileTypes: true});
+                    tmpFiles = await fsExtra.readdir(folder, {withFileTypes: true});
                 }
                 // Get the largest binary file
                 for( let tmpFile of tmpFiles.map(el => el.name) ) {
                     let curPath = folder + SEPARATOR + tmpFile;
                     try {
                         if( copyFolderContentsPath ) {
-                            fsExtra.copySync( curPath, copyFolderContentsPath + SEPARATOR + tmpFile );
+                            await fsExtra.copy( curPath, copyFolderContentsPath + SEPARATOR + tmpFile );
                         }
                         if( !installersOnly || tmpFile.match(/\.exe$/i) || tmpFile.match(/\.msi$/i) ) {
-                            let stats = fs.statSync(curPath);
-                            if( isBinaryFileSync(curPath) ) {
+                            let stats = await fsExtra.stat(curPath);
+                            if( await isBinaryFile(curPath) ) {
                                 if( !largestBinaryPath || stats["size"] > largestBinarySize ) {
                                     largestBinaryPath = curPath;
                                     largestBinarySize = stats["size"];
@@ -4064,13 +4079,13 @@ async function unpackGetLargestFile( file, folder, deleteFolder=false, installer
                 }
 
                 if( copyFolderContentsPath ) {
-                    fs.unlinkSync(file);
+                    await fsExtra.unlink(file);
                     rimraf.sync(folder);
                 }
                 else if( deleteFolder ) {
                     // Move the actual rom over the zip file
                     if( largestBinaryPath ) {
-                        fs.renameSync( largestBinaryPath, file );
+                        await fsExtra.rename( largestBinaryPath, file );
                     }
                     rimraf.sync(folder); // Delete the temp folder
                 }
@@ -4189,7 +4204,7 @@ async function updateGame( oldSystem, oldGame, oldParents=[], system, game, file
         else if( !gameDictEntry.isPlaylist && isPlaylist ) {
             return Promise.resolve(ERROR_MESSAGES.convertGameToPlaylist);
         }
-        else if( file && typeof file === STRING_TYPE && file.match(/^\//) && !fs.existsSync(file) ) {
+        else if( file && typeof file === STRING_TYPE && file.match(/^\//) && !(await fsExtra.exists(file)) ) {
             return Promise.resolve(ERROR_MESSAGES.invalidFilepath);
         } 
     }
@@ -4260,10 +4275,10 @@ async function updateGame( oldSystem, oldGame, oldParents=[], system, game, file
         // Do this AFTER running get data, so we can pass the checked in addGame
         // Do this AFTER running get data, so we know we are all set with the save directories
         if( !isFolder && !isPlaylist ) {
-            updateNandSymlinks(system ? system : oldSystem, game ? game : oldGame, oldRomNandPath, parents ? parents : oldParents);
+            await updateNandSymlinks(system ? system : oldSystem, game ? game : oldGame, oldRomNandPath, parents ? parents : oldParents);
         }
         else if( isFolder ) { // Media doesn't have nand links
-            ensureNandSymlinks(system ? system : oldSystem, game ? game : oldGame, parents ? parents : oldParents, getGameDictEntry(system ? system : oldSystem, game ? game : oldGame, parents ? parents : oldParents) );
+            await ensureNandSymlinks(system ? system : oldSystem, game ? game : oldGame, parents ? parents : oldParents, getGameDictEntry(system ? system : oldSystem, game ? game : oldGame, parents ? parents : oldParents) );
         }
     }
 
@@ -4275,15 +4290,15 @@ async function updateGame( oldSystem, oldGame, oldParents=[], system, game, file
         // Set the browser site url
         if( isBrowserOrClone(oldSystem) ) {
             if( typeof file == STRING_TYPE ) {
-                updateGameMetaData( oldSystem, oldGame, oldParents, {siteUrl: file} );
+                await updateGameMetaData( oldSystem, oldGame, oldParents, {siteUrl: file} );
             }
             else {
                 try {
-                    let uploadedContent = fs.readFileSync(file.path);
+                    let uploadedContent = await fsExtra.readFile(file.path);
                     let uploadedJson = JSON.parse(uploadedContent);
                     if( !uploadedJson.siteUrl ) errorMessage = ERROR_MESSAGES.siteUrlRequired;
                     if( !uploadedJson.script ) uploadedJson.script = null;
-                    updateGameMetaData( oldSystem, oldGame, oldParents, uploadedJson );
+                    await updateGameMetaData( oldSystem, oldGame, oldParents, uploadedJson );
                 }
                 // invalid JSON file
                 catch(err) {
@@ -4297,17 +4312,17 @@ async function updateGame( oldSystem, oldGame, oldParents=[], system, game, file
             // upload into the old directory and that will change if necessary next
             oldRomPath = getGameDictEntry(oldSystem, oldGame, oldParents).rom ? generateRomLocation( oldSystem, oldGame, getGameDictEntry(oldSystem, oldGame, oldParents).rom, oldParents ) : "";
             if( oldRomPath ) {
-                oldRomNandPath = getNandPath( oldSystem, oldGame, oldParents ); // We'll need this to clean up the old rom for NAND systems
-                fs.renameSync( oldRomPath, TMP_ROM_LOCATION );
+                oldRomNandPath = await getNandPath( oldSystem, oldGame, oldParents ); // We'll need this to clean up the old rom for NAND systems
+                await fsExtra.rename( oldRomPath, TMP_ROM_LOCATION );
             }
             
             // Try to upload the new file
             // Note: an async error will continue unlike a sync error
             // A sync error to get the file - we'll just revert
             // An async error, we'll just have to alert the user that we failed.
-            if( typeof file == STRING_TYPE && file.match(/^\//) ) updateGameMetaData(system ? system : oldSystem, game ? game : oldGame, parents ? parents : oldParents, {"rom": file});
-            else if( typeof file == STRING_TYPE ) errorMessage = downloadRom( file, system ? system : oldSystem, game ? game : oldGame, parents ? parents : oldParents, runWhenDone, dirsDonePromise, oldSystem, oldGame, oldParents );
-            else errorMessage = saveUploadedRom( file, oldSystem, oldGame, oldParents );
+            if( typeof file == STRING_TYPE && file.match(/^\//) ) await updateGameMetaData(system ? system : oldSystem, game ? game : oldGame, parents ? parents : oldParents, {"rom": file});
+            else if( typeof file == STRING_TYPE ) errorMessage = await downloadRom( file, system ? system : oldSystem, game ? game : oldGame, parents ? parents : oldParents, runWhenDone, dirsDonePromise, oldSystem, oldGame, oldParents );
+            else errorMessage = await saveUploadedRom( file, oldSystem, oldGame, oldParents );
         }
 
         // We failed
@@ -4317,30 +4332,30 @@ async function updateGame( oldSystem, oldGame, oldParents=[], system, game, file
             // Deleting the new rom is not necessary, since error message implies the save failed
             if( oldRomPath ) {
                 // Move the old rom back
-                fs.renameSync( TMP_ROM_LOCATION, oldRomPath );
+                await fsExtra.rename( TMP_ROM_LOCATION, oldRomPath );
             }
             return Promise.resolve(errorMessage);
         }
         // We succeeded, delete the old rom
         else if( oldRomPath ) {
-            fs.unlinkSync( TMP_ROM_LOCATION );
+            await fsExtra.unlink( TMP_ROM_LOCATION );
         }
     }
     if( !file && romCandidate ) { // for PC games
-        updateGameMetaData( oldSystem, oldGame, oldParents, {rom: romCandidate} );
+        await updateGameMetaData( oldSystem, oldGame, oldParents, {rom: romCandidate} );
     }
     // Move some of the directories around
     if( (system && oldSystem != system) || (game && oldGame != game) || (oldParents.join(SEPARATOR) != parents.join(SEPARATOR)) ) {
         // Use the system command because node fs can't move directories
         let gameDir = generateGameDir( system ? system : oldSystem, game ? game : oldGame, parents ? parents : oldParents ); // update the game directory
-        fsExtra.moveSync( oldGameDir, gameDir );
+        await fsExtra.move( oldGameDir, gameDir );
         // Update the symlink for the game
         // Force, since we've just updated the directory
         if( !isFolder && !isPlaylist ) {
-            changeSave( system ? system : oldSystem, game ? game : oldGame, getGameDictEntry(oldSystem, oldGame, oldParents).currentSave, true, parents ? parents : oldParents );
+            await changeSave( system ? system : oldSystem, game ? game : oldGame, getGameDictEntry(oldSystem, oldGame, oldParents).currentSave, true, parents ? parents : oldParents );
         }
         else if( !isPlaylist ) {
-            ensureSaveSymlinks( system ? system : oldSystem, game ? game : oldGame, parents ? parents : oldParents, getGameDictEntry(oldSystem, oldGame, oldParents), oldSystem, oldGame, oldParents );
+            await ensureSaveSymlinks( system ? system : oldSystem, game ? game : oldGame, parents ? parents : oldParents, getGameDictEntry(oldSystem, oldGame, oldParents), oldSystem, oldGame, oldParents );
         }
         // Otherwise, we have to update the symlinks of all the children directories
 
@@ -4399,8 +4414,9 @@ function containsPlaylist(gameDictEntry) {
  * @param {string} folder - The name of the folder the system uses.
  * @param {Array<string>} parents - Parent directories for the folder.
  * @param {Object} gameDictEntry The game dict entry for the old system / old game (since this is run prior to calling getData in updateGame).
+ * @returns {Promise} A promise containing false.
  */
-function ensureNandSymlinks( system, folder, parents, gameDictEntry ) {
+async function ensureNandSymlinks( system, folder, parents, gameDictEntry ) {
     for( let game of Object.keys(gameDictEntry.games) ) {
         let curGameDictEntry = gameDictEntry.games[game];
         let curParents = parents.slice(0);
@@ -4408,12 +4424,13 @@ function ensureNandSymlinks( system, folder, parents, gameDictEntry ) {
         // This is a real game
         if( !curGameDictEntry.isFolder && !curGameDictEntry.isPlaylist ) {
             // Note: there will be no oldRamPath, because we updated the folder, thus the rom never changes for these
-            updateNandSymlinks( system, curGameDictEntry.game, null, curParents );
+            await updateNandSymlinks( system, curGameDictEntry.game, null, curParents );
         }
         else if( curGameDictEntry.isFolder ) {
-            ensureNandSymlinks( system, game, curParents, curGameDictEntry );
+            await ensureNandSymlinks( system, game, curParents, curGameDictEntry );
         }
     }
+    return Promise.resolve(false);
 }
 
 /**
@@ -4425,8 +4442,9 @@ function ensureNandSymlinks( system, folder, parents, gameDictEntry ) {
  * @param {string} oldSystem - The old system - needed to get the game dict entry.
  * @param {string} oldFolder - The old folder - needed to get the game dict entry.
  * @param {Array<string>} oldParents - The old parents - needed to get the game dict entry.
+ * @returns {Promise} - A promise containing false.
  */
-function ensureSaveSymlinks( system, folder, parents, gameDictEntry, oldSystem, oldFolder, oldParents ) {
+async function ensureSaveSymlinks( system, folder, parents, gameDictEntry, oldSystem, oldFolder, oldParents ) {
     for( let game of Object.keys(gameDictEntry.games) ) {
         let curGameDictEntry = gameDictEntry.games[game];
         let curParents = parents.slice(0);
@@ -4438,12 +4456,13 @@ function ensureSaveSymlinks( system, folder, parents, gameDictEntry, oldSystem, 
         // this is the problem - we are passing in the new parents but that means the entries dont exist
         // but we need the new parents to pass to changeSave forced since the directories have already moved
         if( !curGameDictEntry.isFolder && !curGameDictEntry.isPlaylist ) {
-            changeSave( system, curGameDictEntry.game, getGameDictEntry( oldSystem, curGameDictEntry.game, curOldParents ).currentSave, true, curParents );
+            await changeSave( system, curGameDictEntry.game, getGameDictEntry( oldSystem, curGameDictEntry.game, curOldParents ).currentSave, true, curParents );
         }
         else if( curGameDictEntry.isFolder ) {
-            ensureSaveSymlinks( system, game, curParents, curGameDictEntry, oldSystem, game, curOldParents );
+            await ensureSaveSymlinks( system, game, curParents, curGameDictEntry, oldSystem, game, curOldParents );
         }
     }
+    return Promise.resolve();
 }
 
  /**
@@ -4570,11 +4589,11 @@ async function deleteGame( system, game, parents=[], force, isPlaylist=false ) {
     if( !isFolder && !isPlaylist ) {
         // If this is a NAND game, make sure we have a directory in place
         // in case they want to play the game outside of guystation
-        let nandPath = getNandPath( system, game, parents );
-        if( nandPath && fs.existsSync(nandPath) ) {
+        let nandPath = await getNandPath( system, game, parents );
+        if( nandPath && (await fsExtra.exists(nandPath)) ) {
             try {
-                fs.unlinkSync(nandPath);
-                fs.mkdirSync(nandPath);
+                await fsExtra.unlink(nandPath);
+                await fsExtra.mkdir(nandPath);
             }
             catch(err) { /*It's already a directory for some reason*/ }
         }
@@ -4599,16 +4618,20 @@ async function deleteGame( system, game, parents=[], force, isPlaylist=false ) {
 
 /**
  * Save the current screen resolution.
+ * @returns {Promise} - A promise containing false.
  */
-function saveCurrentResolution() {
-    properResolution = proc.execSync(GET_RESOLUTION_COMMAND).toString();
+async function saveCurrentResolution() {
+    properResolution = (await execPromise(GET_RESOLUTION_COMMAND)).toString();
+    return Promise.resolve(false);
 }
 
 /**
  * Save the current emulator resolution
+ * @returns {Promise} - A promise containing false.
  */
 function saveCurrentEmulatorResolution() {
-    properEmulatorResolution = proc.execSync(systemsDict[currentSystem].getResolutionCommand ? systemsDict[currentSystem].getResolutionCommand : GET_RESOLUTION_COMMAND).toString();
+    properEmulatorResolution = (await execPromise(systemsDict[currentSystem].getResolutionCommand ? systemsDict[currentSystem].getResolutionCommand : GET_RESOLUTION_COMMAND)).toString();
+    return Promise.resolve(false);
 }
 
 /**
@@ -4618,40 +4641,46 @@ function saveCurrentEmulatorResolution() {
  * the resolution, but it looks like sometimes that does not get called while
  * other times it does. This might have something to do with pausing the application
  * and/or using kill -9. Nonetheless, this should restore the proper resolution.
+ * @returns {Promise} - A promise containing false.
  */
-function ensureProperResolution() {
+async function ensureProperResolution() {
     if( properResolution ) {
-        let currentResolution = proc.execSync(GET_RESOLUTION_COMMAND).toString();
+        let currentResolution = (await execPromise(GET_RESOLUTION_COMMAND)).toString();
         if( currentResolution != properResolution ) {
             try {
-                proc.execSync(SET_RESOLUTION_COMMAND + properResolution);
+                await execPromise(SET_RESOLUTION_COMMAND + properResolution);
             }
             catch(err) {/*ok for now*/}
         }
     }
+    return Promise.resolve(false);
 }
 
 /**
  * Freeze the game process.
  * This is only for programs.
+ * @returns {Promise} - A promise containing false.
  */
-function pauseGame() {
+async function pauseGame() {
     if(currentEmulator && !isBrowserOrClone(currentSystem) && currentSystem != MEDIA) {
-        ensureProperResolution(); // Instantly get the right resolution
-        proc.execSync( SLEEP_HALF_COMMAND ); // give time to go back to the menu
-        proc.execSync( PAUSE_COMMAND + currentEmulator.pid );
+        await ensureProperResolution(); // Instantly get the right resolution
+        await execPromise( SLEEP_HALF_COMMAND ); // give time to go back to the menu
+        await execPromise( PAUSE_COMMAND + currentEmulator.pid );
     }
+    return Promise.resolve(false);
 }
 
 /**
  * Continue the game process.
  * This is only for programs.
+ * @returns {Promise} - A promise containing false.
  */
-function resumeGame() {
+async function resumeGame() {
     if(currentEmulator && !isBrowserOrClone(currentSystem) && currentSystem != MEDIA) {
-        proc.execSync( SLEEP_HALF_COMMAND ); // give time to load to avoid button press issues
-        proc.execSync( RESUME_COMMAND + currentEmulator.pid );
+        await execPromise( SLEEP_HALF_COMMAND ); // give time to load to avoid button press issues
+        await execPromise( RESUME_COMMAND + currentEmulator.pid );
     }
+    return Promise.resolve(false);
 }
 
 // The following remote media functions are to make the media functionality like that of a game
@@ -4790,18 +4819,18 @@ async function clearCheckRemoteMedia() {
 
 /**
  * Determine if the menu page is active.
- * @returns {boolean} True if the menu page is active.
+ * @returns {Promise<boolean>} A promise containing true if the menu page is active.
  */
-function menuPageIsActive() {
-    return proc.execSync(ACTIVE_WINDOW_COMMAND).toString().startsWith(PAGE_TITLE);
+async function menuPageIsActive() {
+    return Promise.resolve( (await execPromise(ACTIVE_WINDOW_COMMAND)).toString().startsWith(PAGE_TITLE) );
 }
 
 /**
  * Determine if the sharing prompt is active.
- * @returns {boolean} True if the sharing prompt is active.
+ * @returns {Promise<boolean>} A promise containing true if the sharing prompt is active.
  */
-function sharingPromptIsActive() {
-    return proc.execSync(ACTIVE_WINDOW_COMMAND).toString().includes(SHARING_PROMPT);
+ async function sharingPromptIsActive() {
+    return Promise.resolve( (await execPromise(ACTIVE_WINDOW_COMMAND)).toString().includes(SHARING_PROMPT) );
 }
 
 /**
@@ -4818,16 +4847,16 @@ async function goHome() {
     await ensurePipNotFullscreen();
 
     var needsPause = true;
-    if( menuPageIsActive() ) {
+    if( await menuPageIsActive() ) {
         needsPause = false;
     }
-    proc.execSync(FOCUS_CHROMIUM_COMMAND);
+    await execPromise(FOCUS_CHROMIUM_COMMAND);
     try {
         await menuPage.bringToFront();
         // these functions will check if they are applicable
         // so don't worry about returning their error messages, because some will inevitably have them
         if( needsPause ) {
-            pauseGame();
+            await pauseGame();
             if( currentEmulator && isBrowserOrClone(currentSystem) && browsePage && !browsePage.isClosed() ) await browsePage.evaluate( () => document.exitFullscreen() );
         }
         pauseRemoteMedia();
@@ -4836,7 +4865,7 @@ async function goHome() {
 
     stopUpdatePlaytime();
     currentGameStart = null;
-    blankOnboardInstance();
+    await blankOnboardInstance();
 
     return Promise.resolve( { "didPause": needsPause } );
 }
@@ -5060,7 +5089,7 @@ async function fetchStreamList() {
         // Open the stream info contents
         let contents;
         try {
-            contents = JSON.parse(fs.readFileSync(STREAM_INFO_PATH));
+            contents = JSON.parse(await fsExtra.readFile(STREAM_INFO_PATH));
         }
         catch(err) {
             contents = {lastFetched: 0};
@@ -5200,7 +5229,7 @@ async function fetchStreamList() {
                         console.log("updating " + json.title + " from " + existingService);
                         // still exists, update
                         await updateGame( STREAM, json.title, [existingService], null, null, json.link, [existingService] );
-                        writeStreamMetaData( STREAM, json.title, [existingService], json );
+                        await writeStreamMetaData( STREAM, json.title, [existingService], json );
                         await sleep(WRITE_STREAM_SLEEP);
                     }
                     // doesn't exist, delete
@@ -5230,13 +5259,13 @@ async function fetchStreamList() {
                 if( !systemsDict[STREAM].games[service].games[json.title] ) {
                     console.log("adding " + json.title + " from " + service);
                     await addGame( STREAM, json.title, json.link, [service] );
-                    writeStreamMetaData( STREAM, json.title, [service], json );
+                    await writeStreamMetaData( STREAM, json.title, [service], json );
                     await sleep(WRITE_STREAM_SLEEP);
                 }
             }
         }
 
-        fs.writeFileSync(STREAM_INFO_PATH, JSON.stringify({lastFetched: currentTime})); // mark the last fetched time
+        await fsExtra.writeFile(STREAM_INFO_PATH, JSON.stringify({lastFetched: currentTime})); // mark the last fetched time
     }
     catch(err) {
         console.log(err);
@@ -5259,14 +5288,15 @@ function sleep(ms) {
  * @param {string} system - The system.
  * @param {string} game - The game name.
  * @param {Array<string>} parents - The parents.
- * @param {Object} json - The json for the game generated by scraping the page. 
+ * @param {Object} json - The json for the game generated by scraping the page.
+ * @returns {Promise} False.
  */
-function writeStreamMetaData( system, game, parents, json ) {
+async function writeStreamMetaData( system, game, parents, json ) {
     let saveLocation = generateGameDir( system, game, parents ) + SEPARATOR + COVER_FILENAME;
     // async is probably ok here
     axios( { method: "GET", url: json.image, responseType: "stream" } ).then(function (response) {
         response.data.pipe(fs.createWriteStream(saveLocation));
-        updateGameMetaData( system, game, parents, {
+        await updateGameMetaData( system, game, parents, {
             cover: {
                 url: url,
                 width: STREAM_COVER_WIDTH,
@@ -5275,17 +5305,18 @@ function writeStreamMetaData( system, game, parents, json ) {
         } );
     }).catch(error => {
         console.log("could not save image for " + game);
-        updateGameMetaData( system, game, parents, {
+        await updateGameMetaData( system, game, parents, {
             cover: null
         } );
     });
     let url = saveLocation.replace( WORKING_DIR, '' ); //remove the working dir
-    updateGameMetaData( system, game, parents, {
+    await updateGameMetaData( system, game, parents, {
         summary: json.description,
         releaseDate: json.released,
         name: json.title,
         script: DEFAULT_STREAM_SERVICES[parents[0]].script
     });
+    return Promise.resolve(false);
 }
 
 /**
@@ -5311,7 +5342,7 @@ async function fetchGameData( system, game, parents, currentMetadataContents, fo
     if( typeof headers === STRING_TYPE ) return Promise.resolve(headers); // An error ocurred
 
     let metaDataLocation = generateGameMetaDataLocation(system, game, parents);
-    if( !currentMetadataContents ) currentMetadataContents = JSON.parse(fs.readFileSync(metaDataLocation));
+    if( !currentMetadataContents ) currentMetadataContents = JSON.parse(await fsExtra.readFile(metaDataLocation));
     let currentTime = new Date().getTime();
     
     if( !force && currentMetadataContents.lastFetched && parseInt(currentMetadataContents.lastFetched) > currentTime - ONE_WEEK_MILLISECONDS ) {
@@ -5356,18 +5387,18 @@ async function fetchGameData( system, game, parents, currentMetadataContents, fo
                 }
             }
             newContent.lastFetched = currentTime; // update the time fetched
-            updateGameMetaData( system, game, parents, newContent );
+            await updateGameMetaData( system, game, parents, newContent );
             return Promise.resolve(false);
         }
         else {
             newContent.lastFetched = currentTime; // update the time fetched
-            updateGameMetaData( system, game, parents, newContent );
+            await updateGameMetaData( system, game, parents, newContent );
             return Promise.resolve(false);
         }
     }
     else {
         newContent.lastFetched = currentTime; // update the time fetched
-        updateGameMetaData( system, game, parents, newContent );
+        await updateGameMetaData( system, game, parents, newContent );
         return Promise.resolve(ERROR_MESSAGES.noGameInfo);
     }
 }
@@ -5385,7 +5416,7 @@ async function getIgdbHeaders() {
     let needsFetch = false;
     let igdbContent = {};
     try {
-        igdbContent = JSON.parse( fs.readFileSync(IGDB_PATH).toString() );
+        igdbContent = JSON.parse( await fsExtra.readFile(IGDB_PATH).toString() );
         let expires = igdbContent.expires;
         if( timeSeconds >= expires ) {
             needsFetch = true;
@@ -5405,7 +5436,7 @@ async function getIgdbHeaders() {
             delete igdbContent.token_type;
             igdbContent.Authorization = "Bearer " + igdbContent.access_token;
             delete igdbContent.access_token;
-            fs.writeFileSync( IGDB_PATH, JSON.stringify(igdbContent) );
+            await fsExtra.writeFile( IGDB_PATH, JSON.stringify(igdbContent) );
         }
         else {
             return Promise.resolve(ERROR_MESSAGES.couldNotFetchIGDBInfo);
@@ -5431,14 +5462,14 @@ async function getTwitchHeaders() {
     let twitchContent = null;
     // refresh the token
     try {
-        twitchContent = JSON.parse( fs.readFileSync(TWITCH_PATH).toString() );
+        twitchContent = JSON.parse( await fsExtra.readFile(TWITCH_PATH).toString() );
         let fetched = await axios.post( TWITCH_REFRESH_TOKEN_URL + twitchContent.refresh_token );
         if( fetched.data ) {
             twitchContent = {
                 refresh_token: fetched.data.refresh_token,
                 access_token: fetched.data.access_token
             }
-            fs.writeFileSync( TWITCH_PATH, JSON.stringify(twitchContent) );
+            await fsExtra.writeFile( TWITCH_PATH, JSON.stringify(twitchContent) );
         }
         else {
             return Promise.resolve(ERROR_MESSAGES.couldNotFetchTwitchInfo);
@@ -5455,7 +5486,7 @@ async function getTwitchHeaders() {
                     refresh_token: fetched.data.refresh_token,
                     access_token: fetched.data.access_token
                 }
-                fs.writeFileSync( TWITCH_PATH, JSON.stringify(twitchContent) );
+                await fsExtra.writeFile( TWITCH_PATH, JSON.stringify(twitchContent) );
             }
             else {
                 return Promise.resolve(ERROR_MESSAGES.invalidTwitchCode);
@@ -5474,32 +5505,32 @@ async function getTwitchHeaders() {
 
 /**
  * Check if updates are available.
- * @returns {boolean} True if updates are available.
+ * @returns {Promise<boolean>} A promise containing true if updates are available.
  */
-function guystationHasUpdates() {
+async function guystationHasUpdates() {
     try {
-        proc.execSync( GIT_FETCH_COMMAND );
-        let updatesAvailable = parseInt(proc.execSync( GIT_UPDATES_AVAILABLE_COMMAND ).toString());
+        await execPromise( GIT_FETCH_COMMAND );
+        let updatesAvailable = parseInt((await execPromise( GIT_UPDATES_AVAILABLE_COMMAND )).toString());
         if( updatesAvailable ) {
-            return true;
+            return Promise.resolve(true);
         }
         else {
-            return false;
+            return Promise.resolve(false);
         }
     }
     catch(err) {
-        return false;
+        return Promise.resolve(false);
     }
 }
 
 /**
  * Update guystation to the latest version.
- * @returns {boolean} False.
+ * @returns {Promise<boolean>} False.
  */
-function updateGuystation() {
-    proc.execSync( GIT_PULL_COMMAND );
-    proc.execSync( NPM_INSTALL_COMMAND );
-    return false;
+async function updateGuystation() {
+    await execPromise( GIT_PULL_COMMAND );
+    await execPromise( NPM_INSTALL_COMMAND );
+    return Promise.resolve(false);
 }
 
 /**
@@ -5572,13 +5603,14 @@ function generateMessageUserName( id ) {
 /**
  * Set controls for multiple controllers.
  * @param {Array} controllers - An array with values that can be used for setControls.
- * @returns {boolean|string} An error message if there is an error, false if not.
+ * @returns {Promise} A promise containing false.
  */
-function setMultipleControls( controllers ) {
+async function setMultipleControls( controllers ) {
     controllers = controllers.sort().reverse(); // this is to set player 1 controls last to overwrite potential others
     for( let controller of controllers ) {
-        setControls( controller.systems, controller.values, controller.controller, controller.nunchuk );
+        await setControls( controller.systems, controller.values, controller.controller, controller.nunchuk );
     }
+    return Promise.resolve(false);
 }
 
 /**
@@ -5611,13 +5643,13 @@ function setMultipleControls( controllers ) {
  * @param {Object} values - An object with keys being GuyStation buttons and values being an array of objects (each item is another control) containing a key for type and the button (can be axis+-/key) to set them to, or an array for multiple values (will be inserted for each $CONTROL in the control format) relating to a single control (note: we really only should ever receive one value, and we'll only use the first value - search for controlButtons for more).
  * @param {number} [controller] - The controller number to set controls for. 0,1,2, etc.
  * @param {boolean} [nunchuk] - True if we are setting the Wii to use the nunchuk extension.
- * @returns {boolean|string} An error message if there is an error, false if not.
+ * @returns {Promise<boolean|string>} A promise containing an error message if there is an error, false if not.
  */
-function setControls( systems, values, controller=0, nunchuk=false ) {
+async function setControls( systems, values, controller=0, nunchuk=false ) {
 
     for( let system of systems ) {
 
-        if( !systemsDict[system] && system !== MENU ) return ERROR_MESSAGES.noSystem;
+        if( !systemsDict[system] && system !== MENU ) return Promise.resolve(ERROR_MESSAGES.noSystem);
 
         if( isBrowserOrClone(system) || system === MENU ) { // browser is a simple, special case as it is controlled completely by us
             // unset keys will be deleted (search for: delete no control)
@@ -5633,7 +5665,7 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
                 }
             }
             if( isBrowserOrClone(system) ) {
-                fs.writeFileSync( BROWSER_GAMEPAD_PATH, JSON.stringify(controlsObj) );
+                await fsExtra.writeFile( BROWSER_GAMEPAD_PATH, JSON.stringify(controlsObj) );
                 browserControlsCache = JSON.parse(JSON.stringify(controlsObj)); // update the cache
             }
             else {
@@ -5646,15 +5678,15 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
         }
         // end browser special section
 
-        if( !systemsDict[system].config ) return ERROR_MESSAGES.configNotAvailable;
+        if( !systemsDict[system].config ) return Promise.resolve(ERROR_MESSAGES.configNotAvailable);
 
         // Read all the config files
         let configFiles = systemsDict[system].config.files.map( file => {
-            if( !fs.existsSync(file) ) {
-                fsExtra.outputFileSync(file, "");
+            if( !(await fsExtra.exists(file)) ) {
+                await fsExtra.outputFile(file, "");
             }
 
-            let str = fs.readFileSync(file).toString();
+            let str = (await fsExtra.readFile(file)).toString();
             // PSP has some strange characters at the start of the file not even printed by linux
             if( system == SYSTEM_PSP ) {
                 str = str.replace(/\s\[/,"[");
@@ -5878,12 +5910,12 @@ function setControls( systems, values, controller=0, nunchuk=false ) {
                 else if(system == SYSTEM_NDS && configIndex == 1) writeValue = writeValue.replace( /"|'/g, "" );
             }
 
-            fs.writeFileSync(systemsDict[system].config.files[configIndex], writeValue);
+            await fsExtra.writeFile(systemsDict[system].config.files[configIndex], writeValue);
             configIndex++;
         }
 
     }
-    return false;
+    return Promise.resolve(false);
 }
 
 /**
@@ -6203,17 +6235,17 @@ function codeToDesmumeJoystick( type, button ) {
  * Modified from here: https://github.com/hyamanieu/node-custom-virtual-gamepads/blob/master/app/virtual_gamepad.js
  * @param {string} id - The id of the connecting client.
  * @param {number} controllerNum - The controller number from a particular client.
- * @returns {boolean|string} An error message if there is an error, false if not.
+ * @returns {Promise<boolean|string>} A promise containing an error message if there is an error, false if not.
  */
-function createVirtualGamepad( id, controllerNum ) {
+async function createVirtualGamepad( id, controllerNum ) {
     let gamepadFileDescriptor;
     try {
-        gamepadFileDescriptor = fs.openSync(UINPUT_PATH, UINPUT_MODE);
+        gamepadFileDescriptor = await fsExtra.open(UINPUT_PATH, UINPUT_MODE);
         if( !gamepadFileDescriptors[id] ) gamepadFileDescriptors[id] = {};
         gamepadFileDescriptors[id][controllerNum] = gamepadFileDescriptor;
     }
     catch(err) {
-        return ERROR_MESSAGES.couldNotCreateGamepad;
+        return Promise.resolve(ERROR_MESSAGES.couldNotCreateGamepad);
     }
     // This is currently set to be the same order as PADCODES on the client, and thus the default
     // order that linux expects.
@@ -6267,43 +6299,44 @@ function createVirtualGamepad( id, controllerNum ) {
         uidev.absflat[axis] = 15;
     }
     try {
-        fs.writeSync(gamepadFileDescriptor, uidev_buffer, 0, uidev_buffer.length, null);
+        await fsExtra.write(gamepadFileDescriptor, uidev_buffer, 0, uidev_buffer.length, null);
     }
     catch(err) {
-        fs.closeSync(gamepadFileDescriptor);
+        await fsExtra.close(gamepadFileDescriptor);
         delete gamepadFileDescriptors[id][controllerNum];
         if( !Object.keys(gamepadFileDescriptors[id]).length ) delete gamepadFileDescriptors[id];
-        return ERROR_MESSAGES.couldNotCreateGamepad;
+        return Promise.resolve(ERROR_MESSAGES.couldNotCreateGamepad);
     }
     try {
         ioctl(gamepadFileDescriptor, uinput.UI_DEV_CREATE);
     }
     catch(err) {
-        fs.closeSync(gamepadFileDescriptor);
+        await fsExtra.close(gamepadFileDescriptor);
         delete gamepadFileDescriptors[id][controllerNum];
         if( !Object.keys(gamepadFileDescriptors[id]).length ) delete gamepadFileDescriptors[id];
-        return ERROR_MESSAGES.couldNotCreateGamepad;
+        return Promise.resolve(ERROR_MESSAGES.couldNotCreateGamepad);
     }
-    return false;
+    return Promise.resolve(false);
 }
 
 /**
  * Disconnect the virtual gamepad.
  * Modified from here: https://github.com/hyamanieu/node-custom-virtual-gamepads/blob/master/app/virtual_gamepad.js
  * @param {string} id - The id of the connecting client.
- * @returns {boolean|string} An error message if there is an error, false if not.
+ * @returns {Promise<boolean|string>} A promise containing an error message if there is an error, false if not.
  */
-function disconnectVirtualGamepad( id ) {
+async function disconnectVirtualGamepad( id ) {
     let idControllers = gamepadFileDescriptors[id];
     if( !idControllers ) {
-        return ERROR_MESSAGES.gamepadNotConnected;
+        return Promise.resolve(ERROR_MESSAGES.gamepadNotConnected);
     }
     for( let controllerNum in idControllers ) {
         let gamepadFileDescriptor = idControllers[controllerNum];
         ioctl(gamepadFileDescriptor, uinput.UI_DEV_DESTROY);
-        fs.closeSync(gamepadFileDescriptor);
+        await fsExtra.close(gamepadFileDescriptor);
     }
     delete gamepadFileDescriptors[id];
+    return Promise.resolve(false);
 }
 
 /**
@@ -6311,8 +6344,9 @@ function disconnectVirtualGamepad( id ) {
  * Modified from here: https://github.com/hyamanieu/node-custom-virtual-gamepads/blob/master/app/virtual_gamepad.js
  * @param {Object} event - The gamepad event from the client.
  * @param {Object} gamepadFileDescriptor - The file descriptor for the current controller.
+ * @returns {Promise} A promise containing false.
  */
-function createGamepadEvent(event, gamepadFileDescriptor) {
+async function createGamepadEvent(event, gamepadFileDescriptor) {
     if( gamepadFileDescriptor ) {
         ev = new uinputStructs.input_event;
         ev.type = event.type;
@@ -6329,60 +6363,65 @@ function createGamepadEvent(event, gamepadFileDescriptor) {
         ev_end.time.tv_usec = Math.round(Date.now() % 1000 * 1000);
         ev_end_buffer = ev_end.ref();
         try {
-            fs.writeSync(gamepadFileDescriptor, ev_buffer, 0, ev_buffer.length, null);
+            await fsExtra.write(gamepadFileDescriptor, ev_buffer, 0, ev_buffer.length, null);
         }
         catch(err) {}
         try {
-            fs.writeSync(gamepadFileDescriptor, ev_end_buffer, 0, ev_end_buffer.length, null);
+            await fsExtra.write(gamepadFileDescriptor, ev_end_buffer, 0, ev_end_buffer.length, null);
         }
         catch(err) {}
     }
+    return Promise.resolve();
 }
 
 /**
  * Add an EZ Control Profile.
  * @param {string} name - The name of the profile.
  * @param {Object} profile - The profile info.
- * @returns {(boolean|string)} An error message if there is one or false if there is not.
+ * @returns {Promise<(boolean|string)>} A promise containing an error message if there is one or false if there is not.
  */
-function addEzControlProfile( name, profile ) {
-    if( !name || !profile ) return ERROR_MESSAGES.invalidProfile;
-    loadEzControlsProfiles();
+async function addEzControlProfile( name, profile ) {
+    if( !name || !profile ) return Promise.resolve(ERROR_MESSAGES.invalidProfile);
+    await loadEzControlsProfiles();
     profilesDict[name] = profile;
-    saveEzControlsProfiles();
-    return false;
+    await saveEzControlsProfiles();
+    return Promise.resolve(false);
 }
 
 /**
  * Delete an EZ Control Profile.
  * @param {string} name - The name of the profile.
- * @returns {(boolean|string)} An error message if there is one or false if there is not.
+ * @returns {Promise<(boolean|string)>} A promise containing an error message if there is one or false if there is not.
  */
-function deleteEzControlProfile( name ) {
-    if( !name ) return ERROR_MESSAGES.invalidProfile;
-    loadEzControlsProfiles();
+async function deleteEzControlProfile( name ) {
+    if( !name ) return Promise.resolve(ERROR_MESSAGES.invalidProfile);
+    await loadEzControlsProfiles();
     delete profilesDict[name];
-    saveEzControlsProfiles();
-    return false;
+    await saveEzControlsProfiles();
+    return Promise.resolve(false);
 }
 
 /**
  * Load EZ Controls Profiles.
+ * @returns {Promise} False.
  */
-function loadEzControlsProfiles() {
-    if( !fs.existsSync( EZ_CONTROL_PATH ) ) saveEzControlsProfiles();
-    profilesDict = JSON.parse( fs.readFileSync( EZ_CONTROL_PATH ) );
+async function loadEzControlsProfiles() {
+    if( !(await fsExtra.exists( EZ_CONTROL_PATH )) ) await saveEzControlsProfiles();
+    profilesDict = JSON.parse( await fsExtra.readFile( EZ_CONTROL_PATH ) );
+    return Promise.resolve(false);
 }
 
 /**
  * Save EZ Controls Profiles.
+ * @returns {Promise} A promise containing false.
  */
-function saveEzControlsProfiles() {
-    if( !fs.existsSync( EZ_CONTROL_PATH ) ) {
+async function saveEzControlsProfiles() {
+    if( !(await fsExtra.exists( EZ_CONTROL_PATH )) ) {
         // Add the default profile
         profilesDict = DEFAULT_PROFILES_DICT;
     }
-    fs.writeFileSync( EZ_CONTROL_PATH, JSON.stringify(profilesDict) );
+    await fsExtra.writeFile( EZ_CONTROL_PATH, JSON.stringify(profilesDict) );
+    return Promise.resolve(false);
 }
 
 // Listen for the "home" button to be pressed
@@ -6606,7 +6645,7 @@ async function connectScreencast( id, numControllers ) {
     // connect the virtual gamepad if necessary
     if( !gamepadFileDescriptors[id] && numControllers ) {
         for( let i=0; i<numControllers; i++ ) {
-            createVirtualGamepad( id, i );
+            await createVirtualGamepad( id, i );
         }
     }
 
@@ -6634,7 +6673,7 @@ async function screencastPrepare(alreadyStarted) {
     if( typeof alreadyStarted === 'undefined' ) alreadyStarted = startedClientIds.length;
     // starting a screencast will activate the home tab
     // it is best to predict that and to it anyway
-    if( (currentEmulator || fullscreenPip) && !alreadyStarted && ( !menuPageIsActive() || (await menuPage.evaluate(() => isRemoteMediaActive())) ) ) { 
+    if( (currentEmulator || fullscreenPip) && !alreadyStarted && ( !( await menuPageIsActive() ) || (await menuPage.evaluate(() => isRemoteMediaActive())) ) ) { 
         // Get the current resolution of the emulator	
         // I was getting an error where, despite the n64 emulator being active, it hadn't yet changed the screen resolution
         // by the time we were getting the screen resolution to determine the "emulatorResolution"
@@ -6653,15 +6692,15 @@ async function screencastPrepare(alreadyStarted) {
         }
         else {
             if( !properResolution ) {	
-                saveCurrentResolution();	
+                await saveCurrentResolution();	
             }
             if( !properEmulatorResolution ) {
-                saveCurrentEmulatorResolution();
+                await saveCurrentEmulatorResolution();
             }
             // Update the home resolution before we start the stream, so when we start the start it gets the right resolution for the emulator	
             if( properResolution != properEmulatorResolution ) {
                 try {
-                    proc.execSync(SET_RESOLUTION_COMMAND + properEmulatorResolution);	
+                    await execPromise(SET_RESOLUTION_COMMAND + properEmulatorResolution);	
                 }
                 catch(err) {}
             }
@@ -6711,9 +6750,9 @@ async function screencastFix(alreadyStarted) {
     // n64 and 3ds cause screen flickers when the screen is being shraed button is hidden
     if( !alreadyStarted ) {
         for( let i=0; i<SHARING_PROMPT_MAX_TRIES; i++ ) {
-            if( sharingPromptIsActive() ) {
+            if( await sharingPromptIsActive() ) {
                 // Transparent for all in case we switch games
-                proc.execSync(SHARING_PROMPT_TRANSPARENT_COMMAND);
+                await execPromise(SHARING_PROMPT_TRANSPARENT_COMMAND);
                 break;
             }
             await menuPage.waitFor(SHARING_PROMPT_DELAY_TIME);
@@ -6759,7 +6798,7 @@ async function stopScreencast(id) {
     delete screencastLastCounters[id];
     delete screencastLastTimestamps[id];
 
-    disconnectVirtualGamepad( id ); // Disconnect the virtual gamepad.
+    await disconnectVirtualGamepad( id ); // Disconnect the virtual gamepad.
 
     try {
         await menuPage.evaluate( (id) => stopConnectionToPeer(true, id), id );
@@ -6778,7 +6817,7 @@ async function stopScreencast(id) {
     screencastLastCounters = {};
     screencastLastTimestamps = {};
     try {
-        if( menuPageIsActive() ) ensureProperResolution(); // we might have gone home and changed to resolution in preparation to go back to the emulator. If there was an error, we might not have gone back to the emulator. In this case, once the reset timeout fails, we should make sure we have the correct resolution.
+        if( await menuPageIsActive() ) await ensureProperResolution(); // we might have gone home and changed to resolution in preparation to go back to the emulator. If there was an error, we might not have gone back to the emulator. In this case, once the reset timeout fails, we should make sure we have the correct resolution.
     }
     catch(err) { /* ok */ }
     stopRtmp(); // stop any rtmp streams
@@ -6801,14 +6840,14 @@ async function performScreencastMouse( xPercent, yPercent, button, down, counter
         return Promise.resolve( ERROR_MESSAGES.browsePageInvalidCoordinates );
     }
 
-    let screenResolution = proc.execSync(GET_RESOLUTION_COMMAND).toString().split("x");
+    let screenResolution = (await execPromise(GET_RESOLUTION_COMMAND)).toString().split("x");
     let width = parseInt(screenResolution[0]);
     let height = parseInt(screenResolution[1]);
     let x = width * xPercent;
     let y = height * yPercent;
 
     queueScreencastEvent( () => {
-        performMouse(x, y, button, down);
+        await performMouse(x, y, button, down);
     }, null, counter, timestamp );
     
     return Promise.resolve(false);
@@ -6820,15 +6859,16 @@ async function performScreencastMouse( xPercent, yPercent, button, down, counter
  * @param {number} y - The y coordinate.
  * @param {string} button - left, right, or middle.
  * @param {boolean} [down] - True if we are pushing the mouse down, false if up.
+ * @returns {Promise} A promise containing false.
  */
-function performMouse( x, y, button, down ) {
+async function performMouse( x, y, button, down ) {
     try {
         // move the screenshare if we have to
-        let windowInfo = proc.execSync(SHARING_PROMPT_GET_WINDOW_INFO_COMMAND).toString();
+        let windowInfo = (await execPromise(SHARING_PROMPT_GET_WINDOW_INFO_COMMAND)).toString();
         let [windowAll, windowLeft, windowTop, windowWidth, windowHeight] = windowInfo.match(/Absolute upper-left X:\s+(\d+).*Absolute upper-left Y:\s+(\d+).*Width:\s+(\d+).*Height:\s+(\d+)/s);
         // the click is within the window, so move the window before we perform the click
         if( x > windowLeft && x < (windowLeft + windowWidth) && y > windowTop && y < (windowTop + windowHeight) ) {
-            proc.execSync(SHARING_PROMPT_MOVE_WINDOW + windowLeft + " " + (windowTop > SHARING_PROMPT_TOP_AREA ? SHARING_PROMPT_MINIMUM : SHARING_PROMPT_MAXIMUM));
+            await execPromise(SHARING_PROMPT_MOVE_WINDOW + windowLeft + " " + (windowTop > SHARING_PROMPT_TOP_AREA ? SHARING_PROMPT_MINIMUM : SHARING_PROMPT_MAXIMUM));
         }
     }
     catch(err) {
@@ -6842,6 +6882,7 @@ function performMouse( x, y, button, down ) {
         robot.dragMouse(x, y);
     }
     robot.mouseToggle(down ? DOWN : UP, button);
+    return Promise.resolve(false);
 }
 
 /**
@@ -6894,8 +6935,8 @@ async function performScreencastGamepad( event, id, controllerNum=0, counter, ti
         return ERROR_MESSAGES.gamepadNotConnected;
     }
     else {
-        queueScreencastEvent( () => {
-            createGamepadEvent( event, gamepadFileDescriptor );
+        queueScreencastEvent( async () => {
+            await createGamepadEvent( event, gamepadFileDescriptor );
         }, id, counter, timestamp );
         return false;
     }
@@ -7098,7 +7139,7 @@ async function updateTwitchStream() {
     headers.Host = TWITCH_API_HOST;
 
     // Search for the category
-    let custom = getTwitchStreamInfo();
+    let custom = await getTwitchStreamInfo();
     let gameName = custom.game ? custom.game : currentGame;
     let streamName = custom.name ? custom.name : gameName;
     let gameId = 0;
@@ -7132,8 +7173,8 @@ async function updateTwitchStream() {
  * @param {string} name - The name of the stream.
  * @param {string} game - The name of the game being played.
  */
-function updateTwitchStreamInfo( name, game ) {
-    fs.writeFileSync( TWITCH_STREAM_PATH, JSON.stringify({
+async function updateTwitchStreamInfo( name, game ) {
+    await fsExtra.writeFile( TWITCH_STREAM_PATH, JSON.stringify({
         name: name,
         game: game
     }) );
@@ -7142,11 +7183,11 @@ function updateTwitchStreamInfo( name, game ) {
 
 /**
  * Get the current Twitch stream name.
- * @returns {Object} An Object containing the name and game of the twitch stream.
+ * @returns {Promise<Object>} An Object containing the name and game of the twitch stream.
  */
-function getTwitchStreamInfo() {
+async function getTwitchStreamInfo() {
     try {
-        return JSON.parse( fs.readFileSync(TWITCH_STREAM_PATH) );
+        return JSON.parse( await fsExtra.readFile(TWITCH_STREAM_PATH) );
     }
     catch(err) {
         return null; // no name set
@@ -7167,15 +7208,15 @@ function createFakeMicrophone() {
 async function bindOutputToChromeInput() {
     try {
         // get the source output
-        let sourceOutputIndex = getLatestChromeSourceOutput();
+        let sourceOutputIndex = await getLatestChromeSourceOutput();
         if( sourceOutputIndex ) {
             // Now get the source
-            let sourceString = proc.execSync(PACMD_PREFIX + GET_DEFAULT_AUDIO_DEVICE_COMMAND).toString();
+            let sourceString = (await execPromise(PACMD_PREFIX + GET_DEFAULT_AUDIO_DEVICE_COMMAND)).toString();
             // We will get the default sink and then find the source that is set up to be monitoring that
             let sourceIndex = sourceString.match(/monitor\ssource:\s(\d+)/)[1];
 
             // Now we set the source of the source output to be the monitor which is what Chrome reads as the microphone.
-            proc.execSync(PACMD_PREFIX + MOVE_SOURCE_OUTPUT_COMMAND + sourceOutputIndex + " " + sourceIndex);
+            await execPromise(PACMD_PREFIX + MOVE_SOURCE_OUTPUT_COMMAND + sourceOutputIndex + " " + sourceIndex);
         }
     }
     catch(err) {
@@ -7190,12 +7231,12 @@ async function bindOutputToChromeInput() {
  * get the latest one here and we know we have the right output, so
  * long as this is called very close to when Chrome starts listening
  * to the microphone.
- * @returns {String} - The index of the chrome source output or null if there is none.
+ * @returns {Promise<String>} - The index of the chrome source output or null if there is none.
  */
-function getLatestChromeSourceOutput() {
+async function getLatestChromeSourceOutput() {
     try {
         // get the source outputs
-        let sourceOutputs = proc.execSync(PACMD_PREFIX + LIST_SOURCE_OUTPUTS_COMMAND).toString();
+        let sourceOutputs = (await execPromise(PACMD_PREFIX + LIST_SOURCE_OUTPUTS_COMMAND)).toString();
         if( sourceOutputs ) {
             // find Chrome's output source
             let chromeOutputIndex = sourceOutputs.lastIndexOf(GOOGLE_CHROME_AUDIO_IDENTIFIER);
@@ -7204,7 +7245,7 @@ function getLatestChromeSourceOutput() {
                 let sourceOutputIndexes = sourceOutputs.match(/index: \d+/g).map( m => m.match(/\d+/)[0] );
                 let sourceOutputIndex = sourceOutputIndexes[sourceOutputIndexes.length-1];
 
-                return sourceOutputIndex;
+                return Promise.resolve(sourceOutputIndex);
             }
 
         }
@@ -7212,7 +7253,7 @@ function getLatestChromeSourceOutput() {
     catch(err) {
         console.log(err);
     }
-    return null;
+    return Promise.resolve(null);
 }
 
 // End signal server section
@@ -7221,30 +7262,33 @@ function getLatestChromeSourceOutput() {
  * Bind the microphone to chrome input.
  * This should be called when we want to send the actual microphone
  * to the chrome page as we do when opening the stream page.
+ * @returns {Promise} A promise containing false.
  */
-function bindMicrophoneToChromeInput() {
+async function bindMicrophoneToChromeInput() {
     try {
         // get the source output
-        let sourceOutputIndex = getLatestChromeSourceOutput();
+        let sourceOutputIndex = await getLatestChromeSourceOutput();
         if( sourceOutputIndex ) {
             // Now get the source
-            let sourceString = proc.execSync(PACMD_PREFIX + GET_DEFAULT_MICROPHONE_COMMAND).toString();
+            let sourceString = (await execPromise(PACMD_PREFIX + GET_DEFAULT_MICROPHONE_COMMAND)).toString();
             let sourceIndex = sourceString.match(/\d+/)[0];
 
             // Now we set the source of the source output to be the default microphone device (which may be the hdmi reader card).
-            proc.execSync(PACMD_PREFIX + MOVE_SOURCE_OUTPUT_COMMAND + sourceOutputIndex + " " + sourceIndex);
+            await execPromise(PACMD_PREFIX + MOVE_SOURCE_OUTPUT_COMMAND + sourceOutputIndex + " " + sourceIndex);
         }
     }
     catch(err) {
         console.log(err);
     }
+    return Promise.resolve(false);
 }
 
 /**
  * Start looking for PC installations.
  * This will update the rom for a PC game. If no installation is needed, this won't do an update.
+ * @returns {Promise} A promise containing false.
  */
-function startPcChangeLoop() {
+async function startPcChangeLoop() {
     clearInterval( pcChangeLoop );
     clearTimeout( pcChangeClear );
     let mySystem = currentSystem;
@@ -7254,15 +7298,15 @@ function startPcChangeLoop() {
     let watchFolders = [];
     for( let watchFolder of PC_WATCH_FOLDERS ) {
         watchFolders.push(watchFolder);
-        watchFolders.push(...(fs.readdirSync(watchFolder, {withFileTypes: true}).filter(el => el.isDirectory() && el.name != INSTALLSHIELD && el.name != COMMON_FILES).map(el => watchFolder + SEPARATOR + el.name)));
+        watchFolders.push(...( (await fsExtra.readdir(watchFolder, {withFileTypes: true})).filter(el => el.isDirectory() && el.name != INSTALLSHIELD && el.name != COMMON_FILES).map(el => watchFolder + SEPARATOR + el.name)));
     }
     // Get the original contents of each folder that contains programs
-    let originalFolderContents = watchFolders.map( folder => fs.readdirSync(folder) );
+    let originalFolderContents = watchFolders.map( async folder => await fsExtra.readdir(folder) );
 
-    pcChangeLoop = setInterval( function() {
+    pcChangeLoop = setInterval( async function() {
 
         // Get the new contents of each folder that contains programs
-        let currentFolderContents = watchFolders.map( folder => fs.readdirSync(folder) );
+        let currentFolderContents = watchFolders.map( async folder => await fsExtra.readdir(folder) );
 
         for( let i=0; i<originalFolderContents.length; i++ ) {
             let originalFolderContent = originalFolderContents[i];
@@ -7274,16 +7318,16 @@ function startPcChangeLoop() {
                 // we've found the new folder, we just have to consistently look for the largest .exe file now
                 let largestBinaryPath = null;
                 let largestBinarySize = 0;
-                let checkFolder = function() {
-                    currentFolderContent = fs.readdirSync(watchFolders[i]); // reget current folder content
+                let checkFolder = async function() {
+                    currentFolderContent = await fsExtra.readdir(watchFolders[i]); // reget current folder content
                     difference = currentFolderContent.filter(el => !originalFolderContent.includes(el));
                     let newFolderPaths = difference.map(el => watchFolders[i] + SEPARATOR + el);
                     // link metadata to new location
-                    let currentMetadataContents = fs.readFileSync( generateGameMetaDataLocation(mySystem, myGame, myParents) );
+                    let currentMetadataContents = await fsExtra.readFile( generateGameMetaDataLocation(mySystem, myGame, myParents) );
                     let newContent = {};
                     newContent.romCandidates = []; // oreset rom candidates for updating
                     for( let newFolderPath of newFolderPaths ) { // sometimes there will be multiple new folders - one for the company, one for the program.
-                        let installedFiles = fs.readdirSync(newFolderPath, {withFileTypes: true});
+                        let installedFiles = await fsExtra.readdir(newFolderPath, {withFileTypes: true});
                         let foundExe = false;
                         let subdirectories = [];
                         // Get the largest binary file
@@ -7292,8 +7336,8 @@ function startPcChangeLoop() {
 
                             if( installedFile.name.match(/\.exe$/i) ) {
                                 foundExe = true;
-                                let stats = fs.statSync(curPath);
-                                if( isBinaryFileSync(curPath) ) {
+                                let stats = await fsExtra.stat(curPath);
+                                if( await isBinaryFile(curPath) ) {
                                     if( !largestBinaryPath || stats["size"] > largestBinarySize) {
                                         largestBinaryPath = curPath;
                                         largestBinarySize = stats["size"];
@@ -7312,7 +7356,7 @@ function startPcChangeLoop() {
                             newFolderPaths.push( ...subdirectories );
                         }
                     }
-                    updateGameMetaData( mySystem, myGame, myParents, newContent );
+                    await updateGameMetaData( mySystem, myGame, myParents, newContent );
                 };
                 checkFolder();
                 pcChangeLoop = setInterval( checkFolder, WATCH_FOLDERS_INTERVAL );
@@ -7320,40 +7364,40 @@ function startPcChangeLoop() {
         }
 
     }, WATCH_FOLDERS_INTERVAL );
-
+    return Promise.resolve(false);
 }
 
 /**
  * Set the saved mute mode.
  * @param {string} mode - The mute mode.
- * @returns {boolean} false or an error message if the mute mode is invalid.
+ * @returns {Promise<boolean>} A promise containing false or an error message if the mute mode is invalid.
  */
-function setMuteMode( mode ) {
-    if( ! Object.values(MUTE_MODES).filter(el => el === mode).length ) return ERROR_MESSAGES.invalidMuteMode;
+async function setMuteMode( mode ) {
+    if( ! Object.values(MUTE_MODES).filter(el => el === mode).length ) return Promise.resolve(ERROR_MESSAGES.invalidMuteMode);
 
     if( muteMode === MUTE_MODES.all || muteMode === MUTE_MODES.none ) previousMuteMode = muteMode;
     muteMode = mode;
-    updateMute();
-    return false;
+    await updateMute();
+    return Promise.resolve(false);
 }
 
 /**
  * Ensure that the mute mode we have set is being followed.
  * @param {boolean} [noEnsure] - True if we shouldn't ensure the update mute with a follow up timeout.
- * @returns {boolean|string} false if successful or an error message if there is one.
+ * @returns {Promise<boolean|string>} A promise containing false if successful or an error message if there is one.
  */
-function updateMute( noEnsure ) {
+async function updateMute( noEnsure ) {
     clearTimeout( ensureMuteTimeout );
     if( !noEnsure ) {
         // double check mute was set properly.
-        ensureMuteTimeout = setTimeout( function() {
-            updateMute( true );
+        ensureMuteTimeout = setTimeout( async function() {
+            await updateMute( true );
         }, ENSURE_MUTE_TIMEOUT_TIME );
     }
 
     try {
         let muteAlternative = null;
-        let sinkInputs = proc.execSync(PACMD_PREFIX + LIST_SINK_INPUTS_COMMAND).toString();
+        let sinkInputs = (await execPromise(PACMD_PREFIX + LIST_SINK_INPUTS_COMMAND)).toString();
         sinkInputs = sinkInputs.split("index:").map( el => el.split("\n").map( el2 => el2.trim() ) ).filter( el => el.length > 1 && el[0] && el[1] );
 
         // when we hit the browser, and we are only going to mute either the game or the browser
@@ -7378,7 +7422,7 @@ function updateMute( noEnsure ) {
                 if( !muteAlternative ) setTo = MUTE_TRUE;
             }
             
-            proc.execSync(PACMD_PREFIX + SET_MUTE_COMMAND + index + setTo);
+            await execPromise(PACMD_PREFIX + SET_MUTE_COMMAND + index + setTo);
         }
 
         // muteMode could be browser, game, or none
@@ -7386,10 +7430,10 @@ function updateMute( noEnsure ) {
             handleWithinBrowserMute( muteAlternative );
         }
 
-        return false;
+        return Promise.resolve(false);
     }
     catch(err) {
-        return ERROR_MESSAGES.couldNotMuteProperly;
+        return Promise.resolve(ERROR_MESSAGES.couldNotMuteProperly);
     }
 
 }
@@ -7460,7 +7504,7 @@ async function startPip( url, pipMuteMode ) {
         await pipPage.goto( url ) ;
         try {
             let pipRefocusGame = false;
-            if( currentEmulator && ( !menuPageIsActive() || (await menuPage.evaluate(() => isRemoteMediaActive())) ) ) { 
+            if( currentEmulator && ( !( await menuPageIsActive() ) || (await menuPage.evaluate(() => isRemoteMediaActive())) ) ) { 
                 pipRefocusGame = true;
             }
             await pipPage.waitForSelector("video", { timeout: VIDEO_SELECTOR_TIMEOUT });
@@ -7498,7 +7542,7 @@ async function startPip( url, pipMuteMode ) {
         catch(err) {
             return Promise.resolve(ERROR_MESSAGES.couldNotFindVideo);
         }
-        let mm = setMuteMode( pipMuteMode );
+        let mm = await setMuteMode( pipMuteMode );
         if( mm ) return mm;
     }
     catch(err) {
@@ -7534,7 +7578,7 @@ async function stopPip() {
     }
     await pipPage.goto(BLANK_PAGE);
     
-    setMuteMode( previousMuteMode );
+    await setMuteMode( previousMuteMode );
 
     return Promise.resolve(false);
 }
@@ -7732,4 +7776,14 @@ async function listenMic() {
     return Array.from({ length: Math.ceil(array.length / size) }, (v, index) =>
         array.slice(index * size, index * size + size)
     );
+}
+
+/**
+ * Execute a command and return its standard output.
+ * @param {string} command - The command to run.
+ * @returns {string} The stdout of the command.
+ */
+async function execPromise( command ) {
+    let output = await exec(command);
+    return Promise.resolve(output.stdout);
 }
