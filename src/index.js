@@ -15,6 +15,7 @@ const path = require('path');
 const ip = require('ip');
 const ioHook = require('iohook');
 const rimraf = require('rimraf');
+const rimrafPromise = util.promisify(rimraf);
 const ks = require("node-key-sender");
 const multer = require('multer');
 const upload = multer({ dest: '/tmp/' });
@@ -25,7 +26,6 @@ const axios = require('axios');
 const robot = require("robotjs");
 const keycode = require("keycode");
 const ioctl = require("ioctl");
-const syncFetch = require("sync-fetch");
 const uinput = require("./lib/uinput");
 const uinputStructs = require("./lib/uinput_structs");
 const ua = require('all-unpacker');
@@ -2341,8 +2341,8 @@ async function getData( startup, noPlaying, nonessential, forceStream ) {
     // samba mode, rather than reading files on a remote server (slow), ask for the information we need from the samba host
     if( sambaOn ) {
         try {
-            // get this from the samba url
-            let json = syncFetch( HTTP + sambaUrl + ":" + PORT + "/data?noPlaying=1" + (nonessential ? "&nonessential=1" : "") ).json();
+            let json = await axios.get( HTTP + sambaUrl + ":" + PORT + "/data?noPlaying=1" + (nonessential ? "&nonessential=1" : "") );
+            json = json.data;
             newSystemsDict = json.systems;
 
             setCurrentPlaying();
@@ -3398,7 +3398,7 @@ async function deleteSave(system, game, save, parents=[]) {
     let saveDir = generateSaveDir( system, game, save, parents );
 
     // Delete the save
-    rimraf.sync( saveDir );
+    await rimrafPromise( saveDir );
         
     // Check if the symbolic link is now broken
     let currentSave = await getCurrentSave( system, game, parents );
@@ -3516,7 +3516,7 @@ async function addGame( system, game, file, parents=[], isFolder, isPlaylist, pl
             }
             if( errorMessage ) {
                 // Delete the game directory
-                rimraf.sync( gameDir );
+                await rimrafPromise( gameDir );
                 // Return the error message
                 return Promise.resolve(errorMessage);
             }
@@ -3730,7 +3730,7 @@ async function updateNandSymlinks( system, game, oldRomNandPath, parents ) {
                     await fsExtra.move( nandSavePath + SEPARATOR + currentFile, currentSaveDir + SEPARATOR + currentFile );
                 }
                 // Delete the current directory, we'll add a symlink
-                rimraf.sync( nandSavePath );
+                await rimrafPromise( nandSavePath );
             }
             else {
                 // Unlink the old broken symlink
@@ -4050,7 +4050,7 @@ async function unpackGetLargestFile( file, folder, deleteFolder=false, installer
                         }
                         await fsExtra.move( loneFolderPath + SEPARATOR + subfile, newLocation );
                     }
-                    rimraf.sync( loneFolderPath );
+                    await rimrafPromise( loneFolderPath );
                     if( rename ) {
                         await fsExtra.move( newLocation, loneFolderPath );
                     }
@@ -4080,14 +4080,14 @@ async function unpackGetLargestFile( file, folder, deleteFolder=false, installer
 
                 if( copyFolderContentsPath ) {
                     await fsExtra.unlink(file);
-                    rimraf.sync(folder);
+                    await rimrafPromise(folder);
                 }
                 else if( deleteFolder ) {
                     // Move the actual rom over the zip file
                     if( largestBinaryPath ) {
                         await fsExtra.rename( largestBinaryPath, file );
                     }
-                    rimraf.sync(folder); // Delete the temp folder
+                    await rimrafPromise(folder); // Delete the temp folder
                 }
             }
             resolve();
@@ -4609,7 +4609,7 @@ async function deleteGame( system, game, parents=[], force, isPlaylist=false ) {
         }
     }
     
-    rimraf.sync( generateGameDir( system, game, parents ) );
+    await rimrafPromise( generateGameDir( system, game, parents ) );
     
     if( !force ) await getData();
 
