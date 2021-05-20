@@ -5681,7 +5681,7 @@ async function setControls( systems, values, controller=0, nunchuk=false ) {
         if( !systemsDict[system].config ) return Promise.resolve(ERROR_MESSAGES.configNotAvailable);
 
         // Read all the config files
-        let configFiles = systemsDict[system].config.files.map( file => {
+        let configFiles = await Promise.all(systemsDict[system].config.files.map( async file => {
             if( !(await fsExtra.exists(file)) ) {
                 await fsExtra.outputFile(file, "");
             }
@@ -5691,8 +5691,8 @@ async function setControls( systems, values, controller=0, nunchuk=false ) {
             if( system == SYSTEM_PSP ) {
                 str = str.replace(/\s\[/,"[");
             }
-            return str;
-        } );
+            return Promise.resolve(str);
+        } ));
         
         // Parse all the config files
         let configs = configFiles.map( configFile => {
@@ -7301,12 +7301,12 @@ async function startPcChangeLoop() {
         watchFolders.push(...( (await fsExtra.readdir(watchFolder, {withFileTypes: true})).filter(el => el.isDirectory() && el.name != INSTALLSHIELD && el.name != COMMON_FILES).map(el => watchFolder + SEPARATOR + el.name)));
     }
     // Get the original contents of each folder that contains programs
-    let originalFolderContents = watchFolders.map( async folder => await fsExtra.readdir(folder) );
+    let originalFolderContents = await Promise.all(watchFolders.map( async folder => fsExtra.readdir(folder) ));
 
     pcChangeLoop = setInterval( async function() {
 
         // Get the new contents of each folder that contains programs
-        let currentFolderContents = watchFolders.map( async folder => await fsExtra.readdir(folder) );
+        let currentFolderContents = await Promise.all(watchFolders.map( async folder => fsExtra.readdir(folder) ));
 
         for( let i=0; i<originalFolderContents.length; i++ ) {
             let originalFolderContent = originalFolderContents[i];
