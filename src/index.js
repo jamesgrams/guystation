@@ -5382,7 +5382,10 @@ async function fetchGameData( system, game, parents, currentMetadataContents, fo
                     // async is probably ok here
                     axios( { method: "GET", url: url, responseType: "stream" } ).then(function (response) {
                         response.data.pipe(fs.createWriteStream(saveLocation));
-                    });
+                    }).catch(err) {
+                        // ok - too many requests
+                        console.log("too many requests to fetch image for " + game);
+                    };
                     coverInfo.url = saveLocation.replace( WORKING_DIR, '' ); //remove the working dir
                     newContent.cover = coverInfo;
                 }
