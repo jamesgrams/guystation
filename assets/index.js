@@ -4411,7 +4411,7 @@ function displayPictureInPicture() {
         var selected = getSelectedValues(false, false, false, true);
         var entry = getGamesInFolder(selected.parents, selected.system)[selected.game];
         form.appendChild( createButton("Use Stream", function() {
-            pipUrlInput.querySelector("input").value = entry.url;
+            pipUrlInput.querySelector("input").value = entry.siteUrl;
             pipScript = entry.script;
         }) );
 
