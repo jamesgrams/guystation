@@ -5384,7 +5384,7 @@ async function fetchGameData( system, game, parents, currentMetadataContents, fo
                         response.data.pipe(fs.createWriteStream(saveLocation));
                     }).catch( function(err) {
                         // ok - too many requests
-                        console.log("too many requests to fetch image for " + game);
+                        console.log("could not save image for " + game);
                     });
                     coverInfo.url = saveLocation.replace( WORKING_DIR, '' ); //remove the working dir
                     newContent.cover = coverInfo;
