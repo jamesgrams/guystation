@@ -1533,7 +1533,7 @@ async function launchBrowser() {
     menuPage = await pages[0];
     await exposeFunctions();
     menuPage.on('close', () => {
-        process.kill(process.pid, SIGTERM);
+        proc.execSync(KILL_GUYSTATION_COMMAND);
     });
     pipPage = await browser.newPage();
     await menuPage.bringToFront();
