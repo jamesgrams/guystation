@@ -329,7 +329,7 @@ const STREAM_WAIT = 2000;
 const STREAM_TIMEOUT = 10000;
 const STREAM_WIDTH = 1200;
 const STREAM_HEIGHT = 800;
-const STREAM_OK_TO_FETCH_HOUR = 2;
+const STREAM_OK_TO_FETCH_HOUR = 0;
 const STREAM_SYNC_WAIT = 1000 * 60 * 10; // 10 minutes
 const STREAM_COVER_WIDTH = 342;
 const STREAM_COVER_HEIGHT = 513;
@@ -5263,7 +5263,9 @@ async function fetchStreamList() {
         console.log("adding new programs");
         for( let service in servicesDict ) {
             if( !getGameDictEntry( STREAM, service, [] ) ) {
+                console.log("adding new service " + service);
                 await addGame( STREAM, service, null, [], true );
+                await getData(null, null, null, true);
             }
             for( let program in servicesDict[service] ) {
                 let json = servicesDict[service][program];
