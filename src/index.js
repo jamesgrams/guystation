@@ -306,6 +306,13 @@ const MIN_STREAM_SEARCH_LENGTH = 3;
 const STOPWORDS = ["i", "me", "my", "myself", "we", "our", "ours", "ourselves", "you", "your", "yours", "yourself", "yourselves", "he", "him", "his", "himself", "she", "her", "hers", "herself", "it", "its", "itself", "they", "them", "their", "theirs", "themselves", "what", "which", "who", "whom", "this", "that", "these", "those", "am", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "having", "do", "does", "did", "doing", "a", "an", "the", "and", "but", "if", "or", "because", "as", "until", "while", "of", "at", "by", "for", "with", "about", "against", "between", "into", "through", "during", "before", "after", "above", "below", "to", "from", "in", "out", "over", "under", "again", "further", "then", "once", "here", "there", "when", "where", "why", "how", "all", "any", "both", "each", "few", "more", "most", "other", "some", "such", "no", "nor", "not", "only", "own", "same", "so", "than", "too", "very", "s", "t", "can", "will", "just", "don", "should", "now", "on", "off", "up", "down"];
 
 const DEFAULT_STREAM_SERVICES = {
+    "Amazon Prime": {
+        "url": "https://reelgood.com/source/amazon_prime",
+        "script": [ 
+            "document.querySelector('#dv-action-box a').click()"
+        ],
+        "linkRegex": /https:\\u002F\\u002Fwww.amazon[^"]+/
+    },
     "Disney+": {
         "url": "https://reelgood.com/source/disney_plus",
         "selector": 'button[data-testid="details-signup-cta"]',
@@ -5205,9 +5212,12 @@ async function fetchStreamList() {
                         let response = await page.goto(value.link);
                         let data = await response.text();
                         let link = decodeURIComponent(JSON.parse( '"' + data.match(DEFAULT_STREAM_SERVICES[service].linkRegex)[0].replace('"', '\\"') + '"' ));
-                        await page.goto(link);
-                        await page.waitForSelector(DEFAULT_STREAM_SERVICES[service].selector);
-                        let href = await page.evaluate( () => window.location.href );
+                        let href = link;
+                        if( DEFAULT_STREAM_SERVICES[service].selector ) {
+                            await page.goto(link);
+                            await page.waitForSelector(DEFAULT_STREAM_SERVICES[service].selector);
+                            href = await page.evaluate( () => window.location.href );
+                        }
                         servicesDict[service][title].link = href.replace(/\?.*/g,"");
                         break;
                     }
