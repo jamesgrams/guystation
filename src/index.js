@@ -1150,7 +1150,7 @@ app.post("/pip/start", async function(request, response) {
     if( ! requestLocked ) {
         requestLocked = true;
         try {
-            let errorMessage = await startPip( request.body.url, request.body.muteMode );
+            let errorMessage = await startPip( request.body.url, request.body.muteMode, request.body.script );
             requestLocked = false;
             writeActionResponse( request, response, errorMessage );
         }
@@ -2162,19 +2162,30 @@ async function launchBrowseTab( url, script ) {
     try {
         await browsePage.goto(url ? url : HOMEPAGE);
         if( script ) {
-            for( let scriptLine of script ) {
-                for( let i=0; i<BROWSE_LINE_TRIES; i++ ) {
-                    await browsePage.waitFor(BROWSE_SCRIPT_INTERVAL);
-                    try {
-                        await browsePage.evaluate(scriptLine);
-                        break;
-                    }
-                    catch(err) {/*ok*/}
-                }
-            }
+            await runScript( browsePage, script );
         }
     }
     catch(err) {};
+    return Promise.resolve(false);
+}
+
+/**
+ * Run a script on a page. 
+ * @param {Page} page - The puppeteer page. 
+ * @param {Array<string>} script - An array of strings to be evaluated on the page.
+ * @returns {Promise<boolean>} A promise containing false when completed.
+ */
+async function runScript( page, script ) {
+    for( let scriptLine of script ) {
+        for( let i=0; i<BROWSE_LINE_TRIES; i++ ) {
+            await page.waitFor(BROWSE_SCRIPT_INTERVAL);
+            try {
+                await page.evaluate(scriptLine);
+                break;
+            }
+            catch(err) {/*ok*/}
+        }
+    }
     return Promise.resolve(false);
 }
 
@@ -7519,15 +7530,19 @@ async function setPageMute( page, shouldMute ) {
  * Start PIP mode.
  * @param {string} url - The url containing the video we want to PIP.
  * @param {string} pipMuteMode - The mute mode to set (should be browser or game).
+ * @param {Array<string>} [script] - A script to run on the page that will allow us to get to the video.
  * @returns {Promise} - A promise containing false or an error message if there is one.
  */
-async function startPip( url, pipMuteMode ) {
+async function startPip( url, pipMuteMode, script ) {
     if( !pipPage || pipPage.isClosed() ) {
         return Promise.resolve( ERROR_MESSAGES.pipPageClosed );
     }
 
     try {
         await pipPage.goto( url ) ;
+        if( script ) {
+            await runScript( pipPage, script );
+        }
         try {
             let pipRefocusGame = false;
             if( currentEmulator && ( !( await menuPageIsActive() ) || (await menuPage.evaluate(() => isRemoteMediaActive())) ) ) { 

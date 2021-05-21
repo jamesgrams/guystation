@@ -287,7 +287,6 @@ Multiple monitor support may be limited. GuyStation will aim to use the primary 
 * There is a Samba delay sometimes, so you might not be able to launch a game immediately after updating ("No ROM found for game"). Especially since updating uses the main server to process the request.
 * There may be an issue in Samba mode when playing a 3DS or Wii game for the first time on a samba mount that has been saved on another host/mount. The save may be overwritten as the mount initiliazes first time setup.
 * They may be an issue with setting multiplayer PS2 keyboard keys.
-* Stream should be allowed for PIP.
 * More streams are needed.
 * Updating a game files doesn't update save names, so the saves likely won't be read. This is by design, because if you upload a different game, you don't want it reading old files. It does create an inconvenience in some circumstances, however.
 * EZ Config Issues

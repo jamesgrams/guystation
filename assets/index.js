@@ -4382,22 +4382,42 @@ function displayPowerOptions() {
  * Display picture in picture.
  */
 function displayPictureInPicture() {
+    var pipScript = null;
+
     var form = document.createElement("div");
     form.appendChild( createFormTitle("Picture in Picture") );
     form.setAttribute("id", "pip-form");
     
     var pipUrlInput = createInput(null, "pip-url-input", "URL: ");
+    var pipInputElement = pipUrlInput.querySelector("input");
+    pipInputElement.oninput = function() {pipScript = null;};
+    pipInputElement.onchange = pipInputElement.oninput;
     form.appendChild( pipUrlInput );
 
     var selectedSystem = document.querySelector(".system.selected");
     var selectedGame = selectedSystem.querySelector(".game.selected:not([data-status])");
+    var addButtonBreak = false;
     if( selectedSystem && selectedGame && selectedSystem.getAttribute("data-system") == "media" ) {
         var selected = getSelectedValues();
         var path = window.location.protocol + "//localhost/" + ["systems", encodeURIComponent(selected.system), "games"].concat(selected.parents).concat([encodeURIComponent(selected.game), encodeURIComponent(getGamesInFolder(selected.parents, selected.system, true)[selected.game].rom)]).join("/");
         form.appendChild( createButton("Use Media", function() {
             pipUrlInput.querySelector("input").value = path;
+            pipScript = null;
         }) );
 
+        addButtonBreak = true;
+    }
+    if( selectedSystem && selectedGame && selectedSystem.getAttribute("data-system") == "stream" ) {
+        var selected = getSelectedValues(false, false, false, true);
+        var entry = getGamesInFolder(selected.parents, selected.system)[selected.game];
+        form.appendChild( createButton("Use Stream", function() {
+            pipUrlInput.querySelector("input").value = entry.url;
+            pipScript = entry.script;
+        }) );
+
+        addButtonBreak = true;
+    }
+    if(addButtonBreak) {
         var buttonBreak = document.createElement("div");
         buttonBreak.classList.add("break");
         buttonBreak.classList.add("clear");
@@ -4428,7 +4448,8 @@ function displayPictureInPicture() {
         if( url ) {
             makeRequest( "POST", "/pip/start", {
                 url: url,
-                muteMode: muteMode
+                muteMode: muteMode,
+                script: pipScript
             },
             // don't close pip modal when working with it, since often multiple operations will be done,
             // or we'll want to leave it up on the phone so we can change videos.
@@ -6491,6 +6512,7 @@ function speechInput() {
     speechRecognition.onresult = function(event) {
         var transcript = event.results[0][0].transcript;
         console.log(transcript);
+        window.speechSynthesis.speak(new SpeechSynthesisUtterance(transcript));
         var playMatch = transcript.match(/^(play|watch|listen) (.+)/i);
         if( playMatch ) {
             var game = playMatch[2];
