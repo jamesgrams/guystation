@@ -5209,8 +5209,8 @@ async function fetchStreamList() {
                     try {
                         console.log("getting proper links for " + title + " on " + service)
                         let value = servicesDict[service][title];
-                        let response = await page.goto(value.link);
-                        let data = await response.text();
+                        let response = await axios.get(value.link);
+                        let data = response.data;
                         let link = decodeURIComponent(JSON.parse( '"' + data.match(DEFAULT_STREAM_SERVICES[service].linkRegex)[0].replace('"', '\\"') + '"' ));
                         let href = link;
                         if( DEFAULT_STREAM_SERVICES[service].selector ) {
@@ -5252,9 +5252,11 @@ async function fetchStreamList() {
             else {
                 // Need to delete everything from the old service
                 for( let existingGame in systemsDict[STREAM].games[existingService].games ) {
-                    await deleteGame( STREAM, existingGame, [service] ); // Delete the games within
+                    console.log("deleting " + existingGame + " from " + existingService);
+                    await deleteGame( STREAM, existingGame, [existingService] ); // Delete the games within
                 }
-                await deleteGame( STREAM, service, [] ); // Delete the service
+                console.log("deleting " + existingService);
+                await deleteGame( STREAM, existingService, [] ); // Delete the service
             }
         }
 
