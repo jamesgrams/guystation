@@ -5364,48 +5364,43 @@ async function fetchGameData( system, game, parents, currentMetadataContents, fo
 
     let payload = GAMES_FIELDS + 'search "' + game + '";' + 'where platforms=(' + PLATFORM_LOOKUP[system].join() + ");";
     
-    try {
-        let gameInfo = await axios.post( GAMES_ENDPOINT, payload, { headers: headers } );
-        if( gameInfo.data.length ) {
-            gameInfo = gameInfo.data[0];
-            if( gameInfo.first_release_date ) newContent.releaseDate = gameInfo.first_release_date;
-            if( gameInfo.name ) newContent.name = gameInfo.name;
-            if( gameInfo.summary ) newContent.summary = gameInfo.summary;
-            if( gameInfo.cover ) {
-                let coverPayload = "where id=" + gameInfo.cover + ";" + COVERS_FIELDS;
-                let coverInfo = await axios.post( COVERS_ENDPOINT, coverPayload, { headers: headers } );
-                if( coverInfo.data.length ) {
-                    coverInfo = coverInfo.data[0];
-                    if( coverInfo.width && coverInfo.height && coverInfo.url ) {
-                        delete coverInfo.id;
-                        let url = "https:" + coverInfo.url.replace(THUMB_IMAGE_SIZE, COVER_IMAGE_SIZE);
-                        let saveLocation = generateGameDir( system, game, parents ) + SEPARATOR + COVER_FILENAME;
-                        // async is probably ok here
-                        axios( { method: "GET", url: url, responseType: "stream" } ).then(function (response) {
-                            response.data.pipe(fs.createWriteStream(saveLocation));
-                        });
-                        coverInfo.url = saveLocation.replace( WORKING_DIR, '' ); //remove the working dir
-                        newContent.cover = coverInfo;
-                    }
+    let gameInfo = await axios.post( GAMES_ENDPOINT, payload, { headers: headers } );
+    if( gameInfo.data.length ) {
+        gameInfo = gameInfo.data[0];
+        if( gameInfo.first_release_date ) newContent.releaseDate = gameInfo.first_release_date;
+        if( gameInfo.name ) newContent.name = gameInfo.name;
+        if( gameInfo.summary ) newContent.summary = gameInfo.summary;
+        if( gameInfo.cover ) {
+            let coverPayload = "where id=" + gameInfo.cover + ";" + COVERS_FIELDS;
+            let coverInfo = await axios.post( COVERS_ENDPOINT, coverPayload, { headers: headers } );
+            if( coverInfo.data.length ) {
+                coverInfo = coverInfo.data[0];
+                if( coverInfo.width && coverInfo.height && coverInfo.url ) {
+                    delete coverInfo.id;
+                    let url = "https:" + coverInfo.url.replace(THUMB_IMAGE_SIZE, COVER_IMAGE_SIZE);
+                    let saveLocation = generateGameDir( system, game, parents ) + SEPARATOR + COVER_FILENAME;
+                    // async is probably ok here
+                    axios( { method: "GET", url: url, responseType: "stream" } ).then(function (response) {
+                        response.data.pipe(fs.createWriteStream(saveLocation));
+                    });
+                    coverInfo.url = saveLocation.replace( WORKING_DIR, '' ); //remove the working dir
+                    newContent.cover = coverInfo;
                 }
-                newContent.lastFetched = currentTime; // update the time fetched
-                await updateGameMetaData( system, game, parents, newContent );
-                return Promise.resolve(false);
             }
-            else {
-                newContent.lastFetched = currentTime; // update the time fetched
-                await updateGameMetaData( system, game, parents, newContent );
-                return Promise.resolve(false);
-            }
+            newContent.lastFetched = currentTime; // update the time fetched
+            await updateGameMetaData( system, game, parents, newContent );
+            return Promise.resolve(false);
         }
         else {
             newContent.lastFetched = currentTime; // update the time fetched
             await updateGameMetaData( system, game, parents, newContent );
-            return Promise.resolve(ERROR_MESSAGES.noGameInfo);
+            return Promise.resolve(false);
         }
     }
-    catch(err) {
-        // ok, could be too many requests
+    else {
+        newContent.lastFetched = currentTime; // update the time fetched
+        await updateGameMetaData( system, game, parents, newContent );
+        return Promise.resolve(ERROR_MESSAGES.noGameInfo);
     }
 }
 
