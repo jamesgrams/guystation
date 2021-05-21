@@ -5432,17 +5432,22 @@ async function getIgdbHeaders() {
     }
 
     if( needsFetch ) {
-        let fetched = await axios.post( IGDB_TWITCH_OAUTH_URL );
-        if( fetched.data ) {
-            igdbContent = fetched.data;
-            igdbContent.expires = igdbContent.expires_in + timeSeconds;
-            delete igdbContent.expires_in;
-            delete igdbContent.token_type;
-            igdbContent.Authorization = "Bearer " + igdbContent.access_token;
-            delete igdbContent.access_token;
-            await fsExtra.writeFile( IGDB_PATH, JSON.stringify(igdbContent) );
+        try {
+            let fetched = await axios.post( IGDB_TWITCH_OAUTH_URL );
+            if( fetched.data ) {
+                igdbContent = fetched.data;
+                igdbContent.expires = igdbContent.expires_in + timeSeconds;
+                delete igdbContent.expires_in;
+                delete igdbContent.token_type;
+                igdbContent.Authorization = "Bearer " + igdbContent.access_token;
+                delete igdbContent.access_token;
+                await fsExtra.writeFile( IGDB_PATH, JSON.stringify(igdbContent) );
+            }
+            else {
+                return Promise.resolve(ERROR_MESSAGES.couldNotFetchIGDBInfo);
+            }
         }
-        else {
+        catch(err) {
             return Promise.resolve(ERROR_MESSAGES.couldNotFetchIGDBInfo);
         }
     }
