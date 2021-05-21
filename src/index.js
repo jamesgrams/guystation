@@ -5363,43 +5363,49 @@ async function fetchGameData( system, game, parents, currentMetadataContents, fo
     };
 
     let payload = GAMES_FIELDS + 'search "' + game + '";' + 'where platforms=(' + PLATFORM_LOOKUP[system].join() + ");";
-    let gameInfo = await axios.post( GAMES_ENDPOINT, payload, { headers: headers } );
-    if( gameInfo.data.length ) {
-        gameInfo = gameInfo.data[0];
-        if( gameInfo.first_release_date ) newContent.releaseDate = gameInfo.first_release_date;
-        if( gameInfo.name ) newContent.name = gameInfo.name;
-        if( gameInfo.summary ) newContent.summary = gameInfo.summary;
-        if( gameInfo.cover ) {
-            let coverPayload = "where id=" + gameInfo.cover + ";" + COVERS_FIELDS;
-            let coverInfo = await axios.post( COVERS_ENDPOINT, coverPayload, { headers: headers } );
-            if( coverInfo.data.length ) {
-                coverInfo = coverInfo.data[0];
-                if( coverInfo.width && coverInfo.height && coverInfo.url ) {
-                    delete coverInfo.id;
-                    let url = "https:" + coverInfo.url.replace(THUMB_IMAGE_SIZE, COVER_IMAGE_SIZE);
-                    let saveLocation = generateGameDir( system, game, parents ) + SEPARATOR + COVER_FILENAME;
-                    // async is probably ok here
-                    axios( { method: "GET", url: url, responseType: "stream" } ).then(function (response) {
-                        response.data.pipe(fs.createWriteStream(saveLocation));
-                    });
-                    coverInfo.url = saveLocation.replace( WORKING_DIR, '' ); //remove the working dir
-                    newContent.cover = coverInfo;
+    
+    try {
+        let gameInfo = await axios.post( GAMES_ENDPOINT, payload, { headers: headers } );
+        if( gameInfo.data.length ) {
+            gameInfo = gameInfo.data[0];
+            if( gameInfo.first_release_date ) newContent.releaseDate = gameInfo.first_release_date;
+            if( gameInfo.name ) newContent.name = gameInfo.name;
+            if( gameInfo.summary ) newContent.summary = gameInfo.summary;
+            if( gameInfo.cover ) {
+                let coverPayload = "where id=" + gameInfo.cover + ";" + COVERS_FIELDS;
+                let coverInfo = await axios.post( COVERS_ENDPOINT, coverPayload, { headers: headers } );
+                if( coverInfo.data.length ) {
+                    coverInfo = coverInfo.data[0];
+                    if( coverInfo.width && coverInfo.height && coverInfo.url ) {
+                        delete coverInfo.id;
+                        let url = "https:" + coverInfo.url.replace(THUMB_IMAGE_SIZE, COVER_IMAGE_SIZE);
+                        let saveLocation = generateGameDir( system, game, parents ) + SEPARATOR + COVER_FILENAME;
+                        // async is probably ok here
+                        axios( { method: "GET", url: url, responseType: "stream" } ).then(function (response) {
+                            response.data.pipe(fs.createWriteStream(saveLocation));
+                        });
+                        coverInfo.url = saveLocation.replace( WORKING_DIR, '' ); //remove the working dir
+                        newContent.cover = coverInfo;
+                    }
                 }
+                newContent.lastFetched = currentTime; // update the time fetched
+                await updateGameMetaData( system, game, parents, newContent );
+                return Promise.resolve(false);
             }
-            newContent.lastFetched = currentTime; // update the time fetched
-            await updateGameMetaData( system, game, parents, newContent );
-            return Promise.resolve(false);
+            else {
+                newContent.lastFetched = currentTime; // update the time fetched
+                await updateGameMetaData( system, game, parents, newContent );
+                return Promise.resolve(false);
+            }
         }
         else {
             newContent.lastFetched = currentTime; // update the time fetched
             await updateGameMetaData( system, game, parents, newContent );
-            return Promise.resolve(false);
+            return Promise.resolve(ERROR_MESSAGES.noGameInfo);
         }
     }
-    else {
-        newContent.lastFetched = currentTime; // update the time fetched
-        await updateGameMetaData( system, game, parents, newContent );
-        return Promise.resolve(ERROR_MESSAGES.noGameInfo);
+    catch(err) {
+        // ok, could be too many requests
     }
 }
 
@@ -7325,7 +7331,8 @@ async function startPcChangeLoop() {
                     // link metadata to new location
                     let currentMetadataContents = await fsExtra.readFile( generateGameMetaDataLocation(mySystem, myGame, myParents) );
                     let newContent = {};
-                    newContent.romCandidates = []; // oreset rom candidates for updating
+                    newContent.romCandidates = []; // reset rom candidates for updating
+                    let contentPotentiallyChanged = false;
                     for( let newFolderPath of newFolderPaths ) { // sometimes there will be multiple new folders - one for the company, one for the program.
                         let installedFiles = await fsExtra.readdir(newFolderPath, {withFileTypes: true});
                         let foundExe = false;
@@ -7342,6 +7349,7 @@ async function startPcChangeLoop() {
                                         largestBinaryPath = curPath;
                                         largestBinarySize = stats["size"];
                                     }
+                                    contentPotentiallyChanged = true;
                                     if( newContent.romCandidates.indexOf(curPath) === -1 ) newContent.romCandidates.push(curPath);
                                     newContent.installer = currentMetadataContents.installer ? currentMetadataContents.installer : currentMetadataContents.rom;
                                     newContent.rom = largestBinaryPath;
@@ -7357,6 +7365,7 @@ async function startPcChangeLoop() {
                         }
                     }
                     await updateGameMetaData( mySystem, myGame, myParents, newContent );
+                    if( contentPotentiallyChanged ) await getData();
                 };
                 checkFolder();
                 pcChangeLoop = setInterval( checkFolder, WATCH_FOLDERS_INTERVAL );
