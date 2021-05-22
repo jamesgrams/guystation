@@ -335,7 +335,8 @@ const STREAM_COVER_WIDTH = 342;
 const STREAM_COVER_HEIGHT = 513;
 const WRITE_STREAM_SLEEP = 100;
 const PROPER_LINK_TRIES = 3;
-const STREAM_RELOAD_PAGE_INTERVAL = 5;
+const STREAM_RELOAD_PAGE_INTERVAL = 10;
+const STREAM_ITEMS_PER_PAGE = 50;
 const QUEUE_MAX_ATTEMPTS = 10;
 const QUEUE_WAIT_TIME = 10;
 const MAX_COMMAND_INTERVAL = 100;
@@ -5156,7 +5157,7 @@ async function fetchStreamList() {
         };
         page.on("close", handleClose);
         page.on("error", handleClose);
-        let buttonSelector = "a[href^='/source'] button";
+        let buttonSelector = "a[href^='/source'][href*='offset'] button";
         let servicesDict = {};
 
         for( let service in DEFAULT_STREAM_SERVICES ) {
@@ -5198,6 +5199,7 @@ async function fetchStreamList() {
             await page.waitForSelector("tbody tr");
             await page.waitFor(STREAM_WAIT);
             let pageCount = 1;
+            let didReload = false;
             while( true ) {
                 pageCount ++;
                 let curInterval;
@@ -5206,6 +5208,10 @@ async function fetchStreamList() {
                     await page.waitForSelector(buttonSelector, {timeout: STREAM_TIMEOUT});
                     await page.waitFor(STREAM_WAIT);
                     let prevCount = await page.evaluate( () => document.querySelectorAll("tbody tr").length );
+                    if( didReload ) {
+                       prevCount = STREAM_ITEMS_PER_PAGE;
+                       didReload = false;
+                    }
 
                     //page.off("response", intercept);
                     await page.click(buttonSelector);
@@ -5215,18 +5221,23 @@ async function fetchStreamList() {
                     await new Promise( (resolve, reject) => {
                         let tries = 0;
                         curInterval = setInterval( async () => {
-                            let count = await page.evaluate( () => document.querySelectorAll("tbody tr").length );
-                            if( count != prevCount ) resolve(); // We've loaded more
-                            tries++;
-                            if( tries > STREAM_TIMEOUT/STREAM_WAIT ) reject();
+                            try {
+                                let count = await page.evaluate( () => document.querySelectorAll("tbody tr").length );
+                                if( count != prevCount ) resolve(); // We've loaded more
+                                tries++;
+                                if( tries > STREAM_TIMEOUT/STREAM_WAIT ) reject();
+                            }
+                            catch(err) {
+                                reject();
+                            }
                         }, STREAM_WAIT );
                     });
                     await page.waitFor(STREAM_WAIT);
                     if( !(pageCount % STREAM_RELOAD_PAGE_INTERVAL) ) {
+                        clearInterval(curInterval);
                         console.log("reloading page");
-                        await page.goto( page.url() );
-                        await page.waitForSelector("tbody tr");
-                        await page.evaluate( () => document.querySelector("button[data-id='0']").click() );
+                        didReload = true;
+                        await page.reload();
                         await page.waitFor(STREAM_WAIT);
                         await page.waitForSelector("tbody tr");
                         await page.waitFor(STREAM_WAIT);
@@ -5239,8 +5250,8 @@ async function fetchStreamList() {
                 }
                 clearInterval(curInterval);
             }
-            intercept = null;
             page.off("response", intercept);
+            intercept = null;
 
             console.log("getting proper links");
             for( let title in servicesDict[service] ) {
