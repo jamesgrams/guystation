@@ -5223,7 +5223,8 @@ async function fetchStreamList() {
                     });
                     await page.waitFor(STREAM_WAIT);
                     if( !(pageCount % STREAM_RELOAD_PAGE_INTERVAL) ) {
-                        await page.reload();
+                        console.log("reloading page");
+                        await page.goto( page.url() );
                         await page.waitForSelector("tbody tr");
                         await page.evaluate( () => document.querySelector("button[data-id='0']").click() );
                         await page.waitFor(STREAM_WAIT);
