@@ -335,6 +335,7 @@ const STREAM_COVER_WIDTH = 342;
 const STREAM_COVER_HEIGHT = 513;
 const WRITE_STREAM_SLEEP = 100;
 const PROPER_LINK_TRIES = 3;
+const STREAM_RELOAD_PAGE_INTERVAL = 5;
 const QUEUE_MAX_ATTEMPTS = 10;
 const QUEUE_WAIT_TIME = 10;
 const MAX_COMMAND_INTERVAL = 100;
@@ -5120,7 +5121,7 @@ async function fetchStreamList() {
 
         // Open the browser to scrape
         console.log("opening browser");
-        let streamBrowser = await puppeteer.launch({
+        let streamBrowserOptions = {
             defaultViewport: {
                 width: STREAM_WIDTH, 
                 height: STREAM_HEIGHT
@@ -5128,16 +5129,33 @@ async function fetchStreamList() {
             args: [
                 '--no-sandbox'
             ]
-        });
+        };
+        let streamBrowser = await puppeteer.launch(streamBrowserOptions);
         let page = await streamBrowser.newPage();
-        page.on("close", async () => {
+        let intercept = null;
+        let handleClose = async () => {
             try {
                 page = await streamBrowser.newPage();
+                page.on("close", handleClose);
+                page.on("error", handleClose);
+                if( intercept ) page.on("response", intercept);
             }
             catch(err) {
-                //ok
+                try {
+                    await streamBrowser.close();
+                }
+                catch(err) {
+                    // ok
+                }
+                streamBrowser = await puppeteer.launch(streamBrowserOptions);
+                page = await streamBrowser.newPage();
+                page.on("close", handleClose);
+                page.on("error", handleClose);
+                if( intercept ) page.on("response", intercept);
             }
-        })
+        };
+        page.on("close", handleClose);
+        page.on("error", handleClose);
         let buttonSelector = "a[href^='/source'] button";
         let servicesDict = {};
 
@@ -5146,7 +5164,7 @@ async function fetchStreamList() {
             servicesDict[service] = {};
 
             // this function will intercept requests to the api
-            let intercept = async function(response) {
+            intercept = async function(response) {
                 if( response.url().match(REELGOOD_API_URL) ) {
                     let json = await response.json();
                     console.log("got intercept");
@@ -5204,6 +5222,14 @@ async function fetchStreamList() {
                         }, STREAM_WAIT );
                     });
                     await page.waitFor(STREAM_WAIT);
+                    if( !(pageCount % STREAM_RELOAD_PAGE_INTERVAL) ) {
+                        await page.reload();
+                        await page.waitForSelector("tbody tr");
+                        await page.evaluate( () => document.querySelector("button[data-id='0']").click() );
+                        await page.waitFor(STREAM_WAIT);
+                        await page.waitForSelector("tbody tr");
+                        await page.waitFor(STREAM_WAIT);
+                    }
                 }
                 catch(err) {
                     clearInterval(curInterval);
@@ -5212,6 +5238,7 @@ async function fetchStreamList() {
                 }
                 clearInterval(curInterval);
             }
+            intercept = null;
             page.off("response", intercept);
 
             console.log("getting proper links");
