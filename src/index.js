@@ -2384,6 +2384,7 @@ async function getData( startup, noPlaying, nonessential, forceStream ) {
         // unlike others, the folder content is guystation controller
         if( system === STREAM ) {
             if( systemsDict[STREAM] && !forceStream ) {
+                newSystemsDict[system] = {};
                 newSystemsDict[system].games = JSON.parse(JSON.stringify(systemsDict[system]));
                 deleteKeyRecursive(newSystemsDict[system].games, "playing");
             }
