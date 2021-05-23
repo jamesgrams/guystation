@@ -2398,7 +2398,7 @@ async function getData( startup, noPlaying, nonessential, forceStream ) {
                     systemData.games = JSON.parse(await fsExtra.readFile(STREAM_INFO_PATH)).dict;
                 }
                 catch(err) {
-                    // ok
+                    systemsData.games = {};
                 }
             }
             newSystemsDict[system] = systemData;
