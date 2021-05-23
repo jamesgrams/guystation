@@ -2382,9 +2382,19 @@ async function getData( startup, noPlaying, nonessential, forceStream ) {
         // We know when we will be updating streams and it is not all the time - only during the update windows
         // save processing power by reusing systemsDict when we can
         // unlike others, the folder content is guystation controller
-        if( system === STREAM && systemsDict[STREAM] && !forceStream ) {
-            newSystemsDict[system] = JSON.parse(JSON.stringify(systemsDict[system]));
-            deleteKeyRecursive(newSystemsDict[system].games, "playing");
+        if( system === STREAM ) {
+            if( systemsDict[STREAM] && !forceStream ) {
+                newSystemsDict[system] = JSON.parse(JSON.stringify(systemsDict[system]));
+                deleteKeyRecursive(newSystemsDict[system].games, "playing");
+            }
+            else {
+                try {
+                    newSystemsDict[system] = JSON.parse(await fsExtra.readFile(STREAM_INFO_PATH)).dict;
+                }
+                catch(err) {
+                    newSystemsDict[system] = {};
+                }
+            }
             if( currentSystem === system ) setCurrentPlaying();
             continue;
         }
@@ -2846,7 +2856,11 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
 
         if( isBrowserOrClone(system) ) {
             let gameDictEntry = getGameDictEntry( system, game, parents );
-            await launchBrowseTab( noGame ? null : gameDictEntry.siteUrl, !noGame && gameDictEntry.script ? gameDictEntry.script : null );
+            let script = gameDictEntry.script;
+            if( system == STREAM && parents.length ) {
+                script = DEFAULT_STREAM_SERVICES[parents[0]].script;
+            }
+            await launchBrowseTab( noGame ? null : gameDictEntry.siteUrl, !noGame && script ? script : null );
             currentSystem = system;
             currentGame = game;
             currentParentsString = parents.join(SEPARATOR);
@@ -5162,7 +5176,8 @@ async function fetchStreamList() {
 
         for( let service in DEFAULT_STREAM_SERVICES ) {
             console.log("going to " + service);
-            servicesDict[service] = {};
+            servicesDict[service] = { isFolder: true, game: service };
+            servicesDict[service].games = {};
 
             // this function will intercept requests to the api
             intercept = async function(response) {
@@ -5174,16 +5189,12 @@ async function fetchStreamList() {
                         let date = new Date(result.released_on);
                         let title = result.title.replace(/[\/\\]/g, "-").replace(/:/g, " -") + " (" + date.getFullYear() + ")";
                         let type = result.content_type === "m" ? "movie" : "show";
-                        servicesDict[service][title] = {
-                            title: title,
-                            description: result.overview,
-                            released: date.getTime()/1000,
-                            type: type,
-                            link: REELGOOD_URL + type + "/" + result.slug,
-                            image: REELGOOD_IMAGE_URL.replace("movie", type).replace("MOVIE_ID",result.id)
+                        servicesDict[service].games[title] = {
+                            game: title,
+                            siteUrl: REELGOOD_URL + type + "/" + result.slug
                         }
                     }
-                    console.log(Object.keys(servicesDict[service]).length);
+                    console.log(Object.keys(servicesDict[service].games).length);
                     return;
                 }
             }
@@ -5254,12 +5265,12 @@ async function fetchStreamList() {
             intercept = null;
 
             console.log("getting proper links");
-            for( let title in servicesDict[service] ) {
+            for( let title in servicesDict[service].games ) {
                 for( let i=0; i<PROPER_LINK_TRIES; i++ ) {
                     try {
                         console.log("getting proper links for " + title + " on " + service)
-                        let value = servicesDict[service][title];
-                        let response = await axios.get(value.link);
+                        let value = servicesDict[service].games[title];
+                        let response = await axios.get(value.siteUrl);
                         let data = response.data;
                         let link = decodeURIComponent(JSON.parse( '"' + data.match(DEFAULT_STREAM_SERVICES[service].linkRegex)[0].replace('"', '\\"') + '"' ));
                         let href = link;
@@ -5268,7 +5279,7 @@ async function fetchStreamList() {
                             await page.waitForSelector(DEFAULT_STREAM_SERVICES[service].selector);
                             href = await page.evaluate( () => window.location.href );
                         }
-                        servicesDict[service][title].link = href.replace(/\?.*/g,"");
+                        servicesDict[service].games[title].siteUrl = href.replace(/\?.*/g,"");
                         break;
                     }
                     catch(err) {
@@ -5279,58 +5290,7 @@ async function fetchStreamList() {
         }
         streamBrowser.close();
 
-        console.log("updating and deleting programs");
-        // note, we depend on the auto generated structure here of services for folders and games for values.
-        for( let existingService in systemsDict[STREAM].games ) {
-            if( servicesDict[existingService] ) { // Same services in old and new
-                for( let existingGame in systemsDict[STREAM].games[existingService].games ) {
-                    let json = servicesDict[existingService][existingGame];
-                    if( json ) {
-                        console.log("updating " + json.title + " from " + existingService);
-                        // still exists, update
-                        await updateGame( STREAM, json.title, [existingService], null, null, json.link, [existingService] );
-                        await writeStreamMetaData( STREAM, json.title, [existingService], json );
-                        await sleep(WRITE_STREAM_SLEEP);
-                    }
-                    // doesn't exist, delete
-                    else {
-                        console.log("deleting " + existingGame + " from " + existingService);
-                        await deleteGame( STREAM, existingGame, [existingService] );
-                    }
-                }
-            }
-            else {
-                // Need to delete everything from the old service
-                for( let existingGame in systemsDict[STREAM].games[existingService].games ) {
-                    console.log("deleting " + existingGame + " from " + existingService);
-                    await deleteGame( STREAM, existingGame, [existingService] ); // Delete the games within
-                }
-                console.log("deleting " + existingService);
-                await deleteGame( STREAM, existingService, [] ); // Delete the service
-            }
-        }
-
-        console.log("adding new programs");
-        for( let service in servicesDict ) {
-            if( !getGameDictEntry( STREAM, service, [] ) ) {
-                console.log("adding new service " + service);
-                await addGame( STREAM, service, null, [], true );
-                await getData(null, null, null, true);
-            }
-            for( let program in servicesDict[service] ) {
-                let json = servicesDict[service][program];
-                // The game is new
-                if( !systemsDict[STREAM].games[service].games[json.title] ) {
-                    console.log("adding " + json.title + " from " + service);
-                    await addGame( STREAM, json.title, json.link, [service] );
-                    await getData(null, null, null, true);
-                    await writeStreamMetaData( STREAM, json.title, [service], json );
-                    await sleep(WRITE_STREAM_SLEEP);
-                }
-            }
-        }
-
-        await fsExtra.writeFile(STREAM_INFO_PATH, JSON.stringify({lastFetched: currentTime})); // mark the last fetched time
+        await fsExtra.writeFile(STREAM_INFO_PATH, JSON.stringify({lastFetched: currentTime, dict: servicesDict})); // mark the last fetched time
     }
     catch(err) {
         console.log(err);
@@ -5346,42 +5306,6 @@ async function fetchStreamList() {
  */
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-/**
- * Update Stream Game Meta Data.
- * @param {string} system - The system.
- * @param {string} game - The game name.
- * @param {Array<string>} parents - The parents.
- * @param {Object} json - The json for the game generated by scraping the page.
- * @returns {Promise} False.
- */
-async function writeStreamMetaData( system, game, parents, json ) {
-    let saveLocation = generateGameDir( system, game, parents ) + SEPARATOR + COVER_FILENAME;
-    // async is probably ok here
-    axios( { method: "GET", url: json.image, responseType: "stream" } ).then(async function (response) {
-        response.data.pipe(fs.createWriteStream(saveLocation));
-        await updateGameMetaData( system, game, parents, {
-            cover: {
-                url: url,
-                width: STREAM_COVER_WIDTH,
-                height: STREAM_COVER_HEIGHT
-            }
-        } );
-    }).catch(async error => {
-        console.log("could not save image for " + game);
-        await updateGameMetaData( system, game, parents, {
-            cover: null
-        } );
-    });
-    let url = saveLocation.replace( WORKING_DIR, '' ); //remove the working dir
-    await updateGameMetaData( system, game, parents, {
-        summary: json.description,
-        releaseDate: json.released,
-        name: json.title,
-        script: DEFAULT_STREAM_SERVICES[parents[0]].script
-    });
-    return Promise.resolve(false);
 }
 
 /**
