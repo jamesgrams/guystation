@@ -5323,6 +5323,7 @@ async function fetchStreamList() {
                 if( !systemsDict[STREAM].games[service].games[json.title] ) {
                     console.log("adding " + json.title + " from " + service);
                     await addGame( STREAM, json.title, json.link, [service] );
+                    await getData(null, null, null, true);
                     await writeStreamMetaData( STREAM, json.title, [service], json );
                     await sleep(WRITE_STREAM_SLEEP);
                 }
