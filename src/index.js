@@ -2401,8 +2401,8 @@ async function getData( startup, noPlaying, nonessential, forceStream ) {
                     // ok
                 }
             }
-            if( currentSystem === system ) setCurrentPlaying();
             newSystemsDict[system] = systemData;
+            if( currentSystem === system ) setCurrentPlaying();
             continue;
         }
 
