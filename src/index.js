@@ -316,6 +316,7 @@ const DEFAULT_STREAM_SERVICES = {
     "Disney+": {
         "url": "https://reelgood.com/source/disney_plus",
         "selector": 'button[data-testid="details-signup-cta"]',
+        "fetchFor": ["show"],
         "script": [ 
             "document.querySelector('button[data-testid=play-button]').click()"
         ],
@@ -2859,9 +2860,12 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
 
         if( isBrowserOrClone(system) ) {
             let gameDictEntry = getGameDictEntry( system, game, parents );
-            let script = gameDictEntry.script;
-            if( system == STREAM && parents.length ) {
-                script = DEFAULT_STREAM_SERVICES[parents[0]].script;
+            let script = null;
+            if( gameDictEntry ) {
+                script = gameDictEntry.script;
+                if( system == STREAM && parents.length ) {
+                    script = DEFAULT_STREAM_SERVICES[parents[0]].script;
+                }
             }
             await launchBrowseTab( noGame ? null : gameDictEntry.siteUrl, !noGame && script ? script : null );
             currentSystem = system;
@@ -5194,7 +5198,8 @@ async function fetchStreamList() {
                         let type = result.content_type === "m" ? "movie" : "show";
                         servicesDict[service].games[title] = {
                             game: title,
-                            siteUrl: REELGOOD_URL + type + "/" + result.slug
+                            siteUrl: REELGOOD_URL + type + "/" + result.slug,
+                            type: type
                         }
                     }
                     console.log(Object.keys(servicesDict[service].games).length);
@@ -5277,7 +5282,7 @@ async function fetchStreamList() {
                         let data = response.data;
                         let link = decodeURIComponent(JSON.parse( '"' + data.match(DEFAULT_STREAM_SERVICES[service].linkRegex)[0].replace('"', '\\"') + '"' ));
                         let href = link;
-                        if( DEFAULT_STREAM_SERVICES[service].selector ) {
+                        if( DEFAULT_STREAM_SERVICES[service].selector && DEFAULT_STREAM_SERVICES[service].fetchFor && DEFAULT_STREAM_SERVICES[service].fetchFor.indexOf(value.type) != -1 ) {
                             await page.goto(link);
                             await page.waitForSelector(DEFAULT_STREAM_SERVICES[service].selector);
                             href = await page.evaluate( () => window.location.href );
