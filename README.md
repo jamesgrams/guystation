@@ -289,6 +289,8 @@ Multiple monitor support may be limited. GuyStation will aim to use the primary 
 * They may be an issue with setting multiplayer PS2 keyboard keys.
 * More streams are needed.
 * Updating a game files doesn't update save names, so the saves likely won't be read. This is by design, because if you upload a different game, you don't want it reading old files. It does create an inconvenience in some circumstances, however.
+* Speech input isn't played back.
+* The "Hey Cocoa" file expires after 30 days.
 * EZ Config Issues
     * PS2 can only have keyboard controls set with EZ configuration.
     * NGC EZ configuration will set the device to the Dolphin internal name for a virtual keyboard when a control is set to a keyboard key (with the exception of the screenshot control) as Dolphin requires a device name with controls. It will set the device to gamepad when a control is set to a gamepad button/axis a gamepad. The custom version of Dolphin will recognize devices as game controllers if the evdev device name matches one of a set of keywords (gamepad, joystick, controller, joypad). Other devices are recognized as keyboards. This system isn't perfect.
