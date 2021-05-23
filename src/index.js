@@ -2379,30 +2379,32 @@ async function getData( startup, noPlaying, nonessential, forceStream ) {
     let systems = await fsExtra.readdir( SYSTEMS_DIR_FULL );
     // For each system
     for( let system of systems ) {
+
+        // Read the metadata
+        let systemData = JSON.parse( (await fsExtra.readFile(generateMetaDataLocation(system))).toString().replace(new RegExp(USER_PLACEHOLDER, "g"), desktopUser) );
+        // The key is the name of the system
+        systemData.system = system;
+
         // We know when we will be updating streams and it is not all the time - only during the update windows
         // save processing power by reusing systemsDict when we can
         // unlike others, the folder content is guystation controller
         if( system === STREAM ) {
             if( systemsDict[STREAM] && !forceStream ) {
-                newSystemsDict[system] = {};
-                newSystemsDict[system].games = JSON.parse(JSON.stringify(systemsDict[system]));
-                deleteKeyRecursive(newSystemsDict[system].games, "playing");
+                systemData.games = JSON.parse(JSON.stringify(systemsDict[system]));
+                deleteKeyRecursive(systemData.games, "playing");
             }
             else {
                 try {
-                    newSystemsDict[system] = JSON.parse(await fsExtra.readFile(STREAM_INFO_PATH)).dict;
+                    systemData.games = JSON.parse(await fsExtra.readFile(STREAM_INFO_PATH)).dict;
                 }
                 catch(err) {
-                    newSystemsDict[system] = {};
+                    // ok
                 }
             }
             if( currentSystem === system ) setCurrentPlaying();
+            newSystemsDict[system] = systemData;
             continue;
         }
-        // Read the metadata
-        let systemData = JSON.parse( (await fsExtra.readFile(generateMetaDataLocation(system))).toString().replace(new RegExp(USER_PLACEHOLDER, "g"), desktopUser) );
-        // The key is the name of the system
-        systemData.system = system;
 
         // Read all the games
         let games = [];
