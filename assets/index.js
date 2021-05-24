@@ -388,6 +388,7 @@ var touchCount = 0;
 var touchDirection = null;
 var screencastCounter = 0;
 var sendChannel = null;
+var gamepadInputCounter = 0;
 
 // at the root level keyed by controller number, then 
 // keys are server values, values are client values
@@ -6234,6 +6235,9 @@ function pollGamepads() {
  */
 function manageGamepadInput() {
 
+    gamepadInputCounter++;
+    if( gamepadInputCounter > 100 ) gamepadInputCounter = 0;
+
     var gamepads = navigator.getGamepads ? navigator.getGamepads() : (navigator.webkitGetGamepads ? navigator.webkitGetGamepads : []);
     if(!gamepads) {
         gamePadInterval = setInterval(pollGamepads, GAMEPAD_INTERVAL);
@@ -6284,6 +6288,8 @@ function manageGamepadInput() {
                 // the axis is mapped to a button
                 var direction = gp.axes[j] >= 0 ? "+" : "-";
                 var previousDirection = gamepadAxisLastValues[i][j] >= 0 ? "+" : "-";
+                let forceUpdate = false; // we must always update on up or down. It is otherwise theoretically possible to go down without hitting the fuzziness threshold to record our last value. then, we would never go up, because the last recorded value would be below the threshold.
+                if( gamepadInputCounter == 0 ) forceUpdate = true; // The same problem can happen in games, but we don't know the thresholds (We have 0.5, but could be, e.g. 0.6). As such, always send a value every second
                 if( Math.abs(gp.axes[j]) >= AXIS_MIN_TO_BE_BUTTON && ( Math.abs(gamepadAxisLastValues[i][j]/MAX_JOYSTICK_VALUE) < AXIS_MIN_TO_BE_BUTTON || previousDirection != direction ) ) {
                     var oppositeDirection = direction == "+" ? "-" : "+";
                     if( isScreencast ) {
@@ -6296,6 +6302,7 @@ function manageGamepadInput() {
                     // in case we rapidly switched directions and it didn't get cleared out
                     gamepadButtonsDown[i][ oppositeDirection ] = false;
                     gamepadButtonsPressed[i][ oppositeDirection ] = false;
+                    forceUpdate = true;
                 }
                 else if( Math.abs(gp.axes[j]) < AXIS_MIN_TO_BE_BUTTON && Math.abs(gamepadAxisLastValues[i][j]/MAX_JOYSTICK_VALUE) >= AXIS_MIN_TO_BE_BUTTON ) {
                     if( isScreencast ) {
@@ -6304,12 +6311,13 @@ function manageGamepadInput() {
                     }
                     gamepadButtonsDown[i][ j + "+" ] = false;
                     gamepadButtonsDown[i][ j + "-" ] = false;
+                    forceUpdate = true;
                 }
 
                 // the axis is mapped to an axis
                 var serverAxisValue = Math.round(gp.axes[j] * MAX_JOYSTICK_VALUE);
                 // if within 1, its ok, unless it is 0
-                if( (!gamepadAxisLastValues[i][j] && gamepadAxisLastValues[i][j] !== 0) || Math.abs(serverAxisValue - gamepadAxisLastValues[i][j]) > SCREENCAST_AXIS_FUZZINESS || (serverAxisValue == 0 && gamepadAxisLastValues[i][j] != 0) ) {
+                if( forceUpdate || (!gamepadAxisLastValues[i][j] && gamepadAxisLastValues[i][j] !== 0) || Math.abs(serverAxisValue - gamepadAxisLastValues[i][j]) > SCREENCAST_AXIS_FUZZINESS || (serverAxisValue == 0 && gamepadAxisLastValues[i][j] != 0) ) {
                     gamepadAxisLastValues[i][j] = serverAxisValue;
 
                     if( isScreencast ) sendButtonsToServer( "a" + j, undefined, clientControllerNum, i ); // the client button is "a" + j, could be multiple server buttons
