@@ -2326,17 +2326,14 @@ function getSelectedValues(systemSaveAllowedOnly, noFolders, onlyWithLeafNodes, 
  */
 function openRemoteMediaBrowser( system ) {
     var selected = getSelectedValues( null, null, null, true );
-    var jsonUrl = "/" + ["systems", system, "games"].concat(selected.parents).concat([encodeURIComponent(selected.game), "metadata.json"]).join("/");
-    makeRequest( "GET", jsonUrl, {}, function(responseText) {
-        var data = JSON.parse(responseText);
-        // They may have the GuyStation remote chrome extension installed which allows us to run scripts remotely.
-        if( typeof gsExtensionRunScript !== 'undefined' ) {
-            gsExtensionRunScript( data.siteUrl, data.script );
-        }
-        else {
-            window.open(data.siteUrl, "_blank");
-        }
-    }, null, null, null, true );
+    var data = getGamesInFolder( selected.parents, system )[selected.game];
+    // They may have the GuyStation remote chrome extension installed which allows us to run scripts remotely.
+    if( typeof gsExtensionRunScript !== 'undefined' ) {
+        gsExtensionRunScript( data.siteUrl, data.script );
+    }
+    else {
+        window.open(data.siteUrl, "_blank");
+    }
 }
 
 /**
