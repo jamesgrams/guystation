@@ -93,6 +93,7 @@ const SLEEP_HALF_COMMAND = "sleep 0.5";
 const MAX_ACTIVATE_TRIES = 30;
 const FOCUS_CHROMIUM_COMMAND = "wmctrl -a 'Chrom'";
 const TMP_ROM_LOCATION = "/tmp/tmprom";
+const TMP_SAVE_LOCATION = "/tmp/save";
 const NAND_ROM_FILE_PLACEHOLDER = "ROM_FILE_PLACEHOLDER";
 const GAME_DIRECTORY_PLACEHOLDER = "GAME_DIRECTORY_PLACEHOLDER";
 const BROWSER = "browser";
@@ -348,6 +349,8 @@ const STREAM_ITEMS_PER_PAGE = 50;
 const QUEUE_MAX_ATTEMPTS = 10;
 const QUEUE_WAIT_TIME = 10;
 const MAX_COMMAND_INTERVAL = 100;
+const SAMBA_SAVE_NAND_TRIES = 6;
+const SAMBA_SAVE_NAND_TIME = 10000;
 
 const DEFAULT_PROFILES_DICT = {
     "GuyStation Virtual Controller": {
@@ -523,6 +526,7 @@ let streamIsFetching = false;
 let screencastLastCounters = {};
 let screencastLastTimestamps = {};
 let screencastLastRuns = {};
+let sambaSaveNandTimeout = null;
 
 let sambaIndex = process.argv.indexOf(SAMBA_FLAG);
 let sambaOn = sambaIndex != -1;
@@ -2904,7 +2908,9 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         // Also update it if it uses NAND symlinks at all. This will account for if we've
         // copied files onto a system or used SAMBA to share files and we're starting a game.
         if( !noGame && systemsDict[system].nandPathCommand ) {
-            await updateNandSymlinks( system, game, null, parents );
+            await updateNandSymlinks( system, game, null, parents, () => {
+                launchGame(system, game, true, parents, dontSaveResolution);
+            } );
         }
 
         let arguments = [];
@@ -3160,6 +3166,7 @@ async function quitGame() {
         currentSystem = null;
         currentGameStart = null;
         stopUpdatePlaytime();
+        clearTimeout( sambaSaveNandTimeout );
         updateTwitchStream();
 
         await menuPage.bringToFront(); // for pip
@@ -3184,6 +3191,7 @@ async function blankCurrentGame() {
     currentEmulator = null;
     currentGameStart = null;
     stopUpdatePlaytime();
+    clearTimeout( sambaSaveNandTimeout );
 
     blankOnboardInstance();
     return Promise.resolve(false);
@@ -3741,10 +3749,12 @@ async function getNandPath( system, game, parents ) {
  *      except we'll want to place what we have currently in the directory of the old rom and remove any symlink
  * @param {string} system - The system the game is on
  * @param {string} game - The name of the game
+ * @param {string} [oldRomNandPath] - The old Nand path of the ROM.
  * @param {Array<string>} parents - Wn array of parent folders for a game
+ * @param {Function} relaunch - The function to call to relaunch the game.
  * @returns {Promise} Contains false.
  */
-async function updateNandSymlinks( system, game, oldRomNandPath, parents ) {
+async function updateNandSymlinks( system, game, oldRomNandPath, parents, relaunch ) {
     // Make sure this is a system with the special file structure needed
     if( systemsDict[system].nandPathCommand ) {
         let nandSavePath = await getNandPath( system, game, parents );
@@ -3818,6 +3828,7 @@ async function updateNandSymlinks( system, game, oldRomNandPath, parents ) {
         // Make the necessary directories to set up nandSavePath
         // try /home, /home/james, /home/james/.local, etc.
         let nandSavePathParts = nandSavePath.split(SEPARATOR);
+        let madeDir = false;
         for( let i=2; i<nandSavePathParts.length; i++ ) {
             let currentParts = [];
             for( let j=0; j<i; j++ ) {
@@ -3828,10 +3839,38 @@ async function updateNandSymlinks( system, game, oldRomNandPath, parents ) {
             // make the directory if it does not exist
             if( path && !(await fsExtra.exists(path)) ) {
                 await fsExtra.mkdir(path);
+                madeDir = true;
             }
         }
         // Now, create the symlink
         await fsExtra.symlink( currentSaveDir, nandSavePath, 'dir');
+
+        if( relaunch && sambaOn && madeDir && ( system == SYSTEM_3DS || system == SYSTEM_NGC ) ) {
+            // this is the first time launching the game on samba mode.
+            // the emulator will create a new .metadata file (3ds, dolphin)
+            // and in doing so, it will delete the save file
+            // as such, we need to watch for this file, and if it exists, copy back
+            // the original save file and restart.
+            let monitorFolder = nandSavePath.split(SEPARATOR);
+            monitorFolder.pop();
+            monitorFolder = monitorFolder.join(SEPARATOR);
+            let startingLength = (await fsExtra.readdir(monitorFolder)).length;
+            await fsExtra.copy( currentSaveDir, TMP_SAVE_LOCATION );
+            let tries = 0;
+            let monitor = async () => {
+                let contentLength = (await fsExtra.readdir(monitorFolder)).length;
+                if( startingLength != contentLength ) {
+                    await quitGame();
+                    await fsExtra.copy( TMP_SAVE_LOCATION, currentSaveDir );
+                    relaunch();
+                }
+                else if( tries < SAMBA_SAVE_NAND_TRIES ) {
+                    sambaSaveNandTimeout = setTimeout( monitor, SAMBA_SAVE_NAND_TIME )
+                }
+                tries++;
+            };
+            monitor();
+        }
     }
 
     return Promise.resolve(false);
