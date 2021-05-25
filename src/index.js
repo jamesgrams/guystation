@@ -526,7 +526,6 @@ let streamIsFetching = false;
 let screencastLastCounters = {};
 let screencastLastTimestamps = {};
 let screencastLastRuns = {};
-let sambaSaveNandTimeout = null;
 
 let sambaIndex = process.argv.indexOf(SAMBA_FLAG);
 let sambaOn = sambaIndex != -1;
@@ -3174,7 +3173,6 @@ async function quitGame() {
         currentSystem = null;
         currentGameStart = null;
         stopUpdatePlaytime();
-        clearTimeout( sambaSaveNandTimeout );
         updateTwitchStream();
 
         await menuPage.bringToFront(); // for pip
@@ -3199,7 +3197,6 @@ async function blankCurrentGame() {
     currentEmulator = null;
     currentGameStart = null;
     stopUpdatePlaytime();
-    clearTimeout( sambaSaveNandTimeout );
 
     blankOnboardInstance();
     return Promise.resolve(false);
@@ -3878,7 +3875,8 @@ async function updateNandSymlinks( system, game, oldRomNandPath, parents, relaun
                         resolve(false);
                     }
                     else if( tries < SAMBA_SAVE_NAND_TRIES ) {
-                        sambaSaveNandTimeout = setTimeout( monitor, SAMBA_SAVE_NAND_TIME )
+                        // don't have to worry about clearing this since it will be awaited
+                        setTimeout( monitor, SAMBA_SAVE_NAND_TIME )
                     }
                     else {
                         resolve(false);
