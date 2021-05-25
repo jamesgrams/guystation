@@ -287,7 +287,7 @@ const RIGHT = "right";
 const GAMEPAD_MOVE_CURSOR_AMOUNT = 25;
 const GAMEPAD_SCROLL_AMOUNT = 50;
 const BROWSER_GAMEPAD_PATH = "browser-gamepad.json";
-const STREAM_INFO_PATH = "stream-info.json";
+const STREAM_INFO_PATH = "systems/stream/stream-info.json";
 const LAUNCH_ONBOARD_COMMAND = "onboard";
 const ENSURE_FLOAT_ONBOARD_COMMAND = "gsettings set org.onboard.window docking-enabled false";
 const RENEGOTIATE_RTMP_INTERVAL = 50;
@@ -3206,14 +3206,31 @@ function stopUpdatePlaytime() {
 async function updatePlaytime() {
     if( !currentEmulator || !currentSystem || !currentGame ) return;
     let currentParents = currentParentsString.split(SEPARATOR).filter(el => el != '');
-    let sessions = JSON.parse( await fsExtra.readFile( generateGameMetaDataLocation( currentSystem, currentGame, currentParents ) ) ).sessions;
+    let sessions;
+    let streamData = {};
+    if( system !== STREAM ) {
+        sessions = JSON.parse( await fsExtra.readFile( generateGameMetaDataLocation( currentSystem, currentGame, currentParents ) ) ).sessions;
+    }
+    else {
+        try {
+            streamData = JSON.parse(await fsExtra.readFile(STREAM_INFO_PATH));
+            sessions = streamData.dict[currentParents[0]].games[currentGame].sessions;
+        }
+        catch(err) {/*ok*/}
+    }
     if( !sessions ) sessions = [];
     if( prevGameStart != currentGameStart ) {
         prevGameStart = currentGameStart;
         sessions.push( [currentGameStart,currentGameStart] );
     }
     sessions[sessions.length - 1][1] = Date.now();
-    await updateGameMetaData( currentSystem, currentGame, currentParents, { sessions: sessions } );
+    if( system !== STREAM ) {
+        await updateGameMetaData( currentSystem, currentGame, currentParents, { sessions: sessions } );
+    }
+    else if( streamData ) {
+        streamData.dict[currentParents[0]].games[currentGame].sessions = sessions;
+        await fsExtra.writeFile( STREAM_INFO_PATH, JSON.stringify(streamData) ) ;
+    }
     return Promise.resolve(false);
 }
 
@@ -5200,6 +5217,10 @@ async function fetchStreamList() {
                             game: title,
                             siteUrl: REELGOOD_URL + type + "/" + result.slug,
                             type: type
+                        }
+                        let currentEntry = getGameDictEntry( STREAM, title, [service] );
+                        if( currentEntry && currentEntry.sessions ) {
+                            servicesDict[service].games[title].sessions = JSON.parse(JSON.stringify(currentEntry.sessions));
                         }
                     }
                     console.log(Object.keys(servicesDict[service].games).length);

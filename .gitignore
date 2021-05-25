@@ -9,4 +9,4 @@ twitch.json
 twitch-stream.json
 settings.json
 browser-gamepad.json
-stream-info.json
+systems/stream/stream-info.json
