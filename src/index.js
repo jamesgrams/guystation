@@ -4982,19 +4982,19 @@ function filterStreams(search="", sort) {
         // now filter them to match search
         if( search ) gamesKeys = gamesKeys.filter( el => termsMatch( search, el ) );
         // sort the programs
-        gamesKeys = gamesKeys.sort( function(a,b) {
-            let gameA = newSystemsDict[STREAM].games[service].games[a];
-            let gameB = newSystemsDict[STREAM].games[service].games[b];
-            if( sort == SORT_PLAYTIME || sort == SORT_RECENT ) {
+        if( sort == SORT_PLAYTIME || sort == SORT_RECENT ) {
+            gamesKeys = gamesKeys.sort( function(a,b) {
+                let gameA = newSystemsDict[STREAM].games[service].games[a];
+                let gameB = newSystemsDict[STREAM].games[service].games[b];
                 let playtimeA = getTotalPlaytime(gameA)[sort];
                 let playtimeB = getTotalPlaytime(gameB)[sort];
                 if( playtimeA < playtimeB ) return 1;
                 if( playtimeA > playtimeB ) return -1;
-            }
-            if( a < b ) return -1;
-            if( a > b ) return 1;
-            return 0;
-        } );
+                if( a < b ) return -1;
+                if( a > b ) return 1;
+                return 0;
+            } );
+        }
         // now get the top 10 or is playing
         let newGames = {};
         for( let i=0; i<gamesKeys.length; i++ ) {
@@ -5324,6 +5324,15 @@ async function fetchStreamList() {
                     }
                 }
             }
+
+            let ordered = Object.keys(servicesDict[service].games).sort().reduce(
+                (obj, key) => { 
+                    obj[key] = servicesDict[service].games[key]; 
+                    return obj;
+                }, 
+                {}
+            );
+            servicesDict[service].games = ordered;
         }
         streamBrowser.close();
 
