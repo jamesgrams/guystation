@@ -4993,6 +4993,7 @@ function filterStreams(search="", sort) {
         for( let i=0; i<gamesKeys.length; i++ ) {
             let game = newSystemsDict[STREAM].games[service].games[gamesKeys[i]];
             if( i < DEFAULT_STREAM_SHOWN || search.length >= MIN_STREAM_SEARCH_LENGTH || game.playing) {
+                if( DEFAULT_STREAM_SERVICES[service].script ) game.script = DEFAULT_STREAM_SERVICES[service].script;
                 newGames[gamesKeys[i]] = game;
             }
         }
