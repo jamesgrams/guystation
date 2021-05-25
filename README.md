@@ -69,7 +69,7 @@ Note: You can press F11 to get GuyStation out of full screen mode at any time.
     * The file `helper/browser-scripts/stream-remote.json` can be used as a browser game to pull up a stream on another guystation. Just be sure to set the url to the right IP address. Make sure the regular stream is called `Stream` if you use this script.
     * GuyStation has additional functionality that allows you to use a gamepad to navigate the browser (click, move mouse, scroll, back, forward, show/hide on-screen keyboard). Simply use EZ controller configuration for browser to set up the controls.
     * If you paste a URL into the Search bar, GuyStation will open that URL.
-    * Additionally, there is a Stream "system" that automatically populates with shows and movies from streaming services. Currently, this is only available for Disney Plus and Amazon Prime Video.
+    * Additionally, there is a Stream "system" that automatically populates with shows and movies from streaming services. Currently, this is only available for Disney Plus, Amazon Prime Video, and Hulu.
 * Media - you can play media files or stream them to any device using the GuyStation web interface.
     * You add a media file just like a game. Upload the audio/video file as the ROM file.
     * You can access media remotely by opening the menu and clicking the CD icon under "More".
@@ -287,7 +287,6 @@ Multiple monitor support may be limited. GuyStation will aim to use the primary 
 * There is a Samba delay sometimes, so you might not be able to launch a game immediately after updating ("No ROM found for game"). Especially since updating uses the main server to process the request.
 * There may be an issue in Samba mode when playing a 3DS or Wii game for the first time on a samba mount that has been saved on another host/mount. The save may be overwritten as the mount initiliazes first time setup.
 * They may be an issue with setting multiplayer PS2 keyboard keys.
-* More streams are needed.
 * Updating a game files doesn't update save names, so the saves likely won't be read. This is by design, because if you upload a different game, you don't want it reading old files. It does create an inconvenience in some circumstances, however.
 * Speech input isn't played back.
 * The "Hey Cocoa" file expires after 30 days.
