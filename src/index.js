@@ -3208,7 +3208,7 @@ async function updatePlaytime() {
     let currentParents = currentParentsString.split(SEPARATOR).filter(el => el != '');
     let sessions;
     let streamData = {};
-    if( system !== STREAM ) {
+    if( currentSystem !== STREAM ) {
         sessions = JSON.parse( await fsExtra.readFile( generateGameMetaDataLocation( currentSystem, currentGame, currentParents ) ) ).sessions;
     }
     else {
@@ -3224,7 +3224,7 @@ async function updatePlaytime() {
         sessions.push( [currentGameStart,currentGameStart] );
     }
     sessions[sessions.length - 1][1] = Date.now();
-    if( system !== STREAM ) {
+    if( currentSystem !== STREAM ) {
         await updateGameMetaData( currentSystem, currentGame, currentParents, { sessions: sessions } );
     }
     else if( streamData ) {
