@@ -3850,7 +3850,7 @@ async function updateNandSymlinks( system, game, oldRomNandPath, parents, relaun
         // Now, create the symlink
         await fsExtra.symlink( currentSaveDir, nandSavePath, 'dir');
 
-        if( relaunch && sambaOn && madeDir && ( system == SYSTEM_3DS || system == SYSTEM_NGC ) ) {
+        if( relaunch && sambaOn && madeDir && ( system == SYSTEM_3DS || system == SYSTEM_WII ) ) {
             // this is the first time launching the game on samba mode.
             // the emulator will create a new .metadata file (3ds, dolphin)
             // and in doing so, it will delete the save file
