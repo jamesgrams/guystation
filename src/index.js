@@ -349,7 +349,7 @@ const STREAM_ITEMS_PER_PAGE = 50;
 const QUEUE_MAX_ATTEMPTS = 10;
 const QUEUE_WAIT_TIME = 10;
 const MAX_COMMAND_INTERVAL = 100;
-const SAMBA_SAVE_NAND_TRIES = 6;
+const SAMBA_SAVE_NAND_TRIES = 3;
 const SAMBA_SAVE_NAND_TIME = 10000;
 
 const DEFAULT_PROFILES_DICT = {
@@ -2792,9 +2792,10 @@ function isBrowserOrClone( system ) {
  * @param {boolean} [restart] - If true, the game will be reloaded no matter what. If false, and the game is currently being played, it will just be brought to focus.
  * @param {Array<string>} [parents] - An array of parent folders for a game.
  * @param {boolean} [dontSaveResolution] - True if we should not save the home menu resolution.
+ * @param {boolean} [forceNoNand] - Do not update nand symlinks.
  * @returns {Promise<(boolean|string)>} A promise containing an error message if there was an error, or false if there was not.
  */
-async function launchGame(system, game, restart=false, parents=[], dontSaveResolution) {
+async function launchGame(system, game, restart=false, parents=[], dontSaveResolution, forceNoNand) {
 
     let useInstaller = false;
     let noGame = false;
@@ -2907,9 +2908,11 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         // the all games folder to this specific game.
         // Also update it if it uses NAND symlinks at all. This will account for if we've
         // copied files onto a system or used SAMBA to share files and we're starting a game.
-        if( !noGame && systemsDict[system].nandPathCommand ) {
-            await updateNandSymlinks( system, game, null, parents, () => {
-                launchGame(system, game, true, parents, dontSaveResolution);
+        let nandPromise = null;
+        if( !forceNoNand && !noGame && systemsDict[system].nandPathCommand ) {
+            nandPromise = await updateNandSymlinks( system, game, null, parents, async () => {
+                await launchGame(system, game, true, parents, dontSaveResolution, true);
+                return Promise.resolve(false);
             } );
         }
 
@@ -3008,6 +3011,11 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         // saveCurrentEmulatorResolution();
         // We actually don't want to do this here, and it will consistenly fail. We'll either get the right resolution
         // when we screencastPrepare, or when we see the window is hidden in the failsafe (what we'd do anyway if this failed).
+    
+        if( nandPromise ) { // This will essentially relaunch the game
+            let val = await nandPromise;
+            return val;
+        }
     }
 
     if( systemsDict[system].activateCommand ) {
@@ -3751,7 +3759,7 @@ async function getNandPath( system, game, parents ) {
  * @param {string} game - The name of the game
  * @param {string} [oldRomNandPath] - The old Nand path of the ROM.
  * @param {Array<string>} parents - Wn array of parent folders for a game
- * @param {Function} relaunch - The function to call to relaunch the game.
+ * @param {Function} [relaunch] - The function to call to relaunch the game.
  * @returns {Promise} Contains false.
  */
 async function updateNandSymlinks( system, game, oldRomNandPath, parents, relaunch ) {
@@ -3857,19 +3865,29 @@ async function updateNandSymlinks( system, game, oldRomNandPath, parents, relaun
             let startingLength = (await fsExtra.readdir(monitorFolder)).length;
             await fsExtra.copy( currentSaveDir, TMP_SAVE_LOCATION );
             let tries = 0;
-            let monitor = async () => {
-                let contentLength = (await fsExtra.readdir(monitorFolder)).length;
-                if( startingLength != contentLength ) {
-                    await quitGame();
-                    await fsExtra.copy( TMP_SAVE_LOCATION, currentSaveDir );
-                    relaunch();
-                }
-                else if( tries < SAMBA_SAVE_NAND_TRIES ) {
-                    sambaSaveNandTimeout = setTimeout( monitor, SAMBA_SAVE_NAND_TIME )
-                }
-                tries++;
-            };
-            monitor();
+            let promise = new Promise( (resolve, reject) => {
+                let monitor = async () => {
+                    let contentLength = (await fsExtra.readdir(monitorFolder)).length;
+                    if( startingLength != contentLength ) {
+                        try {
+                            await quitGame();
+                            await fsExtra.copy( TMP_SAVE_LOCATION, currentSaveDir );
+                            await relaunch();
+                        }
+                        catch(err) {/*ok*/}
+                        resolve(false);
+                    }
+                    else if( tries < SAMBA_SAVE_NAND_TRIES ) {
+                        sambaSaveNandTimeout = setTimeout( monitor, SAMBA_SAVE_NAND_TIME )
+                    }
+                    else {
+                        resolve(false);
+                    }
+                    tries++;
+                };
+                monitor();
+            } );
+            return Promise.resolve(promise);
         }
     }
 
