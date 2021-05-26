@@ -3012,7 +3012,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         // when we screencastPrepare, or when we see the window is hidden in the failsafe (what we'd do anyway if this failed).
     
         if( nandPromise ) { // This will essentially relaunch the game
-            let val = await nandPromise;
+            let val = await nandPromise.promise;
             return val;
         }
     }
@@ -3860,7 +3860,9 @@ async function updateNandSymlinks( system, game, oldRomNandPath, parents, relaun
             monitorFolder.pop();
             monitorFolder = monitorFolder.join(SEPARATOR);
             let startingLength = (await fsExtra.readdir(monitorFolder)).length;
-            await fsExtra.copy( currentSaveDir, TMP_SAVE_LOCATION );
+	    let realSaveDir = await fsExtra.realpath( currentSaveDir );
+            await rimrafPromise( TMP_SAVE_LOCATION );
+            await fsExtra.copy( realSaveDir, TMP_SAVE_LOCATION );
             let tries = 0;
             let promise = new Promise( (resolve, reject) => {
                 let monitor = async () => {
@@ -3868,10 +3870,12 @@ async function updateNandSymlinks( system, game, oldRomNandPath, parents, relaun
                     if( startingLength != contentLength ) {
                         try {
                             await quitGame();
-                            await fsExtra.copy( TMP_SAVE_LOCATION, currentSaveDir );
+                            await fsExtra.copy( TMP_SAVE_LOCATION, realSaveDir );
                             await relaunch();
                         }
-                        catch(err) {/*ok*/}
+                        catch(err) {
+                            console.log(err);
+			}
                         resolve(false);
                     }
                     else if( tries < SAMBA_SAVE_NAND_TRIES ) {
@@ -3885,7 +3889,7 @@ async function updateNandSymlinks( system, game, oldRomNandPath, parents, relaun
                 };
                 monitor();
             } );
-            return Promise.resolve(promise);
+            return Promise.resolve({promise: promise});
         }
     }
 
