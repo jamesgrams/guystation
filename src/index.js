@@ -5898,8 +5898,7 @@ async function setControls( systems, values, controller=0, nunchuk=false ) {
                         // delete no control
                         let configKeys = Object.keys(config);
                         for(let configKey of configKeys) {
-                            if( configKey.match( systemsDict[system].config.keyMatch + controller ) && // some of the keys aren't controls
-                                config[configKey] == controlInfo.values[0] ) {
+                            if( configKey.match( systemsDict[system].config.keyMatch + controller ) ) {
                                 delete config[configKey];
                             }
                         }

@@ -294,7 +294,7 @@ Multiple monitor support may be limited. GuyStation will aim to use the primary 
     * EZ Config missing print screen and keys around the numpad (+, -, etc.).
     * In addition to the keys that aren't supported on all emulators through EZ Controller Configuration, EZ Controller Configuration does not allow Shift, Ctrl, Alt, and Meta for Citra, Pause, Scroll Lock, Caps Lock, Shift, Ctrl, Alt, and Meta for PCSX2 Hotkeys, and the F keys, Numpad keys, Pause, Scroll Lock, Caps Lock, and Meta for VBAM.
     * Some emulators don't respond well to axes for the D-Pad. EZ Config defaults to detecting D-Pad axes (rather than buttons, if available). Users may have to enter in button numbers manually into EZ config for D-Pads as they won't be picked up from the controller.
-    * The same button/key/axis cannot be mapped to multiple buttons on the Sega Genesis. The same key cannot be mapped to multiple buttons on the PS2.
+    * The same button/key/axis cannot be mapped to multiple buttons on the Sega Genesis.
 
 
 ## Credits and Special Thanks
