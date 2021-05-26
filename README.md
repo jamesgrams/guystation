@@ -110,7 +110,7 @@ Note: You can press F11 to get GuyStation out of full screen mode at any time.
 * Messaging
     * You can send messages between users of GuyStation through the messaging interface. This feature is available by opening the menu and clicking the envelope icon under "More".
 * Voice Control
-    * You can control GuyStation with your voice by saying "Hey Cocoa" and then a command.
+    * You can control GuyStation with your voice by saying "Bumblebee" and then a command.
     * Commands include "play/watch/listen <game>", "stop/quit", "go home", "fullscreen", or "search <term>".
         * "You can also say "play/watch/listen <game> fullscreen" to start a video in fullscreen without having to use two commands.
     * The microphone used will be the one on the GuyStation machine, not your device.
@@ -234,6 +234,7 @@ On the client, install (`sudo apt-get`) samba and cifs-utils. Then, update `/etc
 ```
 There are a few important things to note with this. You won't be able to change saves on the client machine. This is simply because you can't update symlinks on a mounted drive. Additionally, you can't use colons or pipes in your game or save names. Samba doesn't like files that have these names, so it is best to avoid them. However, you can tell GuyStation to send save change requests that wouldn't work typically to the GuyStation that you are mounting by starting the client GuyStation with the command `node src/index.js --smb <server GuyStation ip>`. You'll want to update `~/.local/share/applications/guystation.desktop` and `~/.config/autostart/guystation.desktop` if you do this (you may want to un-symlink them).
 Note: Since PC games are installed outside of the systems directory, you'll have to install them on all computers in your cluster. GuyStation will detect you need to reinstall the program and run the installer. However, you need to make sure it installs to the same place as your other computers (including the users home directory name). Unfonrtunately, saves will not be shared here either simply by sharing the systems directory.
+Additionally, since 3DS and Wii have some extra files needed that are created by the emulator when a game is first booted up, GuyStation will watch for this on a Samba mount, and restart the game after ensuring your save has not been written over. When these new files are created, games often write over previous save files.
 
 ## Public Internet Guide
 Since GuyStation runs as a website, it can be connected to from anywhere, should you decide to forward the necessary ports (80, 8080, 3000) on your router. However, you will likely want to add login credentials to access your GuyStation. In addition, many of the APIs GuyStation uses, including the WebRTC API, require the use of HTTPs when run over the public internet. As such, here is some information to help you get the set up.
@@ -283,13 +284,10 @@ Multiple monitor support may be limited. GuyStation will aim to use the primary 
 * Screencast sound cuts out when entering or exiting a Nintendo 64 game.
 * Updating GuyStation may give new and updated files root ownership, which may not be correct.
 * PC game extra files aren't deleted on update to a new rom.
-* The same button/key/axis cannot be mapped to multiple buttons on the Sega Genesis.
 * There is a Samba delay sometimes, so you might not be able to launch a game immediately after updating ("No ROM found for game"). Especially since updating uses the main server to process the request.
-* There may be an issue in Samba mode when playing a 3DS or Wii game for the first time on a samba mount that has been saved on another host/mount. The save may be overwritten as the mount initiliazes first time setup.
 * They may be an issue with setting multiplayer PS2 keyboard keys.
 * Updating a game files doesn't update save names, so the saves likely won't be read. This is by design, because if you upload a different game, you don't want it reading old files. It does create an inconvenience in some circumstances, however.
 * Speech input isn't played back.
-* The "Hey Cocoa" file expires after 30 days.
 * EZ Config Issues
     * PS2 can only have keyboard controls set with EZ configuration.
     * NGC EZ configuration will set the device to the Dolphin internal name for a virtual keyboard when a control is set to a keyboard key (with the exception of the screenshot control) as Dolphin requires a device name with controls. It will set the device to gamepad when a control is set to a gamepad button/axis a gamepad. The custom version of Dolphin will recognize devices as game controllers if the evdev device name matches one of a set of keywords (gamepad, joystick, controller, joypad). Other devices are recognized as keyboards. This system isn't perfect.
@@ -298,6 +296,7 @@ Multiple monitor support may be limited. GuyStation will aim to use the primary 
     * EZ Config missing print screen and keys around the numpad (+, -, etc.).
     * In addition to the keys that aren't supported on all emulators through EZ Controller Configuration, EZ Controller Configuration does not allow Shift, Ctrl, Alt, and Meta for Citra, Pause, Scroll Lock, Caps Lock, Shift, Ctrl, Alt, and Meta for PCSX2 Hotkeys, and the F keys, Numpad keys, Pause, Scroll Lock, Caps Lock, and Meta for VBAM.
     * Some emulators don't respond well to axes for the D-Pad. EZ Config defaults to detecting D-Pad axes (rather than buttons, if available). Users may have to enter in button numbers manually into EZ config for D-Pads as they won't be picked up from the controller.
+    * The same button/key/axis cannot be mapped to multiple buttons on the Sega Genesis.
 
 
 ## Credits and Special Thanks

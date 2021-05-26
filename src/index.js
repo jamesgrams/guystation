@@ -296,7 +296,7 @@ const SIGTERM = 'SIGTERM';
 const INSTALLSHIELD = "InstallShield Installation Information";
 const COMMON_FILES = "Common Files";
 const UPDATE_PLAYTIME_INTERVAL = 60000; // 1 minute
-const VOICE_KEYWORDS = ["hey cocoa"];
+const VOICE_KEYWORDS = ["bumblebee"];
 const VOICE_SENSITIVITIES = VOICE_KEYWORDS.map( el => 0.75 );
 const VOICE_RECORDER_TYPE = "arecord";
 const VOICE_SAMPLE_RATE_HERTZ = 16000;
@@ -539,7 +539,7 @@ const PC_WATCH_FOLDERS = [
     "/home/"+desktopUser+"/.wine/drive_c/Program Files",
     "/home/"+desktopUser+"/.wine/drive_c/Program Files (x86)",
 ];
-const VOICE_KEYWORD_PATHS = ["/home/"+desktopUser+"/guystation/helper/heycocoa.ppn"];
+const VOICE_KEYWORD_PATHS = ["/home/"+desktopUser+"/guystation/helper/bumblebee.ppn"];
 
 let messages = [];
 
@@ -3860,7 +3860,7 @@ async function updateNandSymlinks( system, game, oldRomNandPath, parents, relaun
             monitorFolder.pop();
             monitorFolder = monitorFolder.join(SEPARATOR);
             let startingLength = (await fsExtra.readdir(monitorFolder)).length;
-	    let realSaveDir = await fsExtra.realpath( currentSaveDir );
+            let realSaveDir = await fsExtra.realpath( currentSaveDir );
             await rimrafPromise( TMP_SAVE_LOCATION );
             await fsExtra.copy( realSaveDir, TMP_SAVE_LOCATION );
             let tries = 0;
@@ -3875,7 +3875,7 @@ async function updateNandSymlinks( system, game, oldRomNandPath, parents, relaun
                         }
                         catch(err) {
                             console.log(err);
-			}
+                        }
                         resolve(false);
                     }
                     else if( tries < SAMBA_SAVE_NAND_TRIES ) {
