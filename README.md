@@ -278,7 +278,6 @@ Multiple monitor support may be limited. GuyStation will aim to use the primary 
 * Mobile Virtual Controller Keycode options don't extend beyond main keyboard area, F keys, and arrow keys.
 * The resolution is incorrect for a PIP video for N64.
 * m64py changes the Mupen64Plus dimensions when you use it.
-* Wii doesn't save properly over Samba.
 * NES fullscreen spans multiple monitors when they are connected.
 * Controlling the menu seems to break for one of the controllers when connecting multiple virtual controllers via multiple screencasts.
 * Screencast sound cuts out when entering or exiting a Nintendo 64 game.
