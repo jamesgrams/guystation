@@ -5861,7 +5861,7 @@ async function setControls( systems, values, controller=0, nunchuk=false ) {
                 // values need to be cleared out that are currently mapped to this control
                 // only keyboard keys are valid for PS2 right now
                 // Sega Genesis also has the user controls as the keys
-                if( controlInfo.values && ( system !== SYSTEM_PS2 || userControls.filter( el => el.type == KEY_CONTROL_TYPE ).length ) ) {
+                if( controlInfo.values ) {
                     if( system === SYSTEM_SG ) {
                         let index = 0;
                         let newValues = {};
