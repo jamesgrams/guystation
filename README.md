@@ -284,7 +284,6 @@ Multiple monitor support may be limited. GuyStation will aim to use the primary 
 * Updating GuyStation may give new and updated files root ownership, which may not be correct.
 * PC game extra files aren't deleted on update to a new rom.
 * There is a Samba delay sometimes, so you might not be able to launch a game immediately after updating ("No ROM found for game"). Especially since updating uses the main server to process the request.
-* They may be an issue with setting multiplayer PS2 keyboard keys.
 * Updating a game files doesn't update save names, so the saves likely won't be read. This is by design, because if you upload a different game, you don't want it reading old files. It does create an inconvenience in some circumstances, however.
 * Speech input isn't played back.
 * EZ Config Issues
@@ -295,7 +294,7 @@ Multiple monitor support may be limited. GuyStation will aim to use the primary 
     * EZ Config missing print screen and keys around the numpad (+, -, etc.).
     * In addition to the keys that aren't supported on all emulators through EZ Controller Configuration, EZ Controller Configuration does not allow Shift, Ctrl, Alt, and Meta for Citra, Pause, Scroll Lock, Caps Lock, Shift, Ctrl, Alt, and Meta for PCSX2 Hotkeys, and the F keys, Numpad keys, Pause, Scroll Lock, Caps Lock, and Meta for VBAM.
     * Some emulators don't respond well to axes for the D-Pad. EZ Config defaults to detecting D-Pad axes (rather than buttons, if available). Users may have to enter in button numbers manually into EZ config for D-Pads as they won't be picked up from the controller.
-    * The same button/key/axis cannot be mapped to multiple buttons on the Sega Genesis.
+    * The same button/key/axis cannot be mapped to multiple buttons on the Sega Genesis. The same key cannot be mapped to multiple buttons on the PS2.
 
 
 ## Credits and Special Thanks
