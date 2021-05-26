@@ -5897,11 +5897,14 @@ async function setControls( systems, values, controller=0, nunchuk=false ) {
                         // delete anything currently mapped to that control
                         // delete no control
                         let configKeys = Object.keys(config);
+                        let value = controlInfo.values[0];
                         for(let configKey of configKeys) {
                             if( configKey.match( systemsDict[system].config.keyMatch + controller ) ) {
-                                delete config[configKey];
+                                // this will delete everything at first, but it will not delete keys again after we set them
+                                if( !seenFinalValues[value] ) delete config[configKey];
                             }
                         }
+                        seenFinalValues[value] = true;
                     }
                 }
                 
