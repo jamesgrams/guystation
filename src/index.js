@@ -328,7 +328,7 @@ const DEFAULT_STREAM_SERVICES = {
         "script": [ 
             "document.querySelector('.WatchAction__btn').click()"
         ],
-        "linkRegex": /http:\\u002F\\u002Fwww.hulu[^"]+/
+        "linkRegex": /https:\\u002F\\u002Fwww.hulu[^"]+/
     }
 };
 const REELGOOD_API_URL = "https://api.reelgood.com/v3.0/content/browse/source";
