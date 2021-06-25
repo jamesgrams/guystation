@@ -62,9 +62,9 @@ then
     mkdir ~/pcsx2
     mv bin ~/pcsx2/
     mkdir ~/blastem
-    mv blastem ~/blastem/
-    mv default.cfg ~/blastem/
-    mv rom.db ~/blastem/
+    mv blastem ~/blastem/blastem
+    mv default.cfg ~/blastem/default.cfg 
+    mv rom.db ~/blastem/rom.db
     mv shaders ~/blastem/shaders
     cd ~
 fi
