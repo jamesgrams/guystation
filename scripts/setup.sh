@@ -36,7 +36,7 @@ then
     # Get the pre-built emulators
     # Store in website rather than releases in case the installtion method ever changes - easier to change
     wget https://github.com/jamesgrams/guystation/releases/download/v2.0/guystation-builds.zip
-    unzip guystation-builds.zip
+    unzip guystation-builds.zip -d guystation-builds
     cd guystation-builds
     sudo mv citra-qt /usr/local/bin/
     sudo mv citra /usr/local/bin/
