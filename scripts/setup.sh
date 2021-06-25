@@ -284,3 +284,7 @@ bash -c "ln -s ~/guystation/helper/autostart/guystation.desktop ~/.config/autost
 mkdir -p ~/.icons
 bash -c "ln -s ~/guystation/assets/icons/android-icon-192x192.png ~/.icons/guystation.png"
 bash -c "ln -s ~/guystation/helper/autostart/guystation.desktop ~/.local/share/applications/guystation.desktop"
+
+# Allow npm start to run as root
+cd ~/guystation
+sudo chown root .
