@@ -2408,6 +2408,7 @@ function displayRemoteMedia(system, game, parents, serverLaunched) {
     var videoElement = document.createElement("video");
     videoElement.setAttribute("controls", "true");
     videoElement.setAttribute("autoplay", "true");
+    videoElement.setAttribute("playsinline", "true");
     if( autoplayMedia || isPlaylistMedia ) { // the server can't launch folder media, so we don't need the autoplayMedia flag on the server, we can just autoplay or not based on whether it is a playlist
         videoElement.addEventListener( "ended", function() {
             playNextMedia(1);
