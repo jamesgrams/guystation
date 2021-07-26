@@ -4325,9 +4325,9 @@ function displayPowerOptions() {
     form.appendChild( createButton("Restart GuyStation", function(event) {
         if( (!event.detail || event.detail == 1) && !makingRequest ) {
             displayConfirm( "Are you sure you want to restart GuyStation?", function() { 
-                startRequest(); 
+                startRequest();
+                didRestart = true;
                 makeRequest( "GET", "/system/restart", [], null, function(responseText) {
-                    didRestart = true;
                     try {
                         var message = JSON.parse(responseText).message;
 			            createToast(message);
@@ -4343,9 +4343,9 @@ function displayPowerOptions() {
     form.appendChild( createButton("Reboot Machine", function(event) {
         if( (!event.detail || event.detail == 1) && !makingRequest ) {
             displayConfirm( "Are you sure you want to reboot GuyStation?", function() { 
-                startRequest(); 
+                startRequest();
+                didRestart = true;
                 makeRequest( "GET", "/system/reboot", [], null, function(responseText) {
-                    didRestart = true;
                     try {
                         var message = JSON.parse(responseText).message;
                         createToast(message);
