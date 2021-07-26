@@ -821,7 +821,6 @@ function load() {
         setInterval( function() {
             if( !makingRequest ) {
                 makeRequest( "GET", "/data", { "nonessential": true }, function(responseText) {
-                    if( didRestart ) window.location.reload();
                     var response = JSON.parse(responseText);
                     if( response.systems ) {
                         if( response.systemsDictHashNoSessions !== systemsDictHashNoSessions ) {
@@ -896,7 +895,10 @@ function load() {
         setTimeout( reloadMessages, RELOAD_MESSAGES_INTERVAL );
 
         socket = io.connect( window.location.protocol+"//"+window.location.hostname+":3000");
-        socket.on("connect", function() {console.log("socket connected")});
+        socket.on("connect", function() {
+            console.log("socket connected")
+            if( didRestart ) window.location.reload();
+        });
 
         setTimeout( function() {
        	    document.querySelector("#search").setAttribute("tabindex", "0");
