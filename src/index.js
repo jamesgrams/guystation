@@ -76,13 +76,9 @@ const HTTP_OK = 200;
 const HTTP_TEMPORARILY_UNAVAILABLE = 503;
 const INDEX_PAGE = "index.html";
 const LOCALHOST = "localhost";
-var IP = "";
-try {
-    IP = ip.address();
-}
-catch(err) {
-    // Not connected
-}
+let IP = "";
+const IP_TRIES = 10;
+const IP_WAIT = 2000;
 const ESCAPE_KEY = 1;
 const KILL_COMMAND = "kill -9 ";
 const KILL_FIRST_COMMAND = "kill ";
@@ -1377,7 +1373,7 @@ if(process.argv.indexOf(CHROMIUM_ARG) == -1) {
 
 // START PROGRAM (Launch Browser and Listen)
 expressStatic = staticApp.listen(STATIC_PORT); // Launch the static assets first, so the browser can access them
-getData( true ).then( () => { launchBrowser().then( () => {
+getIp().then( (ipAddr) => { IP = ipAddr; getData( true ).then( () => { launchBrowser().then( () => {
     try {
         if(process.argv.indexOf(CHROMIUM_ARG) == -1) {
             setMuteMode(MUTE_MODES.none);
@@ -1390,7 +1386,7 @@ getData( true ).then( () => { launchBrowser().then( () => {
     expressDynamic = app.listen(PORT);
     detectHotword();
     if( !sambaOn ) syncStreams();
-} ) } );
+} ) } ) } );
 process.on(SIGTERM, () => {
     try {
         ioHook.unload();
@@ -7898,4 +7894,28 @@ async function listenMic() {
 async function execPromise( command ) {
     let output = await exec(command);
     return Promise.resolve(output.stdout);
+}
+
+/**
+ * Get the current IP address
+ * @returns {Promise<string>} A promise containing an IP address.
+ */
+ function getIp() {
+    return new Promise( (resolve, reject) => {
+        let ipTries = 0;
+        let waitForIp = async function() {
+            ipTries++;
+            try {
+                let ipAddr = ip.address();
+                if( !ip.isLoopback(ipAddr) ) {
+                    resolve(ipAddr);
+                    return;
+                }
+            }
+            catch(err) {}
+            if( tries < IP_TRIES ) setTimeout( waitForIp, IP_WAIT );
+            else resolve("");
+        }
+        waitForIp();
+    } );
 }
