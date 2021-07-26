@@ -389,6 +389,7 @@ var touchDirection = null;
 var screencastCounter = 0;
 var sendChannel = null;
 var gamepadInputCounter = 0;
+var didRestart = false;
 
 // at the root level keyed by controller number, then 
 // keys are server values, values are client values
@@ -820,6 +821,7 @@ function load() {
         setInterval( function() {
             if( !makingRequest ) {
                 makeRequest( "GET", "/data", { "nonessential": true }, function(responseText) {
+                    if( didRestart ) window.location.reload();
                     var response = JSON.parse(responseText);
                     if( response.systems ) {
                         if( response.systemsDictHashNoSessions !== systemsDictHashNoSessions ) {
@@ -4323,6 +4325,7 @@ function displayPowerOptions() {
             displayConfirm( "Are you sure you want to restart GuyStation?", function() { 
                 startRequest(); 
                 makeRequest( "GET", "/system/restart", [], null, function(responseText) {
+                    didRestart = true;
                     try {
                         var message = JSON.parse(responseText).message;
 			            createToast(message);
@@ -4340,6 +4343,7 @@ function displayPowerOptions() {
             displayConfirm( "Are you sure you want to reboot GuyStation?", function() { 
                 startRequest(); 
                 makeRequest( "GET", "/system/reboot", [], null, function(responseText) {
+                    didRestart = true;
                     try {
                         var message = JSON.parse(responseText).message;
                         createToast(message);
