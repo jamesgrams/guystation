@@ -250,6 +250,7 @@ const NGC_GAMEPAD = "evdev/0/Gamepad";
 const NGC_VIRTUAL_KEYBOARD = "XInput2/0/Virtual core pointer";
 const NGC_PAD_KEY = "GCPad1";
 const NGC_DEVICE_TYPE_KEY = "Device";
+const NGC_IS_KEYBOARD_INDICATOR = "Buttons/A";
 const WII_PAD_KEY = "Wiimote1";
 const WII_CLASSIC_KEY = "Extension";
 const WII_CLASSIC_VALUE = "Classic";
@@ -6259,7 +6260,8 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
 	    if( controlInfo.actualControl != SCREENSHOT_CONTROL) {
             if( !config[padKey] ) config[padKey] = {};
 
-            config[padKey][NGC_DEVICE_TYPE_KEY] = NGC_GAMEPAD.replace("0", controller); 
+            //config[padKey][NGC_DEVICE_TYPE_KEY] = NGC_GAMEPAD.replace("0", controller);
+            correctJoystickDevice( config, controllers, controller, [padKey, NGC_IS_KEYBOARD_INDICATOR], /^[^`]/, [padKey, NGC_DEVICE_TYPE_KEY], /(?<=evdev\/)\n+/ ); 
 
             if( system == SYSTEM_WII ) {
                 config[padKey][WII_CLASSIC_KEY] = nunchuk ? WII_NUNCHUK_VALUE : WII_CLASSIC_VALUE;
@@ -6278,7 +6280,8 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
                 return value;
              } );
             if( controlInfo.actualControl != SCREENSHOT_CONTROL) config[padKey][NGC_DEVICE_TYPE_KEY] = NGC_VIRTUAL_KEYBOARD;//.replace("0", controller); Multiple keyboards probably isn't what we'd excpect, so keep at 0 for device num
-            else config[HOTKEY_PAD_KEY][NGC_DEVICE_TYPE_KEY] = NGC_VIRTUAL_KEYBOARD; 
+            else config[HOTKEY_PAD_KEY][NGC_DEVICE_TYPE_KEY] = NGC_VIRTUAL_KEYBOARD;
+            correctJoystickDevice( config, controllers, controller, [padKey, NGC_IS_KEYBOARD_INDICATOR], /^[^`]/, [padKey, NGC_DEVICE_TYPE_KEY], /(?<=evdev\/)\n+/ ); 
         }
     }
     
@@ -6302,6 +6305,9 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
  * Correct the joystick devices.
  * Say you set player 1 to use a keyboard. Well, now if player 2 is a joystick,
  * it needs to be the joystick in port 1 rather than port 2.
+ * Note this only sets those higher. i.e. if you set player 2 to joystick,
+ * player 1 will not be impacted at all.
+ * The value in the higher controller num should obviously already be set for this function to work.
  * @param {Object} config - The config object for the system. 
  * @param {Array} controllers - The array of controllers from the metadata.json. 
  * @param {number} controller - The controller index we are setting. 
