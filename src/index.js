@@ -6111,6 +6111,20 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
                 }
             }
             config[controllerKey][N64_DEVICE_KEY] = actualDevice;
+            // now that we have the correct device number for this device, we have to set the device number
+            // for all controllers after it. This allows the order not to matter when things are set.
+            // So if we set controller 1 to being a joypad when it was previously a keyboard, controller 2
+            // will now say it uses the second joypad.
+            for( let i=controller; i<controllers.length; i++ ) {
+                actualDevice++;
+                let curControllerKey = N64_MANUAL_CONTROLLER.replace(controllers[0], controllers[i]);
+                if( config[curControllerKey] 
+                    && config[curControllerKey][N64_IS_KEYBOARD_INDICATOR] 
+                    && config[curControllerKey][N64_IS_KEYBOARD_INDICATOR].match(/^key/) ) {
+                    actualDevice--;
+                }
+                config[curControllerKey][N64_DEVICE_KEY] = actualDevice; // actual device is increased throughout the loop
+            }
         }
     }
     // gba expects uppercase key names
