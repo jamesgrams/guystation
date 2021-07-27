@@ -6100,25 +6100,11 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
         // since they will use the controller in the first port
         if( controllers && (controller || controller === 0) && controllerKey.match(controllers[controller]) ) {
             let actualDevice = 0;
-            for( let i=0; i<controller; i++ ) {
-                actualDevice++;
+            for( let i=0; i<controllers.length; i++ ) {
                 let curControllerKey = N64_MANUAL_CONTROLLER.replace(controllers[0], controllers[i]);
+                if( i >= controller ) config[curControllerKey][N64_DEVICE_KEY] = actualDevice; // actual device is increased throughout the loop
+                actualDevice++;
                 // If the previous device uses a key for the A button, assume that it is a keyboard
-                if( config[curControllerKey] 
-                    && config[curControllerKey][N64_IS_KEYBOARD_INDICATOR] 
-                    && config[curControllerKey][N64_IS_KEYBOARD_INDICATOR].match(/^key/) ) {
-                    actualDevice--;
-                }
-            }
-            config[controllerKey][N64_DEVICE_KEY] = actualDevice;
-            // now that we have the correct device number for this device, we have to set the device number
-            // for all controllers after it. This allows the order not to matter when things are set.
-            // So if we set controller 1 to being a joypad when it was previously a keyboard, controller 2
-            // will now say it uses the second joypad.
-            for( let i=controller; i<controllers.length; i++ ) {
-                let curControllerKey = N64_MANUAL_CONTROLLER.replace(controllers[0], controllers[i]);
-                config[curControllerKey][N64_DEVICE_KEY] = actualDevice; // actual device is increased throughout the loop
-                actualDevice++;
                 if( config[curControllerKey] 
                     && config[curControllerKey][N64_IS_KEYBOARD_INDICATOR] 
                     && config[curControllerKey][N64_IS_KEYBOARD_INDICATOR].match(/^key/) ) {
