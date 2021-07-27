@@ -6315,24 +6315,24 @@ function correctJoystickDevice( config, controllers, controller, indicatorPath, 
         let actualDevice = 0;
         for( let i=0; i<controllers.length; i++ ) {
             // Update the paths with the correct controller
-            indicatorPath = JSON.parse(JSON.stringify(indicatorPath));
-            keyPath = JSON.parse(JSON.stringify(keyPath));
+            let curIndicatorPath = JSON.parse(JSON.stringify(indicatorPath));
+            let curKeyPath = JSON.parse(JSON.stringify(keyPath));
             let indicatorConfig;
-            for( let j=0; j<indicatorPath.length; j++ ) {
-                if( indicatorPath[j].match(controllers[0]) ) indicatorPath[j].replace(controllers[0], controllers[i]);
-                if( j < indicatorPath.length - 1 ) indicatorConfig = config[indicatorPath[j]];
+            for( let j=0; j<curIndicatorPath.length; j++ ) {
+                if( curIndicatorPath[j].match(controllers[0]) ) curIndicatorPath[j] = curIndicatorPath[j].replace(controllers[0], controllers[i]);
+                if( j < curIndicatorPath.length - 1 ) indicatorConfig = config[curIndicatorPath[j]];
                 if( !indicatorConfig ) return;
             }
             let keyConfig;
-            for( let j=0; j<keyPath.length; j++ ) {
-                if( keyPath[j].match(controllers[0]) ) keyPath[j].replace(controllers[0], controllers[i]);
-                if( j < keyPath.length - 1 ) keyConfig = config[keyPath[j]];
+            for( let j=0; j<curKeyPath.length; j++ ) {
+                if( curKeyPath[j].match(controllers[0]) ) curKeyPath[j] = curKeyPath[j].replace(controllers[0], controllers[i]);
+                if( j < curKeyPath.length - 1 ) keyConfig = config[curKeyPath[j]];
                 if( !keyConfig ) return;
             }
-            if( i >= controller ) keyConfig[keyPath[keyPath.length-1]] = keyConfig[keyPath[keyPath.length-1]].replace(replaceRegex, actualDevice); // actual device is increased throughout the loop
+            if( i >= controller ) keyConfig[curKeyPath[curKeyPath.length-1]] = keyConfig[curKeyPath[curKeyPath.length-1]].replace(replaceRegex, actualDevice); // actual device is increased throughout the loop
             actualDevice++;
             // If the previous device uses a key for the A button, assume that it is a keyboard
-            if( indicatorConfig[indicatorPath[indicatorPath.length-1]].match(indicatorRegex) ) {
+            if( indicatorConfig[curIndicatorPath[curIndicatorPath.length-1]].match(indicatorRegex) ) {
                 actualDevice--;
             }
         }
