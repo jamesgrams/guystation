@@ -6098,7 +6098,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
         config[controllerKey][N64_DEVICE_KEY] = controller;
         // If say player 1 is a keyboard, we actually want the device number for player 2 to be 1,
         // since they will use the controller in the first port
-        if( controllers && controller && controllerKey.match(controllers[0]) ) {
+        if( controllers && controller && controllerKey.match(controllers[controller]) ) {
             let actualDevice = 0;
             for( let i=0; i<controller; i++ ) {
                 actualDevice++;
