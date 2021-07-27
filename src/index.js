@@ -6095,7 +6095,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
         if( controller && controllers && controllerKey.match(controllers[0]) ) controllerKey = controllerKey.replace(controllers[0], controllers[controller]);
         if( !config[controllerKey] ) config[controllerKey] = {};
         config[controllerKey][N64_MANUAL_KEY] = N64_MANUAL_VALUE;
-        correctJoystickDevice( config, controllers, controller, [N64_MANUAL_CONTROLLER, N64_IS_KEYBOARD_INDICATOR], [N64_MANUAL_CONTROLLER, N64_DEVICE_KEY], /.*/, /^key/ );
+        correctJoystickDevice( config, controllers, controller, [N64_MANUAL_CONTROLLER, N64_IS_KEYBOARD_INDICATOR], /^key/, [N64_MANUAL_CONTROLLER, N64_DEVICE_KEY], /.*/ );
     }
     // gba expects uppercase key names
     else if( system == SYSTEM_GBA && userControl.type == KEY_CONTROL_TYPE ) {
@@ -6306,11 +6306,11 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
  * @param {Array} controllers - The array of controllers from the metadata.json. 
  * @param {number} controller - The controller index we are setting. 
  * @param {Array} indicatorPath - The path to the value that we'll use to see if the current controller is a keyboard.
+ * @param {Regex} indicatorRegex - The regular expression to match against the value at indicatorPath to return a value if it is a keyboard.
  * @param {Array} keyPath - The path to the value that we need to change to the actual device.
  * @param {Regex} replaceRegex - The regular expression to use to replace the value located at keyPath. 
- * @param {Regex} indicatorRegex - The regular expression to match against the value at indicatorPath to return a value if it is a keyboard.
  */
-function correctJoystickDevice( config, controllers, controller, indicatorPath, keyPath, replaceRegex, indicatorRegex ) {
+function correctJoystickDevice( config, controllers, controller, indicatorPath, indicatorRegex, keyPath, replaceRegex  ) {
     if( controllers && (controller || controller === 0) ) {
         let actualDevice = 0;
         for( let i=0; i<controllers.length; i++ ) {
@@ -6321,13 +6321,13 @@ function correctJoystickDevice( config, controllers, controller, indicatorPath, 
             for( let j=0; j<curIndicatorPath.length; j++ ) {
                 if( curIndicatorPath[j].match(controllers[0]) ) curIndicatorPath[j] = curIndicatorPath[j].replace(controllers[0], controllers[i]);
                 if( j < curIndicatorPath.length - 1 ) indicatorConfig = config[curIndicatorPath[j]];
-                if( !indicatorConfig ) return;
+                if( !indicatorConfig ) continue;
             }
             let keyConfig;
             for( let j=0; j<curKeyPath.length; j++ ) {
                 if( curKeyPath[j].match(controllers[0]) ) curKeyPath[j] = curKeyPath[j].replace(controllers[0], controllers[i]);
                 if( j < curKeyPath.length - 1 ) keyConfig = config[curKeyPath[j]];
-                if( !keyConfig ) return;
+                if( !keyConfig ) continue;
             }
             if( i >= controller ) keyConfig[curKeyPath[curKeyPath.length-1]] = keyConfig[curKeyPath[curKeyPath.length-1]].replace(replaceRegex, actualDevice); // actual device is increased throughout the loop
             actualDevice++;
