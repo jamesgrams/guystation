@@ -6098,7 +6098,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
         config[controllerKey][N64_DEVICE_KEY] = controller;
         // If say player 1 is a keyboard, we actually want the device number for player 2 to be 1,
         // since they will use the controller in the first port
-        if( controllers && controller && controllerKey.match(controllers[controller]) ) {
+        if( controllers && (controller || controller === 0) && controllerKey.match(controllers[controller]) ) {
             let actualDevice = 0;
             for( let i=0; i<controller; i++ ) {
                 actualDevice++;
@@ -6116,14 +6116,14 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
             // So if we set controller 1 to being a joypad when it was previously a keyboard, controller 2
             // will now say it uses the second joypad.
             for( let i=controller; i<controllers.length; i++ ) {
-                actualDevice++;
                 let curControllerKey = N64_MANUAL_CONTROLLER.replace(controllers[0], controllers[i]);
+                config[curControllerKey][N64_DEVICE_KEY] = actualDevice; // actual device is increased throughout the loop
+                actualDevice++;
                 if( config[curControllerKey] 
                     && config[curControllerKey][N64_IS_KEYBOARD_INDICATOR] 
                     && config[curControllerKey][N64_IS_KEYBOARD_INDICATOR].match(/^key/) ) {
                     actualDevice--;
                 }
-                config[curControllerKey][N64_DEVICE_KEY] = actualDevice; // actual device is increased throughout the loop
             }
         }
     }
