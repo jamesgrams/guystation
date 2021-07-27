@@ -6095,22 +6095,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
         if( controller && controllers && controllerKey.match(controllers[0]) ) controllerKey = controllerKey.replace(controllers[0], controllers[controller]);
         if( !config[controllerKey] ) config[controllerKey] = {};
         config[controllerKey][N64_MANUAL_KEY] = N64_MANUAL_VALUE;
-        // If say player 1 is a keyboard, we actually want the device number for player 2 to be 1,
-        // since they will use the controller in the first port
-        if( controllers && (controller || controller === 0) && controllerKey.match(controllers[controller]) ) {
-            let actualDevice = 0;
-            for( let i=0; i<controllers.length; i++ ) {
-                let curControllerKey = N64_MANUAL_CONTROLLER.replace(controllers[0], controllers[i]);
-                if( i >= controller ) config[curControllerKey][N64_DEVICE_KEY] = actualDevice; // actual device is increased throughout the loop
-                actualDevice++;
-                // If the previous device uses a key for the A button, assume that it is a keyboard
-                if( config[curControllerKey] 
-                    && config[curControllerKey][N64_IS_KEYBOARD_INDICATOR] 
-                    && config[curControllerKey][N64_IS_KEYBOARD_INDICATOR].match(/^key/) ) {
-                    actualDevice--;
-                }
-            }
-        }
+        correctJoystickDevice( config, controllers, controller, [N64_MANUAL_CONTROLLER, N64_IS_KEYBOARD_INDICATOR], [N64_MANUAL_CONTROLLER, N64_DEVICE_KEY], /.*/, /^key/ );
     }
     // gba expects uppercase key names
     else if( system == SYSTEM_GBA && userControl.type == KEY_CONTROL_TYPE ) {
@@ -6311,6 +6296,47 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
     if( system == SYSTEM_3DS ) controlFormat = '"' + controlFormat + '"';
 
     return controlFormat;
+}
+
+/**
+ * Correct the joystick devices.
+ * Say you set player 1 to use a keyboard. Well, now if player 2 is a joystick,
+ * it needs to be the joystick in port 1 rather than port 2.
+ * @param {Object} config - The config object for the system. 
+ * @param {Array} controllers - The array of controllers from the metadata.json. 
+ * @param {number} controller - The controller index we are setting. 
+ * @param {Array} indicatorPath - The path to the value that we'll use to see if the current controller is a keyboard.
+ * @param {Array} keyPath - The path to the value that we need to change to the actual device.
+ * @param {Regex} replaceRegex - The regular expression to use to replace the value located at keyPath. 
+ * @param {Regex} indicatorRegex - The regular expression to match against the value at indicatorPath to return a value if it is a keyboard.
+ */
+function correctJoystickDevice( config, controllers, controller, indicatorPath, keyPath, replaceRegex, indicatorRegex ) {
+    if( controllers && (controller || controller === 0) ) {
+        let actualDevice = 0;
+        for( let i=0; i<controllers.length; i++ ) {
+            // Update the paths with the correct controller
+            indicatorPath = JSON.parse(JSON.stringify(indicatorPath));
+            keyPath = JSON.parse(JSON.stringify(keyPath));
+            let indicatorConfig;
+            for( let j=0; j<indicatorPath.length; j++ ) {
+                if( indicatorPath[j].match(controllers[0]) ) indicatorPath[j].replace(controllers[0], controllers[i]);
+                if( j < indicatorPath.length - 1 ) indicatorConfig = config[indicatorPath[j]];
+                if( !indicatorConfig ) return;
+            }
+            let keyConfig;
+            for( let j=0; j<keyPath.length; j++ ) {
+                if( keyPath[j].match(controllers[0]) ) keyPath[j].replace(controllers[0], controllers[i]);
+                if( j < keyPath.length - 1 ) keyConfig = config[keyPath[j]];
+                if( !keyConfig ) return;
+            }
+            if( i >= controller ) keyConfig[keyPath[keyPath.length-1]] = keyConfig[keyPath[keyPath.length-1]].replace(replaceRegex, actualDevice); // actual device is increased throughout the loop
+            actualDevice++;
+            // If the previous device uses a key for the A button, assume that it is a keyboard
+            if( indicatorConfig[indicatorPath[indicatorPath.length-1]].match(indicatorRegex) ) {
+                actualDevice--;
+            }
+        }
+    }
 }
 
 /**
