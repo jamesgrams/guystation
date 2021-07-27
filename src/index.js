@@ -261,6 +261,7 @@ const N64_MANUAL_CONTROLLER = "Input-SDL-Control1";
 const N64_MANUAL_KEY = "mode";
 const N64_MANUAL_VALUE = 0;
 const N64_DEVICE_KEY = "device";
+const N64_IS_KEYBOARD_INDICATOR = "A Button";
 const SCREENSHOT_CONTROL = "Screenshot";
 const WATCH_FOLDERS_INTERVAL = 3000;
 const VIDEO_SELECTOR_TIMEOUT = 8000;
@@ -6095,6 +6096,22 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
         if( !config[controllerKey] ) config[controllerKey] = {};
         config[controllerKey][N64_MANUAL_KEY] = N64_MANUAL_VALUE;
         config[controllerKey][N64_DEVICE_KEY] = controller;
+        // If say player 1 is a keyboard, we actually want the device number for player 2 to be 1,
+        // since they will use the controller in the first port
+        if( controllers && controller && controllerKey.match(controllers[0]) && controller > 0 ) {
+            let actualDevice = 0;
+            for( let i=0; i<controller; i++ ) {
+                actualDevice++;
+                let curControllerKey = N64_MANUAL_CONTROLLER.replace(controllers[0], controllers[i]);
+                // If the previous device uses a key for the A button, assume that it is a keyboard
+                if( config[curControllerKey] 
+                    && config[curControllerKey][N64_IS_KEYBOARD_INDICATOR] 
+                    && config[curControllerKey][N64_IS_KEYBOARD_INDICATOR].match(/^key/) ) {
+                    actualDevice--;
+                }
+            }
+            config[controllerKey][N64_DEVICE_KEY] = actualDevice;
+        }
     }
     // gba expects uppercase key names
     else if( system == SYSTEM_GBA && userControl.type == KEY_CONTROL_TYPE ) {
