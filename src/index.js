@@ -263,7 +263,6 @@ const N64_MANUAL_VALUE = 0;
 const N64_DEVICE_KEY = "device";
 const N64_IS_KEYBOARD_INDICATOR = "A Button";
 const SCREENSHOT_CONTROL = "Screenshot";
-const CONTROL_A = "A";
 const WATCH_FOLDERS_INTERVAL = 3000;
 const VIDEO_SELECTOR_TIMEOUT = 8000;
 const LIST_SINK_INPUTS_COMMAND = "pacmd list-sink-inputs | grep 'index:\\|application.name'";
@@ -6096,10 +6095,9 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
         if( controller && controllers && controllerKey.match(controllers[0]) ) controllerKey = controllerKey.replace(controllers[0], controllers[controller]);
         if( !config[controllerKey] ) config[controllerKey] = {};
         config[controllerKey][N64_MANUAL_KEY] = N64_MANUAL_VALUE;
-        config[controllerKey][N64_DEVICE_KEY] = controller;
         // If say player 1 is a keyboard, we actually want the device number for player 2 to be 1,
         // since they will use the controller in the first port
-        if( controlInfo.actualControl === CONTROL_A && controllers && (controller || controller === 0) && controllerKey.match(controllers[controller]) ) {
+        if( controllers && (controller || controller === 0) && controllerKey.match(controllers[controller]) ) {
             let actualDevice = 0;
             for( let i=0; i<controllers.length; i++ ) {
                 let curControllerKey = N64_MANUAL_CONTROLLER.replace(controllers[0], controllers[i]);
