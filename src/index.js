@@ -6317,11 +6317,12 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
  * @param {Array} indicatorPath - The path to the value that we'll use to see if the current controller is a keyboard.
  * @param {Regex} indicatorRegex - The regular expression to match against the value at indicatorPath to return a value if it is a keyboard.
  * @param {Array} keyPath - The path to the value that we need to change to the actual device.
- * @param {Regex} replaceRegex - The regular expression to use to replace the value located at keyPath. 
+ * @param {Regex} replaceRegex - The regular expression to use to replace the value located at keyPath.
+ * @param {number} [actualDeviceStart] - The actual device to start on.
  */
-function correctJoystickDevice( config, controllers, controller, indicatorPath, indicatorRegex, keyPath, replaceRegex  ) {
+function correctJoystickDevice( config, controllers, controller, indicatorPath, indicatorRegex, keyPath, replaceRegex, actualDeviceStart=0 ) {
     if( controllers && (controller || controller === 0) ) {
-        let actualDevice = 0;
+        let actualDevice = actualDeviceStart;
         for( let i=0; i<controllers.length; i++ ) {
             // Update the paths with the correct controller
             let curIndicatorPath = JSON.parse(JSON.stringify(indicatorPath));
