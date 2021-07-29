@@ -263,6 +263,7 @@ const N64_MANUAL_KEY = "mode";
 const N64_MANUAL_VALUE = 0;
 const N64_DEVICE_KEY = "device";
 const N64_IS_KEYBOARD_INDICATOR = "A Button";
+const SNES_MANUAL_CONTROLLER = "Joypad 0";
 const SCREENSHOT_CONTROL = "Screenshot";
 const WATCH_FOLDERS_INTERVAL = 3000;
 const VIDEO_SELECTOR_TIMEOUT = 8000;
@@ -6128,6 +6129,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
                 } );
             }
         }
+        correctJoystickDevice( config, controllers, controller, [SNES_MANUAL_CONTROLLER, controlInfo.keys[controlInfo.keys.length-1]], /^((?!Joystick).)*/, [SNES_MANUAL_CONTROLLER, controlInfo.keys[controlInfo.keys.length-1]], /(?<=Joystick )\d+/ );
     }
     // For 3ds
     else if( system == SYSTEM_3DS ) {
