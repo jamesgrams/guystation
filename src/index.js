@@ -6129,7 +6129,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
                 } );
             }
         }
-        correctJoystickDevice( config, controllers, controller, [SNES_MANUAL_CONTROLLER, controlInfo.keys[controlInfo.keys.length-1]], /^((?!Joystick).)*/, [SNES_MANUAL_CONTROLLER, controlInfo.keys[controlInfo.keys.length-1]], /(?<=Joystick )\d+/ );
+        correctJoystickDevice( config, controllers, controller, [SNES_MANUAL_CONTROLLER, controlInfo.keys[controlInfo.keys.length-1]], /^((?!Joystick).)*/, [SNES_MANUAL_CONTROLLER, controlInfo.keys[controlInfo.keys.length-1]], /(?<=Joystick )\d+/, 1 );
     }
     // For 3ds
     else if( system == SYSTEM_3DS ) {
