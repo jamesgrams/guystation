@@ -5992,7 +5992,7 @@ async function setControls( systems, values, controller=0, nunchuk=false ) {
                     }
                     // This needs to be here since the indicator key isn't updated until above
                     if( system === SYSTEM_SNES ) {
-                        correctJoystickDevice( config, controllers, controller, [SNES_MANUAL_CONTROLLER, controlInfo.keys[controlInfo.keys.length-1]], /^((?!Joystick).)*/, [SNES_MANUAL_CONTROLLER, controlInfo.keys[controlInfo.keys.length-1]], /(?<=Joystick )\d+/, 1 );
+                        correctJoystickDevice( config, controllers, controller, [SNES_MANUAL_CONTROLLER, controlInfo.keys[controlInfo.keys.length-1]], /^Keyboard/, [SNES_MANUAL_CONTROLLER, controlInfo.keys[controlInfo.keys.length-1]], /(?<=Joystick )\d+/, 1 );
                     }
                 }
             }
