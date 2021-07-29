@@ -6261,7 +6261,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
             if( !config[padKey] ) config[padKey] = {};
 
             config[padKey][NGC_DEVICE_TYPE_KEY] = NGC_GAMEPAD.replace("0", controller);
-            //correctJoystickDevice( config, controllers, controller, [padKey, NGC_IS_KEYBOARD_INDICATOR], /^[^`]/, [padKey, NGC_DEVICE_TYPE_KEY], /(?<=evdev\/)\n+/ ); 
+            correctJoystickDevice( config, controllers, controller, [padKey, NGC_IS_KEYBOARD_INDICATOR], /^[^`]/, [padKey, NGC_DEVICE_TYPE_KEY], /(?<=evdev\/)\n+/ ); 
 
             if( system == SYSTEM_WII ) {
                 config[padKey][WII_CLASSIC_KEY] = nunchuk ? WII_NUNCHUK_VALUE : WII_CLASSIC_VALUE;
@@ -6281,7 +6281,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
              } );
             if( controlInfo.actualControl != SCREENSHOT_CONTROL) config[padKey][NGC_DEVICE_TYPE_KEY] = NGC_VIRTUAL_KEYBOARD;//.replace("0", controller); Multiple keyboards probably isn't what we'd excpect, so keep at 0 for device num
             else config[HOTKEY_PAD_KEY][NGC_DEVICE_TYPE_KEY] = NGC_VIRTUAL_KEYBOARD;
-            //correctJoystickDevice( config, controllers, controller, [padKey, NGC_IS_KEYBOARD_INDICATOR], /^[^`]/, [padKey, NGC_DEVICE_TYPE_KEY], /(?<=evdev\/)\n+/ ); 
+            correctJoystickDevice( config, controllers, controller, [padKey, NGC_IS_KEYBOARD_INDICATOR], /^[^`]/, [padKey, NGC_DEVICE_TYPE_KEY], /(?<=evdev\/)\n+/ ); 
         }
     }
     
