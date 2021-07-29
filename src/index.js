@@ -6261,7 +6261,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
             if( !config[padKey] ) config[padKey] = {};
 
             config[padKey][NGC_DEVICE_TYPE_KEY] = NGC_GAMEPAD.replace("0", controller);
-            correctJoystickDevice( config, controllers, controller, [padKey, NGC_IS_KEYBOARD_INDICATOR], /^[^`]/, [padKey, NGC_DEVICE_TYPE_KEY], /(?<=evdev\/)\n+/ ); 
+            correctJoystickDevice( config, controllers, controller, [padKey, (nunchuk ? "" : (WII_CLASSIC_VALUE + "/")) + NGC_IS_KEYBOARD_INDICATOR], /^[^`]/, [padKey, NGC_DEVICE_TYPE_KEY], /(?<=evdev\/)\n+/ ); 
 
             if( system == SYSTEM_WII ) {
                 config[padKey][WII_CLASSIC_KEY] = nunchuk ? WII_NUNCHUK_VALUE : WII_CLASSIC_VALUE;
@@ -6335,6 +6335,8 @@ function correctJoystickDevice( config, controllers, controller, indicatorPath, 
                 if( j < curKeyPath.length - 1 ) keyConfig = config[curKeyPath[j]];
                 if( !keyConfig ) continue;
             }
+            if( !indicatorConfig || !keyConfig ) continue;
+            if( !curIndicatorPath[curIndicatorPath.length-1] in indicatorConfig || !curKeyPath[curKeyPath.length-1] in keyConfig ) continue;
             if( i >= controller ) keyConfig[curKeyPath[curKeyPath.length-1]] = keyConfig[curKeyPath[curKeyPath.length-1]].replace(replaceRegex, actualDevice); // actual device is increased throughout the loop
             actualDevice++;
             // If the previous device uses a key for the A button, assume that it is a keyboard
