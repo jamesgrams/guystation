@@ -7110,3 +7110,69 @@ function stopStreamtoRtmp() {
     }
     socket.emit("rtmp-stop");
 }
+
+// polyfill
+if (window.NodeList && !NodeList.prototype.forEach) {
+   NodeList.prototype.forEach = Array.prototype.forEach;
+}
+/**
+ * Polyfill for `ChildNode.replaceWith()`
+ *
+ * @see  https://developer.mozilla.org/en-US/docs/Web/API/ChildNode/replaceWith
+ */
+function replaceWith()
+{
+    "use-strict";
+ 
+    var parent = this.parentNode;
+    var i = arguments.length;
+    var currentNode;
+ 
+    if (!parent) {
+        return;
+    }
+ 
+    // If there are no arguments.
+    if (!i) {
+        parent.removeChild(this);
+    }
+ 
+    // i-- decrements i and returns the value of i before the decrement.
+    while (i--) {
+        currentNode = arguments[i];
+        if (typeof currentNode !== "object") {
+            currentNode = this.ownerDocument.createTextNode(currentNode);
+        } else if (currentNode.parentNode) {
+            currentNode.parentNode.removeChild(currentNode);
+        }
+ 
+        // The value of "i" below is after the decrement.
+        if (!i) {
+            /**
+             * If currentNode is the first argument
+             *   (currentNode === arguments[0]).
+             */
+            parent.replaceChild(currentNode, this);
+        } else {
+            /**
+             * If currentNode isn't the first.
+             */
+            parent.insertBefore(currentNode, this.previousSibling);
+        }
+    }
+}
+ 
+ 
+if (!Element.prototype.replaceWith) {
+    Element.prototype.replaceWith = replaceWith;
+}
+ 
+if (!CharacterData.prototype.replaceWith) {
+    CharacterData.prototype.replaceWith = replaceWith;
+}
+ 
+if (!DocumentType.prototype.replaceWith) {
+    DocumentType.prototype.replaceWith = replaceWith;
+}
+ 
+/* <> */
