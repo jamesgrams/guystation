@@ -3211,7 +3211,7 @@ function appendEzInput(inputElement, value, type, controller) {
 
     // append the real value that we will use
     if( controller ) {
-        let match = controller.match( /Vendor:\s([^\s]+)\sProduct:\s([^\)]+)/ );
+        var match = controller.match( /Vendor:\s([^\s]+)\sProduct:\s([^\)]+)/ );
         // -vendor-product
         if( match ) {
             newValue = demapController( newValue, match[1], match[2] );
@@ -4490,10 +4490,10 @@ function displayPictureInPicture() {
 
     } ) );
     
-    let pipControls = document.createElement("div");
+    var pipControls = document.createElement("div");
     pipControls.classList.add("pip-controls");
 
-    let pauseButton = createButton('<i class="fas fa-pause"></i>', function() {
+    var pauseButton = createButton('<i class="fas fa-pause"></i>', function() {
         if( this.classList.contains("inactive") ) return;
         form.querySelectorAll("button").forEach( function(el) { el.classList.add("inactive") } );
         
@@ -4508,7 +4508,7 @@ function displayPictureInPicture() {
     pauseButton.setAttribute("id","pause-pip");
     pipControls.appendChild( pauseButton );
 
-    let toggleFsButton = createButton('<i class="fas fa-expand"></i>', function() {
+    var toggleFsButton = createButton('<i class="fas fa-expand"></i>', function() {
         if( this.classList.contains("inactive") ) return;
         form.querySelectorAll("button").forEach( function(el) { el.classList.add("inactive") } );
         
@@ -4523,7 +4523,7 @@ function displayPictureInPicture() {
     toggleFsButton.setAttribute("id","toggle-fs-pip");
     pipControls.appendChild( toggleFsButton );
 
-    let playButton = createButton('<i class="fas fa-play"></i>', function() {
+    var playButton = createButton('<i class="fas fa-play"></i>', function() {
         if( this.classList.contains("inactive") ) return;
         form.querySelectorAll("button").forEach( function(el) { el.classList.add("inactive") } );
         
@@ -5892,7 +5892,7 @@ function goHome() {
         makeRequest( "POST", "/home", {},
         function( responseText ) { 
             try {
-                let message = JSON.parse(responseText);
+                var message = JSON.parse(responseText);
                 systemsDict = message.systems;
                 if( fullscreenPip != message.fullscreenPip ) {
                     fullscreenPip = message.fullscreenPip;
@@ -6292,7 +6292,7 @@ function manageGamepadInput() {
                 // the axis is mapped to a button
                 var direction = gp.axes[j] >= 0 ? "+" : "-";
                 var previousDirection = gamepadAxisLastValues[i][j] >= 0 ? "+" : "-";
-                let forceUpdate = false; // we must always update on up or down. It is otherwise theoretically possible to go down without hitting the fuzziness threshold to record our last value. then, we would never go up, because the last recorded value would be below the threshold.
+                var forceUpdate = false; // we must always update on up or down. It is otherwise theoretically possible to go down without hitting the fuzziness threshold to record our last value. then, we would never go up, because the last recorded value would be below the threshold.
                 if( gamepadInputCounter == 0 ) forceUpdate = true; // The same problem can happen in games, but we don't know the thresholds (We have 0.5, but could be, e.g. 0.6). As such, always send a value every second
                 if( Math.abs(gp.axes[j]) >= AXIS_MIN_TO_BE_BUTTON && ( Math.abs(gamepadAxisLastValues[i][j]/MAX_JOYSTICK_VALUE) < AXIS_MIN_TO_BE_BUTTON || previousDirection != direction ) ) {
                     var oppositeDirection = direction == "+" ? "-" : "+";
@@ -6791,7 +6791,7 @@ function startConnectionToPeer( isStreamer, id ) {
         peerConnection.addTrack(localStream.getVideoTracks()[0]);
         peerConnection.addTrack(localStream.getAudioTracks()[0]);
         // the offerer MUST create the data channel
-        let tmpChannel = peerConnection.createDataChannel("guystation-channel");
+        var tmpChannel = peerConnection.createDataChannel("guystation-channel");
         tmpChannel.onmessage = handleReceiveMessage;
         // the streamer will create an offer once it creates its peer connection
         peerConnection.createOffer().then(function(data) {createdDescription(id, data)}).catch(errorHandler);
@@ -6874,7 +6874,7 @@ function renegotiate() {
         av.addTrack(stream.getTracks()[0]);
         av.addTrack(localStream.getAudioTracks()[0]);
         localStream = av;
-        for( let peerConnection of peerConnections ) {
+        for( var peerConnection of peerConnections ) {
             var newTrack = localStream.getVideoTracks()[0];
             var sender = peerConnection.peerConnection.getSenders().filter( el => el.track.kind == newTrack.kind )[0];
             sender.replaceTrack(newTrack);
