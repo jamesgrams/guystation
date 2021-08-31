@@ -6780,8 +6780,9 @@ function getDisplayMediaSuccess(stream) {
  * Once the server is connected to the client, the client will connect to the server automaitcally as seen in the handle functions
  * @param {boolean} [isStreamer] - True if this is the streamer, false if this is the client.
  * @param {string} [id] - The id of the peer (this is only relevant for the server).
+ * @param {boolean} [noDataChannel] - True if no data channel should be used.
  */
-function startConnectionToPeer( isStreamer, id ) {
+function startConnectionToPeer( isStreamer, id, noDataChannel ) {
     if( !id ) id = "server";
     var peerConnection = new RTCPeerConnection({ iceServers: [{
         urls: "stun:stun.l.google.com:19302"
@@ -6804,8 +6805,10 @@ function startConnectionToPeer( isStreamer, id ) {
         peerConnection.addTrack(localStream.getVideoTracks()[0]);
         peerConnection.addTrack(localStream.getAudioTracks()[0]);
         // the offerer MUST create the data channel
-        var tmpChannel = peerConnection.createDataChannel("guystation-channel");
-        tmpChannel.onmessage = handleReceiveMessage;
+        if( !noDataChannel ) {
+            var tmpChannel = peerConnection.createDataChannel("guystation-channel");
+            tmpChannel.onmessage = handleReceiveMessage;
+        }
         // the streamer will create an offer once it creates its peer connection
         peerConnection.createOffer().then(function(data) {createdDescription(id, data)}).catch(errorHandler);
     }
