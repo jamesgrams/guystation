@@ -6604,6 +6604,7 @@ let clientJoined = false;
 let SERVER_ID = "server";
 let serverSocketId;
 let clientSocketIds = [];
+let clientNoDataChannels = {};
 let startedClientIds = [];
 let cancelStreamingTimeouts = {};
 // The signal server is also used as an rmtp converter, those variables are below
@@ -6631,10 +6632,11 @@ io.on('connection', function(socket) {
             }
         }
     } );
-    socket.on("connect-screencast-client", function() {
+    socket.on("connect-screencast-client", function(message) {
         if( clientSocketIds.indexOf(socket.id) == -1 ) {
             console.log("screencast client connected");
             clientSocketIds.push(socket.id);
+            if( message.noDataChannel ) clientNoDataChannels[socket.id] = true;
             // the client will only connect
             // this will always happen after the server connect
             // since client connect is the success function when we call to server connect
@@ -6891,7 +6893,7 @@ async function startScreencast( id ) {
     delete screencastLastTimestamps[id];
     let currentStartedClientIdsLength = startedClientIds.length; 
     startedClientIds.push(id);
-    await menuPage.evaluate( (id) => startConnectionToPeer(true, id), id );
+    await menuPage.evaluate( (id, noDataChannel) => startConnectionToPeer(true, id, noDataChannel), id, clientNoDataChannels[id] );
 
     await screencastFix(currentStartedClientIdsLength);
 
@@ -6950,6 +6952,7 @@ async function stopScreencast(id) {
 
     console.log( "stopping: " + id );
     clientSocketIds = clientSocketIds.filter( el => el != id );
+    delete clientNoDataChannels[id];
     startedClientIds = clientSocketIds.filter( el => el != id );
     clearTimeout(cancelStreamingTimeouts[id]);
     delete cancelStreamingTimeouts[id];
@@ -6970,6 +6973,7 @@ async function stopScreencast(id) {
     clientJoined = false;
     serverSocketId = null;
     clientSocketIds = [];
+    clientNoDataChannels = {};
     startedClientIds = [];
     cancelStreamingTimeouts = [];
     screencastLastRuns = {};

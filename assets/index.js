@@ -2752,8 +2752,9 @@ function displayJoypadConfig() {
     var warning = createWarning("EZ Emulator Controller Configuration");
     warning.setAttribute("title", "This section can be used to set controls for multiple emulators at once. For example, you might map \"A\" to button 1 on your controller. GuyStation would then map button 1 to A for GBA, A for N64, Circle for PSP, etc. if those emulators are selected.");
     form.appendChild(warning);
+    var keyInputType = isKaiOs() ? "tel" : "search";
     for( var i=0; i<EZ_EMULATOR_CONFIG_BUTTONS.length; i++ ) {
-        var label = createInput( "", "ez-input-" + i, EZ_EMULATOR_CONFIG_BUTTONS[i] + ":", "search", false );
+        var label = createInput( "", "ez-input-" + i, EZ_EMULATOR_CONFIG_BUTTONS[i] + ":", keyInputType, false );
         label.setAttribute("data-ez-button", i);
         var input = label.querySelector("input");
 
@@ -2930,7 +2931,7 @@ function displayJoypadConfig() {
     var padcodeKeys = Object.keys(PADCODES);
     // allow padcode mapping for the padcodes that we use
     for( var i=0; i<padcodeKeys.length-2; i++ ) {
-        var label = createInput( screencastControllerMaps[0] && screencastControllerMaps[0][i] ? screencastControllerMaps[0][i].toString() : i.toString(), "virtual-input-" + i, padcodeKeys[i] + " (button " + i + "): ", "string", true );
+        var label = createInput( screencastControllerMaps[0] && screencastControllerMaps[0][i] ? screencastControllerMaps[0][i].toString() : i.toString(), "virtual-input-" + i, padcodeKeys[i] + " (button " + i + "): ", keyInputType, true );
         label.setAttribute("data-virtual-button", i);
         form.appendChild( label ); 
     }
@@ -2938,7 +2939,7 @@ function displayJoypadConfig() {
     var axiscodeKeys = Object.keys(AXISCODES);
     for( var i=0; i<axiscodeKeys.length; i++ ) {
         var index = "a"+i;
-        var label = createInput( screencastControllerMaps[0] && screencastControllerMaps[0][index] ? screencastControllerMaps[0][index].toString() : (index), "virtual-input-" + index, axiscodeKeys[i] + " (axis " + i + "): ", "string", true );
+        var label = createInput( screencastControllerMaps[0] && screencastControllerMaps[0][index] ? screencastControllerMaps[0][index].toString() : (index), "virtual-input-" + index, axiscodeKeys[i] + " (axis " + i + "): ", keyInputType, true );
         label.setAttribute("data-virtual-button", index);
         form.appendChild( label ); 
     }
@@ -3556,10 +3557,21 @@ function displayScreencast( fullscreen ) {
 }
 
 /**
+ * Determine if the browser is KaiOS;
+ * @returns {boolean} True if the platform is KaiOS.
+ */
+function isKaiOs() {
+    if( navigator.userAgent.match(/KAIOS/i) ) return true;
+    return false;
+}
+
+/**
  * Determine if the current platform has touch enabled.
  * @returns {boolean} True is the current platform has touch enabled.
  */
 function isTouch() {
+    if( isKaiOs() ) return false;
+
     var prefixes = ' -webkit- -moz- -o- -ms- '.split(' ');
     var mq = function(query) {
         return window.matchMedia(query).matches;
@@ -6734,7 +6746,7 @@ function getDisplayMedia() {
 function connectToSignalServer( isStreamer ) {
 
     var event = "connect-screencast-" + (isStreamer ? "streamer" : "client");
-    socket.emit( event, true );
+    socket.emit( event, { noDataChannel: !isStreamer && isKaiOs() } );
     socket.off()
     socket.on( 'sdp', handleRemoteSdp );
     socket.on( 'ice', handleRemoteIce );
@@ -6821,8 +6833,8 @@ function handleReceiveMessage(event) {
  * @param {message} The message to send.
  */
 function sendRTCMessage(message) {
-    if( !sendChannel ) return;
-    sendChannel.send(JSON.stringify(message));
+    if( !sendChannel ) makeRequest("POST", message.path, message.body);
+    else sendChannel.send(JSON.stringify(message));
 }
 
 /**
