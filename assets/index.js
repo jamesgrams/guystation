@@ -1484,6 +1484,7 @@ function getTotalPlaytime(game) {
     }
     else if( game.sessions ) {
         for( var i=0; i<game.sessions.length; i++ ) {
+            if( !game.sessions[i][1] || !game.sessions[i][0] ) continue;
             totalPlaytime += game.sessions[i][1] - game.sessions[i][0];
             totalSessions += 1;
             mostRecentPlaytime = game.sessions[i][1];
