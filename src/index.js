@@ -6080,6 +6080,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
             controlButtons = match.slice(1);
         }
         else {
+            if( !controlFormat ) return "";
             // create an empty array long enough to properly fill all the $CONTROL values in the format
             controlButtonsLength = (controlFormat.match(new RegExp(CONTROL_STRING.replace("$","\\$"), "g")) || []).length;
             controlButtons = [];
@@ -6125,6 +6126,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
             controlButtons = controlButtons.map( el => el ? x11Map[el] : el );
         }
         else {
+            if( !controlFormat ) return ""; // will delete
             controlFormat = controlFormat.replace("1", controller+1);
             if( userControl.type == AXIS_CONTROL_TYPE ) {
                 controlButtons = controlButtons.map( function(button) {
