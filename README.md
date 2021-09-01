@@ -296,6 +296,7 @@ Multiple monitor support may be limited. GuyStation will aim to use the primary 
     * Some emulators don't respond well to axes for the D-Pad. EZ Config defaults to detecting D-Pad axes (rather than buttons, if available). Users may have to enter in button numbers manually into EZ config for D-Pads as they won't be picked up from the controller.
     * The same button/key/axis cannot be mapped to multiple buttons on the Sega Genesis.
     * Unsure if NES multi-controller setting is working and thus setting correct joypad based on keyboards used too.
+    * VBAM may not accept controls if they are also mapped to key shortcuts (https://github.com/visualboyadvance-m/visualboyadvance-m/issues/547) - specifically number keys. These key shortcuts can be removed.
 
 
 ## Credits and Special Thanks
