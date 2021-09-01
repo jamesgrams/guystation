@@ -286,6 +286,7 @@ Multiple monitor support may be limited. GuyStation will aim to use the primary 
 * There is a Samba delay sometimes, so you might not be able to launch a game immediately after updating ("No ROM found for game"). Especially since updating uses the main server to process the request.
 * Updating a game files doesn't update save names, so the saves likely won't be read. This is by design, because if you upload a different game, you don't want it reading old files. It does create an inconvenience in some circumstances, however.
 * Speech input isn't played back.
+* Remote volume controls should be implemented as keys.
 * EZ Config Issues
     * PS2 can only have keyboard controls set with EZ configuration.
     * NGC EZ configuration will set the device to the Dolphin internal name for a virtual keyboard when a control is set to a keyboard key (with the exception of the screenshot control) as Dolphin requires a device name with controls. It will set the device to gamepad when a control is set to a gamepad button/axis a gamepad. The custom version of Dolphin will recognize devices as game controllers if the evdev device name matches one of a set of keywords (gamepad, joystick, controller, joypad). Other devices are recognized as keyboards. This system isn't perfect.
