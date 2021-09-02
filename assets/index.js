@@ -1079,6 +1079,14 @@ function enableControls() {
                     toggleAutoloadProfile();
                 }
             }
+            if( event.key === "SoftLeft" && buttonsUp["SoftLeft"] ) {
+                if( !document.querySelector("#remote-screencast-form") ) {
+                    displayScreencast(true);
+                }
+                else {
+                    fullscreenVideo( document.querySelector("#remote-screencast-form") );
+                }
+            }
         }
     }
     document.onkeyup = function(event) {
@@ -1133,6 +1141,9 @@ function enableControls() {
         if( isKaiOs() ) {
             if( event.key === "SoftRight" ) {
                 buttonsUp["SoftRight"] = true;
+            }
+            else if( event.key === "SoftLeft" ) {
+                buttonsUp["SoftLeft"] = true;
             }
         }
     }
