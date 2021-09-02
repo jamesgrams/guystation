@@ -3139,7 +3139,7 @@ function toggleAutoloadProfile() {
     var profileKeys = Object.keys(profilesDict);
     var currentProfileIndex = -1; 
     if( currentProfiles[0] ) {
-        currentProfileIndex = profileKeys.indexOf(currentProfile.name);
+        currentProfileIndex = profileKeys.indexOf(currentProfiles[0].name);
     }
     currentProfileIndex ++;
     if( currentProfileIndex >= profileKeys.length ) {
