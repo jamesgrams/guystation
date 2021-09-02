@@ -1,0 +1,23 @@
+{
+  "version": "1.0.0",
+  "name": "GuyStation",
+  "description": "An Emulator Hub",
+  "type": "web",
+  "launch_path": "/",
+  "fullscreen": "true",
+  "icons": {
+    "56": "/assets/icons/icon-56x56.png",
+    "112": "/assets/icons/icon-112x112.png"
+  },
+  "developer": {
+    "name": "James Grams",
+    "url": "https://game103.net"
+  },
+  "locales": {
+    "en-US": {
+      "name": "GuyStation",
+      "description": "An Emulator Hub"
+    }
+  },
+  "default_locale": "en-US"
+}
