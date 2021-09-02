@@ -904,6 +904,8 @@ function load() {
        	    document.querySelector("#search").setAttribute("tabindex", "0");
         }, TABINDEX_TIMEOUT );
     }, load );
+
+    if( isKaiOs() ) document.body.classList.append("kaios");
 }
 
 /**
@@ -1067,6 +1069,17 @@ function enableControls() {
         if( event.keyCode == 83 && (navigator.platform.match("Mac") ? event.metaKey : event.ctrlKey) ) {
             event.preventDefault();
         }
+        if( isKaiOs() ) {
+            if( event.key === "SoftRight" && buttonsUp["SoftRight"] ) {
+                buttonsUp["SoftRight"] = false;
+                if( document.fullscreenElement ) {
+                    document.exitFullscreen();
+                }
+                else {
+                    toggleAutoloadProfile();
+                }
+            }
+        }
     }
     document.onkeyup = function(event) {
         if( !disableMenuControls ) {
@@ -1115,6 +1128,11 @@ function enableControls() {
                 sendRTCMessage( { "path": "/screencast/buttons", "body": { "down": false, "buttons": [event.keyCode], "counter": screencastCounter, "timestamp": Date.now() } } );
                 screencastCounter++;
                 buttonsUp.keyboard[event.keyCode.toString()] = true;
+            }
+        }
+        if( isKaiOs() ) {
+            if( event.key === "SoftRight" ) {
+                buttonsUp["SoftRight"] = true;
             }
         }
     }
@@ -3108,6 +3126,35 @@ function getCurrentAutoloadProfiles() {
         return JSON.parse(currentProfiles);
     }
     return null;
+}
+
+/**
+ * Toggle Autoload profile for player 1.
+ * This will select the next profile or delete the profile if at the end of the list.
+ */
+function toggleAutoloadProfile() {
+    var currentProfiles = getCurrentAutoloadProfiles();
+    if( !currentProfiles ) currentProfiles = {};
+
+    var profileKeys = Object.keys(profilesDict);
+    var currentProfileIndex = -1; 
+    if( currentProfiles[0] ) {
+        currentProfileIndex = profileKeys.indexOf(currentProfile.name);
+    }
+    currentProfileIndex ++;
+    if( currentProfileIndex >= profileKeys.length ) {
+        currentProfileIndex = -1;
+    }
+
+    if( currentProfileIndex >= 0 ) {
+        currentProfiles[0] = { name: profileKeys[currentProfileIndex], profile: profilesDict[profileKeys[currentProfileIndex]] };
+        createToast( "Profile " + profileKeys[currentProfileIndex] + " set to autoload for player 1" );
+    }
+    else {
+        delete currentProfiles[0];
+        createToast( "Removed profile autoload for player 1" );
+    }
+    setCurrentAutoloadProfiles( currentProfiles );
 }
 
 /**

@@ -50,6 +50,10 @@ h1 {
     text-align: center;
 }
 
+.kaios #systems {
+    transform: scale(0.5);
+}
+
 .system {
     padding: 10px;
     position: absolute;
