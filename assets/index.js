@@ -3133,28 +3133,30 @@ function getCurrentAutoloadProfiles() {
  * This will select the next profile or delete the profile if at the end of the list.
  */
 function toggleAutoloadProfile() {
-    var currentProfiles = getCurrentAutoloadProfiles();
-    if( !currentProfiles ) currentProfiles = {};
+    loadEzProfiles( function() {
+        var currentProfiles = getCurrentAutoloadProfiles();
+        if( !currentProfiles ) currentProfiles = {};
 
-    var profileKeys = Object.keys(profilesDict);
-    var currentProfileIndex = -1; 
-    if( currentProfiles[0] ) {
-        currentProfileIndex = profileKeys.indexOf(currentProfiles[0].name);
-    }
-    currentProfileIndex ++;
-    if( currentProfileIndex >= profileKeys.length ) {
-        currentProfileIndex = -1;
-    }
+        var profileKeys = Object.keys(profilesDict);
+        var currentProfileIndex = -1; 
+        if( currentProfiles[0] ) {
+            currentProfileIndex = profileKeys.indexOf(currentProfiles[0].name);
+        }
+        currentProfileIndex ++;
+        if( currentProfileIndex >= profileKeys.length ) {
+            currentProfileIndex = -1;
+        }
 
-    if( currentProfileIndex >= 0 ) {
-        currentProfiles[0] = { name: profileKeys[currentProfileIndex], profile: profilesDict[profileKeys[currentProfileIndex]] };
-        createToast( "Profile " + profileKeys[currentProfileIndex] + " set to autoload for player 1" );
-    }
-    else {
-        delete currentProfiles[0];
-        createToast( "Removed profile autoload for player 1" );
-    }
-    setCurrentAutoloadProfiles( currentProfiles );
+        if( currentProfileIndex >= 0 ) {
+            currentProfiles[0] = { name: profileKeys[currentProfileIndex], profile: profilesDict[profileKeys[currentProfileIndex]] };
+            createToast( "Profile " + profileKeys[currentProfileIndex] + " set to autoload for player 1" );
+        }
+        else {
+            delete currentProfiles[0];
+            createToast( "Removed profile autoload for player 1" );
+        }
+        setCurrentAutoloadProfiles( currentProfiles );
+    } );
 }
 
 /**
