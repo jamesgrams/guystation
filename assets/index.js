@@ -1084,7 +1084,7 @@ function enableControls() {
                     displayScreencast(true);
                 }
                 else {
-                    fullscreenVideo( document.querySelector("#remote-screencast-form") );
+                    fullscreenVideo( document.querySelector("#remote-screencast-form video") );
                 }
             }
         }
