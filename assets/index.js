@@ -905,7 +905,7 @@ function load() {
         }, TABINDEX_TIMEOUT );
     }, load );
 
-    if( isKaiOs() ) document.body.classList.append("kaios");
+    if( isKaiOs() ) document.body.classList.add("kaios");
 }
 
 /**
