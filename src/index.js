@@ -6053,6 +6053,8 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
     // we may have a different format than if we are mapping an axis on the user controller to a button on the emalator controller
     if( typeof controlFormat == OBJECT_TYPE ) controlFormat = controlFormat[controlInfo.type ? controlInfo.type : BUTTON_CONTROL_TYPE];
 
+    if( !userControl.type ) return ""; // null control - this is when they enter a blank control and we need to clear it out
+
     // we can read controls from a regex if each line has multiple controls
 
     controlButtons = [controlButtons[0]]; // IMPORTANT
@@ -6293,8 +6295,6 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
             correctJoystickDevice( config, controllers, controller, [padKey, NGC_DEVICE_TYPE_KEY], /^XInput2/, [padKey, NGC_DEVICE_TYPE_KEY], /(?<=evdev\/)\d+/ ); 
         }
     }
-    
-    if( !userControl.type ) return ""; // null control - this is when they enter a blank control and we need to clear it out
 
     // replace each instance of control string
     for( let controlButton of controlButtons ) {
