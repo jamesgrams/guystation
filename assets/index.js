@@ -1084,10 +1084,12 @@ function enableControls() {
                     sdIndex ++;
                     if( sdIndex >= SCALE_OPTIONS.length ) sdIndex = 0;
                     window.localStorage.guystationScaleDownFactor = SCALE_OPTIONS[sdIndex];
+                    createToast("Scale set to " + SCALE_OPTIONS[sdIndex]);
                     makeRequest( "POST", "/screencast/scale", { id: socket.id, factor: window.localStorage.guystationScaleDownFactor } );
                 }
                 else if( document.querySelector("#remote-screencast-form") ) {
                     fullscreenVideo( document.querySelector("#remote-screencast-form video") );
+                    screen.orientation.lock("portrait");
                 }
                 else {
                     displayScreencast(true);
@@ -1097,6 +1099,7 @@ function enableControls() {
                 buttonsUp["SoftLeft"] = false;
                 if( document.fullscreenElement ) {
                     document.exitFullscreen();
+                    screen.orientation.lock("portrait");
                 }
                 else if( document.querySelector("#remote-screencast-form") ) {
                     closeModal();
