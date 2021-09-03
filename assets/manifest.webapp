@@ -19,5 +19,6 @@
       "description": "An Emulator Hub"
     }
   },
-  "default_locale": "en-US"
+  "default_locale": "en-US",
+  "orientation": "portrait"
 }

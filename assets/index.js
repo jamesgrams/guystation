@@ -405,6 +405,7 @@ var serverIsSamba = false;
 // Hold escape for 5 seconds to quit
 // Note this variable contains a function interval, not a boolean value
 var escapeDown = null; 
+var slDown = null;
 // Hold enter for 5 seconds to start streaming in fullscreen
 var enterDown = null;
 // Hold start for 5 seconds to start streaming in fullscreen
@@ -1073,18 +1074,37 @@ function enableControls() {
             if( event.key === "SoftRight" && buttonsUp["SoftRight"] ) {
                 buttonsUp["SoftRight"] = false;
                 if( document.fullscreenElement ) {
+                    if( !window.localStorage.guystationScaleDownFactor ) {
+                        window.localStorage.guystationScaleDownFactor = "1";
+                    }
+                    var sdIndex = SCALE_OPTIONS.indexOf( window.localStorage.guystationScaleDownFactor );
+                    sdIndex ++;
+                    if( sdIndex >= SCALE_OPTIONS.length ) sdIndex = 0;
+                    window.localStorage.guystationScaleDownFactor = SCALE_OPTIONS[sdIndex];
+                    makeRequest( "POST", "/screencast/scale", { id: socket.id, factor: window.localStorage.guystationScaleDownFactor } );
+                }
+                else if( document.querySelector("#remote-screencast-form") ) {
+                    fullscreenVideo( document.querySelector("#remote-screencast-form video") );
+                }
+                else {
+                    displayScreencast(true);
+                }
+            }
+            if( event.key === "SoftLeft" && buttonsUp["SoftLeft"] ) {
+                buttonsUp["SoftLeft"] = false;
+                if( document.fullscreenElement ) {
                     document.exitFullscreen();
+                }
+                else if( document.querySelector("#remote-screencast-form") ) {
+                    closeModal();
                 }
                 else {
                     toggleAutoloadProfile();
                 }
-            }
-            if( event.key === "SoftLeft" && buttonsUp["SoftLeft"] ) {
-                if( !document.querySelector("#remote-screencast-form") ) {
-                    displayScreencast(true);
-                }
-                else {
-                    fullscreenVideo( document.querySelector("#remote-screencast-form video") );
+                if( !slDown ) {
+                    slDown = setTimeout(function() {
+                        document.querySelector("#quit-game").click();
+                    }, QUIT_TIME);
                 }
             }
         }
@@ -1144,6 +1164,7 @@ function enableControls() {
             }
             else if( event.key === "SoftLeft" ) {
                 buttonsUp["SoftLeft"] = true;
+                slDown = false;
             }
         }
     }
