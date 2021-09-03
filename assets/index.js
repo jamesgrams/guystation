@@ -908,7 +908,9 @@ function load() {
 
     if( isKaiOs() ) {
         document.body.classList.add("kaios");
-        screen.orientation.lock("portrait");
+        setInterval( function() {
+            screen.orientation.lock("portrait");
+        }, 5000 );
     }
 }
 
@@ -1080,7 +1082,7 @@ function enableControls() {
                     if( !window.localStorage.guystationScaleDownFactor ) {
                         window.localStorage.guystationScaleDownFactor = "1";
                     }
-                    var sdIndex = SCALE_OPTIONS.indexOf( window.localStorage.guystationScaleDownFactor );
+                    var sdIndex = SCALE_OPTIONS.indexOf( parseFloat(window.localStorage.guystationScaleDownFactor) );
                     sdIndex ++;
                     if( sdIndex >= SCALE_OPTIONS.length ) sdIndex = 0;
                     window.localStorage.guystationScaleDownFactor = SCALE_OPTIONS[sdIndex];
@@ -1089,7 +1091,6 @@ function enableControls() {
                 }
                 else if( document.querySelector("#remote-screencast-form") ) {
                     fullscreenVideo( document.querySelector("#remote-screencast-form video") );
-                    screen.orientation.lock("portrait");
                 }
                 else {
                     displayScreencast(true);
@@ -1099,7 +1100,6 @@ function enableControls() {
                 buttonsUp["SoftLeft"] = false;
                 if( document.fullscreenElement ) {
                     document.exitFullscreen();
-                    screen.orientation.lock("portrait");
                 }
                 else if( document.querySelector("#remote-screencast-form") ) {
                     closeModal();
