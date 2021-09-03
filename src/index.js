@@ -6181,7 +6181,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
             controllerKey = controllerKey.replace(controllers[0], controllers[controller]);
             deviceNumKey = deviceNumKey.replace(controllers[0], controllers[controller]);
         }
-        config[controllerKey] = NES_JOYSTICK;
+        if( controlInfo.actualControl != SCREENSHOT_CONTROL ) config[controllerKey] = NES_JOYSTICK;
         config[deviceNumKey] = controller;
 
         if( userControl.type == AXIS_CONTROL_TYPE ) {
@@ -6341,21 +6341,21 @@ function correctJoystickDevice( config, controllers, controller, indicatorPath, 
             // Update the paths with the correct controller
             let curIndicatorPath = JSON.parse(JSON.stringify(indicatorPath));
             let curKeyPath = JSON.parse(JSON.stringify(keyPath));
-            let indicatorConfig;
+            let indicatorConfig = config;
             for( let j=0; j<curIndicatorPath.length; j++ ) {
                 if( curIndicatorPath[j].match(controllers[0]) ) curIndicatorPath[j] = curIndicatorPath[j].replace(controllers[0], controllers[i]);
-                if( j < curIndicatorPath.length - 1 ) indicatorConfig = config[curIndicatorPath[j]];
+                if( j < curIndicatorPath.length - 1 ) indicatorConfig = indicatorConfig[curIndicatorPath[j]];
                 if( !indicatorConfig ) continue;
             }
-            let keyConfig;
+            let keyConfig = config;
             for( let j=0; j<curKeyPath.length; j++ ) {
                 if( curKeyPath[j].match(controllers[0]) ) curKeyPath[j] = curKeyPath[j].replace(controllers[0], controllers[i]);
-                if( j < curKeyPath.length - 1 ) keyConfig = config[curKeyPath[j]];
+                if( j < curKeyPath.length - 1 ) keyConfig = keyConfig[curKeyPath[j]];
                 if( !keyConfig ) continue;
             }
             if( !indicatorConfig || !keyConfig ) continue;
             if( !(curIndicatorPath[curIndicatorPath.length-1] in indicatorConfig) || !(curKeyPath[curKeyPath.length-1] in keyConfig) ) continue;
-            if( i >= controller ) keyConfig[curKeyPath[curKeyPath.length-1]] = keyConfig[curKeyPath[curKeyPath.length-1]].replace(replaceRegex, actualDevice); // actual device is increased throughout the loop
+            if( i >= controller ) keyConfig[curKeyPath[curKeyPath.length-1]] = keyConfig[curKeyPath[curKeyPath.length-1]].toString().replace(replaceRegex, actualDevice); // actual device is increased throughout the loop
             actualDevice++;
             // If the previous device uses a key for the A button, assume that it is a keyboard
             if( indicatorConfig[curIndicatorPath[curIndicatorPath.length-1]].match(indicatorRegex) ) {
