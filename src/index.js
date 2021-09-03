@@ -240,6 +240,7 @@ const DIRECTION_PLUS = "+";
 const NES_JOYSTICK = "Joystick";
 const NES_KEYBOARD = "Keyboard";
 const NES_DEVICE_TYPE_KEY = "SDL.Input.GamePad.0DeviceType";
+const NES_DEVICE_NUM_KEY = "SDL.Input.GamePad.0DeviceNum";
 const DIRECTION_MODIFIER_3DS = ",direction:";
 const GET_USER_COMMAND = "logname";
 const USER_PLACEHOLDER = "james";
@@ -6175,8 +6176,13 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
     else if( system == SYSTEM_NES ) {
 
         let controllerKey = NES_DEVICE_TYPE_KEY;
-        if( controller && controllers && controllerKey.match(controllers[0]) ) controllerKey = controllerKey.replace(controllers[0], controllers[controller]);
+        let deviceNumKey = NES_DEVICE_NUM_KEY;
+        if( controller && controllers && controllerKey.match(controllers[0]) ) {
+            controllerKey = controllerKey.replace(controllers[0], controllers[controller]);
+            deviceNumKey = deviceNumKey.replace(controllers[0], controllers[controller]);
+        }
         config[controllerKey] = NES_JOYSTICK;
+        config[deviceNumKey] = controller;
 
         if( userControl.type == AXIS_CONTROL_TYPE ) {
             // https://github.com/TASVideos/fceux/blob/5be92d3ee50fcdc04ec4d727cef5201fa8fba378/src/attic/pc/sdl.c#L354
@@ -6190,6 +6196,8 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
             controlButtons = controlButtons.map( el => el ? sdlMap[el] : el );
             if( controlInfo.actualControl != SCREENSHOT_CONTROL ) config[controllerKey] = NES_KEYBOARD;
         }
+
+        correctJoystickDevice( config, controllers, controller, [NES_DEVICE_TYPE_KEY], NES_KEYBOARD, [NES_DEVICE_NUM_KEY], /\d+/ ); 
     }
     // for psp
     else if( system == SYSTEM_PSP ) {
