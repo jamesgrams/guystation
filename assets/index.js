@@ -906,7 +906,10 @@ function load() {
         }, TABINDEX_TIMEOUT );
     }, load );
 
-    if( isKaiOs() ) document.body.classList.add("kaios");
+    if( isKaiOs() ) {
+        document.body.classList.add("kaios");
+        screen.orientation.lock("portrait");
+    }
 }
 
 /**
@@ -1164,7 +1167,8 @@ function enableControls() {
             }
             else if( event.key === "SoftLeft" ) {
                 buttonsUp["SoftLeft"] = true;
-                slDown = false;
+                clearTimeout(slDown);
+                slDown = null;
             }
         }
     }
