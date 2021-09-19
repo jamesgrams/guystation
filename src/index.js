@@ -6273,6 +6273,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
     // gamecube and wii
     else if( system == SYSTEM_NGC || system == SYSTEM_WII ) {
         let padKey = system == SYSTEM_NGC ? NGC_PAD_KEY : WII_PAD_KEY;
+        let nonControllerPadKey = padKey;
         if( controller && controllers && padKey.match(controllers[0]) ) padKey = padKey.replace(controllers[0], controllers[controller]);
         
 	    if( controlInfo.actualControl != SCREENSHOT_CONTROL) {
@@ -6285,7 +6286,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
                 config[padKey][WII_SOURCE_KEY] = WII_SOURCE_EMULATED;
             }
 
-            correctJoystickDevice( config, controllers, controller, [padKey, NGC_DEVICE_TYPE_KEY], /^XInput2/, [padKey, NGC_DEVICE_TYPE_KEY], /(?<=evdev\/)\d+/ ); 
+            correctJoystickDevice( config, controllers, controller, [nonControllerPadKey, NGC_DEVICE_TYPE_KEY], /^XInput2/, [nonControllerPadKey, NGC_DEVICE_TYPE_KEY], /(?<=evdev\/)\d+/ ); 
         }
 
         // dolphin uses x11 map for keys
@@ -6300,7 +6301,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
              } );
             if( controlInfo.actualControl != SCREENSHOT_CONTROL) config[padKey][NGC_DEVICE_TYPE_KEY] = NGC_VIRTUAL_KEYBOARD;//.replace("0", controller); Multiple keyboards probably isn't what we'd excpect, so keep at 0 for device num
             else config[HOTKEY_PAD_KEY][NGC_DEVICE_TYPE_KEY] = NGC_VIRTUAL_KEYBOARD;
-            correctJoystickDevice( config, controllers, controller, [padKey, NGC_DEVICE_TYPE_KEY], /^XInput2/, [padKey, NGC_DEVICE_TYPE_KEY], /(?<=evdev\/)\d+/ ); 
+            correctJoystickDevice( config, controllers, controller, [nonControllerPadKey, NGC_DEVICE_TYPE_KEY], /^XInput2/, [nonControllerPadKey, NGC_DEVICE_TYPE_KEY], /(?<=evdev\/)\d+/ ); 
         }
     }
 
