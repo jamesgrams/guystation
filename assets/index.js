@@ -6493,7 +6493,7 @@ function manageGamepadInput() {
                 if( !focusInterval ) {
                     for( var j=0; j<inputs.length; j++ ) {
                         if( inputs[j] === document.activeElement ) {
-                            var isEz = inputs[j].getAttribute("type") == "search";
+                            var isEz = inputs[j].getAttribute("id").match(/^ez/);
                             var gamepadButtonsDownKeys = Object.keys(gamepadButtonsDown[0]).sort( function(a,b) {
                                 var aMatch = a.match(/^\d+$/);
                                 var bMatch = b.match(/^\d+$/);
