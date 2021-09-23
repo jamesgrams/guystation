@@ -390,6 +390,7 @@ var screencastCounter = 0;
 var sendChannel = null;
 var gamepadInputCounter = 0;
 var didRestart = false;
+var didGetStream = false;
 
 // at the root level keyed by controller number, then 
 // keys are server values, values are client values
@@ -3473,11 +3474,14 @@ function deleteEzProfile() {
 /**
  * Display the screencast.
  * @param {boolean} fullscreen - True if we should open the screencast in fullscreen by default.
+ * @param {boolean} fitscreen - True if we should open the screencast in fit screen by default.
  */
-function displayScreencast( fullscreen ) {
+function displayScreencast( fullscreen, fitscreen ) {
     if( isServer ) {
         return;
     }
+
+    didGetStream = false;
  
     var form = document.createElement("div");
     form.appendChild( createFormTitle("Screencast") );
@@ -3640,6 +3644,7 @@ function displayScreencast( fullscreen ) {
             launchModal( form, function() { stopConnectionToPeer(false, "server"); currentConnectedVirtualControllers = 0; } );
             connectToSignalServer(false);
             if( fullscreen ) fullscreenVideo( video );
+            else if(fitscreen) fitscreenVideo();
         }, function(responseText) { standardFailure(responseText, true) } );
     } );
 }
@@ -6993,7 +6998,7 @@ function renegotiate() {
 function handlePotentialDisconnect( id ) {
     var peerConnection = peerConnections.filter(el => el.id==id)[0].peerConnection;
     if( peerConnection.iceConnectionState == "disconnected" ) {
-        stopConnectionToPeer(false, id, isServer ? true : false); // note we pretend we are not the streamer even if we are here.
+        stopConnectionToPeer(false, id, isServer ? true : false, didGetStream ? true : false); // note we pretend we are not the streamer even if we are here.
         // this will close the connection, but then it will call all the server functions we need to allow for
         // another connection to take place. Then, the server will try to stop the connection on the menuPage, but
         // it will not pass any of the checks, since peerConnection will already be null as will localStream
@@ -7007,8 +7012,9 @@ function handlePotentialDisconnect( id ) {
  * @param {boolean} isStreamer - True if this is the streamer, or we want to pretend that we are
  * @param {string} id - The id of the peer to stop the connection to.
  * @param {boolean} [useIdAsSocketId] - send the id as the socket id - this is what the server will read as the id to stop the connection to. So when we are pretending to not be the server, we should set this to the peer id. When are the client, it should be our socket id.
+ * @param {boolean} tryAgain - True if we should try again.
  */
-function stopConnectionToPeer( isStreamer, id, useIdAsSocketId ) {
+function stopConnectionToPeer( isStreamer, id, useIdAsSocketId, tryAgain ) {
     if( peerConnections.length ) {
         var peerConnection = peerConnections.filter(el => el.id==id)[0].peerConnection;
         peerConnection.close();
@@ -7029,10 +7035,16 @@ function stopConnectionToPeer( isStreamer, id, useIdAsSocketId ) {
         // if they have manually quit the modal, this check will fail and we will
         // not call it again
         if( document.querySelector(".modal #remote-screencast-form") ) {
+            var isFullscreen = document.fullscreenElement;
+            var isFitscreen = document.querySelector(".fit-screen");
             if( document.querySelector(".black-background #exit-button") ) {
+                isFullscreen = true;
                 document.querySelector(".black-background #exit-button").click();
             }
             closeModalCallback = null; // we don't need to call stop connection again
+            if( tryAgain ) {
+                closeModalCallback = displayScreencast( isFullscreen, isFitscreen );
+            }
             closeModal();
         }
     }
@@ -7130,6 +7142,7 @@ function createdDescription(id, description) {
  * @param {Event} event - The event that triggered the stream.
  */
 function gotRemoteStream(event) {
+    didGetStream = true;
     // Set the playout delay hint to be very low
     // See here: https://stackoverflow.com/questions/56510151/change-playout-delay-in-webrtc-stream
     // https://github.com/w3c/webrtc-extensions/issues/8
