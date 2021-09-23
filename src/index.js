@@ -351,6 +351,7 @@ const QUEUE_WAIT_TIME = 10;
 const MAX_COMMAND_INTERVAL = 100;
 const SAMBA_SAVE_NAND_TRIES = 3;
 const SAMBA_SAVE_NAND_TIME = 10000;
+const DISCONNECT_CONTROLLER_TIMEOUT = 30000;
 
 const DEFAULT_PROFILES_DICT = {
     "GuyStation Virtual Controller": {
@@ -6618,6 +6619,7 @@ let clientSocketIds = [];
 let clientNoDataChannels = {};
 let startedClientIds = [];
 let cancelStreamingTimeouts = {};
+let disconnectControllerTimeouts = {};
 // The signal server is also used as an rmtp converter, those variables are below
 let ffmpegProcess = null;
 let feedStream = false;
@@ -6820,6 +6822,10 @@ async function connectScreencast( id, numControllers ) {
             await createVirtualGamepad( id, i );
         }
     }
+    else if( gamepadFileDescriptors[id] ) {
+        clearTimeout( disconnectControllerTimeouts[id] );
+        delete disconnectControllerTimeouts[id];
+    }
 
     // do not connect again if we are already connected
     if( serverSocketId ) {
@@ -6971,7 +6977,10 @@ async function stopScreencast(id) {
     delete screencastLastCounters[id];
     delete screencastLastTimestamps[id];
 
-    await disconnectVirtualGamepad( id ); // Disconnect the virtual gamepad.
+    // Give the user 30 seconds to try to reconnect before unplugging their controller
+    disconnectControllerTimeouts[id] = setTimeout( function() {
+        disconnectVirtualGamepad( id ); // Disconnect the virtual gamepad.
+    }, DISCONNECT_CONTROLLER_TIMEOUT);
 
     try {
         await menuPage.evaluate( (id) => stopConnectionToPeer(true, id), id );
