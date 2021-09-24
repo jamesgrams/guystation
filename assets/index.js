@@ -1874,7 +1874,7 @@ function toggleButtons() {
 
     var screencastButton = document.getElementById("screencast");
     if( !isServer ) {
-        screencastButton.onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#remote-screencast-form") ) displayScreencast(); };
+        screencastButton.onclick = function(e) { e.stopPropagation(); if( !document.querySelector("#remote-screencast-form") ) displayScreencast(true); };
         screencastButton.classList.remove("inactive");
     }
     else {
