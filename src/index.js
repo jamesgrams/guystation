@@ -214,7 +214,7 @@ const GET_DEFAULT_MICROPHONE_COMMAND = "pacmd list-sources | grep '* index'";
 const GET_CARD_BY_INDEX_COMMAND = "pacmd list-cards | grep -A 100000 'index: ";
 const GET_CARD_BY_INDEX_END_COMMAND = "'";
 const SET_CARD_PROFILE_COMMAND = "pacmd set-card-profile ";
-const CARD_PROFILE_OFF = "off";
+const CARD_PROFILE_OFF = " off";
 const GOOGLE_CHROME_AUDIO_IDENTIFIER = "google-chrome";
 const PACMD_PREFIX = 'export PULSE_RUNTIME_PATH="/run/user/$(id --user $(logname))/pulse/" && sudo -u $(logname) -E '; // need to run as the user
 const DOWNLOAD_ROM_PREFIX = "/tmp/download_rom_";
@@ -7404,8 +7404,9 @@ async function toggleSoundCardProfile() {
         let cardIndex = sourceString.match(/card:\s(\d+)/)[1];
         let cardString = (await execPromise(PACMD_PREFIX + GET_CARD_BY_INDEX_COMMAND + cardIndex + GET_CARD_BY_INDEX_END_COMMAND)).toString();
         let activeProfile = cardString.match(/active\sprofile:\s<([^>]+)/)[1];
+
         await execPromise(PACMD_PREFIX + SET_CARD_PROFILE_COMMAND + cardIndex + CARD_PROFILE_OFF);
-        await execPromise(PACMD_PREFIX + SET_CARD_PROFILE_COMMAND + cardIndex + activeProfile);
+        await execPromise(PACMD_PREFIX + SET_CARD_PROFILE_COMMAND + cardIndex + " " + activeProfile);
     }
     catch(err) {
         console.log(err);
