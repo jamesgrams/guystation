@@ -211,6 +211,10 @@ const LIST_SOURCE_OUTPUTS_COMMAND = "pacmd list-source-outputs";
 const MOVE_SOURCE_OUTPUT_COMMAND = "pacmd move-source-output ";
 const GET_DEFAULT_AUDIO_DEVICE_COMMAND = "pacmd list-sinks | grep -A 100000 '* index'";
 const GET_DEFAULT_MICROPHONE_COMMAND = "pacmd list-sources | grep '* index'";
+const GET_CARD_BY_INDEX_COMMAND = "pacmd list-cards | grep -A 100000 'index: ";
+const GET_CARD_BY_INDEX_END_COMMAND = "'";
+const SET_CARD_PROFILE_COMMAND = "pacmd set-card-profile ";
+const CARD_PROFILE_OFF = "off";
 const GOOGLE_CHROME_AUDIO_IDENTIFIER = "google-chrome";
 const PACMD_PREFIX = 'export PULSE_RUNTIME_PATH="/run/user/$(id --user $(logname))/pulse/" && sudo -u $(logname) -E '; // need to run as the user
 const DOWNLOAD_ROM_PREFIX = "/tmp/download_rom_";
@@ -1387,6 +1391,7 @@ getIp().then( (ipAddr) => { IP = ipAddr; getData( true ).then( () => { launchBro
     catch(err) {
         console.log(err);
     }
+    toggleSoundCardProfile();
     socketsServer = server.listen(SOCKETS_PORT); // This is the screencast server
     expressDynamic = app.listen(PORT);
     detectHotword();
@@ -7386,11 +7391,35 @@ function createFakeMicrophone() {
 }
 
 /**
+ * Toggle the sound card profile on and off.
+ * This is needed to fix a bug where there is lag 
+ * in playing sound from a Microphone (Capture Card).
+ * Just needs to be done once Chrome is opened.
+ * https://askubuntu.com/questions/145935/get-rid-of-0-5s-latency-when-playing-audio-over-bluetooth-with-a2dp
+ */
+async function toggleSoundCardProfile() {
+    try {
+        let sourceString = (await execPromise(PACMD_PREFIX + GET_DEFAULT_AUDIO_DEVICE_COMMAND)).toString();
+        // We will get the default sink and then find the source that is set up to be monitoring that
+        let cardIndex = sourceString.match(/card:\s(\d+)/)[1];
+        let cardString = (await execPromise(PACMD_PREFIX + GET_CARD_BY_INDEX_COMMAND + cardIndex + GET_CARD_BY_INDEX_END_COMMAND)).toString();
+        let activeProfile = cardString.match(/active\sprofile:\s<([^>]+)/)[1];
+        await execPromise(PACMD_PREFIX + SET_CARD_PROFILE_COMMAND + cardIndex + CARD_PROFILE_OFF);
+        await execPromise(PACMD_PREFIX + SET_CARD_PROFILE_COMMAND + cardIndex + activeProfile);
+    }
+    catch(err) {
+        console.log(err);
+    }
+}
+
+/**
 * Bind the audio output to the Chrome input.
 */
 async function bindOutputToChromeInput() {
     try {
         // get the source output
+        // because we get the latest added one, we know we get the right source output
+        // (each tab is a seperate source output)
         let sourceOutputIndex = await getLatestChromeSourceOutput();
         if( sourceOutputIndex ) {
             // Now get the source
@@ -7450,6 +7479,8 @@ async function getLatestChromeSourceOutput() {
 async function bindMicrophoneToChromeInput() {
     try {
         // get the source output
+        // because we get the latest added one, we know we get the right source output
+        // (each tab is a seperate source output)
         let sourceOutputIndex = await getLatestChromeSourceOutput();
         if( sourceOutputIndex ) {
             // Now get the source
