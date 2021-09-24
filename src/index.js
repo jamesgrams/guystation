@@ -1371,6 +1371,7 @@ app.put("/settings", async function(request, response) {
 
 // set up the proper microphone input to the stream
 app.get("/stream/microphone", async function(request, response) {
+    await toggleSoundCardProfile(); // stream is when we need the mic input
     await bindMicrophoneToChromeInput();
     writeResponse( request, response, SUCCESS );
 } );
