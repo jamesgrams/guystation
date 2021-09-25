@@ -1371,7 +1371,6 @@ app.put("/settings", async function(request, response) {
 
 // set up the proper microphone input to the stream
 app.get("/stream/microphone", async function(request, response) {
-    await toggleSoundCardProfile(); // stream is when we need the mic input
     await bindMicrophoneToChromeInput();
     writeResponse( request, response, SUCCESS );
 } );
@@ -2885,6 +2884,7 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
                     script = DEFAULT_STREAM_SERVICES[parents[0]].script;
                 }
             }
+            await toggleSoundCardProfile(); // stream is when we need the mic input to work properly
             await launchBrowseTab( noGame ? null : gameDictEntry.siteUrl, !noGame && script ? script : null );
             currentSystem = system;
             currentGame = game;
