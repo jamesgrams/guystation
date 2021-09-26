@@ -1391,7 +1391,6 @@ getIp().then( (ipAddr) => { IP = ipAddr; getData( true ).then( () => { launchBro
     catch(err) {
         console.log(err);
     }
-    toggleSoundCardProfile();
     socketsServer = server.listen(SOCKETS_PORT); // This is the screencast server
     expressDynamic = app.listen(PORT);
     detectHotword();
