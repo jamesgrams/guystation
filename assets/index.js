@@ -1330,7 +1330,7 @@ function draw( startSystem ) {
         }
     }
     var displayScreencastIfNotShown = function() {
-        if( !isServer && !document.querySelector("#remote-screencast-form") ) displayScreencast(true);
+        //if( !isServer && !document.querySelector("#remote-screencast-form") ) displayScreencast(true);
     }
 
     systemsElementNew.appendChild( systemElements[startIndex] );
@@ -6440,7 +6440,6 @@ function manageGamepadInput() {
                     }
                     gamepadButtonsDown[i][ j + direction ] = true;
                     gamepadButtonsPressed[i][ j + direction ] = true;
-                    gamepadButtonsPressedTime[i][j + direction] = Date.now();
                     // in case we rapidly switched directions and it didn't get cleared out
                     gamepadButtonsDown[i][ oppositeDirection ] = false;
                     gamepadButtonsPressed[i][ oppositeDirection ] = false;
