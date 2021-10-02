@@ -441,6 +441,7 @@ var buttonsUp = {
     }
 };
 var keysTime = {};
+var screencastAfterLaunch = false;
 // This is an object with keys for each gamepad, and each gamepad having keys for each button
 // which can be a number or a number+/- for an axis
 var gamepadButtonsDown = {};
@@ -1005,7 +1006,7 @@ function enableControls() {
     document.onkeydown = function(event) {
         if( !disableMenuControls ) {
             var doubleTap = false;
-            if( buttonsUp[event.keyCode] ) {
+            if( buttonsUp.keyboard[event.keyCode] ) {
                 var nowDate = Date.now();
                 if( keysTime[event.keyCode] && (nowDate - keysTime[event.keyCode] <= DOUBLE_TAP_TIME) ) {
                     doubleTap = true;
@@ -1042,14 +1043,14 @@ function enableControls() {
                     buttonsUp.keyboard["13"] = false;
 
                     if( !isServer ) {
+                        if( doubleTap ) {
+                            screencastAfterLaunch = true;
+                        }
                         // enterDown and all the other "downs" are timeouts
                         if( !enterDown ) {
                             enterDown = setTimeout(function() {
                                 if( !document.querySelector("#remote-screencast-form") ) displayScreencast(true);
                             }, SCREENCAST_TIME);
-                        }
-                        if( doubleTap ) {
-                            displayScreencast(true);
                         }
                     }
                     break;
@@ -1307,7 +1308,9 @@ function draw( startSystem ) {
         moveMenu(-mySpaces);
         return -mySpaces;
     };
+    var lastClickedElement = null;
     var clickToMoveSubmenu = function(element) {
+        lastClickedElement = element;
         // Add the onclick element
         var parentGamesList = element.closest(".games");
         if( parentGamesList.parentElement.classList.contains("selected") && !element.classList.contains("above") ) {
@@ -1321,6 +1324,7 @@ function draw( startSystem ) {
         return -1;
     }
     var clickToMoveOrLaunch = function(e) {
+        lastClickedElement = this;
         if( !disableMenuControls ) {
             var spacesMoved = clickToMove(this);
             if( this.parentNode.getAttribute("data-system") != "media" ) {
@@ -1330,7 +1334,11 @@ function draw( startSystem ) {
         }
     }
     var displayScreencastIfNotShown = function() {
-        //if( !isServer && !document.querySelector("#remote-screencast-form") ) displayScreencast(true);
+        if( !disableMenuControls && !this.classList.contains("above") && lastClickedElement == this && 
+            !isServer && !document.querySelector("#remote-screencast-form") ) {
+            lastClickedElement = null;
+            screencastAfterLaunch = true;
+        }
     }
 
     systemsElementNew.appendChild( systemElements[startIndex] );
@@ -5995,6 +6003,10 @@ function launchGame( system, game, parents, callback ) {
             makeRequest( "POST", "/launch", { "system": system, "game": game, "parents": parents },
             function( responseText ) {
                 if( callback ) callback();
+                if( screencastAfterLaunch ) {
+                    displayScreencast(true);
+                    screencastAfterLaunch = false;
+                }
                 standardSuccess(responseText, "Game launched", null, null, null, null, null, null, true)
             },
             function( responseText ) { standardFailure( responseText ) } );
@@ -6472,18 +6484,20 @@ function manageGamepadInput() {
                 if( (joyMapping["A"] && joyMapping["A"].filter(el => gamepadButtonsPressed[i][el]).length) || (joyMapping["Start"] && joyMapping["Start"].filter(el => gamepadButtonsPressed[i][el]).length) ) {
                     document.querySelector("#launch-game").click();
                     if( !isServer ) {
+                        // double tap to open remote screencast
+                        var nowDate = Date.now();
+                        if( startDownTimes[i] && (nowDate - startDownTimes[i] <= DOUBLE_TAP_TIME) ) {
+                            if( !document.querySelector("#remote-screencast-form") ) {
+                                screencastAfterLaunch = true;
+                            }
+                            delete startDownTimes[i]; // have to do another full double tap again.
+                        }
+                        else startDownTimes[i] = nowDate;
                         if( !startDown[i] ) {
                             startDown[i] = setTimeout(function() {
                                 if( !document.querySelector("#remote-screencast-form") ) displayScreencast(true);
                             }, SCREENCAST_TIME);
                         }
-                        // double tap to open remote screencast
-                        var nowDate = Date.now();
-                        if( startDownTimes[i] && (nowDate - startDownTimes[i] <= DOUBLE_TAP_TIME) ) {
-                            if( !document.querySelector("#remote-screencast-form") ) displayScreencast(true);
-                            delete startDownTimes[i]; // have to do another full double tap again.
-                        }
-                        else startDownTimes[i] = nowDate;
                     };
                     break;
                 }
