@@ -41,6 +41,7 @@ var SORT_PLAYTIME = "totalPlaytime";
 var SORT_RECENT = "mostRecentPlaytime";
 var KEY_BUTTON_EXTRA = 20; // the extra size in pixels of a key button to a regular button
 var MIN_STREAM_SEARCH_LENGTH = 3;
+var DOUBLE_TAP_TIME = 500;
 var STOPWORDS = ["i", "me", "my", "myself", "we", "our", "ours", "ourselves", "you", "your", "yours", "yourself", "yourselves", "he", "him", "his", "himself", "she", "her", "hers", "herself", "it", "its", "itself", "they", "them", "their", "theirs", "themselves", "what", "which", "who", "whom", "this", "that", "these", "those", "am", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "having", "do", "does", "did", "doing", "a", "an", "the", "and", "but", "if", "or", "because", "as", "until", "while", "of", "at", "by", "for", "with", "about", "against", "between", "into", "through", "during", "before", "after", "above", "below", "to", "from", "in", "out", "over", "under", "again", "further", "then", "once", "here", "there", "when", "where", "why", "how", "all", "any", "both", "each", "few", "more", "most", "other", "some", "such", "no", "nor", "not", "only", "own", "same", "so", "than", "too", "very", "s", "t", "can", "will", "just", "don", "should", "now", "on", "off", "up", "down"];
 var KEYCODES = {
     '0': 48,
@@ -411,6 +412,7 @@ var slDown = null;
 var enterDown = null;
 // Hold start for 5 seconds to start streaming in fullscreen
 var startDown = {};
+var startDownTimes = {};
 
 // These buttons need to be pressed again to trigger the action again
 // These use the same keys as EZ config
@@ -434,9 +436,11 @@ var joyMapping = {
 var buttonsUp = {
     "keyboard": {
         "13": true, // Enter
-        "32": true // Spacebar
+        "32": true, // Spacebar
+        "27": true // Escape
     }
 };
+var keysTime = {};
 // This is an object with keys for each gamepad, and each gamepad having keys for each button
 // which can be a number or a number+/- for an axis
 var gamepadButtonsDown = {};
@@ -1000,6 +1004,15 @@ function closeMenu() {
 function enableControls() {
     document.onkeydown = function(event) {
         if( !disableMenuControls ) {
+            var doubleTap = false;
+            if( buttonsUp[event.keyCode] ) {
+                var nowDate = Date.now();
+                if( keysTime[event.keyCode] && (nowDate - keysTime[event.keyCode] <= DOUBLE_TAP_TIME) ) {
+                    doubleTap = true;
+                }
+                if( !doubleTap ) keysTime[event.keyCode] = nowDate;
+                else delete keysTime[event.keyCode];
+            }
             switch (event.keyCode) {
                 // Left
                 case 37:
@@ -1028,20 +1041,30 @@ function enableControls() {
                     }
                     buttonsUp.keyboard["13"] = false;
 
-                    if( !isServer && !enterDown ) {
-                        enterDown = setTimeout(function() {
-                            if( !document.querySelector("#remote-screencast-form") ) displayScreencast(true);
-                        }, SCREENCAST_TIME);
+                    if( !isServer ) {
+                        // enterDown and all the other "downs" are timeouts
+                        if( !enterDown ) {
+                            enterDown = setTimeout(function() {
+                                if( !document.querySelector("#remote-screencast-form") ) displayScreencast(true);
+                            }, SCREENCAST_TIME);
+                        }
+                        if( doubleTap ) {
+                            displayScreencast(true);
+                        }
                     }
                     break;
                 // Escape
                 case 27:
+                    buttonsUp.keyboard["27"] = false;
                     // Go to the currently playing game if there is one
                     goToPlayingGame();
                     if( !escapeDown ) {
                         escapeDown = setTimeout(function() {
                             document.querySelector("#quit-game").click();
                         }, QUIT_TIME);
+                    }
+                    if( doubleTap ) {
+                        document.querySelector("#quit-game").click();
                     }
                     break;
                 // Spacebar
@@ -1143,6 +1166,7 @@ function enableControls() {
                     break;
                 // Escape
                 case 27:
+                    buttonsUp.keyboard["27"] = true;
                     clearTimeout(escapeDown);
                     escapeDown = null;
                     break;
@@ -1305,15 +1329,20 @@ function draw( startSystem ) {
             e.stopPropagation();
         }
     }
+    var displayScreencastIfNotShown = function() {
+        if( !isServer && !document.querySelector("#remote-screencast-form") ) displayScreencast(true);
+    }
 
     systemsElementNew.appendChild( systemElements[startIndex] );
     systemsElementNew.querySelector("img").onclick = clickToMoveOrLaunch;
+    systemsElementNew.querySelector("img").ondblclick = displayScreencastIfNotShown;
 
     for( var i=1; i<expandCountRight+1; i++ ) {
         var nextIndex = getIndex( startIndex, systemElements, i );
         var nextElement = systemElements[nextIndex].cloneNode(true);
         nextElement.style.transform = "translateX( calc( -50% + "+(i*SPACING)+"px ) )translateY(-50%)";
         nextElement.querySelector("img").onclick = clickToMoveOrLaunch;
+        nextElement.querySelector("img").ondblclick = displayScreencastIfNotShown;
         systemsElementNew.appendChild(nextElement);
     }
     for( var i=1; i<expandCountLeft+1; i++ ) {
@@ -1321,6 +1350,7 @@ function draw( startSystem ) {
         var prevElement = systemElements[prevIndex].cloneNode(true);
         prevElement.style.transform = "translateX( calc( -50% - "+(i*SPACING)+"px ) )translateY(-50%)";
         prevElement.querySelector("img").onclick = clickToMoveOrLaunch;
+        prevElement.querySelector("img").ondblclick = displayScreencastIfNotShown;
         systemsElementNew.appendChild(prevElement);
     }
 
@@ -1333,6 +1363,7 @@ function draw( startSystem ) {
                 e.stopPropagation();
             }
         }
+        element.ondblclick = displayScreencastIfNotShown;
     } );
 
     // Add the selected class
@@ -6409,6 +6440,7 @@ function manageGamepadInput() {
                     }
                     gamepadButtonsDown[i][ j + direction ] = true;
                     gamepadButtonsPressed[i][ j + direction ] = true;
+                    gamepadButtonsPressedTime[i][j + direction] = Date.now();
                     // in case we rapidly switched directions and it didn't get cleared out
                     gamepadButtonsDown[i][ oppositeDirection ] = false;
                     gamepadButtonsPressed[i][ oppositeDirection ] = false;
@@ -6440,10 +6472,19 @@ function manageGamepadInput() {
                 // A or Start - launch a game (no need to quit a game, since they should have escape mapped to a key so they can go back to the menu)
                 if( (joyMapping["A"] && joyMapping["A"].filter(el => gamepadButtonsPressed[i][el]).length) || (joyMapping["Start"] && joyMapping["Start"].filter(el => gamepadButtonsPressed[i][el]).length) ) {
                     document.querySelector("#launch-game").click();
-                    if( !isServer && !startDown[i] ) {
-                        startDown[i] = setTimeout(function() {
+                    if( !isServer ) {
+                        if( !startDown[i] ) {
+                            startDown[i] = setTimeout(function() {
+                                if( !document.querySelector("#remote-screencast-form") ) displayScreencast(true);
+                            }, SCREENCAST_TIME);
+                        }
+                        // double tap to open remote screencast
+                        var nowDate = Date.now();
+                        if( startDownTimes[i] && (nowDate - startDownTimes[i] <= DOUBLE_TAP_TIME) ) {
                             if( !document.querySelector("#remote-screencast-form") ) displayScreencast(true);
-                        }, SCREENCAST_TIME);
+                            delete startDownTimes[i]; // have to do another full double tap again.
+                        }
+                        else startDownTimes[i] = nowDate;
                     };
                     break;
                 }
