@@ -420,6 +420,8 @@ var joyMapping = {
     "A": [1],
     "Start": [9],
     "Select": [8],
+    "R": [5],
+    "L": [4],
     "R2": [7],
     "L2": [6],
     "Up": [13],
@@ -3211,18 +3213,18 @@ function getCurrentAutoloadProfiles() {
  * Toggle Autoload profile for player 1.
  * This will select the next profile or delete the profile if at the end of the list.
  */
-function toggleAutoloadProfile() {
+function toggleAutoloadProfile( reverse ) {
     loadEzProfiles( function() {
         var currentProfiles = getCurrentAutoloadProfiles();
         if( !currentProfiles ) currentProfiles = {};
 
         var profileKeys = Object.keys(profilesDict);
-        var currentProfileIndex = -1; 
+        var currentProfileIndex = reverse ? profilesKeys.length : -1; 
         if( currentProfiles[0] ) {
             currentProfileIndex = profileKeys.indexOf(currentProfiles[0].name);
         }
-        currentProfileIndex ++;
-        if( currentProfileIndex >= profileKeys.length ) {
+        currentProfileIndex += (reverse ? -1 : 1);
+        if( !reverse && currentProfileIndex >= profileKeys.length ) {
             currentProfileIndex = -1;
         }
 
@@ -6525,6 +6527,13 @@ function manageGamepadInput() {
                 }
                 else {
                     if( menuDirection == "left-trigger" ) menuDirection = null;
+                }
+                // Select will toggle autoload profiles
+                if( joyMapping["R"] && joyMapping["R"].filter(el => gamepadButtonsPressed[i][el]).length ) {
+                    toggleAutoloadProfile();
+                }
+                else if( joyMapping["L"] && joyMapping["L"].filter(el => gamepadButtonsPressed[i][el]).length ) {
+                    toggleAutoloadProfile( true );
                 }
                 // Move menu
                 if( (joyMapping["Right"] && joyMapping["Right"].filter(el => gamepadButtonsDown[i][el]).length) || (joyMapping["Axis X+"] && joyMapping["Axis X+"].filter(el => gamepadButtonsDown[i][el]).length) ) {
