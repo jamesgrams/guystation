@@ -6530,7 +6530,7 @@ function manageGamepadInput() {
                 }
                 // Select will toggle autoload profiles
                 if( joyMapping["R"] && joyMapping["R"].filter(el => gamepadButtonsPressed[i][el]).length && 
-                    (!(joyMapping["Select"]) || !(joyMapping["Select"].filter(el => gamepadButtonsPressed[i][el]).length)) ) {
+                    (!(joyMapping["Select"]) || !(joyMapping["Select"].filter(el => gamepadButtonsDown[i][el]).length)) ) {
                     toggleAutoloadProfile();
                 }
                 else if( joyMapping["L"] && joyMapping["L"].filter(el => gamepadButtonsPressed[i][el]).length ) {
