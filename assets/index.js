@@ -3219,7 +3219,7 @@ function toggleAutoloadProfile( reverse ) {
         if( !currentProfiles ) currentProfiles = {};
 
         var profileKeys = Object.keys(profilesDict);
-        var currentProfileIndex = reverse ? profilesKeys.length : -1; 
+        var currentProfileIndex = reverse ? profileKeys.length : -1; 
         if( currentProfiles[0] ) {
             currentProfileIndex = profileKeys.indexOf(currentProfiles[0].name);
         }
