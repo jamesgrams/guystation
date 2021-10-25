@@ -339,9 +339,9 @@ var SCALE_DOWN_TIMEOUT = 1000;
 var SCALE_OPTIONS = [1,1.5,2,3,4,6]; // 1080p, 720p, 540p, 360p, 270p, 180p
 var CONTROLLER_CONNECT_OPTIONS = ["auto",0,1,2,3,4];
 var MAX_TOUCH_COUNT = 3;
-var VIDEO_DETECTION_WIDTH = 640;
-var VIDEO_DETECTION_HEIGHT = 480;
-var VIDEO_DETECTION_SCALE_DOWN_BY = 10;
+var VIDEO_DETECTION_WIDTH = 1920;
+var VIDEO_DETECTION_HEIGHT = 1080;
+var VIDEO_DETECTION_SCALE_DOWN_BY = 30;
 var VIDEO_DIFF_WIDTH = VIDEO_DETECTION_WIDTH/VIDEO_DETECTION_SCALE_DOWN_BY;
 var VIDEO_DIFF_HEIGHT = VIDEO_DETECTION_HEIGHT/VIDEO_DETECTION_SCALE_DOWN_BY;
 var PIXEL_SCORE_THRESHOLD = 32;
@@ -6800,6 +6800,7 @@ function detectMotion(callback) {
     var video = document.createElement("video");
     video.classList.add("md-video", "hidden");
     video.autoplay = true;
+    video.muted = true;
     document.body.appendChild(video);
     navigator.mediaDevices.getUserMedia({audio: false, video: {
         width: VIDEO_DETECTION_WIDTH,
