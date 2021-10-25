@@ -346,6 +346,8 @@ var VIDEO_DIFF_WIDTH = VIDEO_DETECTION_WIDTH/VIDEO_DETECTION_SCALE_DOWN_BY;
 var VIDEO_DIFF_HEIGHT = VIDEO_DETECTION_HEIGHT/VIDEO_DETECTION_SCALE_DOWN_BY;
 var PIXEL_SCORE_THRESHOLD = 32;
 var IMAGE_SCORE_THRESHOLD = 10;
+var CAPTURE_INTERVAL = 500;
+var MOTION_DETECT_STILL_QUIT_THRESHOLD = 1000*60*5 / CAPTURE_INTERVAL;
 
 var expandCountLeft; // We always need to have a complete list of systems, repeated however many times we want, so the loop works properly
 var expandCountRight;
@@ -400,6 +402,8 @@ var gamepadInputCounter = 0;
 var didRestart = false;
 var didGetStream = false;
 var captureInterval = null;
+var motionDetectGameLaunched = false;
+var motionDetectGameStillCounter = 0;
 
 // at the root level keyed by controller number, then 
 // keys are server values, values are client values
@@ -6812,7 +6816,7 @@ function detectMotion(callback) {
         canvas.height = VIDEO_DETECTION_HEIGHT;
         var context = canvas.getContext('2d');
         // this means, there will be more color iff there is motion
-        captureInterval = setInterval( capture, 500 );
+        captureInterval = setInterval( capture, CAPTURE_INTERVAL );
         // check every 500 ms
         var setOnce = false; // need to make at least once capture to diff against
         function capture() {
@@ -6832,7 +6836,16 @@ function detectMotion(callback) {
                 }
             }
             if (imageScore >= IMAGE_SCORE_THRESHOLD) {
-                if( setOnce ) callback();
+                if( setOnce ) {
+                    callback();
+                    motionDetectGameStillCounter = 0;
+                }
+            }
+            else if( setOnce ) {
+                motionDetectGameStillCounter++;
+                if( motionDetectGameLaunched && motionDetectGameStillCounter == MOTION_DETECT_STILL_QUIT_THRESHOLD ) {
+                    quitGame();
+                }
             }
             context.globalCompositeOperation = 'source-over';
             context.drawImage(video, 0, 0, VIDEO_DIFF_WIDTH, VIDEO_DIFF_HEIGHT);

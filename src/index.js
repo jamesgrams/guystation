@@ -1648,30 +1648,48 @@ async function exposeFunctions() {
  * @param {string} system - The system the game is on.
  * @param {string} game - The game to play.
  * @param {Array<string>} parents - An array of parent directories for the game.
- * @returns {boolean|string} An error message if there is one or false.
+ * @returns {Promise<boolean|string>} A promise containing error message if there is one or false.
  */
 async function setMotionDetectLaunchGame( system, game, parents ) {
-    if( !menuPage || menuPage.isClosed() ) return ERROR_MESSAGES.menuPageClosed;
+    if( !menuPage || menuPage.isClosed() ) return Promise.resolve(ERROR_MESSAGES.menuPageClosed);
     let isInvalid = isInvalidGame( system, game, parents );
-    if( isInvalid ) return isInvalid;
+    if( isInvalid ) return Promise.resolve(isInvalid);
     await menuPage.evaluate( (system, game, parents) => {
         detectMotion( () => {
-            if( !document.hidden && !document.querySelector(".playing") ) launchGame( system, game, parents )
+            if( !document.hidden && !document.querySelector(".playing") ) {
+                motionDetectGameLaunched = true;
+                motionDetectGameStillCounter = 0;
+                launchGame( system, game, parents );
+            }
         } );
     }, system, game, parents );
+    return Promise.resolve(false);
+}
+
+/**
+ * Disable auto quitting the motion detect game on motion detect idle.
+ * @returns {Promise<boolean|string>} A promise containing error message if there is one or false.
+ */
+async function disableQuitMotionDetectGameOnIdle() {
+    if( !menuPage || menuPage.isClosed() ) return Promise.resolve(ERROR_MESSAGES.menuPageClosed);
+    await menuPage.evaluate( () => {
+        motionDetectGameLaunched = false;
+    } );
+    return Promise.resolve(false);
 }
 
 /**
  * Clear the motion detect game on a page.
- * @returns {boolean|string} An error message if there is one or false.
+ * @returns {Promise<boolean|string>} A promise containing error message if there is one or false.
  */
 async function clearMotionDetectLaunchGame() {
-    if( !menuPage || menuPage.isClosed() ) return ERROR_MESSAGES.menuPageClosed;
+    if( !menuPage || menuPage.isClosed() ) return Promise.resolve(ERROR_MESSAGES.menuPageClosed);
     await menuPage.evaluate( () => {
         clearInterval(captureInterval);
         var mdVideo = document.querySelector(".md-video");
         if( mdVideo ) mdVideo.parentElement.removeChild( mdVideo );
     } );
+    return Promise.resolve(false);
 }
 
 /**
@@ -3212,7 +3230,8 @@ async function quitGame() {
             if( errorMessage ) return Promise.resolve(errorMessage);
         }
         else if( browsePage && !browsePage.isClosed() ) {
-            await closeBrowseTabs();
+            await closeBrowseTabs(); // this will call blankCurrentGame unlike for media and non-browser games
+            // that's why we don't need close onboard instance in quit game
         }
         currentEmulator = null;
         currentGame = null;
@@ -3221,6 +3240,7 @@ async function quitGame() {
         currentGameStart = null;
         stopUpdatePlaytime();
         updateTwitchStream();
+        await disableQuitMotionDetectGameOnIdle();
 
         await menuPage.bringToFront(); // for pip
         return Promise.resolve(false);
@@ -3232,6 +3252,8 @@ async function quitGame() {
 
 /**
  * Blank all the values from the current game.
+ * This is typically called when a game is quit NOT through GuyStation.
+ * (although it is called when a browser game is quit through GuyStation).
  * @returns {Promise} A promise containing false.
  */
 async function blankCurrentGame() {
@@ -3245,7 +3267,10 @@ async function blankCurrentGame() {
     currentGameStart = null;
     stopUpdatePlaytime();
 
-    blankOnboardInstance();
+    await blankOnboardInstance();
+    await disableQuitMotionDetectGameOnIdle();
+    updateTwitchStream();
+    await ensureProperResolution(); // need this here in case we quit the game without calling quitGame
     return Promise.resolve(false);
 }
 
@@ -4944,6 +4969,8 @@ async function closeRemoteMedia() {
                 await menuPage.evaluate( () => { closeModalCallback=null; closeModal(true); } );
             }
             await destroyRemoteMedia(); // destory any instances of remote media placeholders
+            stopUpdatePlaytime();
+            await disableQuitMotionDetectGameOnIdle();
             return Promise.resolve(false);
         }
         else {
