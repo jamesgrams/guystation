@@ -1650,7 +1650,7 @@ async function exposeFunctions() {
  * @param {Array<string>} parents - An array of parent directories for the game.
  * @returns {boolean|string} An error message if there is one or false.
  */
- function setMotionDetectLaunchGame( system, game, parents ) {
+async function setMotionDetectLaunchGame( system, game, parents ) {
     if( !menuPage || menuPage.isClosed() ) return ERROR_MESSAGES.menuPageClosed;
     let isInvalid = isInvalidGame( system, game, parents );
     if( isInvalid ) return isInvalid;
@@ -1665,7 +1665,7 @@ async function exposeFunctions() {
  * Clear the motion detect game on a page.
  * @returns {boolean|string} An error message if there is one or false.
  */
-function clearMotionDetectLaunchGame() {
+async function clearMotionDetectLaunchGame() {
     if( !menuPage || menuPage.isClosed() ) return ERROR_MESSAGES.menuPageClosed;
     await menuPage.evaluate( () => clearInterval(captureInterval) );
 }
