@@ -1656,7 +1656,7 @@ async function setMotionDetectLaunchGame( system, game, parents ) {
     if( isInvalid ) return isInvalid;
     await menuPage.evaluate( (system, game, parents) => {
         detectMotion( () => {
-            if( !document.hidden && !document.querySelector(".playing") ) launchGame( system, game, false, parents )
+            if( !document.hidden && !document.querySelector(".playing") ) launchGame( system, game, parents )
         } );
     }, system, game, parents );
 }
@@ -1667,7 +1667,11 @@ async function setMotionDetectLaunchGame( system, game, parents ) {
  */
 async function clearMotionDetectLaunchGame() {
     if( !menuPage || menuPage.isClosed() ) return ERROR_MESSAGES.menuPageClosed;
-    await menuPage.evaluate( () => clearInterval(captureInterval) );
+    await menuPage.evaluate( () => {
+        clearInterval(captureInterval);
+        var mdVideo = document.querySelector(".md-video");
+        if( mdVideo ) mdVideo.parentElement.removeChild( mdVideo );
+    } );
 }
 
 /**

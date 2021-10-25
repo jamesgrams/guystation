@@ -4518,7 +4518,6 @@ function displayPowerOptions() {
         var label = createInput( json.windowed, "windowed-checkbox", "Windowed: ", "checkbox" );
         var input = label.querySelector("input");
 
-        button.setAttribute("id", "update-settings-button");
         var warning = createWarning("Settings");
         warning.classList.add("clear", "break");
         form.appendChild( warning );
@@ -4564,6 +4563,7 @@ function displayPowerOptions() {
                 alertError("Could not update settings");
             })
         });
+        button.setAttribute("id", "update-settings-button");
 
         form.appendChild(button);
     })
@@ -6798,6 +6798,7 @@ function speechInput() {
 function detectMotion(callback) {
     clearInterval( captureInterval );
     var video = document.createElement("video");
+    video.classList.add("md-video", "hidden");
     video.autoplay = true;
     document.body.appendChild(video);
     navigator.mediaDevices.getUserMedia({audio: false, video: {
