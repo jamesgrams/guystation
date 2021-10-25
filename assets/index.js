@@ -339,6 +339,13 @@ var SCALE_DOWN_TIMEOUT = 1000;
 var SCALE_OPTIONS = [1,1.5,2,3,4,6]; // 1080p, 720p, 540p, 360p, 270p, 180p
 var CONTROLLER_CONNECT_OPTIONS = ["auto",0,1,2,3,4];
 var MAX_TOUCH_COUNT = 3;
+var VIDEO_DETECTION_WIDTH = 640;
+var VIDEO_DETECTION_HEIGHT = 480;
+var VIDEO_DETECTION_SCALE_DOWN_BY = 10;
+var VIDEO_DIFF_WIDTH = VIDEO_DETECTION_WIDTH/VIDEO_DETECTION_SCALE_DOWN_BY;
+var VIDEO_DIFF_HEIGHT = VIDEO_DETECTION_HEIGHT/VIDEO_DETECTION_SCALE_DOWN_BY;
+var PIXEL_SCORE_THRESHOLD = 32;
+var IMAGE_SCORE_THRESHOLD = 10;
 
 var expandCountLeft; // We always need to have a complete list of systems, repeated however many times we want, so the loop works properly
 var expandCountRight;
@@ -392,6 +399,7 @@ var sendChannel = null;
 var gamepadInputCounter = 0;
 var didRestart = false;
 var didGetStream = false;
+var captureInterval = null;
 
 // at the root level keyed by controller number, then 
 // keys are server values, values are client values
@@ -4509,10 +4517,46 @@ function displayPowerOptions() {
         var json = JSON.parse(responseText);
         var label = createInput( json.windowed, "windowed-checkbox", "Windowed: ", "checkbox" );
         var input = label.querySelector("input");
+
+        button.setAttribute("id", "update-settings-button");
+        var warning = createWarning("Settings");
+        warning.classList.add("clear", "break");
+        form.appendChild( warning );
+        form.appendChild(label);
+
+        // Create the motion detect game section
+        var motionDetectGameLabel = createInput( json.motionDetectGame ? true: false, "motion-detect-game-checkbox", "Motion Detect Game: ", "checkbox");
+        var motionDetectInput = motionDetectGameLabel.querySelector("input");
+        var motionDetectSection = document.createElement("div");
+        var selected = ( json.motionDetectGame && json.motionDetectGame.system && json.motionDetectGame.game && json.motionDetectGame.parents ) ? json.motionDetectGame : getSelectedValues();
+        motionDetectSection.appendChild( createSystemMenu( selected.system, false, false, true, false, true ) );
+        motionDetectSection.appendChild( createFolderMenu( selected.parents, selected.system, false, false, true, true ) );
+        motionDetectSection.appendChild( createGameMenu( selected.game, selected.system, false, false, selected.parents, true ) );
+        if( !json.motionDetectGame ) motionDetectSection.classList.add("hidden");
+        motionDetectInput.onchange = function() {
+            if( motionDetectInput.checked ) motionDetectSection.classList.remove("hidden");
+            else motionDetectSection.classList.add("hidden");
+        }
+        form.appendChild( motionDetectGameLabel );
+        form.appendChild( motionDetectSection );
+        // End motion detect game section
+
         var button = createButton( "Update", function() {
+            var motionDetectGame = null;
+            if( motionDetectInput.checked ) {
+                var systemSelect = document.querySelector(".modal #power-options-form #system-select");
+                var gameSelect = document.querySelector(".modal #power-options-form #game-select");
+                var parents = extractParentsFromFolderMenu();
+                motionDetectGame = {
+                    system: systemSelect.options[systemSelect.selectedIndex].value,
+                    game: gameSelect.options[gameSelect.selectedIndex].value,
+                    parents: parents
+                };
+            }
             makeRequest("PUT", "/settings", {
                 settings: {
-                    windowed: input.checked
+                    windowed: input.checked,
+                    motionDetectGame: motionDetectGame
                 }
             }, function() {
                 alertSuccess("Settings updated");
@@ -4520,11 +4564,7 @@ function displayPowerOptions() {
                 alertError("Could not update settings");
             })
         });
-        button.setAttribute("id", "update-settings-button");
-        var warning = createWarning("Settings");
-        warning.classList.add("clear", "break");
-        form.appendChild( warning );
-        form.appendChild(label);
+
         form.appendChild(button);
     })
     launchModal( form );
@@ -5159,7 +5199,7 @@ function createGameInput( defaultValue, required ) {
  * @param {boolean} [old] - True if the old game for chanding (changes the id).
  * @param {boolean} [required] - If the field is required.
  * @param {Array<string>} parents - A list of parent folders for games - options are limited to their contents.
- * @param {boolean} [onlyWithRealGames] - True if we should only show systems with real games in the menu - this will get passed to sub menus.
+ * @param {boolean} [onlyWithRealGames] - True if we should only show non-folder games in the menu - this will get passed to sub menus.
  * @param {boolean} [onlyWithLeafNodes] - True if we only want to show "leaf nodes" (only impacts the game menu) - i.e. empty folders or games.
  * @param {boolean} [displaySaveOld] - Alter the label for the save to say current.
  * @returns {HTMLElement} A select element containing the necessary keys wrapped by a label.
@@ -6749,6 +6789,55 @@ function speechInput() {
         toggleButtons();
     }
     speechRecognition.start();
+}
+
+/**
+ * Detect Motion
+ * @param {Function} callback - The callback if motion is detected. 
+ */
+function detectMotion(callback) {
+    clearInterval( captureInterval );
+    var video = document.createElement("video");
+    video.autoplay = true;
+    document.body.appendChild(video);
+    navigator.mediaDevices.getUserMedia({audio: false, video: {
+        width: VIDEO_DETECTION_WIDTH,
+        height: VIDEO_DETECTION_HEIGHT
+    }}).then( function(stream) {
+        video.srcObject = stream;
+        var canvas = document.createElement("canvas");
+        canvas.width = VIDEO_DETECTION_WIDTH;
+        canvas.height = VIDEO_DETECTION_HEIGHT;
+        var context = canvas.getContext('2d');
+        // this means, there will be more color iff there is motion
+        captureInterval = setInterval( capture, 500 );
+        // check every 500 ms
+        var setOnce = false; // need to make at least once capture to diff against
+        function capture() {
+            context.globalCompositeOperation = 'difference';
+            context.drawImage(video, 0, 0, VIDEO_DIFF_WIDTH, VIDEO_DIFF_HEIGHT);
+            var imageScore = 0;
+            var imageData = context.getImageData(0, 0, VIDEO_DIFF_WIDTH, VIDEO_DIFF_HEIGHT);
+
+            for (var i = 0; i < imageData.data.length; i += 4) {
+                var r = imageData.data[i] / 3;
+                var g = imageData.data[i + 1] / 3;
+                var b = imageData.data[i + 2] / 3;
+                var pixelScore = r + g + b;
+
+                if (pixelScore >= PIXEL_SCORE_THRESHOLD) {
+                    imageScore++;
+                }
+            }
+
+            if (imageScore >= IMAGE_SCORE_THRESHOLD) {
+                if( setOnce ) callback();
+            }
+            context.globalCompositeOperation = 'source-over';
+            context.drawImage(video, 0, 0, VIDEO_DIFF_WIDTH, VIDEO_DIFF_HEIGHT);
+            setOnce = true;
+        }
+    } );
 }
 
 // Handles mobile input

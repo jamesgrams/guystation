@@ -1581,6 +1581,9 @@ async function launchBrowser() {
 
     await menuPage.goto("http://" + LOCALHOST + ":" + STATIC_PORT + "?" + IS_SERVER_PARAM + sambaString);
     ks.sendKey('tab');
+    if( settings.motionDetectGame ) {
+        await setMotionDetectLaunchGame( settings.motionDetectGame.system, settings.motionDetectGame.game, settings.motionDetectGame.parents );
+    }
 
     browser.on("targetdestroyed", async function() {
         // If there are no more browse tabs, the browser has been quit
@@ -1641,12 +1644,46 @@ async function exposeFunctions() {
 }
 
 /**
+ * Set a game to launch on motion detect.
+ * @param {string} system - The system the game is on.
+ * @param {string} game - The game to play.
+ * @param {Array<string>} parents - An array of parent directories for the game.
+ * @returns {boolean|string} An error message if there is one or false.
+ */
+ function setMotionDetectLaunchGame( system, game, parents ) {
+    if( !menuPage || menuPage.isClosed() ) return ERROR_MESSAGES.menuPageClosed;
+    let isInvalid = isInvalidGame( system, game, parents );
+    if( isInvalid ) return isInvalid;
+    await menuPage.evaluate( (system, game, parents) => {
+        detectMotion( () => {
+            if( !document.hidden && !document.querySelector(".playing") ) launchGame( system, game, false, parents )
+        } );
+    }, system, game, parents );
+}
+
+/**
+ * Clear the motion detect game on a page.
+ * @returns {boolean|string} An error message if there is one or false.
+ */
+function clearMotionDetectLaunchGame() {
+    if( !menuPage || menuPage.isClosed() ) return ERROR_MESSAGES.menuPageClosed;
+    await menuPage.evaluate( () => clearInterval(captureInterval) );
+}
+
+/**
  * Write settings.
  * @param {Object} settings - The settings object to write.
  * @returns {Promise} A promise containing false.
  */
 async function writeSettings( settings ) {
     await fsExtra.writeFile( SETTINGS_PATH, JSON.stringify(settings) );
+    // Need to clear out the current motion detect game immediately
+    if( settings.motionDetectGame ) {
+        await setMotionDetectLaunchGame( settings.motionDetectGame.system, settings.motionDetectGame.game, settings.motionDetectGame.parents );
+    }
+    else {
+        await clearMotionDetectLaunchGame();
+    }
     return Promise.resolve(false);
 }
 
