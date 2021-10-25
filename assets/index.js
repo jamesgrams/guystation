@@ -6798,7 +6798,7 @@ function speechInput() {
 function detectMotion(callback) {
     clearInterval( captureInterval );
     var video = document.createElement("video");
-    video.classList.add("md-video", "hidden");
+    video.classList.add("md-video");
     video.autoplay = true;
     video.muted = true;
     document.body.appendChild(video);
@@ -6831,7 +6831,6 @@ function detectMotion(callback) {
                     imageScore++;
                 }
             }
-
             if (imageScore >= IMAGE_SCORE_THRESHOLD) {
                 if( setOnce ) callback();
             }

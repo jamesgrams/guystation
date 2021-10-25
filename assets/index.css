@@ -866,6 +866,11 @@ h1 {
     margin: 10px 5px 0 5px !important;
 }
 
+.md-video {
+    user-select: none;
+    visibility: hidden;
+}
+
 @keyframes fade {
     0% {transform: translateY(100%); opacity: 1;}
     75% {transform: translateY(0%); opacity: 0.7;}
