@@ -7316,10 +7316,10 @@ function gotRemoteStream(event) {
     event.receiver.playoutDelayHint = 0;
     var stream = new MediaStream( [event.track] );
     if( event.track.kind === "video" ) {
-        document.querySelector(".modal #remote-screencast-form video, .modal #browser-controls-form video").srcObject = stream;
+        document.querySelector(".modal #remote-screencast-form video, .modal #browser-controls-form video, .black-background video").srcObject = stream;
     }
     else {
-        document.querySelector(".modal #remote-screencast-form audio, .modal #browser-controls-form audio").srcObject = stream;
+        document.querySelector(".modal #remote-screencast-form audio, .modal #browser-controls-form audio, .black-background video").srcObject = stream;
     }
     // scale the screencas44t on the server to the previous setting
     // we want to do this after the sender already exists, so we can only do it to this client
