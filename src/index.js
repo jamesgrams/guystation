@@ -5373,6 +5373,8 @@ async function fetchStreamList() {
             // Wait for navigation
             page.on("response", intercept);
             await page.goto( DEFAULT_STREAM_SERVICES[service].url );
+            await page.waitForSelector("button[data-mode='table']");
+            await page.click("button[data-mode='table']");
             await page.waitForSelector("tbody tr");
             // refresh the first 50 to intercept
             console.log("scanning page 1");
