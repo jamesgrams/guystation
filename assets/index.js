@@ -4556,6 +4556,7 @@ function displayPowerOptions() {
                     parents: parents
                 };
             }
+            var buttonRef = this;
             makeRequest("PUT", "/settings", {
                 settings: {
                     windowed: input.checked,
@@ -4565,7 +4566,7 @@ function displayPowerOptions() {
                 alertSuccess("Settings updated");
             }, function() {
                 alertError("Could not update settings");
-            })
+            }, null, null, null, buttonRef );
         });
         button.setAttribute("id", "update-settings-button");
 
@@ -6287,8 +6288,9 @@ function endRequest() {
  * @param {boolean} useFormData - True if we should use form data instead of json.
  * @param {boolean} sambaMode - True if we should make the request to the GuyStation that this GuyStation has mounted the system directoy of (can't update symlinks on a samba mount).
  * @param {boolean} noWebsockets - True if we should not allow websockets to be used.
+ * @param {HTMLElement} button - A button to display status on.
  */
-function makeRequest(type, url, parameters, callback, errorCallback, useFormData, sambaMode, noWebsockets) {
+function makeRequest(type, url, parameters, callback, errorCallback, useFormData, sambaMode, noWebsockets, button) {
     parameters.systemsDictHash = systemsDictHash;
     parameters.systemsDictSearch = currentSearch ? currentSearch : "";
     parameters.systemsDictSort = window.localStorage.guystationMenuSort ? window.localStorage.guystationMenuSort : ""; // pivotal for returning systems dict
@@ -6355,7 +6357,7 @@ function makeRequest(type, url, parameters, callback, errorCallback, useFormData
             sendParameters = JSON.stringify(parameters);
         }
         xhttp.upload.onprogress = function(event) {
-            var button = document.querySelector(".modal button");
+            if( !button ) button = document.querySelector(".modal button");
             if( button ) {
                 var percent = event.loaded/event.total * 100;
                 button.style.opacity = 1;
