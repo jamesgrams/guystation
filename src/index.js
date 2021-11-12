@@ -1065,7 +1065,7 @@ app.post("/controls", async function(request, response) {
     if( ! requestLocked ) {
         requestLocked = true;
         try {
-            let errorMessage = await setControls( request.body.systems, request.body.values, request.body.controller, request.body.nunchuk );
+            let errorMessage = await setControls( request.body.systems, request.body.values, request.body.controller, request.body.nunchuk, request.body.noExtension );
             requestLocked = false;
             writeActionResponse( request, response, errorMessage );
         }
@@ -5788,7 +5788,7 @@ function generateMessageUserName( id ) {
 async function setMultipleControls( controllers ) {
     controllers = controllers.sort().reverse(); // this is to set player 1 controls last to overwrite potential others
     for( let controller of controllers ) {
-        await setControls( controller.systems, controller.values, controller.controller, controller.nunchuk );
+        await setControls( controller.systems, controller.values, controller.controller, controller.nunchuk, controller.noExtension );
     }
     return Promise.resolve(false);
 }
@@ -5823,9 +5823,10 @@ async function setMultipleControls( controllers ) {
  * @param {Object} values - An object with keys being GuyStation buttons and values being an array of objects (each item is another control) containing a key for type and the button (can be axis+-/key) to set them to, or an array for multiple values (will be inserted for each $CONTROL in the control format) relating to a single control (note: we really only should ever receive one value, and we'll only use the first value - search for controlButtons for more).
  * @param {number} [controller] - The controller number to set controls for. 0,1,2, etc.
  * @param {boolean} [nunchuk] - True if we are setting the Wii to use the nunchuk extension.
+ * @param {boolean} [noExtension] - True if there should be no Wii extension.
  * @returns {Promise<boolean|string>} A promise containing an error message if there is an error, false if not.
  */
-async function setControls( systems, values, controller=0, nunchuk=false ) {
+async function setControls( systems, values, controller=0, nunchuk=false, noExtension=false ) {
 
     for( let system of systems ) {
 
@@ -6052,7 +6053,7 @@ async function setControls( systems, values, controller=0, nunchuk=false ) {
                     // Note that a control can require multiple components (e.g. an axis with X plus and X minus) which thus userControl.button is an array
                     // This is different to when there are multiple controls mapped to a button (e.g. Dpad left and arrow key left) in which case both need to be run through translateButton
                     // however, we actually seperate out everything, so the user should only ever pass a single item in an array. we'll add to it from pre-exising as need be.
-                    curControlParts.push( translateButton( system, userControl, controlInfo, controlFormat, configSetting[finalKey], config, controllers, controller, nunchuk ) );
+                    curControlParts.push( translateButton( system, userControl, controlInfo, controlFormat, configSetting[finalKey], config, controllers, controller, nunchuk, noExtension ) );
 
                     // we only allow one control for systems except vba-m and ppsspp
                     if( system != SYSTEM_GBA && system != SYSTEM_PSP ) {
@@ -6117,9 +6118,10 @@ async function setControls( systems, values, controller=0, nunchuk=false ) {
  * @param {Array} [controllers] - Different controller values for each player.
  * @param {number} [controller] - The controller index.
  * @param {boolean} [nunchuk] - True if the Wii extension is for a nunchuk.
+ * @param {boolean} [noExtension] - True if there should be no Wii extension.
  * @returns {string} The translated value for the emulator.
  */
-function translateButton( system, userControl, controlInfo, controlFormat, currentControlValue, config, controllers, controller=0, nunchuk=false ) {
+function translateButton( system, userControl, controlInfo, controlFormat, currentControlValue, config, controllers, controller=0, nunchuk=false, noExtension=false ) {
     let controlButtons = userControl.button;
     if( typeof controlButtons != OBJECT_TYPE ) controlButtons = [controlButtons];
 
@@ -6359,6 +6361,7 @@ function translateButton( system, userControl, controlInfo, controlFormat, curre
 
             if( system == SYSTEM_WII ) {
                 config[padKey][WII_CLASSIC_KEY] = nunchuk ? WII_NUNCHUK_VALUE : WII_CLASSIC_VALUE;
+                if( noExtension ) delete config[padKey][WII_CLASSIC_KEY];
                 config[padKey][WII_SOURCE_KEY] = WII_SOURCE_EMULATED;
             }
 

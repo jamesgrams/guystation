@@ -2902,7 +2902,7 @@ function displayJoypadConfig() {
         form.appendChild( label ); 
     }
 
-    var nunchukSelect = createMenu(null, ["Classic Controller", "Nunchuk"],"nunchuk-select-menu","Wii Extension: ");
+    var nunchukSelect = createMenu(null, ["Classic Controller", "Nunchuk", "None"],"nunchuk-select-menu","Wii Extension: ");
     form.appendChild(nunchukSelect);
 
     // Create the systems section
@@ -2971,8 +2971,9 @@ function displayJoypadConfig() {
         // figure out if we are using the nunchuk
         var nunchukSelectMenu = nunchukSelect.querySelector("select");
         var nunchuk = nunchukSelectMenu.selectedIndex > 0 ? true : false;
+        var noExtension = nunchukSelect.selectedIndex > 1 ? true : false;
 
-        var sendObject = { "systems": systems, "values": values, "controller": controller, "nunchuk": nunchuk };
+        var sendObject = { "systems": systems, "values": values, "controller": controller, "nunchuk": nunchuk, "noExtension": noExtension };
         makeRequest("POST", "/controls", sendObject, function() {
             createToast(CONTROLS_SET_MESSAGE + " " + (controller+1));
         }, function(data) {
@@ -3141,7 +3142,9 @@ function autoloadEzProfiles( callback ) {
                 var values = JSON.parse(JSON.stringify(profile.profile));
                 var nunchuk = values.nunchuk;
                 delete values.nunchuk;
-                var sendObject = { "systems": EZ_SYSTEMS_NO_LOCAL_MENU, "values": values, "controller": parseInt(controllers[i]), "nunchuk": nunchuk };
+                var noExtension = values.noExtension;
+                delete values.noExtension;
+                var sendObject = { "systems": EZ_SYSTEMS_NO_LOCAL_MENU, "values": values, "controller": parseInt(controllers[i]), "nunchuk": nunchuk, "noExtension": noExtension };
                 sendObjects.push(sendObject);
             }
             makeRequest("POST", "/controls-multiple", { controllers: sendObjects }, function() {
@@ -3195,7 +3198,7 @@ function setCurrentAutoloadProfiles(profiles) {
         for( var i=0; i<controllers.length; i++ ) {
             var keys = Object.keys(curProfiles[controllers[i]].profile);
             for( var j=0; j<keys.length; j++ ) {
-                if(keys[j] === "nunchuk") continue;
+                if(keys[j] === "nunchuk" || keys[j] === "noExtension") continue;
                 var curKey = curProfiles[controllers[i]].profile[keys[j]];
                 // it won't be a string for the ones not being updated
                 curProfiles[controllers[i]].profile[keys[j]] = typeof curKey === "string" ? parseEzButtonString(curKey) : curKey;
@@ -3474,7 +3477,8 @@ function loadEzProfile() {
             inputElement.value = name;
             inputElement.oninput();
             var nunchukSelectMenu = document.querySelector("#nunchuk-select-menu");
-            if( profile.nunchuk ) nunchukSelectMenu.selectedIndex = 1;
+            if( profile.nunchuk && profile.noExtension ) nunchukSelectMenu.selectedIndex = 2;
+            else if( profile.nunchuk ) nunchukSelectMenu.selectedIndex = 1;
             else nunchukSelectMenu.selectedIndex = 0;
             createToast( "Profile loaded" );
         }
@@ -3494,6 +3498,7 @@ function saveEzProfile() {
         // figure out if we are using the nunchuk
         var nunchukSelectMenu = document.querySelector("#nunchuk-select-menu");
         profile.nunchuk = nunchukSelectMenu.selectedIndex > 0 ? true : false;
+        profile.noExtension = nunchukSelectMenu.selectedIndex > 1 ? true : false;
         profilesDict[name] = profile;
         updateEzProfileList();
         makeRequest( "POST", "/profile", { "name": name, "profile": profile }, function() {
