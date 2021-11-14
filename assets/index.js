@@ -3250,15 +3250,24 @@ function toggleAutoloadProfile( reverse ) {
         if( window.localStorage.guystationAutoloadEzProfilesPrevious && Object.keys(window.localStorage.guystationAutoloadEzProfilesPrevious).length ) {
             profileIndexes = Object.keys(JSON.parse(window.localStorage.guystationAutoloadEzProfilesPrevious));
         }
+        // Just for display
+        var profileIndexesPlusOne = [];
+        for( var i=0; i<profileIndexes.length; i++ ) {
+            profileIndexesPlusOne.push( profileIndexes[i] + 1 );
+        }
+        var setEnding = (profileIndexesPlusOne.length > 1 ? "s" : "") + " " + profileIndexesPlusOne.join();
+        // End display
         if( currentProfileIndex >= 0 ) {
             for( var i=0; i<profileIndexes.length; i++ ) {
                 currentProfiles[profileIndexes[i]] = { name: profileKeys[currentProfileIndex], profile: profilesDict[profileKeys[currentProfileIndex]] };
             }
-            createToast( "Profile " + profileKeys[currentProfileIndex] + " set to autoload for player" + (profileIndexes.length > 1 ? "s" : "") + " " + profileIndexes.join() );
+            createToast( "Profile " + profileKeys[currentProfileIndex] + " set to autoload for player" + setEnding );
         }
         else {
-            delete currentProfiles[0];
-            createToast( "Removed profile autoload for player" + (profileIndexes.length > 1 ? "s" : "") + " " + profileIndexes.join() );
+            for( var i=0; i<profileIndexes.length; i++ ) {
+                delete currentProfiles[i];
+            }
+            createToast( "Removed profile autoload for player" + setEnding );
         }
         setCurrentAutoloadProfiles( currentProfiles );
     } );
