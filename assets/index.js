@@ -3248,7 +3248,7 @@ function toggleAutoloadProfile( reverse ) {
 
         var profileIndexes = [0];
         if( window.localStorage.guystationAutoloadEzProfilesPrevious && Object.keys(window.localStorage.guystationAutoloadEzProfilesPrevious).length ) {
-            profileIndexes = Object.keys(window.localStorage.guystationAutoloadEzProfilesPrevious);
+            profileIndexes = Object.keys(JSON.parse(window.localStorage.guystationAutoloadEzProfilesPrevious));
         }
         if( currentProfileIndex >= 0 ) {
             for( var i=0; i<profileIndexes.length; i++ ) {
