@@ -3204,6 +3204,9 @@ function setCurrentAutoloadProfiles(profiles) {
                 curProfiles[controllers[i]].profile[keys[j]] = typeof curKey === "string" ? parseEzButtonString(curKey) : curKey;
             }
         }
+        // store previous, so we can know how many contollers were set
+        // this way, if we remove and readd through toggle, we'll know what controllers to set profiles for
+        localStorage.guystationAutoloadEzProfilesPrevious = localStorage.guystationAutoloadEzProfiles;
         // store object values for quick load (rather than string values like the server has)
         localStorage.guystationAutoloadEzProfiles = JSON.stringify(curProfiles);
     }
@@ -3243,13 +3246,19 @@ function toggleAutoloadProfile( reverse ) {
             currentProfileIndex = -1;
         }
 
+        var profileIndexes = [0];
+        if( window.localStorage.guystationAutoloadEzProfilesPrevious && Object.keys(window.localStorage.guystationAutoloadEzProfilesPrevious).length ) {
+            profileIndexes = Object.keys(window.localStorage.guystationAutoloadEzProfilesPrevious);
+        }
         if( currentProfileIndex >= 0 ) {
-            currentProfiles[0] = { name: profileKeys[currentProfileIndex], profile: profilesDict[profileKeys[currentProfileIndex]] };
-            createToast( "Profile " + profileKeys[currentProfileIndex] + " set to autoload for player 1" );
+            for( var i=0; i<profileIndexes.length; i++ ) {
+                currentProfiles[profileIndexes[i]] = { name: profileKeys[currentProfileIndex], profile: profilesDict[profileKeys[currentProfileIndex]] };
+            }
+            createToast( "Profile " + profileKeys[currentProfileIndex] + " set to autoload for player" + (profileIndexes.length > 1 ? "s" : "") + " " + profileIndexes.join() );
         }
         else {
             delete currentProfiles[0];
-            createToast( "Removed profile autoload for player 1" );
+            createToast( "Removed profile autoload for player" + (profileIndexes.length > 1 ? "s" : "") + " " + profileIndexes.join() );
         }
         setCurrentAutoloadProfiles( currentProfiles );
     } );
