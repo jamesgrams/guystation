@@ -3206,7 +3206,7 @@ function setCurrentAutoloadProfiles(profiles) {
         }
         // store previous, so we can know how many contollers were set
         // this way, if we remove and readd through toggle, we'll know what controllers to set profiles for
-        localStorage.guystationAutoloadEzProfilesPrevious = localStorage.guystationAutoloadEzProfiles;
+        if( controllers.length ) localStorage.guystationAutoloadEzProfilesPrevious = localStorage.guystationAutoloadEzProfiles;
         // store object values for quick load (rather than string values like the server has)
         localStorage.guystationAutoloadEzProfiles = JSON.stringify(curProfiles);
     }
@@ -3255,7 +3255,7 @@ function toggleAutoloadProfile( reverse ) {
         for( var i=0; i<profileIndexes.length; i++ ) {
             profileIndexesPlusOne.push( parseInt(profileIndexes[i]) + 1 );
         }
-        var setEnding = (profileIndexesPlusOne.length > 1 ? "s" : "") + " " + profileIndexesPlusOne.join();
+        var setEnding = (profileIndexesPlusOne.length > 1 ? "s" : "") + " " + profileIndexesPlusOne.join(", ");
         // End display
         if( currentProfileIndex >= 0 ) {
             for( var i=0; i<profileIndexes.length; i++ ) {
