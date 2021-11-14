@@ -3204,11 +3204,11 @@ function setCurrentAutoloadProfiles(profiles) {
                 curProfiles[controllers[i]].profile[keys[j]] = typeof curKey === "string" ? parseEzButtonString(curKey) : curKey;
             }
         }
+        // store object values for quick load (rather than string values like the server has)
+        localStorage.guystationAutoloadEzProfiles = JSON.stringify(curProfiles);
         // store previous, so we can know how many contollers were set
         // this way, if we remove and readd through toggle, we'll know what controllers to set profiles for
         if( controllers.length ) localStorage.guystationAutoloadEzProfilesPrevious = localStorage.guystationAutoloadEzProfiles;
-        // store object values for quick load (rather than string values like the server has)
-        localStorage.guystationAutoloadEzProfiles = JSON.stringify(curProfiles);
     }
     else {
         localStorage.guystationAutoloadEzProfiles = "";
