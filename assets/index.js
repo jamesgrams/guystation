@@ -3253,7 +3253,7 @@ function toggleAutoloadProfile( reverse ) {
         // Just for display
         var profileIndexesPlusOne = [];
         for( var i=0; i<profileIndexes.length; i++ ) {
-            profileIndexesPlusOne.push( profileIndexes[i] + 1 );
+            profileIndexesPlusOne.push( parseInt(profileIndexes[i]) + 1 );
         }
         var setEnding = (profileIndexesPlusOne.length > 1 ? "s" : "") + " " + profileIndexesPlusOne.join();
         // End display
