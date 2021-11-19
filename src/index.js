@@ -7803,6 +7803,7 @@ async function startPip( url, pipMuteMode, script ) {
                 pipRefocusGame = true;
             }
             await pipPage.waitForSelector("video", { timeout: VIDEO_SELECTOR_TIMEOUT });
+            await pipPage.evaluate( () => window.open = function() {} ); // disable popups
             await pipPage.bringToFront();
             await pipPage.waitFor(PIP_LOAD_TIME);
             clearInterval(tryPipInterval);
@@ -7810,8 +7811,14 @@ async function startPip( url, pipMuteMode, script ) {
                 try {
                     await pipPage.evaluate( () => {
                         if( document.querySelector("video") ) { // it should be there from from waitForSelector, but just in case it is removed, we don't want an infinite loop.
-                            document.querySelector("video").requestPictureInPicture();
-                            document.querySelector("video").play();
+                            if( document.querySelector("video").paused ) {
+                                document.querySelector("video").click();
+                                throw new Error();
+                            }
+                            else {
+                                document.querySelector("video").requestPictureInPicture();
+                                document.querySelector("video").play();
+                            }
                         }
                     } );
                 }
