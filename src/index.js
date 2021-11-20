@@ -7810,14 +7810,18 @@ async function startPip( url, pipMuteMode, script ) {
             let tryPip = async (success, failure) => {
                 try {
                     await pipPage.evaluate( () => {
-                        if( document.querySelector("video") ) { // it should be there from from waitForSelector, but just in case it is removed, we don't want an infinite loop.
-                            if( document.querySelector("video").paused ) {
-                                document.querySelector("video").click();
+                        var video = document.querySelector("video");
+                        if( video ) { // it should be there from from waitForSelector, but just in case it is removed, we don't want an infinite loop.
+                            if( video.paused ) {
+                                video.click();
                                 throw new Error();
                             }
+                            else if( video.readyState == 0 ) {
+                                throw new Error(); // not ready for pip yet
+                            }
                             else {
-                                document.querySelector("video").requestPictureInPicture();
-                                document.querySelector("video").play();
+                                video.requestPictureInPicture();
+                                video.play();
                             }
                         }
                     } );
