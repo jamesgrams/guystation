@@ -7796,7 +7796,11 @@ async function startPip( url, pipMuteMode, script ) {
     try {
         // delete cloudflare cookies
         try {
-            let domain = new URL(url).hostname;
+            let domain = new URL(url).hostname.split(".");
+            while(domain.length > 2) {
+                domain.shift();
+            }
+            domain = domain.join(".");
             await pipPage.deleteCookie({
                 domain: "." + domain,
                 name: CLOUDFLARE_COOKIE
