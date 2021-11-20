@@ -234,6 +234,7 @@ const RELOAD_MENU_PAGE_MORE_TIME_NEEDED = 600000; // 10 minutes
 const BROWSE_SCRIPT_INTERVAL = 3000;
 const BROWSE_LINE_TRIES = 4;
 const CLOSE_PAGE_TIMEOUT = 2000;
+const CLOUDFLARE_COOKIE = "__cf_bm";
 
 const CONFIG_JOINER = ",";
 const CONTROL_STRING = "$CONTROL";
@@ -1541,7 +1542,6 @@ async function launchBrowser() {
         headless: false,
         defaultViewport: null,
         args: [
-            '--enable-remote-extensions',
             '--no-sandbox',
             '--disable-infobars',
             `--auto-select-desktop-capture-source=${numMonitors > 1 ? SCREEN_ONE : ENTIRE_SCREEN}` // this has to be like this otherwise the launcher will not read the argument. It has to do with node.js processes and how they handle quotes with shell=true. 
@@ -7794,6 +7794,17 @@ async function startPip( url, pipMuteMode, script ) {
     }
 
     try {
+        // delete cloudflare cookies
+        try {
+            let domain = new URL(url).hostname;
+            await pipPage.deleteCookie({
+                domain: "." + domain,
+                name: CLOUDFLARE_COOKIE
+            });
+        }
+        catch(err) {
+            // ok
+        }
         await pipPage.goto( url ) ;
         if( script ) {
             await runScript( pipPage, script );
