@@ -7834,12 +7834,11 @@ async function startPip( url, pipMuteMode, script ) {
                     await pipPage.evaluate( () => {
                         var video = document.querySelector("video");
                         if( video ) { // it should be there from from waitForSelector, but just in case it is removed, we don't want an infinite loop.
-                            if( video.paused ) {
+                            if( video.paused && !video.readyState ) {
                                 video.click();
-                                video.play();
                                 throw new Error();
                             }
-                            else if( video.readyState == 0 ) {
+                            else if( !video.readyState ) {
                                 throw new Error(); // not ready for pip yet
                             }
                             else {
