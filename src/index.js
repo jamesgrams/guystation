@@ -7857,7 +7857,9 @@ async function startPip( url, pipMuteMode, script ) {
             let tryPipPromise = new Promise( (resolve, reject) => {
                 tryPip( resolve, () => {
                     tryPipInterval = setInterval( async () => {
-                        tryPip( () => { clearInterval(tryPipInterval); resolve(); } );
+                        tryPip( () => { clearInterval(tryPipInterval); resolve(); }, () => {
+                            if( pipTries >= MAX_PIP_TRIES ) resolve();
+                        } );
                     }, TRY_PIP_INTERVAL );
                 } );
             } );
