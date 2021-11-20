@@ -7836,6 +7836,7 @@ async function startPip( url, pipMuteMode, script ) {
                         if( video ) { // it should be there from from waitForSelector, but just in case it is removed, we don't want an infinite loop.
                             if( video.paused ) {
                                 video.click();
+                                video.play();
                                 throw new Error();
                             }
                             else if( video.readyState == 0 ) {
