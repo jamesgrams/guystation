@@ -287,7 +287,7 @@ const MUTE_MODES = {
 }
 const PIP_LOAD_TIME = 100;
 const TRY_PIP_INTERVAL = 100;
-const MAX_PIP_TRIES = 300;
+const MAX_PIP_TRIES = 200;
 const ENSURE_MUTE_TIMEOUT_TIME = 6000;
 const LEFT = "left";
 const RIGHT = "right";
