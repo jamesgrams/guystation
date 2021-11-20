@@ -287,6 +287,7 @@ const MUTE_MODES = {
 }
 const PIP_LOAD_TIME = 100;
 const TRY_PIP_INTERVAL = 100;
+const MAX_PIP_TRIES = 300;
 const ENSURE_MUTE_TIMEOUT_TIME = 6000;
 const LEFT = "left";
 const RIGHT = "right";
@@ -7823,7 +7824,12 @@ async function startPip( url, pipMuteMode, script ) {
             await pipPage.bringToFront();
             await pipPage.waitFor(PIP_LOAD_TIME);
             clearInterval(tryPipInterval);
+            let pipTries = 0;
             let tryPip = async (success, failure) => {
+                if( pipTries >= MAX_PIP_TRIES ) {
+                    throw new Error();
+                }
+                pipTries++;
                 try {
                     await pipPage.evaluate( () => {
                         var video = document.querySelector("video");
