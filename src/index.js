@@ -7816,7 +7816,7 @@ async function startPip( url, pipMuteMode, script ) {
         }
         try {
             let pipRefocusGame = false;
-            if( currentEmulator && ( !( await menuPageIsActive() ) || (await menuPage.evaluate(() => isRemoteMediaActive())) ) ) { 
+            if( !fullscreenPip && currentEmulator && ( !( await menuPageIsActive() ) || (await menuPage.evaluate(() => isRemoteMediaActive())) ) ) { 
                 pipRefocusGame = true;
             }
             await pipPage.waitForSelector("video", { timeout: VIDEO_SELECTOR_TIMEOUT });
