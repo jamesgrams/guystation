@@ -932,6 +932,15 @@ function load() {
             screen.orientation.lock("portrait");
         }, 5000 );
     }
+
+    if( urlParams.has("pip_url") ) {
+        makeRequest("POST", "/pip/start", {
+            url: urlParams.get("pip_url"), 
+            muteMode: "game"
+        },
+        function( responseText ) { standardSuccess(responseText, "PIP enabled", null, null, null, null, null, null, true) },
+        function( responseText ) { standardFailure( responseText ); } );
+    }
 }
 
 /**
