@@ -7685,6 +7685,9 @@ async function updateMute( noEnsure ) {
         // double check mute was set properly.
         ensureMuteTimeout = setTimeout( async function() {
             await updateMute( true );
+            ensureMuteTimeout = setTimeout( async function() {
+                await updateMute( true );
+            }, ENSURE_MUTE_TIMEOUT_TIME );
         }, ENSURE_MUTE_TIMEOUT_TIME );
     }
 
