@@ -7800,7 +7800,7 @@ async function startPip( url, pipMuteMode, script ) {
         return Promise.resolve( ERROR_MESSAGES.pipPageClosed );
     }
     
-    let closePopups = (target) => {
+    let closePopups = async target => {
         if( await(target.opener().page()) != pipPage ) {
             let openedPage = await target.page();
             openedPage.close();
