@@ -7801,9 +7801,8 @@ async function startPip( url, pipMuteMode, script ) {
     }
     
     let closePopups = async target => {
-        if( await(target.opener().page()) != pipPage ) {
-            let openedPage = await target.page();
-            openedPage.close();
+        if(target.opener() == pipPage.target()) {
+            (await target.page()).close();
         }
     };
     try {
@@ -7909,18 +7908,18 @@ async function startPip( url, pipMuteMode, script ) {
             } 
         }
         catch(err) {
-            browser.removeListener(closePopups);
+            browser.off("targetcreated", closePopups);
             return Promise.resolve(ERROR_MESSAGES.couldNotFindVideo);
         }
         let mm = await setMuteMode( pipMuteMode );
-        browser.removeListener(closePopups);
+        browser.off("targetcreated", closePopups);
         if( mm ) return mm;
     }
     catch(err) {
-        browser.removeListener(closePopups);
+        browser.off("targetcreated", closePopups);
         return Promise.resolve(ERROR_MESSAGES.invalidUrl);
     }
-    browser.removeListener(closePopups);
+    browser.off("targetcreated", closePopups);
     return Promise.resolve(false);
 }
 
