@@ -16,12 +16,17 @@ self.addEventListener('activate', event => {
     console.log('Service Worker activating.');
 });
 
+self.addEventListener('fetch', event => {
+    event.respondWith( fetch(event.request) );
+});
+
 /**
  * Display any new messages if needed.
  */
 function syncMessages(){
-    fetch( "http://" + self.location.hostname + ":8080/message", {
-        method: "get"
+    fetch( "//" + self.location.hostname + ":8080/message", {
+        method: "get",
+        credentials: "include"
     } )
     .then( function(response) {
             if( response.status != 200 ) return;

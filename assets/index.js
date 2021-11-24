@@ -794,7 +794,7 @@ function load() {
     // register service worker
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker
-            .register('/assets/sw.js')
+            .register('/sw.js')
             .then(serviceWorker => {
                 swRegistration = serviceWorker;
                 serviceWorker.update(); // always keep up to date
@@ -933,9 +933,10 @@ function load() {
         }, 5000 );
     }
 
-    if( urlParams.has("pip_url") ) {
+    if( urlParams.has("share_url") || urlParams.has("share_text") ) {
+        var pipUrl = urlParams.get("share_url") ? urlParams.get("share_url") : urlParams.get("share_text");
         makeRequest("POST", "/pip/start", {
-            url: urlParams.get("pip_url"), 
+            url: pipUrl, 
             muteMode: "game"
         },
         function( responseText ) { standardSuccess(responseText, "PIP enabled", null, null, null, null, null, null, true) },

@@ -358,6 +358,7 @@ const MAX_COMMAND_INTERVAL = 100;
 const SAMBA_SAVE_NAND_TRIES = 3;
 const SAMBA_SAVE_NAND_TIME = 10000;
 const DISCONNECT_CONTROLLER_TIMEOUT = 30000;
+const SW_FILE = path.join(__dirname, '../assets/sw.js');
 
 const DEFAULT_PROFILES_DICT = {
     "GuyStation Virtual Controller": {
@@ -567,8 +568,10 @@ app.use(function(req, res, next) {
 
 app.use( "/"+ASSETS_DIR+"/", express.static(ASSETS_DIR) );
 app.use( "/"+SYSTEMS_DIR+"/", express.static(SYSTEMS_DIR) );
+app.get( "/sw.js", (request, response) => response.sendFile(SW_FILE) );
 staticApp.use( "/"+ASSETS_DIR+"/", express.static(ASSETS_DIR) );
 staticApp.use( "/"+SYSTEMS_DIR+"/", express.static(SYSTEMS_DIR) );
+staticApp.get( "/sw.js", (request, response) => response.sendFile(SW_FILE) );
 
 app.use( express.json({limit: '20000mb'}) );
 
