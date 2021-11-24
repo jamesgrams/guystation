@@ -7799,7 +7799,13 @@ async function startPip( url, pipMuteMode, script ) {
     if( !pipPage || pipPage.isClosed() ) {
         return Promise.resolve( ERROR_MESSAGES.pipPageClosed );
     }
-
+    
+    let closePopups = (target) => {
+        if( await(target.opener().page()) != pipPage ) {
+            let openedPage = await target.page();
+            openedPage.close();
+        }
+    };
     try {
         // delete cloudflare cookies
         try {
@@ -7816,6 +7822,7 @@ async function startPip( url, pipMuteMode, script ) {
         catch(err) {
             // ok
         }
+        browser.on("targetcreated", closePopups);
         await pipPage.goto( url ) ;
         if( script ) {
             await runScript( pipPage, script );
@@ -7902,14 +7909,18 @@ async function startPip( url, pipMuteMode, script ) {
             } 
         }
         catch(err) {
+            browser.removeListener(closePopups);
             return Promise.resolve(ERROR_MESSAGES.couldNotFindVideo);
         }
         let mm = await setMuteMode( pipMuteMode );
+        browser.removeListener(closePopups);
         if( mm ) return mm;
     }
     catch(err) {
+        browser.removeListener(closePopups);
         return Promise.resolve(ERROR_MESSAGES.invalidUrl);
     }
+    browser.removeListener(closePopups);
     return Promise.resolve(false);
 }
 
