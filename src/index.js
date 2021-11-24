@@ -7849,7 +7849,10 @@ async function startPip( url, pipMuteMode, script ) {
                 pipRefocusGame = true;
             }
             await pipPage.waitForSelector("video", { timeout: VIDEO_SELECTOR_TIMEOUT });
-            await pipPage.evaluate( () => window.open = function() {} ); // disable popups
+            await pipPage.evaluate( () => {
+                window.open = function() {};
+                document.querySelectorAll("a[target]").forEach( function(el) { el.onclick = function(e) {e.preventDefault();} } );   
+            }); // disable popups
             await pipPage.bringToFront();
             await pipPage.waitFor(PIP_LOAD_TIME);
             clearInterval(tryPipInterval);
