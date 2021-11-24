@@ -939,8 +939,14 @@ function load() {
             url: pipUrl, 
             muteMode: "game"
         },
-        function( responseText ) { standardSuccess(responseText, "PIP enabled", null, null, null, null, null, null, true) },
-        function( responseText ) { standardFailure( responseText ); } );
+        function( responseText ) { 
+            standardSuccess(responseText, "PIP enabled", null, null, null, null, null, null, true);
+            window.history.replaceState({}, document.title, "/");
+        },
+        function( responseText ) { 
+            standardFailure( responseText ); 
+            window.history.replaceState({}, document.title, "/");
+        } );
     }
 }
 
