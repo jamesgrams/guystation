@@ -7808,21 +7808,6 @@ async function startPip( url, pipMuteMode, script ) {
         }
     };
     try {
-        // delete cloudflare cookies
-        try {
-            let domain = new URL(url).hostname.split(".");
-            while(domain.length > 2) {
-                domain.shift();
-            }
-            domain = domain.join(".");
-            await pipPage.deleteCookie({
-                domain: "." + domain,
-                name: CLOUDFLARE_COOKIE
-            });
-        }
-        catch(err) {
-            // ok
-        }
         browser.on("targetcreated", closePopups);
         await pipPage.goto( url ) ;
         if( script ) {
