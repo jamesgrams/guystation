@@ -285,7 +285,6 @@ const MUTE_MODES = {
     browser: "browser",
     all: "all"
 }
-const PIP_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.93 Safari/537.36";
 const PIP_LOAD_TIME = 100;
 const TRY_PIP_INTERVAL = 100;
 const MAX_PIP_TRIES = 200;
@@ -1567,7 +1566,6 @@ async function launchBrowser() {
         proc.execSync(KILL_GUYSTATION_COMMAND);
     });
     pipPage = await browser.newPage();
-    await pipPage.setUserAgent(PIP_USER_AGENT);
     await menuPage.bringToFront();
     
     // for pages besides menu and pip, add controller controls
