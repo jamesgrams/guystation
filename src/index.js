@@ -1577,6 +1577,9 @@ async function launchBrowser() {
                 addGamepadControls(page);
             });
         }
+        if(target.opener() == pipPage.target()) {
+            (await target.page()).close();
+        }
     } );
 
     let sambaString = "";
@@ -7800,13 +7803,7 @@ async function startPip( url, pipMuteMode, script ) {
         return Promise.resolve( ERROR_MESSAGES.pipPageClosed );
     }
     
-    let closePopups = async target => {
-        if(target.opener() == pipPage.target()) {
-            (await target.page()).close();
-        }
-    };
     try {
-        browser.on("targetcreated", closePopups);
         await pipPage.goto( url ) ;
         if( script ) {
             await runScript( pipPage, script );
@@ -7893,18 +7890,14 @@ async function startPip( url, pipMuteMode, script ) {
             } 
         }
         catch(err) {
-            browser.off("targetcreated", closePopups);
             return Promise.resolve(ERROR_MESSAGES.couldNotFindVideo);
         }
         let mm = await setMuteMode( pipMuteMode );
-        browser.off("targetcreated", closePopups);
         if( mm ) return mm;
     }
     catch(err) {
-        browser.off("targetcreated", closePopups);
         return Promise.resolve(ERROR_MESSAGES.invalidUrl);
     }
-    browser.off("targetcreated", closePopups);
     return Promise.resolve(false);
 }
 
