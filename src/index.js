@@ -1596,7 +1596,8 @@ async function launchBrowser() {
         await setMotionDetectLaunchGame( settings.motionDetectGame.system, settings.motionDetectGame.game, settings.motionDetectGame.parents );
     }
 
-    browser.on("targetdestroyed", async function() {
+    browser.on("targetdestroyed", async function(target) {
+        if( target.type() !== 'page' ) return Promise.resolve();
         // If there are no more browse tabs, the browser has been quit
         let pages = await browser.pages();
         if( pages.length <= 2 ) { // only the menu page is open
