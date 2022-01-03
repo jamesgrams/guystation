@@ -91,13 +91,16 @@
         "nunchukKeys": ["Wiimote1","Nunchuk/Stick/Down"]
       },
       "Axis X2-": {
-        "keys": ["Wiimote1","Classic/Right Stick/Left"]
+        "keys": ["Wiimote1","Classic/Right Stick/Left"],
+        "nunchukKeys": ["Wiimote1","Shake/X"]
       },
       "Axis X2+": {
-        "keys": ["Wiimote1","Classic/Right Stick/Right"]
+        "keys": ["Wiimote1","Classic/Right Stick/Right"],
+        "nunchukKeys": ["Wiimote1","Shake/Z"]
       },
       "Axis Y2-": {
-        "keys": ["Wiimote1","Classic/Right Stick/Up"]
+        "keys": ["Wiimote1","Classic/Right Stick/Up"],
+        "nunchukKeys": ["Wiimote1","Shake/Y"]
       },
       "Axis Y2+": {
         "keys": ["Wiimote1","Classic/Right Stick/Down"]
