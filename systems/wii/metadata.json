@@ -37,14 +37,16 @@
         "nunchukKeys": ["Wiimote1","Buttons/2"]
       },
       "L": {
-        "keys": ["Wiimote1","Classic/Triggers/L"]
+        "keys": ["Wiimote1","Classic/Triggers/L"],
+        "nunchukKeys": ["Wiimote1","Shake/X"]
       },
       "R": {
         "keys": ["Wiimote1","Classic/Triggers/R"],
         "nunchukKeys": ["Wiimote1","Nunchuk/Buttons/C"]
       },
       "L2": {
-        "keys": ["Wiimote1","Classic/Buttons/ZL"]
+        "keys": ["Wiimote1","Classic/Buttons/ZL"],
+        "nunchukKeys": ["Wiimote1","Shake/Z"]
       },
       "R2": {
         "keys": ["Wiimote1","Classic/Buttons/ZR"],
@@ -92,18 +94,19 @@
       },
       "Axis X2-": {
         "keys": ["Wiimote1","Classic/Right Stick/Left"],
-        "nunchukKeys": ["Wiimote1","Shake/X"]
+        "nunchukKeys": ["Wiimote1","IR/Left"]
       },
       "Axis X2+": {
         "keys": ["Wiimote1","Classic/Right Stick/Right"],
-        "nunchukKeys": ["Wiimote1","Shake/Z"]
+        "nunchukKeys": ["Wiimote1","IR/Right"]
       },
       "Axis Y2-": {
         "keys": ["Wiimote1","Classic/Right Stick/Up"],
-        "nunchukKeys": ["Wiimote1","Shake/Y"]
+        "nunchukKeys": ["Wiimote1","IR/Up"]
       },
       "Axis Y2+": {
-        "keys": ["Wiimote1","Classic/Right Stick/Down"]
+        "keys": ["Wiimote1","Classic/Right Stick/Down"],
+        "nunchukKeys": ["Wiimote1","IR/Down"]
       },
       "Screenshot": {
         "keys": ["Hotkeys","General/Take Screenshot"],
