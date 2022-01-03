@@ -270,6 +270,13 @@ Since GuyStation runs as a website, it can be connected to from anywhere, should
                     * `<symlink to game directory> (this symlink's name will be - n 0s depending on its position in the playlist + seperator + parents.join(seperator) + seperator + game name - where the parents and the game are the parents and name of the game this symlink is to)
         * `metadata.json`
 
+## Upgrading to Ubuntu 20.04
+GuyStation will run if you upgrade to Ubuntu 20.04 from 18.04, but you will need to take the following actions.
+1. Add `Defaults env_keep += "HOME"` to the sudoers file (Run `visudo` to edit) (This will enable the 18.04 behavior of `~` referencing the sudo user's home directory rather than root's)
+2. Add to config /etc/pulse/client.conf: `auto-connect-localhost = yes` (This will allow sound to be shared across users - root & otherwise - & when using `xhost`)
+3. Add to config /etc/pulse/default.pa: `load-module module-native-protocol-tcp listen=127.0.0.1 auth-ip-acl=127.0.0.1 auth-anonymous=1`
+4. Reboot
+
 ## Additional Information
 Multiple monitor support may be limited. GuyStation will aim to use the primary monitor.
 
