@@ -119,7 +119,7 @@ Note: You can press F11 to get GuyStation out of full screen mode at any time.
 
 ## Recommendations
 Here are some recommendedations to make your experience better on Ubuntu.
-1. Disable screen lock in settings
+1. Disable screen lock and blank screen timeout in settings
 2. Use a Bluetooth adapater and install Bluetooth Manager (`sudo apt-get install blueman`)
     * This is good for initially pariring your controller.
 3. For Wii/Wii U Controllers use xwiimote (`sudo apt-get install xwiimote`)
