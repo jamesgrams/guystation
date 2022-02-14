@@ -42,6 +42,7 @@ var SORT_RECENT = "mostRecentPlaytime";
 var KEY_BUTTON_EXTRA = 20; // the extra size in pixels of a key button to a regular button
 var MIN_STREAM_SEARCH_LENGTH = 3;
 var DOUBLE_TAP_TIME = 500;
+var REMOVE_TRY_AGAIN_VIDEO_TIMEOUT = 7000;
 var STOPWORDS = ["i", "me", "my", "myself", "we", "our", "ours", "ourselves", "you", "your", "yours", "yourself", "yourselves", "he", "him", "his", "himself", "she", "her", "hers", "herself", "it", "its", "itself", "they", "them", "their", "theirs", "themselves", "what", "which", "who", "whom", "this", "that", "these", "those", "am", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "having", "do", "does", "did", "doing", "a", "an", "the", "and", "but", "if", "or", "because", "as", "until", "while", "of", "at", "by", "for", "with", "about", "against", "between", "into", "through", "during", "before", "after", "above", "below", "to", "from", "in", "out", "over", "under", "again", "further", "then", "once", "here", "there", "when", "where", "why", "how", "all", "any", "both", "each", "few", "more", "most", "other", "some", "such", "no", "nor", "not", "only", "own", "same", "so", "than", "too", "very", "s", "t", "can", "will", "just", "don", "should", "now", "on", "off", "up", "down"];
 var KEYCODES = {
     '0': 48,
@@ -404,6 +405,7 @@ var didGetStream = false;
 var captureInterval = null;
 var motionDetectGameLaunched = false;
 var motionDetectGameStillCounter = 0;
+var removeTryAgainVideoTimeout = null;
 
 // at the root level keyed by controller number, then 
 // keys are server values, values are client values
@@ -4281,7 +4283,14 @@ function resizePseudoFullscreen() {
  * @returns {HTMLElement} A video element that can be interacted with.
  */
 function createInteractiveScreencast() {
-    var video = document.createElement("video");
+    var video = document.querySelector(".try-again-video");
+    if( video ) {
+        clearTimeout(removeTryAgainVideoTimeout);
+        video.classList.remove("try-again-video")
+    }
+    else {
+        video = document.createElement("video");
+    }
     video.setAttribute("autoplay", "true");
     video.setAttribute("playsinline", "true");
 
@@ -7251,6 +7260,17 @@ function stopConnectionToPeer( isStreamer, id, useIdAsSocketId, tryAgain ) {
             }
             closeModalCallback = null; // we don't need to call stop connection again
             if( tryAgain ) {
+                if( !isTouch() ) {
+                    var video = document.querySelector(".modal #remote-screencast-form video");
+                    if( video ) {
+                        // We can't go fullscreen without user interaction, so we need to keep the fullscreen element on the page
+                        video.classList.add("try-again-video");
+                        document.body.appendChild(video);
+                        removeTryAgainVideoTimeout = setTimeout( function() {
+                            document.body.removeChild(video);
+                        }, REMOVE_TRY_AGAIN_VIDEO_TIMEOUT );
+                    }
+                }
                 closeModalCallback = displayScreencast( isFullscreen, isFitscreen );
             }
             closeModal();

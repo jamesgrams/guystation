@@ -650,6 +650,11 @@ h1 {
     width: 550px;
 }
 
+.try-again-video {
+    width: 0;
+    height: 0;
+}
+
 .screencast-wrapper {
     text-align: center;
 }
