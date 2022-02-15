@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "puppeteer": "^1.20.0",
+    "puppeteer-extra-plugin-stealth": "^2.9.0",
+    "puppeteer-extra": "3.2.3",
     "express": "^4.16.0",
     "ip": "^1.1.5",
     "iohook": "^0.6.1",
