@@ -5,9 +5,7 @@
  */
 
 const express = require('express');
-const puppeteer = require('puppeteer-extra');
-const StealthPlugin = require('puppeteer-extra-plugin-stealth');
-puppeteer.use(StealthPlugin());
+const puppeteer = require('puppeteer');
 const proc = require( 'child_process' );
 const fs = require('fs');
 const fsExtra = require('fs-extra');
@@ -1548,6 +1546,7 @@ async function launchBrowser() {
         headless: false,
         defaultViewport: null,
         args: [
+            '--enable-remote-extensions',
             '--no-sandbox',
             '--disable-infobars',
             '--start-maximized',
