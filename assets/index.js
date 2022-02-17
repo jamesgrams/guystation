@@ -1418,6 +1418,19 @@ function draw( startSystem ) {
     saveMenuPosition();
     setMarquee();
     displayGamePreview();
+    handleRemoteMode();
+}
+
+/**
+ * Handle when remote mode is set.
+ */
+ function handleRemoteMode() {
+    if( window.localStorage.guystationRemoteMode === 'true' ) {
+        var scForm = document.querySelector(".modal #remote-screencast-form");
+        var playing = document.querySelector(".system.playing, .game.playing");
+        if( scForm && !playing ) stopConnectionToPeer();
+        else if( !scForm && playing ) displayScreencast(true);
+    }
 }
 
 /**
@@ -3666,7 +3679,7 @@ function displayScreencast( fullscreen, fitscreen ) {
         }
     });
 
-    var optionsElements = [muteBox, scaleMenu, rtmpInput, startRtmpButton, stopRtmpButton, twitchNameInput, twitchGameInput, setTwitchInfoButton];
+    var optionsElements = [muteBox, remoteMode, scaleMenu, rtmpInput, startRtmpButton, stopRtmpButton, twitchNameInput, twitchGameInput, setTwitchInfoButton];
     optionsElements.forEach( function(el) {
         el.classList.add("hidden");
     });
@@ -6106,7 +6119,7 @@ function launchGame( system, game, parents, callback ) {
             makeRequest( "POST", "/launch", { "system": system, "game": game, "parents": parents },
             function( responseText ) {
                 if( callback ) callback();
-                if( screencastAfterLaunch || (!document.querySelector("#remote-screencast-form") && window.localStorage.guystationRemoteMode == 'true') ) {
+                if( screencastAfterLaunch ) {
                     displayScreencast(true);
                     screencastAfterLaunch = false;
                 }
@@ -6130,10 +6143,7 @@ function quitGame(quitModalOnCallback) {
     if( !makingRequest ) {
         startRequest(); // Most other functions do this prior since they need to do other things
         makeRequest( "POST", "/quit", {},
-        function( responseText ) { 
-            standardSuccess(responseText, "Game quit", null, null, null, null, null, null, quitModalOnCallback ? false : true);
-            if( document.querySelector("#remote-screencast-form") && window.localStorage.guystationRemoteMode == 'true' ) stopConnectionToPeer();
-        },
+        function( responseText ) { standardSuccess(responseText, "Game quit", null, null, null, null, null, null, quitModalOnCallback ? false : true); },
         function( responseText ) { standardFailure( responseText ) } );
     }
 }
