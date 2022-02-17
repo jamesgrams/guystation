@@ -1431,7 +1431,7 @@ function draw( startSystem ) {
 function handleRemoteMode() {
     if( remoteMode ) {
         var scForm = document.querySelector(".modal #remote-screencast-form");
-        var playing = document.querySelector(".system.playing");
+        var playing = document.querySelector(".system.playing, .game.playing");
         if( scForm && !playing ) stopConnectionToPeer();
         else if( !scForm && playing ) displayScreencast(true);
     }
