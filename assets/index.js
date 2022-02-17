@@ -1428,7 +1428,7 @@ function draw( startSystem ) {
     if( window.localStorage.guystationRemoteMode === 'true' ) {
         var scForm = document.querySelector(".modal #remote-screencast-form");
         var playing = document.querySelector(".system.playing, .game.playing");
-        if( scForm && !playing ) stopConnectionToPeer();
+        if( scForm && !playing ) closeModal();
         else if( !scForm && playing ) displayScreencast(true);
     }
 }
