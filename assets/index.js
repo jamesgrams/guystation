@@ -406,6 +406,7 @@ var captureInterval = null;
 var motionDetectGameLaunched = false;
 var motionDetectGameStillCounter = 0;
 var removeTryAgainVideoTimeout = null;
+var remoteMode = false;
 
 // at the root level keyed by controller number, then 
 // keys are server values, values are client values
@@ -824,6 +825,9 @@ function load() {
         }
         if( window.localStorage.guystationScreencastControllerMaps ) {
             screencastControllerMaps = JSON.parse(window.localStorage.guystationScreencastControllerMaps);
+        }
+        if( window.localStorage.guystationRemoteMode ) {
+            remoteMode = JSON.parse(window.localStorage.guystationRemoteMode);
         }
 
         ip = response.ip;
@@ -1418,6 +1422,19 @@ function draw( startSystem ) {
     saveMenuPosition();
     setMarquee();
     displayGamePreview();
+    handleRemoteMode();
+}
+
+/**
+ * Handle when remote mode is set.
+ */
+function handleRemoteMode() {
+    if( remoteMode ) {
+        var scForm = document.querySelector(".modal #remote-screencast-form");
+        var playing = document.querySelector(".system.playing");
+        if( scForm && !playing ) stopConnectionToPeer();
+        else if( !scForm && playing ) displayScreencast(true);
+    }
 }
 
 /**
