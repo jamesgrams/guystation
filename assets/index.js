@@ -3690,6 +3690,7 @@ function displayScreencast( fullscreen, fitscreen ) {
 
     form.appendChild(scaleMenu);
     form.appendChild(muteBox);
+    form.appendChild(remoteMode);
     form.appendChild(rtmpInput);
     form.appendChild( startRtmpButton );
     form.appendChild( stopRtmpButton );
