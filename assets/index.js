@@ -406,6 +406,7 @@ var captureInterval = null;
 var motionDetectGameLaunched = false;
 var motionDetectGameStillCounter = 0;
 var removeTryAgainVideoTimeout = null;
+var screencastAutostarted = false;
 
 // at the root level keyed by controller number, then 
 // keys are server values, values are client values
@@ -1422,14 +1423,15 @@ function draw( startSystem ) {
 }
 
 /**
- * Handle when remote mode is set.
+ * Handle when remote mode is set to automatically show/hide screencasts.
  */
  function handleRemoteMode() {
-    if( window.localStorage.guystationRemoteMode === 'true' ) {
+    if( screencastAutostarted && window.localStorage.guystationRemoteMode === 'true' ) {
+        screencastAutostarted = false;
         var scForm = document.querySelector(".modal #remote-screencast-form");
         var playing = document.querySelector(".system.playing, .game.playing");
         if( scForm && !playing ) closeModal();
-        else if( !scForm && playing ) displayScreencast(true);
+        //else if( allowStart && !scForm && playing ) displayScreencast(true);
     }
 }
 
@@ -3582,8 +3584,9 @@ function deleteEzProfile() {
  * Display the screencast.
  * @param {boolean} fullscreen - True if we should open the screencast in fullscreen by default.
  * @param {boolean} fitscreen - True if we should open the screencast in fit screen by default.
+ * @param {boolean} callback - A callback to run after the screencast is displayed.
  */
-function displayScreencast( fullscreen, fitscreen ) {
+function displayScreencast( fullscreen, fitscreen, callback ) {
     if( isServer ) {
         return;
     }
@@ -3760,6 +3763,7 @@ function displayScreencast( fullscreen, fitscreen ) {
             connectToSignalServer(false);
             if( fullscreen ) fullscreenVideo( video );
             else if(fitscreen) fitscreenVideo();
+            if( callback ) callback();
         }, function(responseText) { standardFailure(responseText, true) } );
     } );
 }
@@ -6114,24 +6118,31 @@ function createToast(message, type, html) {
  */
 function launchGame( system, game, parents, callback ) {
     if( !makingRequest ) {
-        startRequest(); // Most other functions do this prior since they need to do other things
-        var doLaunch = function() {
-            makeRequest( "POST", "/launch", { "system": system, "game": game, "parents": parents },
-            function( responseText ) {
-                if( callback ) callback();
-                if( screencastAfterLaunch ) {
-                    displayScreencast(true);
-                    screencastAfterLaunch = false;
-                }
-                standardSuccess(responseText, "Game launched", null, null, null, null, null, null, true)
-            },
-            function( responseText ) { standardFailure( responseText ) } );
-        };
-        // Don't set any controls if we are streaming from another device
-        if( peerConnections.length && isServer ) doLaunch();
-        else {
-            autoloadEzProfiles( doLaunch );
+        function complete() {
+            startRequest(); // Most other functions do this prior since they need to do other things
+            var doLaunch = function() {
+                makeRequest( "POST", "/launch", { "system": system, "game": game, "parents": parents },
+                function( responseText ) {
+                    if( callback ) callback();
+                    if( screencastAfterLaunch ) {
+                        displayScreencast(true);
+                        screencastAfterLaunch = false;
+                    }
+                    standardSuccess(responseText, "Game launched", null, null, null, null, null, null, true)
+                },
+                function( responseText ) { standardFailure( responseText ) } );
+            };
+            // Don't set any controls if we are streaming from another device
+            if( peerConnections.length && isServer ) doLaunch();
+            else {
+                autoloadEzProfiles( doLaunch );
+            }
         }
+        if( window.localStorage.guystationRemoteMode === "true" && !isTouch() ) {
+            screencastAutostarted = true;
+            displayScreencast(true, null, complete);
+        }
+        else complete();
     }
 }
 
