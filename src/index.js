@@ -2483,6 +2483,7 @@ async function getData( startup, noPlaying, nonessential, forceStream ) {
             else {
                 try {
                     systemData.games = JSON.parse(await fsExtra.readFile(STREAM_INFO_PATH)).dict;
+                    replaceWithTotalPlaytimeRecursive(systemData.games);
                 }
                 catch(err) {
                     systemData.games = {};
@@ -2530,6 +2531,21 @@ function deleteKeyRecursive(games, key) {
         delete game[key];
         if( game.isFolder ) {
             deleteKeyRecursive(game.games, key);
+        }
+    }
+}
+
+/**
+ * Replace sessions with total playtime.
+ * @param {Array<Object>} - An array of game objects.
+ */
+function replaceWithTotalPlaytimeRecursive(games) {
+    for( let gameName in games ) {
+        let game = games[gameName];
+        game.playtimeInfo = getTotalPlaytime(game); 
+        delete game.sessions;
+        if( game.isFolder ) {
+            replaceWithTotalPlaytimeRecursive(game.games);
         }
     }
 }
