@@ -2609,6 +2609,7 @@ async function generateGames(system, games, parents=[], startup, noPlaying) {
                 tempCurParents.push(game);
                 gameData.isFolder = true;
                 gameData.games = await generateGames(system, gameDirContents, tempCurParents, startup, noPlaying);
+                gameData.playtimeInfo = getTotalPlaytime(gameData);
             }
         }
 
@@ -5094,7 +5095,7 @@ async function goHome() {
     if( game.isFolder ) {
         let gameKeys = Object.keys(game.games);
         for( let i=0; i<gameKeys.length; i++ ) {
-            let result = getTotalPlaytime(game.games[gameKeys[i]]);
+            let result = game.games[gameKeys[i]].playtimeInfo;
             totalPlaytime += result.totalPlaytime;
             totalSessions += result.totalSessions;
             mostRecentPlaytime = Math.max(mostRecentPlaytime, result.mostRecentPlaytime);

@@ -1619,7 +1619,7 @@ function getTotalPlaytime(game) {
     if( game.isFolder ) {
         var gameKeys = Object.keys(game.games);
         for( var i=0; i<gameKeys.length; i++ ) {
-            var result = getTotalPlaytime(game.games[gameKeys[i]]);
+            var result = game.games[gameKeys[i]].playtimeInfo;
             totalPlaytime += result.totalPlaytime;
             totalSessions += result.totalSessions;
             mostRecentPlaytime = Math.max(mostRecentPlaytime, result.mostRecentPlaytime);
