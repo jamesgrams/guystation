@@ -501,7 +501,7 @@ let currentPlaytimeInterval = null;
 
 let systemsDict = {};
 let systemsDictHash = "";
-let systemsDictHashNoSessions = "";
+let systemsDictHashNoPlaytimeInfo = "";
 let profilesDict = {};
 
 let browser = null;
@@ -1515,7 +1515,7 @@ function writeResponse( request, response, status, object, code, contentType ) {
         responseSystemsDict = filterStreams(structure.systemsDictSearch, structure.systemsDictSort);
     }
 
-    let responseObject = Object.assign( {status:status, systems: responseSystemsDict, systemsDictHash: systemsDictHash, systemsDictHashNoSessions: systemsDictHashNoSessions, fullscreenPip: fullscreenPip, ip: IP}, object );
+    let responseObject = Object.assign( {status:status, systems: responseSystemsDict, systemsDictHash: systemsDictHash, systemsDictHashNoPlaytimeInfo: systemsDictHashNoPlaytimeInfo, fullscreenPip: fullscreenPip, ip: IP}, object );
     response.end(JSON.stringify(responseObject));
 }
 
@@ -2420,11 +2420,11 @@ async function getData( startup, noPlaying, nonessential, forceStream ) {
 
     function setSystemsDictHash() {
         systemsDictHash = hash(systemsDict);
-        let systemsDictNoSessions = JSON.parse(JSON.stringify(systemsDict));
-        for( let system in systemsDictNoSessions ) {
-            deleteKeyRecursive(systemsDictNoSessions[system].games, "sessions");
+        let systemsDictNoPlaytimeInfo = JSON.parse(JSON.stringify(systemsDict));
+        for( let system in systemsDictNoPlaytimeInfo ) {
+            deleteKeyRecursive(systemsDictNoPlaytimeInfo[system].games, "playtimeInfo");
         }
-        systemsDictHashNoSessions = hash( systemsDictNoSessions );
+        systemsDictHashNoPlaytimeInfo = hash( systemsDictNoPlaytimeInfo );
     }
 
     function setCurrentPlaying() {
@@ -2563,7 +2563,9 @@ async function generateGames(system, games, parents=[], startup, noPlaying) {
             gameData.installer = metadataFileContents.installer;
             gameData.romCandidates = metadataFileContents.romCandidates;
             gameData.isPlaylist = metadataFileContents.isPlaylist;
-            gameData.sessions = metadataFileContents.sessions;
+            // gameData.sessions = metadataFileContents.sessions;
+            // sessions themselves takes up too much memory, and we only actually need the playtime info
+            gameData.playtimeInfo = getTotalPlaytime(metadataFileContents.sessions);
             if( metadataFileContents.siteUrl ) {
                 gameData.siteUrl = metadataFileContents.siteUrl;
                 if( metadataFileContents.script ) {

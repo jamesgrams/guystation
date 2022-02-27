@@ -354,7 +354,7 @@ var expandCountLeft; // We always need to have a complete list of systems, repea
 var expandCountRight;
 var systemsDict;
 var systemsDictHash;
-var systemsDictHashNoSessions;
+var systemsDictHashNoPlaytimeInfo;
 var profilesDict;
 var ip;
 var disableMenuControls;
@@ -813,7 +813,7 @@ function load() {
         var response = JSON.parse(responseText);
         systemsDict = response.systems; // we know it will be defined since hash was previously blank
         systemsDictHash = response.systemsDictHash;
-        systemsDictHashNoSessions = response.systemsDictHashNoSessions;
+        systemsDictHashNoPlaytimeInfo = response.systemsDictHashNoPlaytimeInfo;
         fullscreenPip = response.fullscreenPip;
 
         var startSystem = {};
@@ -847,12 +847,12 @@ function load() {
                 makeRequest( "GET", "/data", { "nonessential": true }, function(responseText) {
                     var response = JSON.parse(responseText);
                     if( response.systems ) {
-                        if( response.systemsDictHashNoSessions !== systemsDictHashNoSessions ) {
+                        if( response.systemsDictHashNoPlaytimeInfo !== systemsDictHashNoPlaytimeInfo ) {
                             createToast( CHANGES_DETECTED );
                         }
                         systemsDict = response.systems;
                         systemsDictHash = response.systemsDictHash;
-                        systemsDictHashNoSessions = response.systemsDictHashNoSessions;
+                        systemsDictHashNoPlaytimeInfo = response.systemsDictHashNoPlaytimeInfo;
                         redraw(null, null, null, null, null, null, true);
                     }
                     else if(response.fullscreenPip !== fullscreenPip) {
@@ -1457,8 +1457,8 @@ function populateGames(system, games, startSystem, gamesElement, hidden, parents
         gamesKeys = gamesKeys.sort( function(a,b) {
             var gameA = games[a];
             var gameB = games[b];
-            var playtimeA = getTotalPlaytime(gameA)[window.localStorage.guystationMenuSort];
-            var playtimeB = getTotalPlaytime(gameB)[window.localStorage.guystationMenuSort];
+            var playtimeA = gameA.playtimeInfo[window.localStorage.guystationMenuSort];
+            var playtimeB = gameB.playtimeInfo[window.localStorage.guystationMenuSort];
             if( playtimeA < playtimeB ) return 1;
             if( playtimeA > playtimeB ) return -1;
             if( a < b ) return -1;
@@ -1563,12 +1563,11 @@ function populateGames(system, games, startSystem, gamesElement, hidden, parents
             gameElement.appendChild(currentSaveDiv);
         }
          // Create an element for the play time
-         if( game.sessions || game.isFolder ) {
-            var totalPlaytime = getTotalPlaytime(game);
-            if( totalPlaytime.totalSessions ) {
+         if( game.playtimeInfo || game.isFolder ) {
+            if( game.playtimeInfo.totalSessions ) {
                 var playtimeDiv = document.createElement("div");
                 playtimeDiv.classList.add("playtime");
-                playtimeDiv.innerText = timeConversion(totalPlaytime.totalPlaytime);
+                playtimeDiv.innerText = timeConversion(game.playtimeInfo.totalPlaytime);
 
                 // Append the game element to the list of elements
                 gameElement.appendChild(playtimeDiv);
@@ -2069,7 +2068,7 @@ function redraw( oldSystemName, newSystemName, oldGameName, newGameName, oldPare
             if( response.systems ) {
                 systemsDict = response.systems;
                 systemsDictHash = response.systemsDictHash;
-                systemsDictHashNoSessions = response.systemsDictHashNoSessions;
+                systemsDictHashNoPlaytimeInfo = response.systemsDictHashNoPlaytimeInfo;
             }
             fullscreenPip = response.fullscreenPip;
             doDraw();
@@ -6303,7 +6302,7 @@ function standardSuccess( responseText, message, oldSystemName, newSystemName, o
     if( response.systems ) {
         systemsDict = response.systems;
         systemsDictHash = response.systemsDictHash;
-        systemsDictHashNoSessions = response.systemsDictHashNoSessions;
+        systemsDictHashNoPlaytimeInfo = response.systemsDictHashNoPlaytimeInfo;
     }
     fullscreenPip = response.fullscreenPip;
     redraw(oldSystemName, newSystemName, oldGameName, newGameName, oldParents, newParents);
