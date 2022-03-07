@@ -6340,8 +6340,6 @@ function endRequest() {
  */
 function makeRequest(type, url, parameters, callback, errorCallback, useFormData, sambaMode, noWebsockets, button) {
     parameters.systemsDictHash = systemsDictHash;
-    parameters.systemsDictSearch = currentSearch ? currentSearch : "";
-    parameters.systemsDictSort = window.localStorage.guystationMenuSort ? window.localStorage.guystationMenuSort : ""; // pivotal for returning systems dict
     var parameterKeys = Object.keys(parameters);
 
     if( type == "GET" && parameterKeys.length ) {

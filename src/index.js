@@ -1464,8 +1464,7 @@ function writeResponse( request, response, status, object, code, contentType ) {
     response.writeHead(code, {'Content-Type': 'application/json'});
     
     let structure = request.body && Object.keys(request.body).length ? request.body : request.query;
-    let responseSystemsDict = null;
-    if( structure.noPlaying ) responseSystemsDict = systemsDict; // samba mounts need everything
+    let responseSystemsDict = systemsDict; // samba mounts need everything
 
     let responseObject = Object.assign( {status:status, systems: responseSystemsDict, systemsDictHash: systemsDictHash, systemsDictHashNoPlaytimeInfo: systemsDictHashNoPlaytimeInfo, fullscreenPip: fullscreenPip, ip: IP}, object );
     response.end(JSON.stringify(responseObject));
