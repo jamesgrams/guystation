@@ -844,7 +844,7 @@ function load() {
         // Check for changes every 10 seconds
         setInterval( function() {
             if( !makingRequest ) {
-                makeRequest( "GET", "/data", { "nonessential": true }, function(responseText) {
+                makeRequest( "GET", "/data", { "systemsDictHash": systemsDictHash, "nonessential": true }, function(responseText) {
                     var response = JSON.parse(responseText);
                     if( response.systems ) {
                         if( response.systemsDictHashNoPlaytimeInfo !== systemsDictHashNoPlaytimeInfo ) {

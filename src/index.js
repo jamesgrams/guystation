@@ -1464,7 +1464,9 @@ function writeResponse( request, response, status, object, code, contentType ) {
     response.writeHead(code, {'Content-Type': 'application/json'});
     
     let structure = request.body && Object.keys(request.body).length ? request.body : request.query;
-    let responseSystemsDict = systemsDict; // samba mounts need everything
+    // systems can become a huge json object, so if nonessential is set, just like we don't force server side processing on the request,
+    // save bandwidth as well
+    let responseSystemsDict = (structure.nonessential && structure.systemsDictHash && structure.systemsDictHash == systemsDictHash) ? null : systemsDict;
 
     let responseObject = Object.assign( {status:status, systems: responseSystemsDict, systemsDictHash: systemsDictHash, systemsDictHashNoPlaytimeInfo: systemsDictHashNoPlaytimeInfo, fullscreenPip: fullscreenPip, ip: IP}, object );
     response.end(JSON.stringify(responseObject));
