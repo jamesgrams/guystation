@@ -369,8 +369,8 @@ var tabsHeartbeat;
 var navigating = false;
 var sendString = "";
 var activePageId = null;
-var nonGameSystems = ["stream"];
-var nonSaveSystems = ["stream", "browser", "media","pc", "dos"];
+var nonGameSystems = [];
+var nonSaveSystems = ["browser", "media","pc", "dos"];
 var menuDirection = null;
 var menuMoveSpeedMultiplier = 1;
 var currentSearch = "";
@@ -1876,10 +1876,6 @@ function toggleButtons() {
     for( var i=0; i<browserGameKeys.length; i++ ) {
         if( systemsDict["browser"].games[browserGameKeys[i]].playing ) isPlaying = true;
     }
-    var streamGameKeys = Object.keys(systemsDict["stream"].games);
-    for( var i=0; i<streamGameKeys.length; i++ ) {
-        if( systemsDict["stream"].games[streamGameKeys[i]].playing ) isPlaying = true;
-    }
     if( !isPlaying ) {
         browserControlsButton.onclick = null;
         browserControlsButton.classList.add("inactive");
@@ -1948,7 +1944,7 @@ function toggleButtons() {
         remoteMediaButton.classList.remove("inactive");
     }
     // browser
-    else if( ["browser","stream"].indexOf(selectedSystem.getAttribute("data-system")) != -1 && selectedGame ) {
+    else if( ["browser"].indexOf(selectedSystem.getAttribute("data-system")) != -1 && selectedGame ) {
         remoteMediaButton.onclick = function(e) { e.stopPropagation(); openRemoteMediaBrowser( selectedSystem.getAttribute("data-system") ); };
         remoteMediaButton.classList.remove("inactive");
     }
@@ -1968,7 +1964,7 @@ function toggleButtons() {
     }
 
     // Only allow save configuration menus and update/delete game menus if there is at least one game
-    var anyGame = document.querySelector(".system:not([data-system='stream']) .game");
+    var anyGame = document.querySelector(".system .game");
     var anySave = document.querySelector(".game .current-save")
     //var anyGameNotFolder = document.querySelector(".game:not([data-is-folder])");
     var updateGameButton = document.getElementById("update-game");
@@ -2058,25 +2054,8 @@ function redraw( oldSystemName, newSystemName, oldGameName, newGameName, oldPare
         clearSearch();
         searchOrSortUpdated = true;
     }
-    var doDraw = function() {
-        draw( generateStartSystem( oldSystemName, newSystemName, oldGameName, newGameName, oldParents, newParents ) );
-        if( callback ) callback();
-    };
-    if( searchOrSortUpdated ) {
-        makeRequest( "GET", "/data", { systemsDictForce: true }, function(responseText) {
-            var response = JSON.parse(responseText);
-            if( response.systems ) {
-                systemsDict = response.systems;
-                systemsDictHash = response.systemsDictHash;
-                systemsDictHashNoPlaytimeInfo = response.systemsDictHashNoPlaytimeInfo;
-            }
-            fullscreenPip = response.fullscreenPip;
-            doDraw();
-        } );
-    }
-    else {
-        doDraw();
-    }
+    draw( generateStartSystem( oldSystemName, newSystemName, oldGameName, newGameName, oldParents, newParents ) );
+    if( callback ) callback();
 }
 
 /**
@@ -4672,16 +4651,6 @@ function displayPictureInPicture() {
         form.appendChild( createButton("Use Media", function() {
             pipUrlInput.querySelector("input").value = path;
             pipScript = null;
-        }) );
-
-        addButtonBreak = true;
-    }
-    if( selectedSystem && selectedGame && selectedSystem.getAttribute("data-system") == "stream" ) {
-        var selected = getSelectedValues(false, false, false, true);
-        var entry = getGamesInFolder(selected.parents, selected.system)[selected.game];
-        form.appendChild( createButton("Use Stream", function() {
-            pipUrlInput.querySelector("input").value = entry.siteUrl;
-            pipScript = entry.script;
         }) );
 
         addButtonBreak = true;
