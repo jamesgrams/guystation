@@ -38,7 +38,7 @@
       },
       "L": {
         "keys": ["Wiimote1","Classic/Triggers/L"],
-        "nunchukKeys": ["Wiimote1","Shake/X"]
+        "nunchukKeys": ["Wiimote1","Shake/Z"]
       },
       "R": {
         "keys": ["Wiimote1","Classic/Triggers/R"],
@@ -46,7 +46,7 @@
       },
       "L2": {
         "keys": ["Wiimote1","Classic/Buttons/ZL"],
-        "nunchukKeys": ["Wiimote1","Shake/Z"]
+        "nunchukKeys": ["Wiimote1","Nunchuk/Shake/Z"]
       },
       "R2": {
         "keys": ["Wiimote1","Classic/Buttons/ZR"],

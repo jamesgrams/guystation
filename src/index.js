@@ -2466,21 +2466,6 @@ function deleteKeyRecursive(games, key) {
 }
 
 /**
- * Replace sessions with total playtime.
- * @param {Array<Object>} - An array of game objects.
- */
-function replaceWithTotalPlaytimeRecursive(games) {
-    for( let gameName in games ) {
-        let game = games[gameName];
-        game.playtimeInfo = getTotalPlaytime(game); 
-        delete game.sessions;
-        if( game.isFolder ) {
-            replaceWithTotalPlaytimeRecursive(game.games);
-        }
-    }
-}
-
-/**
  * Generate the information about games for a system.
  * This function calls itself recusively to find subdirectories.
  * @param {string} system - The system the games are on.
@@ -3930,7 +3915,7 @@ async function saveUploadedRom( file, system, game, parents ) {
     let romLocation = generateRomLocation(system, game, file.originalname, parents);
     await fsExtra.rename(file.path, romLocation);
 
-    await updateGameMetaData( system, game, parents, {rom: file.originalname} );
+    await updateGameMetaData( system, game, parents, {rom: file.originalname, status: null} ); // set status too in case it was set on a failed download
     if( (system === SYSTEM_PC || system === SYSTEM_DOS) && !shouldNotExtract(file.originalname) ) { // PC games may be zipped as they require multiple files.
         // copy files
         await fsExtra.rename( romLocation, DOWNLOAD_PC_PREFIX );
