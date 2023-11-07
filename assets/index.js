@@ -3695,8 +3695,15 @@ function displayScreencast( fullscreen, fitscreen, callback ) {
     
     form.appendChild(buttonBreak.cloneNode());
 
-    form.appendChild( createButton("Fullscreen", function() { fullscreenVideo(video) }));
-    form.appendChild( createButton("Fit Screen", fitscreenVideo) );
+    var fullscreenButton = createButton("<i class='fas fa-expand'></i>", function() { fullscreenVideo(video) });
+    fullscreenButton.classList.add("screen-button");
+    form.appendChild(fullscreenButton);
+    var fitScreenButton = createButton("<i class='fas fa-desktop'></i>", fitscreenVideo);
+    fitScreenButton.classList.add("screen-button");
+    form.appendChild(fitScreenButton);
+    var pipButton = createButton("<i class='fas fa-clone'></i>", function() { video.querySelector("video").requestPictureInPicture(); } );
+    pipButton.classList.add("screen-button");
+    form.appendChild(pipButton);
 
     var connectController = localStorage.guystationConnectController;
     if( connectController ) {
@@ -3793,7 +3800,7 @@ function forceRedraw( element ) {
 function fitscreenVideo() {
     var modal = document.querySelector(".modal");
     if( modal && document.querySelector("#remote-screencast-form") ) {
-        var button = document.querySelector("#remote-screencast-form button:last-child");
+        var button = document.querySelector("#remote-screencast-form button:nth-last-child(2)");
         var video = modal.querySelector("video");
         if( !modal.classList.contains("fit-screen") ) {
             var width = window.innerWidth;
@@ -3810,7 +3817,7 @@ function fitscreenVideo() {
         }
         else {
             video.removeAttribute("style");
-            button.innerText = "Fit Screen";
+            button.innerHTML = "<i class='fas fa-desktop'></i>";
             modal.classList.remove("fit-screen");
         }
     }
@@ -7378,7 +7385,7 @@ function gotRemoteStream(event) {
         document.querySelector(".modal #remote-screencast-form video, .modal #browser-controls-form video, .black-background video").srcObject = stream;
     }
     else {
-        document.querySelector(".modal #remote-screencast-form audio, .modal #browser-controls-form audio").srcObject = stream;
+        document.querySelector(".modal #remote-screencast-form audio, .modal #browser-controls-form audio, .black-background audio").srcObject = stream;
     }
     // scale the screencas44t on the server to the previous setting
     // we want to do this after the sender already exists, so we can only do it to this client

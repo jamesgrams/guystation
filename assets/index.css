@@ -592,6 +592,11 @@ h1 {
     margin: 10px 0 0 0;
 }
 
+#remote-screencast-form .screen-button {
+    width: 80px;
+    height: 58px;
+}
+
 #remote-media-form #previous-media, #remote-media-form-screenshots #previous-screenshot {
     float: left;
 }
