@@ -7078,7 +7078,11 @@ function connectToSignalServer( isStreamer ) {
  * @param {Object} stream - The screencast.
  */
 function getDisplayMediaSuccess(stream) {
-    navigator.mediaDevices.getUserMedia({"audio": true}).then( function(audio) {
+    navigator.mediaDevices.getUserMedia({"audio": {
+        echoCancellation: false,
+        noiseSupression: false,
+        autoGainControl: false,
+    }}).then( function(audio) {
         stream.getTracks()[0].contentHint = CONTENT_HINT; // See here: https://webrtc.github.io/samples/src/content/capture/video-contenthint/
         var av = new MediaStream();
         av.addTrack(stream.getTracks()[0]);
