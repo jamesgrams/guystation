@@ -21,7 +21,7 @@
     </body>
     <script>
         // Start streaming
-        navigator.mediaDevices.getUserMedia({"audio": true,"video": { width: {ideal: 1920}, height: {ideal:1080} }}).then( function(stream) {
+	    navigator.mediaDevices.getUserMedia({"audio": {echoCancellation: false,noiseSuppression: false,autoGainControl: false},"video": { width: {ideal: 1920}, height: {ideal:1080} }}).then( function(stream) {
             var video = document.querySelector("video");
             document.querySelector("video").srcObject = stream;
 
