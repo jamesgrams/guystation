@@ -1076,6 +1076,9 @@ readers do not read off random characters that represent icons */
 .fa-pause:before {
     content: "\f04c"; }
 
+.fa-image:before {
+    content: "\f03e"; }
+
 .fa-sort-numeric-down-alt:before {
     content: "\f886"; }
 

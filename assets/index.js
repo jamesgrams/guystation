@@ -3695,9 +3695,20 @@ function displayScreencast( fullscreen, fitscreen, callback ) {
     
     form.appendChild(buttonBreak.cloneNode());
 
-    var fullscreenButton = createButton("<i class='fas fa-expand'></i>", function() { fullscreenVideo(video) });
+    var fullscreenButton = createButton("<i class='fas fa-expand'></i>", function() { 
+        window.localStorage.guystationFsNative = false;
+        fullscreenVideo(video) 
+    });
     fullscreenButton.classList.add("screen-button");
     form.appendChild(fullscreenButton);
+    if( isTouch() ) {
+        var fullscreenNButton = createButton("<i class='fas fa-image'></i>", function() { 
+            window.localStorage.guystationFsNative = true;
+            fullscreenVideo(video) 
+        });
+        fullscreenNButton.classList.add("screen-button");
+        form.appendChild(fullscreenNButton);
+    }
     var fitScreenButton = createButton("<i class='fas fa-desktop'></i>", fitscreenVideo);
     fitScreenButton.classList.add("screen-button");
     form.appendChild(fitScreenButton);
@@ -3840,7 +3851,8 @@ function fullscreenRemoteMedia() {
  * @param {HTMLElement} element - The video element to fullscreen.
  */
 function fullscreenVideo( element ) {
-    if( isTouch() ) {
+    let forceNative = window.localStorage.guystationFsNative && window.localStorage.guystationFsNative !== "false";
+    if( isTouch() && !forceNative ) {
         // this should be for iOS safari
         //element.webkitEnterFullScreen();
         if( element.querySelector("video").hasAttribute("style") ) {
