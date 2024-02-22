@@ -3851,7 +3851,8 @@ function fullscreenRemoteMedia() {
  * @param {HTMLElement} element - The video element to fullscreen.
  */
 function fullscreenVideo( element ) {
-    let forceNative = window.localStorage.guystationFsNative && window.localStorage.guystationFsNative !== "false";
+	let gamepads = navigator.getGamepads();
+    let forceNative = Object.keys(gamepads).filter(el => gamepads[el] ).length ||  (window.localStorage.guystationFsNative && window.localStorage.guystationFsNative !== "false");
     if( isTouch() && !forceNative ) {
         // this should be for iOS safari
         //element.webkitEnterFullScreen();
@@ -6462,6 +6463,10 @@ function sendButtonsToServer( clientButton, down, clientControllerNum, actualCon
                 var buttonCode = Object.values(PADCODES)[serverButtonsForClientButton[k]];
                 sendRTCMessage( {"path": "/screencast/gamepad", "body": { "event": { "type": 0x01, "code": buttonCode, "value": down !== undefined ? down : gamepadButtonsDown[actualControllerNum][clientButton] }, "id": socket.id, "controllerNum": clientControllerNum, "counter": screencastCounter, "timestamp": Date.now() } } );
                 screencastCounter++;
+                if( buttonCode == PADCODES["🏠"] ) {
+                    sendRTCMessage( { "path": "/screencast/buttons", "body": { "down": down !== undefined ? down : gamepadButtonsDown[actualControllerNum][clientButton], "buttons": [27], "counter": screencastCounter, "timestamp": Date.now() } } );
+                    screencastCounter++;
+                }
             }
         }
         // this is a full axis being sent on the client (not just an axis direction) - it must be mapped to a server axis
