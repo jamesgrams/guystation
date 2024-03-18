@@ -59,6 +59,7 @@ const ASSETS_DIR = "assets";
 const CURRENT_SAVE_DIR = "current";
 const DEFAULT_SAVE_DIR = "default";
 const SCREENSHOTS_DIR = "screenshots";
+const NAND_TMP_DIR = "nand_tmp";
 const SYSTEMS_DIR = "systems";
 const GAMES_DIR = "games";
 const SAVES_DIR = "saves";
@@ -2587,7 +2588,7 @@ async function generateSaves( system, game, parents ) {
     // Try to read all the saves in the saves directory
     // save states are handled from within the emulator itself
     try {
-        saves = (await fsExtra.readdir(savesDir, {withFileTypes: true})).filter(file => file.isDirectory() && file.name != SCREENSHOTS_DIR).map(dir => dir.name);
+        saves = (await fsExtra.readdir(savesDir, {withFileTypes: true})).filter(file => file.isDirectory() && file.name != SCREENSHOTS_DIR && file.name != NAND_TMP_DIR).map(dir => dir.name);
     }
     // If there is no saves directory, make one and make a default save
     catch(err) {
@@ -3783,7 +3784,7 @@ async function updateNandSymlinks( system, game, oldRomNandPath, parents, relaun
             // Place the current save contents in the old rom's directory, and we should have no save content
             // in our guystation save directory now
             for( let currentFile of currentSaveDirContents ) {
-                if( currentFile != "screenshots" ) {
+                if( currentFile != SCREENSHOTS_DIR && currentFile != NAND_TMP_DIR ) {
                     await fsExtra.move( currentSaveDir + SEPARATOR + currentFile, nandSavePath + SEPARATOR + currentFile );
                 }
             }
@@ -3847,7 +3848,20 @@ async function updateNandSymlinks( system, game, oldRomNandPath, parents, relaun
             }
         }
         // Now, create the symlink
-        await fsExtra.symlink( currentSaveDir, nandSavePath, 'dir');
+        // With Wii, there is a limited NAND memory size. We can't symlink the screenshots directory as that gets us too big.
+        let linkSaveDir = currentSaveDir;
+        if( system == SYSTEM_WII ) {
+            let nandTmpDir = currentSaveDir + SEPARATOR + NAND_TMP_DIR;
+            if( await fsExtra.exists(nandTmpDir) ) await rimrafPromise(nandTmpDir);
+            await fsExtra.mkdir(nandTmpDir);
+            let saves = (await fsExtra.readdir(currentSaveDir, {withFileTypes: true})).filter(file => file.name != SCREENSHOTS_DIR && file.name != NAND_TMP_DIR).map(dir => dir.name);
+            for( let save of saves ) {
+                await fsExtra.symlink( currentSaveDir + SEPARATOR + save, nandTmpDir + SEPARATOR + save );
+            }
+
+            linkSaveDir = nandTmpDir;
+        }
+        await fsExtra.symlink( linkSaveDir, nandSavePath, 'dir');
 
         if( relaunch && sambaOn && madeDir && ( system == SYSTEM_3DS || system == SYSTEM_WII ) ) {
             // this is the first time launching the game on samba mode.
