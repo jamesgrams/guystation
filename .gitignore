@@ -10,3 +10,4 @@ twitch-stream.json
 settings.json
 browser-gamepad.json
 systems/stream/stream-info.json
+systems_tmp/*

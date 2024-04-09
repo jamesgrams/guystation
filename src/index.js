@@ -61,6 +61,7 @@ const DEFAULT_SAVE_DIR = "default";
 const SCREENSHOTS_DIR = "screenshots";
 const NAND_TMP_DIR = "nand_tmp";
 const SYSTEMS_DIR = "systems";
+const SYSTEMS_TMP_DIR = "systems_tmp";
 const GAMES_DIR = "games";
 const SAVES_DIR = "saves";
 const WORKING_DIR = process.cwd();
@@ -3851,9 +3852,10 @@ async function updateNandSymlinks( system, game, oldRomNandPath, parents, relaun
         // With Wii, there is a limited NAND memory size. We can't symlink the screenshots directory as that gets us too big.
         let linkSaveDir = currentSaveDir;
         if( system == SYSTEM_WII ) {
-            let nandTmpDir = currentSaveDir + SEPARATOR + NAND_TMP_DIR;
+            let nandTmpDir = currentSaveDir.replace(SEPARATOR+SYSTEMS_DIR+SEPARATOR, SEPARATOR+SYSTEMS_TMP_DIR+SEPARATOR);
+            nandTmpDir = nandTmpDir + SEPARATOR + NAND_TMP_DIR;
             if( await fsExtra.exists(nandTmpDir) ) await rimrafPromise(nandTmpDir);
-            await fsExtra.mkdir(nandTmpDir);
+            await fsExtra.mkdir(nandTmpDir, {recursive: true});
             let saves = (await fsExtra.readdir(currentSaveDir, {withFileTypes: true})).filter(file => file.name != SCREENSHOTS_DIR && file.name != NAND_TMP_DIR).map(dir => dir.name);
             for( let save of saves ) {
                 await fsExtra.symlink( currentSaveDir + SEPARATOR + save, nandTmpDir + SEPARATOR + save );
