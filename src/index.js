@@ -5154,7 +5154,7 @@ async function getIgdbHeaders() {
     let needsFetch = false;
     let igdbContent = {};
     try {
-        igdbContent = JSON.parse( await fsExtra.readFile(IGDB_PATH).toString() );
+        igdbContent = JSON.parse( (await fsExtra.readFile(IGDB_PATH)).toString() );
         let expires = igdbContent.expires;
         if( timeSeconds >= expires ) {
             needsFetch = true;
