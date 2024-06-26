@@ -43,8 +43,9 @@ var KEY_BUTTON_EXTRA = 20; // the extra size in pixels of a key button to a regu
 var MIN_STREAM_SEARCH_LENGTH = 3;
 var DOUBLE_TAP_TIME = 500;
 var REMOVE_TRY_AGAIN_VIDEO_TIMEOUT = 7000;
-var WATCH_TIME_INTERVAL = 30000;
-var MIN_VIDEO_DURATION_FOR_TIMESTAMP = 60000 * 8;
+var WATCH_TIME_INTERVAL = 10000;
+var MIN_VIDEO_DURATION_FOR_TIMESTAMP = 480;
+var SECONDS_ENDED = 300;
 var STOPWORDS = ["i", "me", "my", "myself", "we", "our", "ours", "ourselves", "you", "your", "yours", "yourself", "yourselves", "he", "him", "his", "himself", "she", "her", "hers", "herself", "it", "its", "itself", "they", "them", "their", "theirs", "themselves", "what", "which", "who", "whom", "this", "that", "these", "those", "am", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "having", "do", "does", "did", "doing", "a", "an", "the", "and", "but", "if", "or", "because", "as", "until", "while", "of", "at", "by", "for", "with", "about", "against", "between", "into", "through", "during", "before", "after", "above", "below", "to", "from", "in", "out", "over", "under", "again", "further", "then", "once", "here", "there", "when", "where", "why", "how", "all", "any", "both", "each", "few", "more", "most", "other", "some", "such", "no", "nor", "not", "only", "own", "same", "so", "than", "too", "very", "s", "t", "can", "will", "just", "don", "should", "now", "on", "off", "up", "down"];
 var KEYCODES = {
     '0': 48,
@@ -2576,7 +2577,7 @@ function displayRemoteMedia(system, game, parents, serverLaunched) {
     var watchTimeInterval;
     var recordTimestamps = function() {
         if( gameEntry && gameEntry.seconds && parseInt(gameEntry.seconds) ) {
-            videoElement.currentTime = gameEntry.seconds;
+            if( videoElement.duration && (videoElement.duration - parseInt(gameEntry.seconds) > SECONDS_ENDED) ) videoElement.currentTime = gameEntry.seconds;
         }
         if( videoElement.duration && videoElement.duration > MIN_VIDEO_DURATION_FOR_TIMESTAMP ) {
             watchTimeInterval = setInterval( function() {

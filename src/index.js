@@ -2509,6 +2509,7 @@ async function generateGames(system, games, parents=[], startup, noPlaying) {
             // gameData.sessions = metadataFileContents.sessions;
             // sessions themselves takes up too much memory, and we only actually need the playtime info
             gameData.playtimeInfo = getTotalPlaytime(metadataFileContents);
+            if( metadataFileContents.seconds ) gameData.seconds = metadataFileContents.seconds;
             if( metadataFileContents.siteUrl ) {
                 gameData.siteUrl = metadataFileContents.siteUrl;
                 if( metadataFileContents.script ) {
