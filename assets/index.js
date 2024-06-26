@@ -43,6 +43,8 @@ var KEY_BUTTON_EXTRA = 20; // the extra size in pixels of a key button to a regu
 var MIN_STREAM_SEARCH_LENGTH = 3;
 var DOUBLE_TAP_TIME = 500;
 var REMOVE_TRY_AGAIN_VIDEO_TIMEOUT = 7000;
+var WATCH_TIME_INTERVAL = 30000;
+var MIN_VIDEO_DURATION_FOR_TIMESTAMP = 60000 * 8;
 var STOPWORDS = ["i", "me", "my", "myself", "we", "our", "ours", "ourselves", "you", "your", "yours", "yourself", "yourselves", "he", "him", "his", "himself", "she", "her", "hers", "herself", "it", "its", "itself", "they", "them", "their", "theirs", "themselves", "what", "which", "who", "whom", "this", "that", "these", "those", "am", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "having", "do", "does", "did", "doing", "a", "an", "the", "and", "but", "if", "or", "because", "as", "until", "while", "of", "at", "by", "for", "with", "about", "against", "between", "into", "through", "during", "before", "after", "above", "below", "to", "from", "in", "out", "over", "under", "again", "further", "then", "once", "here", "there", "when", "where", "why", "how", "all", "any", "both", "each", "few", "more", "most", "other", "some", "such", "no", "nor", "not", "only", "own", "same", "so", "than", "too", "very", "s", "t", "can", "will", "just", "don", "should", "now", "on", "off", "up", "down"];
 var KEYCODES = {
     '0': 48,
@@ -2564,11 +2566,31 @@ function displayRemoteMedia(system, game, parents, serverLaunched) {
         form.setAttribute("data-is-server-launched", "true");
     }
 
-    var parentGameDictEntryGamesKeys = Object.keys(removeNotDownloaded(removePlaylists(filterGameTypes(getGamesInFolder(selected.parents, selected.system, true), false))));
+    var parentGameDictEntryGames = removeNotDownloaded(removePlaylists(filterGameTypes(getGamesInFolder(selected.parents, selected.system, true), false)));
+    var parentGameDictEntryGamesKeys = Object.keys(parentGameDictEntryGames);
     var elementIndex = parentGameDictEntryGamesKeys.indexOf( selected.game );
     form.appendChild(createPositionIndicator( elementIndex+1, parentGameDictEntryGamesKeys.length ));
+
+    var gameEntry = parentGameDictEntryGames[selected.game];
+    if( gameEntry && gameEntry.seconds && parseInt(gameEntry.seconds) ) {
+        videoElement.currentTime = gameEntry.seconds;
+    }
+
+    var watchTimeInterval;
+    if( videoElement.duration && videoElement.duration > MIN_VIDEO_DURATION_FOR_TIMESTAMP ) {
+        watchTimeInterval = setInterval( function() {
+            makeRequest("POST", "/media/timestamp", { system: selected.system, game: selected.game, parents: JSON.stringify(selected.parents), seconds: videoElement.currentTime }, function() {
+                gameDictEntry.seconds = seconds; // keep a copy locally until server side update
+            });
+        }, WATCH_TIME_INTERVAL );
+    }
     
-    launchModal( form, function() { if(serverLaunched) { quitGame(); } }, serverLaunched ? true : false );
+    launchModal( form, function() { 
+        clearInterval(watchTimeInterval);
+        if(serverLaunched) { 
+            quitGame(); 
+        } 
+    }, serverLaunched ? true : false );
 }
 
 /**

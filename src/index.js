@@ -422,6 +422,7 @@ const ERROR_MESSAGES = {
     "couldNotFindVideo": "Could not find video on page",
     "couldNotMuteProperly": "Could not mute properly",
     "invalidMuteMode": "Invalid mute mode",
+    "invalidMuteMode": "Invalid timestamp",
     "alreadyStreamingRtmp": "Already streaming RTMP",
     "rtmpUrl": "Please enter a RTMP url",
     "twitchNoValidate": "Could not validate Twitch",
@@ -433,7 +434,8 @@ const ERROR_MESSAGES = {
     "anotherTwitchRequest": "Twitch request outdated",
     "invalidRomCandidate": "Invalid ROM candidate",
     "pcStillLoading": "PC still loading",
-    "streamCurrentlyFetching": "Info currently being fetching"
+    "streamCurrentlyFetching": "Info currently being fetching",
+    "watchTimeMedia": "Timestamp can only be set for media"
 }
 // http://jsfiddle.net/vWx8V/ - keycode
 // http://robotjs.io/docs/syntax - robotjs
@@ -949,6 +951,13 @@ app.post("/screencast/scale", async function(request, response) {
 app.post("/screencast/mute", async function(request, response) {
     console.log("app serving /screencast/mute with body: " + JSON.stringify(request.body));
     let errorMessage = await setScreencastMute( request.body.id, request.body.mute );
+    writeActionResponse( request, response, errorMessage );
+});
+
+// Set the mute of the screencast
+app.post("/media/timestamp", async function(request, response) {
+    console.log("app serving /media/timestamp with body: " + JSON.stringify(request.body));
+    let errorMessage = await updateWatchPosition( request.body.system, request.body.game, JSON.parse(request.body.parents), request.body.seconds );
     writeActionResponse( request, response, errorMessage );
 });
 
@@ -2377,6 +2386,7 @@ async function getData( startup, noPlaying, nonessential ) {
         let systemsDictNoPlaytimeInfo = JSON.parse(JSON.stringify(systemsDict));
         for( let system in systemsDictNoPlaytimeInfo ) {
             deleteKeyRecursive(systemsDictNoPlaytimeInfo[system].games, "playtimeInfo");
+            deleteKeyRecursive(systemsDictNoPlaytimeInfo[system].games, "seconds");
         }
         systemsDictHashNoPlaytimeInfo = hash( systemsDictNoPlaytimeInfo );
     }
@@ -3252,6 +3262,22 @@ async function updatePlaytime() {
     }
     sessions[sessions.length - 1][1] = Date.now();
     await updateGameMetaData( currentSystem, currentGame, currentParents, { sessions: sessions } );
+    return Promise.resolve(false);
+}
+
+/**
+ * Update the watch position
+ * @returns {Promise<(boolean|string)>} A promise containing an error message if there is one, otherwise false.
+ */
+async function updateWatchPosition( system, game, parents, seconds ) {
+    let isInvalid = isInvalidGame( system, game, parents );
+    if( isInvalid ) {
+        return Promise.resolve(isInvalid);
+    }
+    if( system !== MEDIA ) return Promise.resolve(ERROR_MESSAGES.watchTimeMedia)
+    if( !parseInt(seconds) ) return Promise.resolve(ERROR_MESSAGES.invalidSeconds);
+
+    await updateGameMetaData( system, game, parents, { seconds: seconds } );
     return Promise.resolve(false);
 }
 
