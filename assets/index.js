@@ -2572,20 +2572,24 @@ function displayRemoteMedia(system, game, parents, serverLaunched) {
     form.appendChild(createPositionIndicator( elementIndex+1, parentGameDictEntryGamesKeys.length ));
 
     var gameEntry = parentGameDictEntryGames[selected.game];
-    if( gameEntry && gameEntry.seconds && parseInt(gameEntry.seconds) ) {
-        videoElement.currentTime = gameEntry.seconds;
-    }
 
     var watchTimeInterval;
-    if( videoElement.duration && videoElement.duration > MIN_VIDEO_DURATION_FOR_TIMESTAMP ) {
-        watchTimeInterval = setInterval( function() {
-            makeRequest("POST", "/media/timestamp", { system: selected.system, game: selected.game, parents: JSON.stringify(selected.parents), seconds: videoElement.currentTime }, function() {
-                gameDictEntry.seconds = seconds; // keep a copy locally until server side update
-            });
-        }, WATCH_TIME_INTERVAL );
-    }
+    var recordTimestamps = function() {
+        if( gameEntry && gameEntry.seconds && parseInt(gameEntry.seconds) ) {
+            videoElement.currentTime = gameEntry.seconds;
+        }
+        if( videoElement.duration && videoElement.duration > MIN_VIDEO_DURATION_FOR_TIMESTAMP ) {
+            watchTimeInterval = setInterval( function() {
+                makeRequest("POST", "/media/timestamp", { system: selected.system, game: selected.game, parents: JSON.stringify(selected.parents), seconds: videoElement.currentTime }, function() {
+                    gameDictEntry.seconds = seconds; // keep a copy locally until server side update
+                });
+            }, WATCH_TIME_INTERVAL );
+        }
+    };
+    videoElement.addEventListener("loadeddata", recordTimestamps);
     
     launchModal( form, function() { 
+        videoElement.removeEventListener("loadedData", recordTimestamps);
         clearInterval(watchTimeInterval);
         if(serverLaunched) { 
             quitGame(); 
