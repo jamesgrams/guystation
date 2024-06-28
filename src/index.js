@@ -51,6 +51,7 @@ const generatePpssppControllersMap = require("./lib/ppssppmap").generateControll
 const Porcupine = require("@picovoice/porcupine-node");
 const recorder = require("node-record-lpcm16");
 const hash = require("object-hash");
+const miniget = require('miniget');
 
 const PORT = 8080;
 const SOCKETS_PORT = 3000;
@@ -4053,7 +4054,7 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
 
     // Then, try to get the file from YouTube DL
     // Upon testing, this downloads the file even if it is not a YouTube video
-    let rom = youtubedl(url, { filter: 'audioandvideo' });
+    let rom = system === MEDIA ? youtubedl(url, { filter: 'audioandvideo' }) : miniget(url);
     
     let size = 0;
     rom.on("info", (info) => {
