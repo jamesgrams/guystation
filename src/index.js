@@ -29,7 +29,7 @@ const ioctl = require("ioctl");
 const uinput = require("./lib/uinput");
 const uinputStructs = require("./lib/uinput_structs");
 const ua = require('all-unpacker');
-const youtubedl = require('youtube-dl');
+const youtubedl = require('ytdl-core');
 const urlLib = require('url');
 const isBinaryFile = require("isbinaryfile").isBinaryFile;
 const validUrl = require("valid-url");
@@ -4053,7 +4053,7 @@ async function downloadRomBackground( url, system, game, parents, callback, wait
 
     // Then, try to get the file from YouTube DL
     // Upon testing, this downloads the file even if it is not a YouTube video
-    let rom = youtubedl(url);
+    let rom = youtubedl(url, { filter: 'audioandvideo' });
     
     let size = 0;
     rom.on("info", (info) => {
