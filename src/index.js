@@ -3314,7 +3314,7 @@ async function updateTrackPosition( system, game, parents, track ) {
         return Promise.resolve(isInvalid);
     }
     if( system !== MEDIA ) return Promise.resolve(ERROR_MESSAGES.watchTimeMedia);
-    if( !parseInt(track) ) return Promise.resolve(ERROR_MESSAGES.invalidTrack);
+    if( !parseInt(track) && parseInt(track) !== 0 ) return Promise.resolve(ERROR_MESSAGES.invalidTrack);
     let gameDictEntry = getGameDictEntry(system, game, parents);
     if( !gameDictEntry || !gameDictEntry.isPlaylist ) return Promise.resolve(ERROR_MESSAGES.playlistTrack);
 

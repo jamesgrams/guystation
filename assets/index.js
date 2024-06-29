@@ -410,6 +410,7 @@ var motionDetectGameLaunched = false;
 var motionDetectGameStillCounter = 0;
 var removeTryAgainVideoTimeout = null;
 var screencastAutostarted = false;
+var watchTimeInterval = null;
 
 // at the root level keyed by controller number, then 
 // keys are server values, values are client values
@@ -2599,7 +2600,8 @@ function displayRemoteMedia(system, game, parents, serverLaunched) {
 
     var gameEntry = parentGameDictEntryGames[selected.game];
 
-    var watchTimeInterval;
+    clearInterval(watchTimeInterval);
+    watchTimeInterval = null;
     var recordTimestamps = function() {
         if( gameEntry && gameEntry.seconds && parseInt(gameEntry.seconds) ) {
             if( videoElement.duration && (videoElement.duration - parseInt(gameEntry.seconds) > SECONDS_ENDED) ) videoElement.currentTime = gameEntry.seconds;
