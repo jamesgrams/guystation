@@ -2666,7 +2666,7 @@ function playNextMedia(offset) {
             var playlistEntry = getGamesInFolder(playlistParents, system, false)[playlist];
             if( playlistEntry ) {
                 playlistEntry.track = newIndex;
-                makeRequest("POST", "/media/timestamp", { system: system, game: playlist, parents: JSON.stringify(playlistParents), track: newIndex });
+                makeRequest("POST", "/media/track", { system: system, game: playlist, parents: JSON.stringify(playlistParents), track: newIndex });
             }
         }
         

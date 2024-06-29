@@ -423,7 +423,8 @@ const ERROR_MESSAGES = {
     "couldNotFindVideo": "Could not find video on page",
     "couldNotMuteProperly": "Could not mute properly",
     "invalidMuteMode": "Invalid mute mode",
-    "invalidMuteMode": "Invalid timestamp",
+    "invalidSeconds": "Invalid timestamp",
+    "invalidTrack": "Invalid track number",
     "alreadyStreamingRtmp": "Already streaming RTMP",
     "rtmpUrl": "Please enter a RTMP url",
     "twitchNoValidate": "Could not validate Twitch",
@@ -436,7 +437,8 @@ const ERROR_MESSAGES = {
     "invalidRomCandidate": "Invalid ROM candidate",
     "pcStillLoading": "PC still loading",
     "streamCurrentlyFetching": "Info currently being fetching",
-    "watchTimeMedia": "Timestamp can only be set for media"
+    "watchTimeMedia": "Timestamp can only be set for media",
+    "playlistTrack": "Tracks can only be set for playlists"
 }
 // http://jsfiddle.net/vWx8V/ - keycode
 // http://robotjs.io/docs/syntax - robotjs
@@ -955,10 +957,17 @@ app.post("/screencast/mute", async function(request, response) {
     writeActionResponse( request, response, errorMessage );
 });
 
-// Set the mute of the screencast
+// Set the seconds played
 app.post("/media/timestamp", async function(request, response) {
     console.log("app serving /media/timestamp with body: " + JSON.stringify(request.body));
-    let errorMessage = await updateWatchPosition( request.body.system, request.body.game, JSON.parse(request.body.parents), request.body.seconds, request.body.track );
+    let errorMessage = await updateWatchPosition( request.body.system, request.body.game, JSON.parse(request.body.parents), request.body.seconds );
+    writeActionResponse( request, response, errorMessage );
+});
+
+// Set the track position for a playlist
+app.post("/media/track", async function(request, response) {
+    console.log("app serving /media/track with body: " + JSON.stringify(request.body));
+    let errorMessage = await updateTrackPosition( request.body.system, request.body.game, JSON.parse(request.body.parents), request.body.track );
     writeActionResponse( request, response, errorMessage );
 });
 
@@ -3271,15 +3280,43 @@ async function updatePlaytime() {
 
 /**
  * Update the watch position
+ * @param {string} system - The system of the game to see if it's being played.
+ * @param {string} game - The game to check if it's being played.
+ * @param {Array<string>} parents - An array of parent folders for a game.
+ * @param {number} seconds the current watch seconds.
  * @returns {Promise<(boolean|string)>} A promise containing an error message if there is one, otherwise false.
  */
-async function updateWatchPosition( system, game, parents, seconds, track ) {
+async function updateWatchPosition( system, game, parents, seconds ) {
     let isInvalid = isInvalidGame( system, game, parents );
     if( isInvalid ) {
         return Promise.resolve(isInvalid);
     }
     if( system !== MEDIA ) return Promise.resolve(ERROR_MESSAGES.watchTimeMedia)
     if( !parseInt(seconds) ) return Promise.resolve(ERROR_MESSAGES.invalidSeconds);
+
+    let updateObj = { seconds };
+    if( track ) updateObj.track = track;
+    await updateGameMetaData( system, game, parents, updateObj );
+    return Promise.resolve(false);
+}
+
+/**
+ * Update the track position
+ * @param {string} system - The system of the game to see if it's being played.
+ * @param {string} game - The game to check if it's being played.
+ * @param {Array<string>} parents - An array of parent folders for a game.
+ * @param {number} track the current track.
+ * @returns {Promise<(boolean|string)>} A promise containing an error message if there is one, otherwise false.
+ */
+async function updateTrackPosition( system, game, parents, track ) {
+    let isInvalid = isInvalidGame( system, game, parents );
+    if( isInvalid ) {
+        return Promise.resolve(isInvalid);
+    }
+    if( system !== MEDIA ) return Promise.resolve(ERROR_MESSAGES.watchTimeMedia);
+    if( !parseInt(track) ) return Promise.resolve(ERROR_MESSAGES.invalidTrack);
+    let gameDictEntry = getGameDictEntry(system, game, parents);
+    if( !gameDictEntry || !gameDictEntry.isPlaylist ) return Promise.resolve(ERROR_MESSAGES.playlistTrack);
 
     let updateObj = { seconds };
     if( track ) updateObj.track = track;
