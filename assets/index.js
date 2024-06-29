@@ -2581,44 +2581,34 @@ function displayRemoteMedia(system, game, parents, serverLaunched) {
         var playlist = playlistParents.pop();
         playlistEntry = getGamesInFolder(playlistParents, selected.system, false)[playlist];
         if( playlistEntry ) {
-            if( playlistEntry.track && elementIndex !== playlistEntry.track ) playNextMedia(playlistEntry.track);
+            if( playlistEntry.track && elementIndex !== playlistEntry.track ) {
+                var newGame = parentGameDictEntryGames[parentGameDictEntryGamesKeys[track]];
+                if( newGame ) {
+                    if( isServer ) {
+                        launchGame( system, newGame, parents );
+                    }
+                    // Otherwise this is plain old remote media, so we just want to open a new modal with the new system
+                    else {
+                        closeModalCallback = null;
+                        displayRemoteMedia( system, newGame, parents );
+                    }
+                }
+                return;
+            }
         }
     }
 
     var watchTimeInterval;
     var recordTimestamps = function() {
-        if( playlistEntry ) {
-            if( playlistEntry.seconds && parseInt(playlistEntry.seconds) ) {
-                if( videoElement.duration && (videoElement.duration - parseInt(gameEntry.seconds) > SECONDS_ENDED) ) videoElement.currentTime = playlistEntry.seconds;
-            }
-        }
-        else if( gameEntry && gameEntry.seconds && parseInt(gameEntry.seconds) ) {
+        if( gameEntry && gameEntry.seconds && parseInt(gameEntry.seconds) ) {
             if( videoElement.duration && (videoElement.duration - parseInt(gameEntry.seconds) > SECONDS_ENDED) ) videoElement.currentTime = gameEntry.seconds;
         }
         if( videoElement.duration ) {
             watchTimeInterval = setInterval( function() {
-                var obj = {};
                 if( videoElement.duration > MIN_VIDEO_DURATION_FOR_TIMESTAMP ) {
-                    obj.seconds = videoElement.currentTime;
-                }
-                if( playlistEntry ) {
-                    obj.track = elementIndex;
-                }
-                if( Object.keys(obj).length ) {
-                    var requestParents = selected.parents;
-                    var requestGame = selected.game;
-                    if( playlistEntry ) {
-                        requestParents = playlistParents;
-                        requestGame = playlistEntry.name;
-                    }
-                    makeRequest("POST", "/media/timestamp", { system: selected.system, game: requestGame, parents: JSON.stringify(requestParents), ...obj }, function() {
-                        if( playlistEntry ) {
-                            if( obj.seconds ) playlistEntry.seconds = obj.seconds;
-                            if( obj.track ) playlistEntry.track = obj.track
-                        } // keep a copy locally until server side update
-                        else {
-                            if( obj.seconds ) gameEntry.seconds = obj.seconds;
-                        }
+                    var seconds = videoElement.currentTime;
+                    makeRequest("POST", "/media/timestamp", { system: selected.system, game: selected.game, parents: JSON.stringify(selected.parents), seconds: seconds }, function() {
+                        gameEntry.seconds = seconds;
                     });
                 }
             }, WATCH_TIME_INTERVAL );
@@ -2667,6 +2657,18 @@ function playNextMedia(offset) {
         var newIndex = getIndex( elementIndex, parentGameDictEntryGamesKeys, offset );
         var newGame = parentGameDictEntryGamesKeys[newIndex];
         var isServerLaunched = document.querySelector(".modal #remote-media-form").hasAttribute("data-is-server-launched");
+        
+        var isPlaylistMedia = JSON.stringify(getGamesInFolder(parents, system, false)) != JSON.stringify(getGamesInFolder(parents, system, true));
+        if( isPlaylistMedia ) {
+            var playlistParents = JSON.parse(JSON.stringify(parents));
+            var playlist = playlistParents.pop();
+            var playlistEntry = getGamesInFolder(playlistParents, system, false)[playlist];
+            if( playlistEntry ) {
+                playlistEntry.track = newIndex;
+                makeRequest("POST", "/media/timestamp", { system: system, game: playlist, parents: JSON.stringify(playlistParents), track: newIndex });
+            }
+        }
+        
         // If this is a server game using remote media, we want to launch a new game in the same fashion
         // the server will call diplayRemoteMedia after the server does what it needs too
         if( isServerLaunched ) {
