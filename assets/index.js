@@ -2574,16 +2574,53 @@ function displayRemoteMedia(system, game, parents, serverLaunched) {
 
     var gameEntry = parentGameDictEntryGames[selected.game];
 
+    var playlistEntry = null;
+    var playlistParents = null;
+    if( isPlaylistMedia ) {
+        var playlistParents = JSON.parse(JSON.stringify(selected.parents));
+        var playlist = playlistParents.pop();
+        playlistEntry = getGamesInFolder(playlistParents, selected.system, false)[playlist];
+        if( playlistEntry ) {
+            if( playlistEntry.track && elementIndex !== playlistEntry.track ) playNextMedia(playlistEntry.track);
+        }
+    }
+
     var watchTimeInterval;
     var recordTimestamps = function() {
-        if( gameEntry && gameEntry.seconds && parseInt(gameEntry.seconds) ) {
+        if( playlistEntry ) {
+            if( playlistEntry.seconds && parseInt(playlistEntry.seconds) ) {
+                if( videoElement.duration && (videoElement.duration - parseInt(gameEntry.seconds) > SECONDS_ENDED) ) videoElement.currentTime = playlistEntry.seconds;
+            }
+        }
+        else if( gameEntry && gameEntry.seconds && parseInt(gameEntry.seconds) ) {
             if( videoElement.duration && (videoElement.duration - parseInt(gameEntry.seconds) > SECONDS_ENDED) ) videoElement.currentTime = gameEntry.seconds;
         }
-        if( videoElement.duration && videoElement.duration > MIN_VIDEO_DURATION_FOR_TIMESTAMP ) {
+        if( videoElement.duration ) {
             watchTimeInterval = setInterval( function() {
-                makeRequest("POST", "/media/timestamp", { system: selected.system, game: selected.game, parents: JSON.stringify(selected.parents), seconds: videoElement.currentTime }, function() {
-                    gameDictEntry.seconds = seconds; // keep a copy locally until server side update
-                });
+                var obj = {};
+                if( videoElement.duration > MIN_VIDEO_DURATION_FOR_TIMESTAMP ) {
+                    obj.seconds = videoElement.currentTime;
+                }
+                if( playlistEntry ) {
+                    obj.track = elementIndex;
+                }
+                if( Object.keys(obj).length ) {
+                    var requestParents = selected.parents;
+                    var requestGame = selected.game;
+                    if( playlistEntry ) {
+                        requestParents = playlistParents;
+                        requestGame = playlistEntry.name;
+                    }
+                    makeRequest("POST", "/media/timestamp", { system: selected.system, game: requestGame, parents: JSON.stringify(requestParents), ...obj }, function() {
+                        if( playlistEntry ) {
+                            if( obj.seconds ) playlistEntry.seconds = obj.seconds;
+                            if( obj.track ) playlistEntry.track = obj.track
+                        } // keep a copy locally until server side update
+                        else {
+                            if( obj.seconds ) gameEntry.seconds = obj.seconds;
+                        }
+                    });
+                }
             }, WATCH_TIME_INTERVAL );
         }
     };

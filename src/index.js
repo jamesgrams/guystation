@@ -958,7 +958,7 @@ app.post("/screencast/mute", async function(request, response) {
 // Set the mute of the screencast
 app.post("/media/timestamp", async function(request, response) {
     console.log("app serving /media/timestamp with body: " + JSON.stringify(request.body));
-    let errorMessage = await updateWatchPosition( request.body.system, request.body.game, JSON.parse(request.body.parents), request.body.seconds );
+    let errorMessage = await updateWatchPosition( request.body.system, request.body.game, JSON.parse(request.body.parents), request.body.seconds, request.body.track );
     writeActionResponse( request, response, errorMessage );
 });
 
@@ -2388,6 +2388,7 @@ async function getData( startup, noPlaying, nonessential ) {
         for( let system in systemsDictNoPlaytimeInfo ) {
             deleteKeyRecursive(systemsDictNoPlaytimeInfo[system].games, "playtimeInfo");
             deleteKeyRecursive(systemsDictNoPlaytimeInfo[system].games, "seconds");
+            deleteKeyRecursive(systemsDictNoPlaytimeInfo[system].games, "track");
         }
         systemsDictHashNoPlaytimeInfo = hash( systemsDictNoPlaytimeInfo );
     }
@@ -2511,6 +2512,7 @@ async function generateGames(system, games, parents=[], startup, noPlaying) {
             // sessions themselves takes up too much memory, and we only actually need the playtime info
             gameData.playtimeInfo = getTotalPlaytime(metadataFileContents);
             if( metadataFileContents.seconds ) gameData.seconds = metadataFileContents.seconds;
+            if( metadataFileContents.track ) gameData.track = metadataFileContents.track;
             if( metadataFileContents.siteUrl ) {
                 gameData.siteUrl = metadataFileContents.siteUrl;
                 if( metadataFileContents.script ) {
@@ -3271,7 +3273,7 @@ async function updatePlaytime() {
  * Update the watch position
  * @returns {Promise<(boolean|string)>} A promise containing an error message if there is one, otherwise false.
  */
-async function updateWatchPosition( system, game, parents, seconds ) {
+async function updateWatchPosition( system, game, parents, seconds, track ) {
     let isInvalid = isInvalidGame( system, game, parents );
     if( isInvalid ) {
         return Promise.resolve(isInvalid);
@@ -3279,7 +3281,9 @@ async function updateWatchPosition( system, game, parents, seconds ) {
     if( system !== MEDIA ) return Promise.resolve(ERROR_MESSAGES.watchTimeMedia)
     if( !parseInt(seconds) ) return Promise.resolve(ERROR_MESSAGES.invalidSeconds);
 
-    await updateGameMetaData( system, game, parents, { seconds: seconds } );
+    let updateObj = { seconds };
+    if( track ) updateObj.track = track;
+    await updateGameMetaData( system, game, parents, updateObj );
     return Promise.resolve(false);
 }
 
