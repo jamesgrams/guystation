@@ -2582,7 +2582,7 @@ function displayRemoteMedia(system, game, parents, serverLaunched) {
         playlistEntry = getGamesInFolder(playlistParents, selected.system, false)[playlist];
         if( playlistEntry ) {
             if( playlistEntry.track && elementIndex !== playlistEntry.track ) {
-                var newGame = parentGameDictEntryGames[parentGameDictEntryGamesKeys[track]];
+                var newGame = parentGameDictEntryGamesKeys[playlistEntry.track];
                 if( newGame ) {
                     if( isServer ) {
                         launchGame( system, newGame, parents );
@@ -2592,8 +2592,8 @@ function displayRemoteMedia(system, game, parents, serverLaunched) {
                         closeModalCallback = null;
                         displayRemoteMedia( system, newGame, parents );
                     }
+                    return;
                 }
-                return;
             }
         }
     }
