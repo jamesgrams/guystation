@@ -3295,7 +3295,6 @@ async function updateWatchPosition( system, game, parents, seconds ) {
     if( !parseInt(seconds) ) return Promise.resolve(ERROR_MESSAGES.invalidSeconds);
 
     let updateObj = { seconds };
-    if( track ) updateObj.track = track;
     await updateGameMetaData( system, game, parents, updateObj );
     return Promise.resolve(false);
 }
