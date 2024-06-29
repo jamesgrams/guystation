@@ -2873,7 +2873,8 @@ async function launchGame(system, game, restart=false, parents=[], dontSaveResol
         let tempParents = parents.slice(0);
         tempParents.push( game );
         // see if any of the tracks are currently being played and call launch on them if they are
-        let startIndex = 0;
+        let startIndex = gameDictEntry.track || 0;
+        if( startIndex > Object.keys(gameDictEntry.games).length ) startIndex = 0;
         let index = 0;
         for( let game of Object.keys(gameDictEntry.games) ) {
             if( isBeingPlayed(system, game, tempParents) ) {

@@ -2542,15 +2542,12 @@ function displayRemoteMedia(system, game, parents, serverLaunched) {
             if( playlistEntry.track && elementIndex !== playlistEntry.track ) {
                 var newGame = parentGameDictEntryGamesKeys[playlistEntry.track];
                 if( newGame ) {
-                    if( isServer ) {
-                        launchGame( system, newGame, parents );
-                    }
                     // Otherwise this is plain old remote media, so we just want to open a new modal with the new system
-                    else {
+                    if( !isServer ) { // Server code taken care of server side
                         closeModalCallback = null;
                         displayRemoteMedia( system, newGame, parents );
+                        return;
                     }
-                    return;
                 }
             }
         }
