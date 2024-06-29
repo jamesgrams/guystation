@@ -2527,6 +2527,34 @@ function displayRemoteMedia(system, game, parents, serverLaunched) {
     if( parents ) selected.parents = parents;
 
     var isPlaylistMedia = JSON.stringify(getGamesInFolder(selected.parents, selected.system, false)) != JSON.stringify(getGamesInFolder(selected.parents, selected.system, true));
+    var parentGameDictEntryGames = removeNotDownloaded(removePlaylists(filterGameTypes(getGamesInFolder(selected.parents, selected.system, true), false)));
+    var parentGameDictEntryGamesKeys = Object.keys(parentGameDictEntryGames);
+    var elementIndex = parentGameDictEntryGamesKeys.indexOf( selected.game );
+
+    var playlistEntry = null;
+    var playlistParents = null;
+    if( isPlaylistMedia ) {
+        var playlistParents = JSON.parse(JSON.stringify(selected.parents));
+        var playlist = playlistParents.pop();
+        playlistEntry = getGamesInFolder(playlistParents, selected.system, false)[playlist];
+        if( playlistEntry ) {
+            if( playlistEntry.track && elementIndex !== playlistEntry.track ) {
+                var newGame = parentGameDictEntryGamesKeys[playlistEntry.track];
+                if( newGame ) {
+                    if( isServer ) {
+                        launchGame( system, newGame, parents );
+                    }
+                    // Otherwise this is plain old remote media, so we just want to open a new modal with the new system
+                    else {
+                        closeModalCallback = null;
+                        displayRemoteMedia( system, newGame, parents );
+                    }
+                    return;
+                }
+            }
+        }
+    }
+
     var title = selected.game;
     if( isPlaylistMedia ) {
         title = title.split(SERVER_PLAYLIST_SEPERATOR);
@@ -2567,36 +2595,9 @@ function displayRemoteMedia(system, game, parents, serverLaunched) {
         form.setAttribute("data-is-server-launched", "true");
     }
 
-    var parentGameDictEntryGames = removeNotDownloaded(removePlaylists(filterGameTypes(getGamesInFolder(selected.parents, selected.system, true), false)));
-    var parentGameDictEntryGamesKeys = Object.keys(parentGameDictEntryGames);
-    var elementIndex = parentGameDictEntryGamesKeys.indexOf( selected.game );
     form.appendChild(createPositionIndicator( elementIndex+1, parentGameDictEntryGamesKeys.length ));
 
     var gameEntry = parentGameDictEntryGames[selected.game];
-
-    var playlistEntry = null;
-    var playlistParents = null;
-    if( isPlaylistMedia ) {
-        var playlistParents = JSON.parse(JSON.stringify(selected.parents));
-        var playlist = playlistParents.pop();
-        playlistEntry = getGamesInFolder(playlistParents, selected.system, false)[playlist];
-        if( playlistEntry ) {
-            if( playlistEntry.track && elementIndex !== playlistEntry.track ) {
-                var newGame = parentGameDictEntryGamesKeys[playlistEntry.track];
-                if( newGame ) {
-                    if( isServer ) {
-                        launchGame( system, newGame, parents );
-                    }
-                    // Otherwise this is plain old remote media, so we just want to open a new modal with the new system
-                    else {
-                        closeModalCallback = null;
-                        displayRemoteMedia( system, newGame, parents );
-                    }
-                    return;
-                }
-            }
-        }
-    }
 
     var watchTimeInterval;
     var recordTimestamps = function() {
