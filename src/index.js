@@ -3318,8 +3318,7 @@ async function updateTrackPosition( system, game, parents, track ) {
     let gameDictEntry = getGameDictEntry(system, game, parents);
     if( !gameDictEntry || !gameDictEntry.isPlaylist ) return Promise.resolve(ERROR_MESSAGES.playlistTrack);
 
-    let updateObj = { seconds };
-    if( track ) updateObj.track = track;
+    let updateObj = { track };
     await updateGameMetaData( system, game, parents, updateObj );
     return Promise.resolve(false);
 }
