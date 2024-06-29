@@ -2482,7 +2482,7 @@ function deleteKeyRecursive(games, key) {
     for( let gameName in games ) {
         let game = games[gameName];
         delete game[key];
-        if( game.isFolder ) {
+        if( game.isFolder || game.isPlaylist ) {
             deleteKeyRecursive(game.games, key);
         }
     }
