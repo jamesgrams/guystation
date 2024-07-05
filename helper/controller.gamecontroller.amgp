@@ -29,14 +29,6 @@
                     </slot>
                 </slots>
             </button>
-            <button index="8">
-                <slots>
-                    <slot>
-                        <code>0x3d</code>
-                        <mode>keyboard</mode>
-                    </slot>
-                </slots>
-            </button>
             <button index="9">
                 <slots>
                     <slot>
