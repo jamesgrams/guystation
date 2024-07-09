@@ -2513,6 +2513,479 @@ function displayRemoteMediaScreenshots() {
 }
 
 /**
+* Wrap Video Controls
+* @param {HTMLElement} video - The video element.
+* @param {string} [title] - The title of the video.
+* @param {string} [subtitle] - The subtitle of the video.
+* @param {Function} [next] - The next function.
+* @param {Function} [previous] - The previous function.
+*/
+function wrapVideoControls(video, title, subtitle, next, previous) {
+    var videoContainer = document.createElement("div");
+    videoContainer.classList.add("video-container");
+    video.removeAttribute("controls");
+
+    videoContainer.appendChild(video);
+
+    var controls = document.createElement("div");
+    controls.classList.add("video-controls");
+
+    // title
+    var titles = document.createElement("div");
+    titles.classList.add("video-titles");
+    if( title ) {
+        var titleAndSubtitle = document.createElement("div");
+        var titleTitle = document.createElement("div");
+        titleTitle.classList.add("video-title");
+        titleTitle.innerText = title;
+        titleAndSubtitle.appendChild(titleTitle);
+        if( subtitle ) {
+            var subtitleTitle = document.createElement("div");
+            subtitleTitle.classList.add("video-subtitle");
+            subtitleTitle.innerText = subtitle;
+            titleAndSubtitle.appendChild(subtitleTitle);
+        }
+        titles.appendChild(titleAndSubtitle);
+    }
+
+    // hover
+    var hoverTimeout;
+    var HOVER_TIMEOUT_TIME = 1000;
+    function hideVideoControls() {
+        if( menu.classList.contains("show-menu") ) return;
+        controls.classList.remove("show-controls");
+        titles.classList.remove("show-controls");
+        hideVideoMenu();
+        noClick = false;
+    }
+    var noClick = false;
+
+    let events = ["mouseover","mousemove","mouseout"];
+    if( isTouch() ) events = ["touchstart", "touchmove", "touchend"];
+    let eventsDown = ["mousedown","mousemove","mouseup"];
+    if( isTouch() ) eventsDown = ["touchstart", "touchmove", "touchend"];
+    videoContainer.addEventListener(events[0], function(e) {
+        if( !controls.classList.contains("show-controls") ) {
+            noClick = true;
+            e.stopPropagation();
+        }
+        else noClick = false;
+        clearTimeout(hoverTimeout);
+        controls.classList.add("show-controls");
+        titles.classList.add("show-controls");
+        hoverTimeout = setTimeout( hideVideoControls, HOVER_TIMEOUT_TIME*4 );
+    });
+    videoContainer.addEventListener(events[1], function(e) {
+        if( !controls.classList.contains("show-controls") ) {
+            noClick = true;
+            e.stopPropagation();
+        }
+        else noClick = false;
+        clearTimeout(hoverTimeout);
+        controls.classList.add("show-controls");
+        titles.classList.add("show-controls");
+        hoverTimeout = setTimeout( hideVideoControls, HOVER_TIMEOUT_TIME*4 );
+    });
+    if( !isTouch() ) {
+        videoContainer.addEventListener("mouseout", function() {
+            clearTimeout(hoverTimeout);
+            hoverTimeout = setTimeout( hideVideoControls, HOVER_TIMEOUT_TIME );
+        });
+    }
+    setTimeout( function() {
+        if( document.querySelector(".modal" ) ) {
+            document.querySelector(".modal").addEventListener("click", hideVideoControls);
+        }
+    }, 1000 );
+
+    var topLayer = document.createElement("div");
+    var bottomLayer = document.createElement("div");
+
+    // progress bar
+    var progressBar = document.createElement("div");
+    progressBar.classList.add("progress-bar");
+
+    var progressBarTracks = document.createElement("div");
+    progressBarTracks.classList.add("progress-bar-tracks");
+    progressBar.appendChild(progressBarTracks);
+
+    var progressBarLoadedTracks = document.createElement("div");
+    progressBarLoadedTracks.classList.add("progress-bar-tracks-loaded");
+    progressBar.appendChild(progressBarLoadedTracks);
+
+    function setLoadedTracks() {
+        if( !video.buffered.length ) return;
+        var bufferIndex = 0;
+        for( var i=0; i<video.buffered.length; i++ ) {
+            if( video.buffered.start(i) <= video.currentTime && video.buffered.end(i) >= video.currentTime ) {
+                bufferIndex = i;
+            }
+        }
+        var loadedPercentage = video.buffered.end(bufferIndex)/video.duration * 100;
+        var offsetStart = video.buffered.start(bufferIndex)/video.duration * 100;
+        var osPixels = offsetStart/100 * (progressBarTracks.offsetWidth - 26);
+        var oLeft = Math.floor(osPixels/14)*14;
+        progressBarLoadedTracks.style.left = oLeft + "px";
+        oLeft = -oLeft + 26;
+        progressBarLoadedTracks.style.width = "calc("+(loadedPercentage)+"% + "+oLeft+"px)";
+    }
+    video.addEventListener("progress", setLoadedTracks);
+
+    var train = document.createElement("div");
+    train.classList.add("progress-train");
+    train.innerText = "*";
+    progressBar.appendChild(train);
+    topLayer.appendChild(progressBar);
+
+    // play element
+    var playElement = document.createElement("i");
+    playElement.classList.add("fas", "fa-play");
+    function playPause(e) {
+        if(noClick) return;
+        e.stopPropagation();
+        if( playElement.classList.contains("fa-play") ) video.play();
+        else video.pause();
+    }
+    playElement.addEventListener("click", playPause);
+    video.addEventListener("click", playPause);
+    bottomLayer.appendChild(playElement);
+
+    controls.classList.add("video-paused");
+    titles.classList.add("video-paused");
+    video.addEventListener("pause", function() {
+        playElement.classList.remove("fa-pause");
+        playElement.classList.add("fa-play");
+        controls.classList.add("video-paused");
+        titles.classList.add("video-paused");
+    });
+    video.addEventListener("play", function() {
+        playElement.classList.remove("fa-play");
+        playElement.classList.add("fa-pause");
+        controls.classList.remove("video-paused");
+        titles.classList.remove("video-paused");
+    });
+
+    // timer
+    var timer = document.createElement("div");
+    timer.classList.add("video-timer");
+    bottomLayer.appendChild(timer);
+
+    // volume
+    var volumeDiv = document.createElement("div");
+    volumeDiv.classList.add("video-volume-wrapper");
+
+    var volumeElement = document.createElement("i");
+    volumeElement.classList.add("fas", "fa-volume-high");
+
+    var lastVolume;
+    volumeElement.onclick = function() {
+        if(noClick) return;
+        if( !video.volume ) {
+            video.volume = lastVolume || 1;
+        }
+        else {
+            video.volume = 0;
+        }
+    }
+
+    volumeDiv.appendChild(volumeElement);
+    var slider = document.createElement("input");
+    slider.setAttribute("type", "range");
+    slider.classList.add("video-slider");
+    volumeDiv.appendChild(slider);
+    function setSlider() {
+        if( video.volume > 0 ) lastVolume = video.volume;
+        slider.value = video.volume * 100;
+        if( video.volume > 0.5 ) {
+            volumeElement.classList.add("fa-volume-high");
+            volumeElement.classList.remove("fa-volume-low");
+            volumeElement.classList.remove("fa-volume-xmark");
+        }
+        else if( video.volume > 0 ) {
+            volumeElement.classList.add("fa-volume-low");
+            volumeElement.classList.remove("fa-volume-high");
+            volumeElement.classList.remove("fa-volume-xmark");
+        }
+        else {
+            volumeElement.classList.add("fa-volume-xmark");
+            volumeElement.classList.remove("fa-volume-high");
+            volumeElement.classList.remove("fa-volume-low");
+        }
+    }
+    bottomLayer.appendChild(volumeDiv);
+    
+    video.addEventListener("volumechange", function(e) {
+        setSlider();
+    });
+    slider.addEventListener("input", function() {
+        video.volume = this.value/100;
+    });
+    setSlider();
+
+    // gap
+    var gap = document.createElement("div");
+    gap.classList.add("video-gap");
+    bottomLayer.appendChild(gap);
+
+    // fullscreen
+    var fullscreenElement = document.createElement("i");
+    fullscreenElement.classList.add("fas", "fa-expand");
+    fullscreenElement.addEventListener("click", function() {
+        if(noClick) return;
+        if( document.fullscreenElement ) {
+            document.exitFullscreen();
+        }
+        else {
+            videoContainer.requestFullscreen();
+        }
+    });
+    function fullscreenChange() {
+        if( !document.body.contains(videoContainer) ) {
+            document.removeEventListener("fullscreenchange", fullscreenChange);
+        }
+        if (document.fullscreenElement) {
+            fullscreenElement.classList.remove("fa-expand");
+            fullscreenElement.classList.add("fa-compress");
+        }
+        else {
+            fullscreenElement.classList.remove("fa-compress");
+            fullscreenElement.classList.add("fa-expand");
+        }
+    }
+    document.addEventListener("fullscreenchange", fullscreenChange);
+    bottomLayer.appendChild(fullscreenElement);
+
+    // menu
+    var menuElement = document.createElement("i");
+    menuElement.classList.add("fas", "fa-ellipses-vertical");
+    var menu = document.createElement("div");
+    menu.classList.add("video-menu");
+
+    var download = document.createElement("div");
+    download.innerHTML = "<i class='fas fa-download'></i> Download Video";
+    download.addEventListener("click", function(e) {
+        e.stopPropagation();
+        var a = document.createElement('a');
+        a.href = video.currentSrc;
+        a.download = a.href.split('/').pop();
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    });
+    menu.appendChild(download);
+
+    var pip = document.createElement("div");
+    var regularPip = "<i class='fas fa-clone'></i> Picture in Picture";
+    var closePip = "<i class='fas fa-clone'></i> Exit Picture in Picture";
+    pip.innerHTML = regularPip;
+    pip.addEventListener("click", function(e) {
+        e.stopPropagation();
+        if( document.pictureInPictureElement ) document.exitPictureInPicture();
+        else video.requestPictureInPicture();
+        hideVideoMenu(e);
+    });
+    menu.appendChild(pip);
+
+    video.addEventListener("enterpictureinpicture", function() {
+        pip.innerHTML = closePip;
+    });
+    video.addEventListener("leavepictureinpicture", function() {
+        pip.innerHTML = regularPip;
+    });
+
+    var playbackSpeed = document.createElement("div");
+    playbackSpeed.classList.add("playback-speed");
+    var playbackElement = document.createElement("i");
+    playbackElement.classList.add("fas", "fa-person-running");
+    playbackSpeed.appendChild(playbackElement);
+    var playbackOptions = document.createElement("div");
+    playbackOptions.classList.add("playback-options");
+    var playbackSpan = document.createElement("span");
+    playbackSpan.innerText = " Playback Speed";
+    playbackOptions.appendChild(playbackSpan);
+
+    var playbackSlider = document.createElement("input");
+    playbackSlider.setAttribute("max", "2");
+    playbackSlider.setAttribute("min", "0.25");
+    playbackSlider.setAttribute("step", "0.25");
+    playbackSlider.setAttribute("type", "range");
+    playbackSlider.classList.add("playback-slider");
+    playbackOptions.appendChild(playbackSlider);
+    playbackSpeed.appendChild(playbackOptions);
+
+    var playbackGap = document.createElement("div");
+    playbackGap.classList.add("video-gap");
+    playbackSpeed.appendChild(playbackGap);
+
+    var playbackAfter = document.createElement("div");
+    playbackAfter.classList.add("playback-after");
+    playbackSpeed.appendChild(playbackAfter);
+
+    function setPlaybackSlider() {
+        playbackSlider.value = video.playbackRate;
+        playbackAfter.innerText = video.playbackRate;
+    }
+    video.addEventListener("ratechange", function(e) {
+        setPlaybackSlider();
+    });
+    playbackSlider.addEventListener("input", function() {
+        video.playbackRate = this.value;
+    });
+    setPlaybackSlider();
+
+    menu.appendChild(playbackSpeed);
+
+    // loop and lock
+    var loopAndLock = document.createElement("div");
+    loopAndLock.classList.add("loop-and-lock");
+    var loop = document.createElement("div");
+    loop.classList.add("loop");
+    var regularLoop =  "<i class='fas fa-rotate'></i> Loop";
+    loop.innerHTML = regularLoop;
+    var unloop = "<i class='fas fa-rotate'></i> Unloop";
+    if( video.loop ) loop.innerHTML = unloop;
+    loop.onclick = function(e) {
+        e.stopPropagation();
+        if( video.loop ) {
+            video.loop = false;
+            loop.innerHTML = regularLoop;
+        }
+        else {
+            video.loop = true;
+            loop.innerHTML = unloop;
+        }
+    }
+    loopAndLock.appendChild(loop);
+
+    var lock = document.createElement("div");
+    lock.classList.add("lock");
+    lock.innerHTML = "<i class='fas fa-lock'></i> Lock";
+    lock.onclick = function() {
+        if( !document.fullscreenElement ) fullscreenElement.click();
+        var blocker = document.createElement("div");
+        blocker.classList.add("video-blocker");
+        blocker.addEventListener("click", tapHandler);
+        var tapedTwice = false;
+
+        function tapHandler(event) {
+            event.stopPropagation();
+            if(!tapedTwice) {
+                tapedTwice = true;
+                setTimeout( function() { tapedTwice = false; }, 300 );
+                return false;
+            }
+            event.preventDefault();
+            blocker.remove();
+        }
+        videoContainer.appendChild(blocker);
+    }
+    loopAndLock.appendChild(lock);
+    menu.appendChild(loopAndLock);
+
+    // TODO - keyboard jump, tap jump 
+    // next and prvious
+    // autopip
+    // save settings for next video like loop
+    // way to click on video when very small?
+    // auto fullscreen
+
+    // hide menu
+    function hideVideoMenu(e) {
+        if( !document.body.contains(videoContainer) ) {
+            document.body.removeEventListener("click", hideVideoMenu);
+        }
+        if(e)e.stopPropagation();
+        menu.classList.remove("show-menu");
+    }
+    menuElement.addEventListener("click", function(e) {
+        if(noClick) return;
+        if( menu.classList.contains("show-menu") ) {
+            hideVideoMenu(e);
+        }
+        else {
+            e.stopPropagation();
+            menu.classList.add("show-menu");
+        }
+    });
+    video.addEventListener("click", hideVideoMenu);
+    videoContainer.addEventListener("click", hideVideoMenu);
+    document.body.addEventListener("click", hideVideoMenu);
+    bottomLayer.appendChild(menuElement);
+    bottomLayer.appendChild(menu);
+
+    // functions
+    function formatTime(seconds) {
+        function padZeros(s) {
+            if( s.toString().length < 2 ) return "0" + s.toString();
+            return s.toString();
+        }
+        var hours = Math.floor(seconds/3600);
+        var minutes = Math.floor((seconds % 3600)/60);
+        var seconds = Math.floor((seconds % 60));
+        var returnVal = [];
+        if( hours ) returnVal.push(hours);
+        returnVal.push(hours ? padZeros(minutes) : minutes);
+        returnVal.push(padZeros(seconds));
+        return returnVal.join(":");
+    }
+    function setTimer() {
+        timer.innerText = formatTime(video.currentTime) + " / " + formatTime(video.duration);
+    }
+    //setTimer();
+    function setTrain() {
+        train.style.left = (video.currentTime/video.duration)*100 + "%";
+        setTimer(); // when we update the train, update the time.
+    }
+    video.addEventListener("timeupdate", function(e) {
+        setTrain();
+        setLoadedTracks();
+    });
+
+    function setTime(e) {
+        if( e.touches ) e = e.touches[0];
+        var rect = progressBar.getBoundingClientRect();
+        var pos = (e.pageX - rect.left) /
+            progressBar.offsetWidth;
+        video.currentTime = pos * video.duration;
+        setTrain();
+    };
+
+    video.addEventListener("loadedmetadata", setTimer);
+
+    var md = false;
+    progressBar.addEventListener(eventsDown[0], function(e) {
+        if( noClick ) return;
+        md = true;
+        setTime(e);
+    });
+    progressBar.addEventListener(eventsDown[1], function(e) {
+        if( noClick ) return;
+        if( md ) setTime(e);
+    });
+    progressBar.addEventListener(eventsDown[2], function(e) {
+        if( noClick ) return;
+        if( md ) setTime(e);
+        md = false;
+    });
+    function mouseUpMd() {
+        if( !document.body.contains(videoContainer) ) {
+            document.body.removeEventListener("mouseup", mouseUpMd);
+        }
+        md = false;
+    }
+    document.body.addEventListener("mouseup", mouseUpMd);
+
+    controls.appendChild(topLayer);
+    controls.appendChild(bottomLayer);
+    if( title ) {
+        videoContainer.appendChild(titles);
+    }
+    videoContainer.appendChild(controls);
+
+    return videoContainer;
+}
+
+/**
  * Display remote media controls.
  * @param {string} [system] - The system to look at instead of the selected system.
  * @param {string} [game] - The game to look at instead of the selected game.
@@ -2576,7 +3049,10 @@ function displayRemoteMedia(system, game, parents, serverLaunched) {
     videoElement.setAttribute( "data-system", selected.system );
     videoElement.setAttribute( "data-game", encodeURIComponent(selected.game) );
     videoElement.setAttribute( "data-parents", parentsArrayToString( selected.parents ) );
-    form.appendChild(videoElement);
+
+    var wrappedVideo = wrapVideoControls(videoElement, title, parents ? parents.join(" > ") : "" );
+
+    form.appendChild(wrappedVideo);
 
     var backButton = createButton( '<i class="fas fa-chevron-left"></i>', function() {
         previousMedia();
@@ -2615,7 +3091,7 @@ function displayRemoteMedia(system, game, parents, serverLaunched) {
         }
     };
     videoElement.addEventListener("loadeddata", recordTimestamps);
-    
+ 
     launchModal( form, function() { 
         videoElement.removeEventListener("loadedData", recordTimestamps);
         clearInterval(watchTimeInterval);
@@ -7474,7 +7950,7 @@ function gotRemoteStream(event) {
     else {
         document.querySelector(".modal #remote-screencast-form audio, .modal #browser-controls-form audio, .black-background audio").srcObject = stream;
     }
-    // scale the screencas44t on the server to the previous setting
+    // scale the screencast on the server to the previous setting
     // we want to do this after the sender already exists, so we can only do it to this client
     var scale = parseFloat(window.localStorage.guystationScaleDownFactor);
     makeRequest( "POST", "/screencast/scale", { id: socket.id, factor: scale ? scale : SCALE_OPTIONS[0] } );

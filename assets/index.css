@@ -678,6 +678,249 @@ h1 {
     margin-top: 20px;
 }
 
+.video-container {
+    position: relative;
+    display: inline-block;
+}
+
+.video-container > video {
+    width: 100%;
+}
+
+.video-container:fullscreen > video {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.video-container > .video-controls:not(.show-controls),
+.video-container > .video-titles:not(.show-controls) {
+    user-select: none;
+    pointer-events: none;
+}
+
+.video-container > .video-controls {
+    position: absolute;
+    bottom: 0;
+    width: calc(100% - 20px);
+    padding: 10px;
+    padding-top: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+    background: linear-gradient(transparent, black);
+    font-size: 10pt;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.video-container > .video-titles {
+    position: absolute;
+    top: 0;
+    width: calc(100% - 20px);
+    padding: 10px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    background: linear-gradient(black, transparent);
+    font-size: 10pt;
+    opacity: 0;
+    transition: opacity 0.2s;
+    text-align: left;
+}
+
+.video-container > .video-titles > div {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.video-container .video-title {
+    font-size: 120%;
+}
+
+.video-container > .video-controls.show-controls,
+.video-container > .video-controls.video-paused,
+.video-container > .video-titles.show-controls,
+.video-container > .video-titles.video-paused {
+    opacity: 1;
+}
+
+.video-controls > div {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width:100%
+}
+
+.video-controls .progress-bar {
+    flex-grow: 1;
+    position: relative;
+    cursor: pointer;
+    margin-left: 13px;
+    margin-right: 13px;
+}
+
+.video-controls .progress-bar-tracks, .video-controls .progress-bar-tracks-loaded {
+    border-top: 3px solid #acacac;
+    border-bottom: 3px solid #acacac;
+    height: 5px;
+    align-items: center;
+    margin-left: -13px; /* half the train width */
+    margin-right: -13px;
+    background: repeating-linear-gradient(90deg, #acacac 4px, #acacac 7px, transparent 7px, transparent 18px);
+    transform: skew(-40deg);
+}
+
+.video-controls .progress-bar-tracks-loaded {
+    border-top: 3px solid white;
+    border-bottom: 3px solid white;
+    background: repeating-linear-gradient(90deg, white 4px, white 7px, transparent 7px, transparent 18px);
+    position: absolute;
+    width: 26px;
+    /*width: calc(100% + 26px);*/
+    top: 0;
+    left: 0;
+}
+
+.video-controls .progress-bar .progress-train {
+    font-family: "toy-train";
+    font-weight: 100;
+    transform: scaleX(-100%)translateX(50%)translateY(-85%);
+    position: absolute;
+    top:0;
+    color: #ffffff;
+    cursor: pointer;
+    user-select: none;
+    font-size: 30px;
+}
+
+.video-controls > div {
+    white-space: nowrap;
+}
+
+.video-controls .video-timer {
+    flex-shrink: 2;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.video-controls i {
+    cursor: pointer;
+    transition: 0.1s;
+    width: 12px;
+    text-align: center;
+}
+
+.video-controls i:hover {
+    transform: scale(1.15);
+}
+
+.video-volume-wrapper {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.video-slider, .playback-slider {
+    accent-color: white;
+    height: 5px;
+    border-radius: 5px;
+    width: 0;
+    transition: width 0.2s;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.video-gap {
+    flex-grow: 1;
+}
+
+.playback-speed {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.playback-speed > .playback-options > span {
+    transition: all 0.2s;
+}
+
+.playback-speed:hover > .playback-options > span {
+    opacity: 0;
+}
+
+.playback-options {
+    position: relative;
+    display: inline-block;
+}
+
+.playback-slider {
+    position: absolute;
+    left: 0;
+    top: 4px;
+}
+
+.playback-speed:hover .playback-slider {
+    width: 100%;
+    overflow: visible;
+}
+
+.video-volume-wrapper:hover .video-slider {
+    width: 60px;
+    overflow: visible;
+}
+
+.video-menu {
+    position: absolute;
+    bottom: 35px;
+    right: 10px;
+    background: white;
+    color: black;
+    height: 0;
+    width: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: all 0.2s;
+    border-radius: 5px;
+}
+
+.video-menu.show-menu {
+    height: 144px;
+    width: 170px;
+    opacity: 1;
+}
+
+.video-menu > div, .loop, .lock {
+    cursor: pointer;
+    transition: 0.2s;
+    padding: 10px;
+    user-select: none;
+}
+
+.video-menu > div:not(.loop-and-lock):hover,
+.video-menu .loop:hover, .video-menu .lock:hover {
+    background-color: #acacac;
+}
+
+.loop-and-lock {
+    padding: 0 !important;
+    display: flex;
+}
+
+.loop, .lock {
+    flex-grow: 1;
+}
+
+.video-blocker {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+}
+
 .game-preview {
     position: absolute;
     top: 7%;
@@ -959,7 +1202,7 @@ h1 {
     #time, #ip {
         display: none
     }
-    .modal input:not([type='checkbox']):not([type='radio']), .dying-modal input:not([type='checkbox']):not([type='radio']) {
+    .modal input:not([type='checkbox']):not([type='radio']):not(.video-slider):not(.playback-slider), .dying-modal input:not([type='checkbox']):not([type='radio']):not(.video-slider):not(.playback-slider) {
         min-width: 280px;
         width: 100%;
     }
@@ -1037,6 +1280,9 @@ readers do not read off random characters that represent icons */
 .fa-bars:before {
     content: "\f0c9"; }
 
+.fa-ellipses-vertical:before {
+    content: "\f142"; }
+
 .fa-desktop:before {
     content: "\f108"; }
 
@@ -1058,6 +1304,9 @@ readers do not read off random characters that represent icons */
 .fa-check:before {
     content: "\f00c"; }
 
+.fa-download:before {
+    content: "\f019"; }
+
 .fa-envelope:before {
     content: "\f0e0"; }
 
@@ -1069,6 +1318,9 @@ readers do not read off random characters that represent icons */
 
 .fa-expand:before {
     content: "\f065"; }
+
+.fa-compress:before {
+    content: "\f066"; }
 
 .fa-play:before {
     content: "\f04b"; }
@@ -1087,6 +1339,24 @@ readers do not read off random characters that represent icons */
 
 .fa-sort-alpha-down:before {
     content: "\f15d"; }
+
+.fa-volume-high:before {
+    content: "\f028"; }
+
+.fa-volume-low:before {
+    content: "\f027"; }
+
+.fa-volume-xmark:before {
+    content: "\f6a9"; }
+
+.fa-person-running:before {
+    content: "\f70c"; }
+
+.fa-rotate:before {
+    content: "\f2f1"; }
+
+.fa-lock:before {
+    content: "\f023"; }
 
 .sr-only-focusable:active, .sr-only-focusable:focus {
   clip: auto;
