@@ -577,9 +577,13 @@ h1 {
     display: none;
 }
 
-#remote-media-form video, #remote-media-form-screenshots img  {
+#remote-media-form .video-container, #remote-media-form video, #remote-media-form-screenshots img  {
     width: 100%;
     min-width: 200px;
+}
+
+#remote-media-form video  {
+    max-height: 100%
 }
 
 #browser-controls-form video::-webkit-media-controls {
@@ -681,6 +685,7 @@ h1 {
 .video-container {
     position: relative;
     display: inline-block;
+    min-height: 200px;
 }
 
 .video-container > video {
@@ -693,8 +698,8 @@ h1 {
     transform: translateY(-50%);
 }
 
-.video-container > .video-controls:not(.show-controls),
-.video-container > .video-titles:not(.show-controls) {
+.video-container > .video-controls:not(.show-controls,.video-paused),
+.video-container > .video-titles:not(.show-controls,.video-paused) {
     user-select: none;
     pointer-events: none;
 }
@@ -809,8 +814,8 @@ h1 {
 .video-controls i {
     cursor: pointer;
     transition: 0.1s;
-    width: 12px;
     text-align: center;
+    min-width: 12px;
 }
 
 .video-controls i:hover {
@@ -835,6 +840,10 @@ h1 {
 
 .video-gap {
     flex-grow: 1;
+}
+
+.video-next, .video-previous {
+    cursor: pointer;
 }
 
 .playback-speed {
@@ -1188,6 +1197,36 @@ h1 {
     }
     .game-preview {
         display: none !important;
+    }
+}
+
+@media only screen and (min-width: 836px) {
+    .video-container .video-titles, .video-container .video-controls {
+        font-size: 18pt;
+        gap: 15px;
+        padding: 10px;
+    }
+
+    .video-menu.show-menu {
+        height: 196px;
+        width: 270px;
+    }
+
+    .playback-slider {
+        top: 10px;
+    }
+
+    .video-menu {
+        bottom: 50px;
+        right: 15px;
+    }
+
+    .video-menu i {
+        margin-right: 5px;
+    }
+
+    .video-controls i {
+        min-width: 20px;
     }
 }
 

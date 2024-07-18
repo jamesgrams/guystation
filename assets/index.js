@@ -2548,6 +2548,37 @@ function wrapVideoControls(video, title, subtitle, next, previous) {
         titles.appendChild(titleAndSubtitle);
     }
 
+    // gap
+    var gap = document.createElement("div");
+    gap.classList.add("video-gap");
+    titles.appendChild(gap);
+
+    // next and previous
+    if( next || previous ) {
+        if( previous ) {
+            var previousElement = document.createElement("i");
+            previousElement.classList.add("fas", "fa-chevron-left");
+            previousElement.addEventListener("click", function(e) {
+                e.stopPropagation();
+                e.preventDefault();
+                previous();
+            });
+            previousElement.classList.add("video-previous");
+            titles.prepend(previousElement);
+        }
+        if( next ) {
+            var nextElement = document.createElement("i");
+            nextElement.classList.add("fas", "fa-chevron-right");
+            nextElement.addEventListener("click", function(e) {
+                e.stopPropagation();
+                e.preventDefault();
+                next();
+            });
+            nextElement.classList.add("video-next");
+            titles.appendChild(nextElement);
+        }
+    }
+
     // hover
     var hoverTimeout;
     var HOVER_TIMEOUT_TIME = 1000;
@@ -2565,7 +2596,7 @@ function wrapVideoControls(video, title, subtitle, next, previous) {
     let eventsDown = ["mousedown","mousemove","mouseup"];
     if( isTouch() ) eventsDown = ["touchstart", "touchmove", "touchend"];
     videoContainer.addEventListener(events[0], function(e) {
-        if( !controls.classList.contains("show-controls") ) {
+        if( !controls.classList.contains("show-controls") && !controls.classList.contains("video-paused") ) {
             noClick = true;
             e.stopPropagation();
         }
@@ -2576,7 +2607,7 @@ function wrapVideoControls(video, title, subtitle, next, previous) {
         hoverTimeout = setTimeout( hideVideoControls, HOVER_TIMEOUT_TIME*4 );
     });
     videoContainer.addEventListener(events[1], function(e) {
-        if( !controls.classList.contains("show-controls") ) {
+        if( !controls.classList.contains("show-controls") && !controls.classList.contains("video-paused") ) {
             noClick = true;
             e.stopPropagation();
         }
@@ -2641,12 +2672,14 @@ function wrapVideoControls(video, title, subtitle, next, previous) {
     var playElement = document.createElement("i");
     playElement.classList.add("fas", "fa-play");
     function playPause(e) {
-        if(noClick) return;
         e.stopPropagation();
         if( playElement.classList.contains("fa-play") ) video.play();
         else video.pause();
     }
-    playElement.addEventListener("click", playPause);
+    playElement.addEventListener("click", function(e) {
+        if(noClick) return;
+        playPause(e);
+    });
     video.addEventListener("click", playPause);
     bottomLayer.appendChild(playElement);
 
@@ -2769,6 +2802,9 @@ function wrapVideoControls(video, title, subtitle, next, previous) {
         a.href = video.currentSrc;
         a.download = a.href.split('/').pop();
         document.body.appendChild(a);
+        a.onclick = function(e) {
+            e.stopPropagation();
+        }
         a.click();
         document.body.removeChild(a);
     });
@@ -2831,6 +2867,9 @@ function wrapVideoControls(video, title, subtitle, next, previous) {
     playbackSlider.addEventListener("input", function() {
         video.playbackRate = this.value;
     });
+    playbackSpeed.addEventListener("click", function(e) {
+        e.stopPropagation();
+    });
     setPlaybackSlider();
 
     menu.appendChild(playbackSpeed);
@@ -2886,7 +2925,6 @@ function wrapVideoControls(video, title, subtitle, next, previous) {
     // next and prvious
     // autopip
     // save settings for next video like loop
-    // way to click on video when very small?
     // auto fullscreen
 
     // hide menu
@@ -2910,6 +2948,12 @@ function wrapVideoControls(video, title, subtitle, next, previous) {
     video.addEventListener("click", hideVideoMenu);
     videoContainer.addEventListener("click", hideVideoMenu);
     document.body.addEventListener("click", hideVideoMenu);
+    setTimeout( function() {
+        var queryModal = document.querySelector(".modal");
+        if( queryModal ) {
+            queryModal.addEventListener("click", hideVideoMenu);
+        }
+    }, 500 );
     bottomLayer.appendChild(menuElement);
     bottomLayer.appendChild(menu);
 
@@ -2936,6 +2980,8 @@ function wrapVideoControls(video, title, subtitle, next, previous) {
         train.style.left = (video.currentTime/video.duration)*100 + "%";
         setTimer(); // when we update the train, update the time.
     }
+    var tracksTimeout = null;
+    var TRACKS_TIMEOUT = 500;
     video.addEventListener("timeupdate", function(e) {
         setTrain();
         setLoadedTracks();
@@ -2947,7 +2993,9 @@ function wrapVideoControls(video, title, subtitle, next, previous) {
         var pos = (e.pageX - rect.left) /
             progressBar.offsetWidth;
         video.currentTime = pos * video.duration;
+        // smoother to do here than wait for timeupdate event
         setTrain();
+        setLoadedTracks();
     };
 
     video.addEventListener("loadedmetadata", setTimer);
@@ -3050,7 +3098,7 @@ function displayRemoteMedia(system, game, parents, serverLaunched) {
     videoElement.setAttribute( "data-game", encodeURIComponent(selected.game) );
     videoElement.setAttribute( "data-parents", parentsArrayToString( selected.parents ) );
 
-    var wrappedVideo = wrapVideoControls(videoElement, title, parents ? parents.join(" > ") : "" );
+    var wrappedVideo = wrapVideoControls(videoElement, title, selected.parents ? selected.parents.join(" > ") : "", function() { playNextMedia(1); }, previousMedia );
 
     form.appendChild(wrappedVideo);
 
@@ -3145,6 +3193,12 @@ function playNextMedia(offset) {
             }
         }
         
+
+        var isFullscreen = document.fullscreenElement;
+        var isPip = document.pictureInPictureElement;
+        if( isPip ) {
+            document.exitPictureInPicture();
+        }
         // If this is a server game using remote media, we want to launch a new game in the same fashion
         // the server will call diplayRemoteMedia after the server does what it needs too
         if( isServerLaunched ) {
@@ -3155,6 +3209,10 @@ function playNextMedia(offset) {
             closeModalCallback = null;
             displayRemoteMedia( system, newGame, parents );
         }
+        setTimeout( function() {
+            if( isFullscreen ) document.querySelector(".video-container").requestFullscreen();
+            if( isPip ) document.querySelector("video").requestPictureInPicture();
+        }, 1500 );
     }
 }
 
