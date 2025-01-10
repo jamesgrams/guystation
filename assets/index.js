@@ -2769,7 +2769,7 @@ function wrapVideoControls(video, title, subtitle, next, previous) {
             document.exitFullscreen();
         }
         else {
-            videoContainer.requestFullscreen();
+            tryNativeFullscreen( videoContainer );
         }
     });
     function fullscreenChange() {
@@ -3210,7 +3210,10 @@ function playNextMedia(offset) {
             displayRemoteMedia( system, newGame, parents );
         }
         setTimeout( function() {
-            if( isFullscreen ) document.querySelector(".video-container").requestFullscreen();
+            if( isFullscreen ) {
+                var videoContainer = document.querySelector(".video-container");
+                tryNativeFullscreen( videoContainer );
+            }
             if( isPip ) document.querySelector("video").requestPictureInPicture();
         }, 1500 );
     }
@@ -3921,7 +3924,7 @@ function defaultVirtualControllerCount() {
     if( desktopAndNoClientGamepad() ) return 0;
     if( isTouch() ) return 1;
     var gamepads = navigator.getGamepads();
-    return Object.keys(gamepads).filter( el => gamepads[el] ).length;
+    return gamepads.filter( el => gamepads[el] ).length;
 }
 
 /**
@@ -4452,7 +4455,7 @@ function fullscreenRemoteMedia() {
  */
 function fullscreenVideo( element ) {
 	let gamepads = navigator.getGamepads();
-    let forceNative = Object.keys(gamepads).filter(el => gamepads[el] ).length ||  (window.localStorage.guystationFsNative && window.localStorage.guystationFsNative !== "false");
+    let forceNative = gamepads.filter(el => gamepads[el] ).length ||  (window.localStorage.guystationFsNative && window.localStorage.guystationFsNative !== "false");
     if( isTouch() && !forceNative ) {
         // this should be for iOS safari
         //element.webkitEnterFullScreen();
@@ -4563,10 +4566,21 @@ function fullscreenVideo( element ) {
     }
     else {
         try {
-            element.requestFullscreen();
+            tryNativeFullscreen( element );
         }
         catch(err) {}
     }
+}
+
+/**
+* Try native fullscreen
+* @param {HTMLElement} element - The element to try to fullscreen.
+*/
+function tryNativeFullscreen( element ) {
+    if( element.requestFullscreen ) element.requestFullscreen();
+    else if( element.webkitRequestFullscreen ) element.webkitRequestFullscreen();
+    else if( element.webkitEnterFullScreen ) element.webkitEnterFullScreen();
+    else if( element.querySelector("video") ) tryNativeFullscreen( element.querySelector("video"), true );
 }
 
 /**
