@@ -1524,6 +1524,7 @@ async function launchBrowser() {
             '--no-sandbox',
             '--disable-infobars',
             '--start-maximized',
+            '--disable-blink-features=AutomationControlled',
             `--auto-select-desktop-capture-source=${numMonitors > 1 ? SCREEN_ONE : ENTIRE_SCREEN}` // this has to be like this otherwise the launcher will not read the argument. It has to do with node.js processes and how they handle quotes with shell=true. 
         ],
         ignoreDefaultArgs: ["--disable-extensions"],
